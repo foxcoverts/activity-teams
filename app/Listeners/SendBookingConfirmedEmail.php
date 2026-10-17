@@ -9,6 +9,11 @@ class SendBookingConfirmedEmail
 {
     public function handle(BookingConfirmed $event): void
     {
-        BookingNotificationWindow::push($event->booking, BookingNotificationWindow::CONFIRMED);
+        BookingNotificationWindow::push(
+            $event->booking,
+            BookingNotificationWindow::CONFIRMED,
+            changes: array_keys($event->changes),
+            previousSchedule: $event->previousSchedule,
+        );
     }
 }

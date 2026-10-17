@@ -22,4 +22,9 @@ class BookingChangedMail extends BookingStatusMail
     {
         return __('A booking you are invited to has changed.');
     }
+
+    protected function changeNotice(): ?string
+    {
+        return __('This booking has been updated');
+    }
 }

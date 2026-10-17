@@ -50,9 +50,14 @@ class Booking extends Model
         ];
     }
 
+    /**
+     * iCalendar SEQUENCE revisions (RFC 5545): start, end, and status must
+     * increment it. A location or activity change counts as one too.
+     */
     protected function sequenced(): array
     {
         return [
+            'activity_id',
             'start_at',
             'end_at',
             'venue_id',

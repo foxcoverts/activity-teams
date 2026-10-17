@@ -5,6 +5,7 @@ namespace App\Mail;
 use App\Models\Booking;
 use App\Models\BookingAttendance;
 use App\Models\User;
+use App\Support\BookingChangeSummary;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
@@ -17,9 +18,15 @@ class BookingStatusMail extends Mailable
 
     public ?BookingAttendance $attendance = null;
 
+    /**
+     * @param  list<string>  $changes
+     * @param  array{start_at: mixed, end_at: mixed, timezone: mixed}|null  $previousSchedule
+     */
     public function __construct(
         public Booking $booking,
         public User $attendee,
+        public array $changes = [],
+        public ?array $previousSchedule = null,
     ) {
         $this->booking->loadMissing(['activity', 'venue']);
         $this->attendance = $booking->attendees()->find($attendee)?->attendance;
@@ -35,6 +42,7 @@ class BookingStatusMail extends Mailable
     public function content(): Content
     {
         $token = $this->attendance?->token;
+        $changes = new BookingChangeSummary($this->booking, $this->changes, $this->previousSchedule);
 
         return new Content(
             markdown: 'mail.booking.status',
@@ -43,11 +51,18 @@ class BookingStatusMail extends Mailable
                 'title' => $this->heading(),
                 'intro' => $this->intro(),
                 'attendance' => $this->attendance,
+                'changeList' => $changes,
+                'changeNotice' => $changes->summary() ? $this->changeNotice() : null,
                 'respondUrl' => $token
                     ? route('respond', [$this->booking, $this->attendee, 'invite' => $token])
                     : null,
             ],
         );
+    }
+
+    protected function changeNotice(): ?string
+    {
+        return null;
     }
 
     protected function heading(): string

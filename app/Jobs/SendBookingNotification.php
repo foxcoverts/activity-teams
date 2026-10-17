@@ -52,13 +52,23 @@ class SendBookingNotification implements ShouldQueue
         $kinds = $pending['kinds'] ?? [];
 
         if (in_array(BookingNotificationWindow::CONFIRMED, $kinds, true) && $booking->isConfirmed()) {
-            $this->sendStatus($booking, fn (User $attendee): BookingConfirmedMail => new BookingConfirmedMail($booking, $attendee));
+            $this->sendStatus($booking, fn (User $attendee): BookingConfirmedMail => new BookingConfirmedMail(
+                $booking,
+                $attendee,
+                $pending['changes'] ?? [],
+                $pending['previous_schedule'] ?? null,
+            ));
 
             return;
         }
 
         if (in_array(BookingNotificationWindow::UPDATED, $kinds, true)) {
-            $this->sendStatus($booking, fn (User $attendee): BookingChangedMail => new BookingChangedMail($booking, $attendee));
+            $this->sendStatus($booking, fn (User $attendee): BookingChangedMail => new BookingChangedMail(
+                $booking,
+                $attendee,
+                $pending['changes'] ?? [],
+                $pending['previous_schedule'] ?? null,
+            ));
 
             return;
         }

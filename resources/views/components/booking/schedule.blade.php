@@ -1,4 +1,4 @@
-@props(['booking', 'variant' => 'list'])
+@props(['booking', 'variant' => 'list', 'changed' => []])
 
 @php
     $start = localDate($booking->start_at, $booking->timezone);
@@ -16,7 +16,7 @@
 
 @if ($variant === 'mail')
 @foreach ($lines as $label => $value)
-**{{ $label }}:** {{ $value }}  
+**{{ $label }}:** {{ $value }}@if (in_array($label, $changed, true)) {{ __('(changed)') }}@endif  
 @endforeach
 @else
 @foreach ($lines as $label => $value)

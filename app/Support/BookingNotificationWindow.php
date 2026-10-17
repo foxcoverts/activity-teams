@@ -17,18 +17,35 @@ class BookingNotificationWindow
 
     public const INVITE = 'invite';
 
-    public static function push(Booking $booking, string $kind, ?string $cancelReason = null, ?string $inviteUserId = null): void
+    /**
+     * @param  list<string>  $changes
+     * @param  array{start_at: mixed, end_at: mixed, timezone: mixed}|null  $previousSchedule
+     */
+    public static function push(Booking $booking, string $kind, ?string $cancelReason = null, ?string $inviteUserId = null, array $changes = [], ?array $previousSchedule = null): void
     {
-        $token = Cache::lock(self::lockKey($booking), 10)->block(5, function () use ($booking, $kind, $cancelReason, $inviteUserId): string {
+        $token = Cache::lock(self::lockKey($booking), 10)->block(5, function () use ($booking, $kind, $cancelReason, $inviteUserId, $changes, $previousSchedule): string {
             $pending = Cache::get(self::cacheKey($booking), [
                 'token' => null,
                 'kinds' => [],
                 'cancel_reason' => null,
                 'invite_user_ids' => [],
+                'changes' => [],
+                'previous_schedule' => null,
             ]);
 
             $pending['token'] = (string) Str::uuid();
             $pending['kinds'][] = $kind;
+            $pending['changes'] = array_values(array_unique(array_merge(
+                $pending['changes'] ?? [],
+                array_values(array_diff($changes, ['updated_at', 'sequence'])),
+            )));
+
+            if (is_array($previousSchedule)) {
+                $pending['previous_schedule'] = array_merge(
+                    $previousSchedule,
+                    $pending['previous_schedule'] ?? [],
+                );
+            }
 
             if ($cancelReason !== null) {
                 $pending['cancel_reason'] = $cancelReason;
@@ -48,7 +65,7 @@ class BookingNotificationWindow
     }
 
     /**
-     * @return array{token: string, kinds: array<int, string>, cancel_reason: ?string, invite_user_ids: array<int, string>}|null
+     * @return array{token: string, kinds: array<int, string>, cancel_reason: ?string, invite_user_ids: array<int, string>, changes: array<int, string>, previous_schedule: ?array}|null
      */
     public static function claim(Booking $booking, string $token): ?array
     {

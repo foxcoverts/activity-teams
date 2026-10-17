@@ -10,9 +10,14 @@ class BookingConfirmed
 {
     use SerializesModels;
 
+    /**
+     * @param  array<string, mixed>  $changes
+     * @param  array{start_at: mixed, end_at: mixed, timezone: mixed}|null  $previousSchedule
+     */
     public function __construct(
         public Booking $booking,
         public User $actor,
-        public array $changes = []
+        public array $changes = [],
+        public ?array $previousSchedule = null,
     ) {}
 }
