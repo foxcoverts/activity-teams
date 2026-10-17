@@ -165,4 +165,57 @@ class RespondToBookingTest extends TestCase
             ->assertDontSee('Change response')
             ->assertDontSee('Yes, I can help');
     }
+
+    public function test_opening_a_choice_link_does_not_save_until_they_confirm(): void
+    {
+        $booking = Booking::factory()->create();
+        $attendee = User::factory()->teamMember()->create();
+        $token = BookingAttendance::generateToken();
+
+        $booking->attendees()->attach($attendee->id, [
+            'status' => BookingAttendeeStatus::NeedsAction->value,
+            'token' => $token,
+        ]);
+
+        $this->get(route('respond', [$booking, $attendee, 'invite' => $token, 'choice' => 'accepted']))
+            ->assertOk()
+            ->assertSee('Confirm now')
+            ->assertSee('Cancel')
+            ->assertSee('Yes, I can help');
+
+        $this->assertDatabaseHas('booking_user', [
+            'booking_id' => $booking->id,
+            'user_id' => $attendee->id,
+            'status' => BookingAttendeeStatus::NeedsAction->value,
+        ]);
+
+        Livewire::withQueryParams(['invite' => $token, 'choice' => 'accepted'])
+            ->test(RespondToBooking::class, [
+                'booking' => $booking,
+                'attendee' => $attendee,
+            ])
+            ->call('cancelChoice')
+            ->assertDontSee('Confirm now')
+            ->assertSee('Yes, I can help');
+
+        $this->assertDatabaseHas('booking_user', [
+            'booking_id' => $booking->id,
+            'user_id' => $attendee->id,
+            'status' => BookingAttendeeStatus::NeedsAction->value,
+        ]);
+
+        Livewire::withQueryParams(['invite' => $token, 'choice' => 'accepted'])
+            ->test(RespondToBooking::class, [
+                'booking' => $booking,
+                'attendee' => $attendee,
+            ])
+            ->call('respond', 'accepted')
+            ->assertSee('You said you can help.');
+
+        $this->assertDatabaseHas('booking_user', [
+            'booking_id' => $booking->id,
+            'user_id' => $attendee->id,
+            'status' => BookingAttendeeStatus::Accepted->value,
+        ]);
+    }
 }

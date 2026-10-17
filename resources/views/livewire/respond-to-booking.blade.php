@@ -28,7 +28,7 @@
     @if ($response !== \App\Enums\BookingAttendeeStatus::NeedsAction)
         <div class="space-y-2 rounded-lg p-4 {{ $panelClass }}">
             <p>{{ $response->responseSentence() }}</p>
-            @if ($booking->acceptsInvites())
+            @if ($booking->acceptsInvites() && ! $pendingChoice)
                 <button type="button" wire:click="{{ $changing ? 'keepResponse' : 'changeResponse' }}" class="text-sm underline">
                     {{ $changing ? __('Keep this response') : __('Change response') }}
                 </button>
@@ -36,7 +36,34 @@
         </div>
     @endif
 
-    @if ($booking->acceptsInvites() && ($response === \App\Enums\BookingAttendeeStatus::NeedsAction || $changing))
+    @if ($pendingChoice)
+        <div
+            class="space-y-3 rounded-lg bg-slate-50 p-4"
+            x-data="{
+                seconds: 5,
+                timer: null,
+                start() {
+                    this.timer = setInterval(() => {
+                        this.seconds--;
+                        if (this.seconds <= 0) {
+                            this.stop();
+                            $wire.respond(@js($pendingChoice));
+                        }
+                    }, 1000);
+                },
+                stop() {
+                    clearInterval(this.timer);
+                },
+            }"
+            x-init="start()"
+        >
+            <p>{{ __('Saving “:response” in', ['response' => $this->pendingChoiceLabel()]) }} <span x-text="seconds"></span> {{ __('seconds.') }}</p>
+            <div class="flex flex-col gap-3">
+                <button type="button" x-on:click="stop()" wire:click="respond('{{ $pendingChoice }}')" class="rounded bg-sky-600 px-4 py-3 text-white">{{ __('Confirm now') }}</button>
+                <button type="button" x-on:click="stop()" wire:click="cancelChoice" class="text-sm underline">{{ __('Cancel') }}</button>
+            </div>
+        </div>
+    @elseif ($booking->acceptsInvites() && ($response === \App\Enums\BookingAttendeeStatus::NeedsAction || $changing))
         @error('status')
             <p class="text-red-600">{{ $message }}</p>
         @enderror

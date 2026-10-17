@@ -8,9 +8,7 @@
 **{{ __('Group') }}:** {{ $booking->group_name }}  
 <x-booking.schedule :booking="$booking" variant="mail" />
 
-<x-mail::button :url="$respondUrl">
-{{ __('Respond') }}
-</x-mail::button>
+<x-mail.choices :urls="$choiceUrls" />
 
 {{ __('Thanks') }},<br>
 {{ config('app.name') }}

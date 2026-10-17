@@ -36,7 +36,7 @@ There is no US-32. Original ids are preserved.
 
 - [US-12 Public Booking Summary View](US-12-public-booking-summary.md) — `done`
 - [US-13 Subscription ICS Export Feeds](US-13-subscription-ics-feeds.md) — `partial`
-- [US-14 Interactive Email RSVP Action Buttons](US-14-email-rsvp-action-buttons.md) — `partial`
+- [US-14 Interactive Email RSVP Action Buttons](US-14-email-rsvp-action-buttons.md) — `done`
 - [US-15 Inbound Calendar Response & Webhook Parsing](US-15-inbound-calendar-response-parsing.md) — `not-started`
 - [US-16 Escalating Invitation Nudges & Booking Reminders](US-16-invitation-nudges-reminders.md) — `not-started`
 - [US-17 Scheduled Schedule Digest & Changelog Notifications](US-17-schedule-digest-changelog.md) — `not-started`

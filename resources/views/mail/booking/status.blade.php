@@ -30,11 +30,17 @@
 @if ($attendance && ! $attendance->needsAction())
 <x-mail.response :status="$attendance->status">
 {{ $attendance->status->responseSentence() }}
+@if ($attendance->status === \App\Enums\BookingAttendeeStatus::Tentative && $choiceUrls !== [])
+
+{{ __('Please update your response.') }}
+@endif
 </x-mail.response>
 @endif
-@if ($respondUrl)
+@if ($choiceUrls !== [])
+<x-mail.choices :urls="$choiceUrls" />
+@elseif ($respondUrl)
 <x-mail::button :url="$respondUrl">
-{{ ($attendance && ! $attendance->needsAction()) || ! $booking->acceptsInvites() ? __('View response') : __('Respond') }}
+{{ __('View response') }}
 </x-mail::button>
 @endif
 

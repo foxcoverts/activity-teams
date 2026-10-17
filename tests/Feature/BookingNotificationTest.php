@@ -48,28 +48,49 @@ class BookingNotificationTest extends TestCase
         $this->assertStringContainsString('#f0f9ff', $html);
         $this->assertStringContainsString('View response', $html);
         $this->assertStringContainsString($respondUrl, $html);
+        $this->assertStringNotContainsString('choice=', $html);
         $this->assertStringNotContainsString('Change response', $html);
         $this->assertStringNotContainsString('/bookings/'.$booking->id, $html);
         $this->assertStringNotContainsString('Respond', $html);
         $this->assertStringContainsString('Weather', $cancelled->render());
     }
 
-    public function test_unanswered_update_uses_the_respond_button(): void
+    public function test_unanswered_update_offers_yes_maybe_and_no(): void
     {
         [$booking, $attendee] = $this->bookingWithAttendee();
+        $token = $booking->attendees()->find($attendee)->attendance->token;
 
         $html = (new BookingChangedMail($booking, $attendee))->render();
 
-        $this->assertStringContainsString('Respond', $html);
-        $this->assertStringContainsString(
-            route('respond', [$booking, $attendee, 'invite' => $booking->attendees()->find($attendee)->attendance->token]),
-            $html,
-        );
+        $this->assertStringContainsString('Can you attend this event?', $html);
+        $this->assertStringContainsString('Yes', $html);
+        $this->assertStringContainsString('Maybe', $html);
+        $this->assertStringContainsString('No', $html);
+        $this->assertStringContainsString('#48bb78', $html);
+        $this->assertStringContainsString('#e53e3e', $html);
+        $this->assertStringContainsString('#2d3748', $html);
+        $this->assertStringContainsString(e(route('respond', [$booking, $attendee, 'invite' => $token, 'choice' => 'accepted'])), $html);
+        $this->assertStringContainsString(e(route('respond', [$booking, $attendee, 'invite' => $token, 'choice' => 'tentative'])), $html);
+        $this->assertStringContainsString(e(route('respond', [$booking, $attendee, 'invite' => $token, 'choice' => 'declined'])), $html);
         $this->assertStringNotContainsString('You have not responded', $html);
         $this->assertStringNotContainsString('You said', $html);
         $this->assertStringNotContainsString('#f0f9ff', $html);
         $this->assertStringNotContainsString('View response', $html);
+        $this->assertStringNotContainsString('>Respond<', $html);
         $this->assertStringNotContainsString('/bookings/'.$booking->id, $html);
+    }
+
+    public function test_maybe_update_asks_them_to_change_their_response(): void
+    {
+        [$booking, $attendee] = $this->bookingWithAttendee(BookingAttendeeStatus::Tentative);
+
+        $html = (new BookingChangedMail($booking, $attendee))->render();
+
+        $this->assertStringContainsString('You said maybe.', $html);
+        $this->assertStringContainsString('Please update your response.', $html);
+        $this->assertStringContainsString('Can you attend this event?', $html);
+        $this->assertStringContainsString('choice=accepted', $html);
+        $this->assertStringNotContainsString('View response', $html);
     }
 
     public function test_past_booking_keeps_the_view_link_when_they_have_not_answered(): void
@@ -86,6 +107,7 @@ class BookingNotificationTest extends TestCase
             route('respond', [$booking, $attendee, 'invite' => $booking->attendees()->find($attendee)->attendance->token]),
             $html,
         );
+        $this->assertStringNotContainsString('choice=', $html);
         $this->assertStringNotContainsString('#f0f9ff', $html);
         $this->assertStringNotContainsString('Respond', $html);
         $this->assertStringNotContainsString('Change response', $html);

@@ -5,6 +5,7 @@ namespace App\Mail;
 use App\Models\Booking;
 use App\Models\BookingAttendance;
 use App\Models\User;
+use App\Support\AttendanceResponseLinks;
 use App\Support\BookingChangeSummary;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
@@ -53,6 +54,7 @@ class BookingStatusMail extends Mailable
                 'attendance' => $this->attendance,
                 'changeList' => $changes,
                 'changeNotice' => $changes->summary() ? $this->changeNotice() : null,
+                'choiceUrls' => AttendanceResponseLinks::choices($this->booking, $this->attendee, $this->attendance),
                 'respondUrl' => $token
                     ? route('respond', [$this->booking, $this->attendee, 'invite' => $token])
                     : null,

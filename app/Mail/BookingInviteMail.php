@@ -5,6 +5,7 @@ namespace App\Mail;
 use App\Models\Booking;
 use App\Models\BookingAttendance;
 use App\Models\User;
+use App\Support\AttendanceResponseLinks;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
@@ -33,16 +34,12 @@ class BookingInviteMail extends Mailable
 
     public function content(): Content
     {
-        $token = $this->attendance?->token;
-
         return new Content(
             markdown: 'mail.booking.invite',
             with: [
                 'booking' => $this->booking,
                 'attendee' => $this->attendee,
-                'respondUrl' => $token
-                    ? route('respond', [$this->booking, $this->attendee, 'invite' => $token])
-                    : url('/'),
+                'choiceUrls' => AttendanceResponseLinks::choices($this->booking, $this->attendee, $this->attendance),
             ],
         );
     }
