@@ -12,8 +12,8 @@ use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
-use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
@@ -29,16 +29,25 @@ class VenueResource extends Resource
 
     protected static ?string $recordTitleAttribute = 'name';
 
+    /**
+     * @return array<int, TextInput|Textarea>
+     */
+    public static function getFormComponents(): array
+    {
+        return [
+            TextInput::make('name')
+                ->required(),
+            TextInput::make('slug')
+                ->helperText(__('Leave blank to generate from the name.')),
+            Textarea::make('notes')
+                ->columnSpanFull(),
+        ];
+    }
+
     public static function form(Schema $schema): Schema
     {
         return $schema
-            ->components([
-                TextInput::make('name')
-                    ->required(),
-                TextInput::make('slug'),
-                Textarea::make('notes')
-                    ->columnSpanFull(),
-            ]);
+            ->components(static::getFormComponents());
     }
 
     public static function infolist(Schema $schema): Schema

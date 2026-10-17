@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Enums\BookingStatus;
+use App\Filament\Manage\Resources\Bookings\BookingResource;
 use App\Filament\Manage\Resources\Bookings\Pages\CreateBooking;
 use App\Models\Activity;
 use App\Models\Booking;
@@ -44,6 +45,53 @@ class AddBookingTest extends TestCase
         $this->assertSame('1st Anytown Scouts', $booking->group_name);
         $this->assertTrue($booking->activity->is($activity));
         $this->assertTrue($booking->venue->is($venue));
+    }
+
+    public function test_team_leader_can_create_activity_and_venue_from_the_booking_form(): void
+    {
+        $user = User::factory()->teamLeader()->create();
+
+        $this->actingAs($user);
+
+        Livewire::test(CreateBooking::class)
+            ->callFormComponentAction('activity_id', 'createOption', [
+                'name' => 'Caving',
+            ])
+            ->assertHasNoFormComponentActionErrors()
+            ->callFormComponentAction('venue_id', 'createOption', [
+                'name' => 'Peak Cavern',
+            ])
+            ->assertHasNoFormComponentActionErrors()
+            ->assertFormSet([
+                'activity_id' => Activity::query()->where('name', 'Caving')->value('id'),
+                'venue_id' => Venue::query()->where('name', 'Peak Cavern')->value('id'),
+            ]);
+
+        $this->assertDatabaseHas(Activity::class, [
+            'name' => 'Caving',
+            'slug' => 'caving',
+        ]);
+        $this->assertDatabaseHas(Venue::class, [
+            'name' => 'Peak Cavern',
+            'slug' => 'peak-cavern',
+        ]);
+    }
+
+    public function test_team_member_cannot_create_activity_or_venue_from_the_booking_form(): void
+    {
+        BookingResource::skipAuthorization();
+
+        try {
+            $user = User::factory()->teamMember()->create();
+
+            $this->actingAs($user);
+
+            Livewire::test(CreateBooking::class)
+                ->assertFormComponentActionHidden('activity_id', 'createOption')
+                ->assertFormComponentActionHidden('venue_id', 'createOption');
+        } finally {
+            BookingResource::skipAuthorization(false);
+        }
     }
 
     public function test_team_member_cannot_create_a_booking(): void

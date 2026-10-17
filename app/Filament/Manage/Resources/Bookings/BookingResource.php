@@ -3,21 +3,26 @@
 namespace App\Filament\Manage\Resources\Bookings;
 
 use App\Enums\BookingStatus;
+use App\Filament\Manage\Resources\Activities\ActivityResource;
 use App\Filament\Manage\Resources\Bookings\Pages\CreateBooking;
 use App\Filament\Manage\Resources\Bookings\Pages\EditBooking;
 use App\Filament\Manage\Resources\Bookings\Pages\ListBookings;
 use App\Filament\Manage\Resources\Bookings\Pages\ViewBooking;
 use App\Filament\Manage\Resources\Bookings\RelationManagers\AttendeesRelationManager;
+use App\Filament\Manage\Resources\Venues\VenueResource;
+use App\Models\Activity;
 use App\Models\Booking;
+use App\Models\Venue;
 use BackedEnum;
+use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Select;
-use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
@@ -39,9 +44,13 @@ class BookingResource extends Resource
             ->components([
                 Select::make('activity_id')
                     ->relationship('activity', 'name')
+                    ->createOptionForm(ActivityResource::getFormComponents())
+                    ->createOptionAction(fn (Action $action): Action => $action->authorize('create', Activity::class))
                     ->required(),
                 Select::make('venue_id')
                     ->relationship('venue', 'name')
+                    ->createOptionForm(VenueResource::getFormComponents())
+                    ->createOptionAction(fn (Action $action): Action => $action->authorize('create', Venue::class))
                     ->required(),
                 DateTimePicker::make('start_at')->required(),
                 DateTimePicker::make('end_at')->required(),
