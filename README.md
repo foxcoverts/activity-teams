@@ -32,6 +32,8 @@ Seeded login: `leader@example.com` / `password`.
 php artisan test
 ```
 
+User stories live in [docs/stories](docs/stories/README.md).
+
 ## First slice
 
 Activities and venues are first-class. Bookings use those foreign keys (not free-text “Climbing” / “Fox Coverts”). Members get mobile-friendly lists (upcoming / invites / rota), email RSVP links, a public share preview, and ICS feeds. There is no FullCalendar view in this slice.
