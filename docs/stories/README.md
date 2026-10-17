@@ -34,7 +34,7 @@ There is no US-32. Original ids are preserved.
 
 ## Communications, ICS & Calendar Integration
 
-- [US-12 Public Booking Summary View](US-12-public-booking-summary.md) — `partial`
+- [US-12 Public Booking Summary View](US-12-public-booking-summary.md) — `done`
 - [US-13 Subscription ICS Export Feeds](US-13-subscription-ics-feeds.md) — `partial`
 - [US-14 Interactive Email RSVP Action Buttons](US-14-email-rsvp-action-buttons.md) — `partial`
 - [US-15 Inbound Calendar Response & Webhook Parsing](US-15-inbound-calendar-response-parsing.md) — `not-started`
@@ -42,7 +42,7 @@ There is no US-32. Original ids are preserved.
 - [US-17 Scheduled Schedule Digest & Changelog Notifications](US-17-schedule-digest-changelog.md) — `not-started`
 - [US-29 Booking Share Link Copy Action](US-29-booking-share-link-copy.md) — `not-started`
 - [US-30 Standard URL Sharing Capability](US-30-standard-url-sharing.md) — `not-started`
-- [US-31 Open Graph Meta Tags for Link Previews](US-31-open-graph-link-previews.md) — `not-started`
+- [US-31 Open Graph Meta Tags for Link Previews](US-31-open-graph-link-previews.md) — `done`
 - [US-45 Outgoing Email Delivery Tracking & Bounce Management](US-45-email-delivery-bounce-tracking.md) — `not-started`
 
 ## Audit Streams & Collaboration

@@ -1,14 +1,16 @@
 ---
 id: US-31
 title: "Open Graph Meta Tags for Link Previews"
-status: not-started
+status: done
 area: communications
 ---
 
 ## Story
 
-As a user sharing a booking link in messaging apps or social platforms, I want the link to generate a rich preview card so that recipients immediately recognise the event context.
+As a team member sharing a booking link in a message, I want a preview card for the activity and date so that recipients recognise the event without seeing who it is for.
 
 ## Acceptance criteria
 
-- Public booking summary pages render proper Open Graph meta tags (title, description, and event context) to support clean card generation across messaging and chat applications.
+- The preview card uses the activity and local date as its title, and the time and venue as its description.
+- The card image is the calendar picture of that local day.
+- The preview does not name the group or any person.
