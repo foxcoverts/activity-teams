@@ -3,8 +3,12 @@
 namespace App\Filament\Manage\Resources\Bookings\RelationManagers;
 
 use App\Actions\InviteAttendeesAction;
+use App\Models\BookingAttendance;
 use App\Models\User;
 use Filament\Actions\Action;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DetachAction;
+use Filament\Actions\DetachBulkAction;
 use Filament\Forms\Components\CheckboxList;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables\Columns\TextColumn;
@@ -52,6 +56,32 @@ class AttendeesRelationManager extends RelationManager
                             auth()->user(),
                         );
                     }),
+            ])
+            ->recordActions([
+                DetachAction::make()
+                    ->authorize(fn (User $record): bool => $this->canRemoveAttendee($record))
+                    ->after(function (User $record): void {
+                        activity()
+                            ->causedBy(auth()->user())
+                            ->performedOn($this->getOwnerRecord())
+                            ->withProperties(['user_id' => $record->getKey()])
+                            ->event('attendee_removed')
+                            ->log('Attendee removed');
+                    }),
+            ])
+            ->toolbarActions([
+                BulkActionGroup::make([
+                    DetachBulkAction::make()
+                        ->authorizeIndividualRecords(fn (User $record): bool => $this->canRemoveAttendee($record)),
+                ]),
             ]);
+    }
+
+    protected function canRemoveAttendee(User $attendee): bool
+    {
+        $attendance = $attendee->attendance;
+
+        return $attendance instanceof BookingAttendance
+            && (bool) auth()->user()?->can('delete', $attendance);
     }
 }

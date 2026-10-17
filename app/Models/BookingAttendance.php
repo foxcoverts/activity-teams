@@ -77,6 +77,12 @@ class BookingAttendance extends Pivot
 
     public function isLeadInstructor(): bool
     {
-        return $this->user_id === $this->booking->lead_instructor_id;
+        $leadInstructorId = match (true) {
+            $this->relationLoaded('booking') => $this->booking->lead_instructor_id,
+            $this->pivotParent instanceof Booking => $this->pivotParent->lead_instructor_id,
+            default => $this->booking()->value('lead_instructor_id'),
+        };
+
+        return $this->user_id === $leadInstructorId;
     }
 }
