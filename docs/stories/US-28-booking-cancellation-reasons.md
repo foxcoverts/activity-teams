@@ -13,3 +13,4 @@ As an Activity Manager, I want to provide a mandatory reason when cancelling a b
 
 - Cancelling a booking requires the manager to input a mandatory cancellation reason string.
 - The cancellation reason is logged in the booking history and included in automated cancellation notification emails sent to invited or confirmed team members.
+- The reason stays in the body. The subject is `Cancelled: {Activity} at {Venue}, {start}` and names the local start, not the finish time or the group.

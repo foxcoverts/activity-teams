@@ -13,3 +13,4 @@ As an Activity Manager, I want to receive automated periodic reminders and diges
 
 - Automatically dispatches scheduled reminder notifications or digest summaries to managers regarding unconfirmed tentative bookings.
 - Highlights approaching tentative sessions that require action (such as confirming or cancelling) directly in notification channels or summary emails.
+- A reminder about one tentative booking may set `References` to that booking's current revision. A digest of many bookings does not.

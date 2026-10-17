@@ -4,7 +4,6 @@ namespace App\Mail;
 
 use App\Models\Booking;
 use App\Models\User;
-use Illuminate\Mail\Mailables\Envelope;
 
 class BookingCancelledMail extends BookingStatusMail
 {
@@ -16,11 +15,9 @@ class BookingCancelledMail extends BookingStatusMail
         parent::__construct($booking, $attendee);
     }
 
-    public function envelope(): Envelope
+    protected function subjectKind(): string
     {
-        return new Envelope(
-            subject: __('Booking cancelled'),
-        );
+        return __('Cancelled');
     }
 
     protected function heading(): string

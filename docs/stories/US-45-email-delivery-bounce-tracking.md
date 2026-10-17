@@ -12,5 +12,6 @@ As an Activity Manager, I want the system to track outgoing email delivery statu
 ## Acceptance criteria
 
 - Logs outgoing email delivery states (such as sent, delivered, or bounced) against system communications.
+- Each send keeps its own `Message-ID`. Several booking notices can share one `References` value, so a bounce is tied to the `Message-ID`, not to that revision id.
 - Automatically flags or alerts managers when a team member's email address triggers a permanent bounce (for example, mail delivery failure or rejection response).
 - Provides a visibility view on member profiles or management dashboards to highlight invalid or failing email addresses.

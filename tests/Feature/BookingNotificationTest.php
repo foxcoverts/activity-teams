@@ -20,6 +20,7 @@ use App\Models\Booking;
 use App\Models\BookingAttendance;
 use App\Models\User;
 use App\Models\Venue;
+use App\Support\BookingMailThread;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Queue;
@@ -31,19 +32,55 @@ class BookingNotificationTest extends TestCase
 
     public function test_status_mail_puts_the_subject_on_the_envelope(): void
     {
-        [$booking, $attendee] = $this->bookingWithAttendee(BookingAttendeeStatus::Accepted);
+        [$booking, $attendee] = $this->bookingWithAttendee(BookingAttendeeStatus::Accepted, [
+            'start_at' => '2026-12-01 09:00:00',
+            'end_at' => '2026-12-01 11:00:00',
+            'timezone' => 'Europe/London',
+        ]);
 
         $updated = new BookingChangedMail($booking, $attendee);
         $confirmed = new BookingConfirmedMail($booking, $attendee);
         $cancelled = new BookingCancelledMail($booking, $attendee, 'Weather');
+        $invite = new BookingInviteMail($booking, $attendee);
 
-        $updated->assertHasSubject('Booking updated');
-        $confirmed->assertHasSubject('Booking confirmed');
-        $cancelled->assertHasSubject('Booking cancelled');
+        $updated->assertHasSubject(BookingMailThread::subject($booking, 'Updated'));
+        $confirmed->assertHasSubject(BookingMailThread::subject($booking, 'Confirmed'));
+        $cancelled->assertHasSubject(BookingMailThread::subject($booking, 'Cancelled'));
+        $invite->assertHasSubject(BookingMailThread::subject($booking, 'Invitation'));
+
+        $this->assertStringContainsString($booking->activity->name, $updated->envelope()->subject);
+        $this->assertStringContainsString($booking->venue->name, $updated->envelope()->subject);
+        $this->assertStringContainsString('Tue 1 Dec 2026 09:00', $updated->envelope()->subject);
+        $this->assertStringNotContainsString('11:00', $updated->envelope()->subject);
+        $this->assertNotSame($updated->envelope()->subject, $confirmed->envelope()->subject);
+
+        $other = Booking::factory()->create([
+            'start_at' => '2026-12-02 10:00:00',
+            'end_at' => '2026-12-02 12:00:00',
+            'timezone' => 'Europe/London',
+        ]);
+
+        $this->assertNotSame(
+            $updated->envelope()->subject,
+            (new BookingChangedMail($other, $attendee))->envelope()->subject,
+        );
+
+        $reference = '<'.BookingMailThread::reference($booking).'>';
+
+        $this->assertSame($reference, $updated->headers()->referencesString());
+        $this->assertSame($reference, $invite->headers()->referencesString());
+        $this->assertNull($updated->headers()->messageId);
+        $this->assertArrayNotHasKey('In-Reply-To', $updated->headers()->text);
+        $this->assertNotSame($booking->uid, BookingMailThread::reference($booking));
+
+        $booking->sequence++;
+
+        $this->assertNotSame($reference, '<'.BookingMailThread::reference($booking).'>');
 
         $html = $updated->render();
         $respondUrl = route('respond', [$booking, $attendee, 'invite' => $booking->attendees()->find($attendee)->attendance->token]);
 
+        $this->assertStringContainsString('Booking updated', $html);
         $this->assertStringContainsString('You said you can help.', $html);
         $this->assertStringContainsString('#f0f9ff', $html);
         $this->assertStringContainsString('View response', $html);
@@ -154,7 +191,7 @@ class BookingNotificationTest extends TestCase
         }
 
         Mail::assertSent(BookingChangedMail::class, function (BookingChangedMail $mail): bool {
-            return $mail->envelope()->subject === 'Booking updated';
+            return $mail->envelope()->subject === BookingMailThread::subject($mail->booking, 'Updated');
         });
         Mail::assertNotSent(BookingInviteMail::class);
     }

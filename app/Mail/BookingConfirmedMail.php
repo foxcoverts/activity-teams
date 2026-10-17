@@ -2,15 +2,11 @@
 
 namespace App\Mail;
 
-use Illuminate\Mail\Mailables\Envelope;
-
 class BookingConfirmedMail extends BookingStatusMail
 {
-    public function envelope(): Envelope
+    protected function subjectKind(): string
     {
-        return new Envelope(
-            subject: __('Booking confirmed'),
-        );
+        return __('Confirmed');
     }
 
     protected function heading(): string

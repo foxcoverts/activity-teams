@@ -13,3 +13,4 @@ As a team member or manager, I want to post comments and updates directly on boo
 
 - Provides an interactive comment thread interface directly on bookings and interactive content.
 - Automatically integrates comment submissions into both the booking view and the central activity or changes feed as a discussion wall.
+- A comment email about a booking sets `References` and `In-Reply-To` to that booking's current revision, `booking-{id}-sequence-{n}@{host}`, so it joins the latest invite or update. Comments on interactive content do not use that header. Gmail also needs the comment subject to match that mail before it groups them.

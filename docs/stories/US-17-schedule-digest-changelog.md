@@ -14,3 +14,4 @@ As a team member, I want to receive an automated periodic digest email summarisi
 - Dispatches automated schedule digests on a scheduled periodic frequency (for example, daily) rather than firing real-time notifications for every individual tweak.
 - Highlights recent modifications (such as additions, time shifts, or cancellations) at the top of the email.
 - Lists upcoming commitments below the changelog, fully respecting individual user notification preference settings.
+- The digest covers many bookings, so it does not set `References` to one booking's revision id.

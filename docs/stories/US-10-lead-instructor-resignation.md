@@ -13,3 +13,4 @@ As an Activity Manager, I want the system to automatically handle when a lead in
 
 - Intercepts declined attendance responses from leads.
 - Automatically reverts booking state to Tentative, unassigns the instructor, and triggers manager alerts.
+- An alert about one booking may set `References` to that booking's current revision. The subject can stay distinct from the invite and update subjects.

@@ -6,10 +6,12 @@ use App\Models\Booking;
 use App\Models\BookingAttendance;
 use App\Models\User;
 use App\Support\AttendanceResponseLinks;
+use App\Support\BookingMailThread;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
+use Illuminate\Mail\Mailables\Headers;
 use Illuminate\Queue\SerializesModels;
 
 class BookingInviteMail extends Mailable
@@ -27,9 +29,12 @@ class BookingInviteMail extends Mailable
 
     public function envelope(): Envelope
     {
-        return new Envelope(
-            subject: __('You have been invited to a booking'),
-        );
+        return BookingMailThread::envelope($this->booking, __('Invitation'));
+    }
+
+    public function headers(): Headers
+    {
+        return BookingMailThread::headers($this->booking);
     }
 
     public function content(): Content

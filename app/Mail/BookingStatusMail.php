@@ -7,10 +7,12 @@ use App\Models\BookingAttendance;
 use App\Models\User;
 use App\Support\AttendanceResponseLinks;
 use App\Support\BookingChangeSummary;
+use App\Support\BookingMailThread;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
+use Illuminate\Mail\Mailables\Headers;
 use Illuminate\Queue\SerializesModels;
 
 class BookingStatusMail extends Mailable
@@ -35,9 +37,17 @@ class BookingStatusMail extends Mailable
 
     public function envelope(): Envelope
     {
-        return new Envelope(
-            subject: $this->heading(),
-        );
+        return BookingMailThread::envelope($this->booking, $this->subjectKind());
+    }
+
+    public function headers(): Headers
+    {
+        return BookingMailThread::headers($this->booking);
+    }
+
+    protected function subjectKind(): string
+    {
+        return __('Updated');
     }
 
     public function content(): Content
