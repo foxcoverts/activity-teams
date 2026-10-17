@@ -15,6 +15,10 @@ class InviteAttendeesAction
      */
     public function __invoke(Booking $booking, iterable $userIds, User $actor): void
     {
+        if (! $booking->acceptsInvites()) {
+            return;
+        }
+
         foreach ($userIds as $userId) {
             $user = User::query()->find($userId);
             if (! $user || $user->isSuspended() || ! $user->hasVerifiedEmail()) {

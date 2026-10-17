@@ -26,6 +26,7 @@ class AttendeesRelationManager extends RelationManager
             ])
             ->headerActions([
                 Action::make('invite')
+                    ->visible(fn (): bool => $this->getOwnerRecord()->acceptsInvites())
                     ->schema([
                         CheckboxList::make('user_ids')
                             ->label(__('Members'))

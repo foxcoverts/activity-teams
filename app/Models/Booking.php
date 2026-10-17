@@ -93,6 +93,11 @@ class Booking extends Model
         return $this->end_at?->isPast() ?? false;
     }
 
+    public function acceptsInvites(): bool
+    {
+        return ! $this->isPast() && ! $this->isCancelled();
+    }
+
     public function isCancelled(): bool
     {
         return $this->status === BookingStatus::Cancelled;
