@@ -28,6 +28,11 @@ class RespondToBookingAction
     ): void {
         $attendeeId = is_string($attendee) ? $attendee : $attendee->id;
         $status = is_string($status) ? BookingAttendeeStatus::from($status) : $status;
+
+        if ($status === BookingAttendeeStatus::NeedsAction) {
+            throw new InvalidArgumentException('You cannot return to awaiting response.');
+        }
+
         $author = $this->user ?? (is_string($attendee) ? User::findOrFail($attendee) : $attendee);
 
         $attendance = $this->booking->attendees()->find($attendeeId)?->attendance;

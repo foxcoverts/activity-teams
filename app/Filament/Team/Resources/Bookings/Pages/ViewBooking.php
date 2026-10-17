@@ -19,10 +19,14 @@ class ViewBooking extends ViewRecord
     {
         return [
             Action::make('respond')
-                ->visible(fn (): bool => auth()->user()?->can('respond', [$this->record, auth()->user()]) ?? false)
+                ->authorize(fn (): bool => auth()->user()?->can('respond', [$this->record, auth()->user()]) ?? false)
                 ->schema([
                     Select::make('status')
-                        ->options(BookingAttendeeStatus::class)
+                        ->options(collect(BookingAttendeeStatus::cases())
+                            ->reject(fn (BookingAttendeeStatus $status): bool => $status === BookingAttendeeStatus::NeedsAction)
+                            ->mapWithKeys(fn (BookingAttendeeStatus $status): array => [$status->value => $status->getLabel()])
+                            ->all())
+                        ->default(fn (): ?string => $this->currentResponse()?->value)
                         ->required(),
                 ])
                 ->action(function (array $data): void {
@@ -40,5 +44,16 @@ class ViewBooking extends ViewRecord
                     Notification::make()->success()->title(__('Attendance updated'))->send();
                 }),
         ];
+    }
+
+    private function currentResponse(): ?BookingAttendeeStatus
+    {
+        $status = $this->getRecord()->attendees->find(auth()->user())?->attendance?->status;
+
+        if ($status === null || $status === BookingAttendeeStatus::NeedsAction) {
+            return null;
+        }
+
+        return $status;
     }
 }
