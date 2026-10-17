@@ -5,7 +5,7 @@
         <div><dt class="font-medium">{{ __('Activity') }}</dt><dd>{{ $booking->activity->name }}</dd></div>
         <div><dt class="font-medium">{{ __('Venue') }}</dt><dd>{{ $booking->venue->name }}</dd></div>
         <div><dt class="font-medium">{{ __('Group') }}</dt><dd>{{ $booking->group_name }}</dd></div>
-        <div><dt class="font-medium">{{ __('Starts') }}</dt><dd>{{ localDate($booking->start_at, $booking->timezone)->isoFormat('ddd D MMM YYYY HH:mm') }}</dd></div>
+        <x-booking.schedule :booking="$booking" />
     </dl>
 
     @if ($status)

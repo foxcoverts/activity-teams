@@ -6,8 +6,7 @@
 **{{ __('Activity') }}:** {{ $booking->activity->name }}  
 **{{ __('Venue') }}:** {{ $booking->venue->name }}  
 **{{ __('Group') }}:** {{ $booking->group_name }}  
-**{{ __('Starts') }}:** {{ localDate($booking->start_at, $booking->timezone)->isoFormat('ddd D MMM YYYY HH:mm') }}  
-**{{ __('Ends') }}:** {{ localDate($booking->end_at, $booking->timezone)->isoFormat('HH:mm') }}
+<x-booking.schedule :booking="$booking" variant="mail" />
 
 <x-mail::button :url="$respondUrl">
 {{ __('Respond') }}
