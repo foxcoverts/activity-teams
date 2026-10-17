@@ -41,7 +41,7 @@ class BookingPolicy
             return false;
         }
 
-        if ($booking->attendees->find($user)) {
+        if ($this->attendee($booking, $user)) {
             return true;
         }
 
@@ -69,11 +69,20 @@ class BookingPolicy
             return false;
         }
 
-        $attendee = $booking->attendees->find($model);
+        $attendee = $this->attendee($booking, $model);
         $attendance = $attendee
             ? $attendee->attendance
             : BookingAttendance::build($booking, $model);
 
         return $user->can('update', $attendance);
+    }
+
+    private function attendee(Booking $booking, User $user): ?User
+    {
+        if ($booking->relationLoaded('attendees')) {
+            return $booking->attendees->find($user);
+        }
+
+        return $booking->attendees()->find($user);
     }
 }
