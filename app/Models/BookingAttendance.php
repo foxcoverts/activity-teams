@@ -24,6 +24,15 @@ class BookingAttendance extends Pivot
         'comment' => null,
     ];
 
+    protected static function booted(): void
+    {
+        static::saving(function (BookingAttendance $attendance): void {
+            if (blank($attendance->token)) {
+                $attendance->token = static::generateToken();
+            }
+        });
+    }
+
     protected function casts(): array
     {
         return [

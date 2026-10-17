@@ -5,7 +5,6 @@ namespace App\Actions;
 use App\Enums\BookingAttendeeStatus;
 use App\Events\BookingInvite;
 use App\Models\Booking;
-use App\Models\BookingAttendance;
 use App\Models\User;
 
 class InviteAttendeesAction
@@ -28,7 +27,6 @@ class InviteAttendeesAction
             $booking->attendees()->syncWithoutDetaching([
                 $user->id => [
                     'status' => BookingAttendeeStatus::NeedsAction->value,
-                    'token' => BookingAttendance::generateToken(),
                 ],
             ]);
 

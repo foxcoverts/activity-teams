@@ -6,7 +6,9 @@ use App\Actions\RespondToBookingAction;
 use App\Enums\Accreditation;
 use App\Enums\BookingAttendeeStatus;
 use App\Filament\Team\Resources\Bookings\Pages\ViewBooking;
+use App\Mail\BookingChangedMail;
 use App\Models\Booking;
+use App\Models\BookingAttendance;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use InvalidArgumentException;
@@ -73,5 +75,47 @@ class ViewBookingResponseTest extends TestCase
         $this->actingAs($manager);
         Livewire::test(ViewBooking::class, ['record' => $booking->getRouteKey()])
             ->assertActionVisible('respond');
+    }
+
+    public function test_responding_without_an_invite_creates_a_token_for_later_emails(): void
+    {
+        $booking = Booking::factory()->confirmed()->create();
+        $manager = User::factory()->teamMember()->create([
+            'accreditations' => [Accreditation::ManageBookings],
+        ]);
+
+        $this->actingAs($manager);
+
+        Livewire::test(ViewBooking::class, ['record' => $booking->getRouteKey()])
+            ->callAction('respond', data: [
+                'status' => BookingAttendeeStatus::Accepted->value,
+            ]);
+
+        $token = $booking->attendees()->find($manager)->attendance->token;
+
+        $this->assertNotNull($token);
+
+        $html = (new BookingChangedMail($booking->fresh(), $manager))->render();
+
+        $this->assertStringContainsString('View response', $html);
+        $this->assertStringContainsString(
+            route('respond', [$booking, $manager, 'invite' => $token]),
+            $html,
+        );
+    }
+
+    public function test_changing_a_response_keeps_the_existing_token(): void
+    {
+        $member = User::factory()->teamMember()->create();
+        $booking = Booking::factory()->confirmed()->create();
+        $token = BookingAttendance::generateToken();
+        $booking->attendees()->attach($member->id, [
+            'status' => BookingAttendeeStatus::Accepted->value,
+            'token' => $token,
+        ]);
+
+        (new RespondToBookingAction($booking))($member, BookingAttendeeStatus::Tentative);
+
+        $this->assertSame($token, $booking->attendees()->find($member)->attendance->token);
     }
 }
