@@ -1,3 +1,18 @@
+@php
+    $panelClass = match ($response) {
+        \App\Enums\BookingAttendeeStatus::Accepted => 'bg-sky-50 text-sky-900',
+        \App\Enums\BookingAttendeeStatus::Tentative => 'bg-amber-50 text-amber-900',
+        \App\Enums\BookingAttendeeStatus::Declined => 'bg-slate-100 text-slate-800',
+        \App\Enums\BookingAttendeeStatus::NeedsAction => '',
+    };
+
+    $choices = [
+        \App\Enums\BookingAttendeeStatus::Accepted->value => [__('Yes, I can help'), 'bg-sky-600'],
+        \App\Enums\BookingAttendeeStatus::Tentative->value => [__('Maybe'), 'bg-amber-500'],
+        \App\Enums\BookingAttendeeStatus::Declined->value => [__('I cannot make it'), 'bg-slate-600'],
+    ];
+@endphp
+
 <div class="space-y-6 rounded-xl bg-white p-6 shadow">
     <h1 class="text-xl font-semibold">{{ __('Respond to booking') }}</h1>
 
@@ -8,16 +23,29 @@
         <x-booking.schedule :booking="$booking" />
     </dl>
 
-    @if ($status)
-        <p class="rounded bg-green-50 p-3 text-green-800">{{ __('Thanks, your response has been recorded.') }} ({{ $status }})</p>
-    @else
+    <p><a href="{{ $this->bookingUrl() }}" class="text-sm text-sky-700 underline">{{ __('View booking') }}</a></p>
+
+    @if ($response !== \App\Enums\BookingAttendeeStatus::NeedsAction)
+        <div class="space-y-2 rounded-lg p-4 {{ $panelClass }}">
+            <p>{{ $response->responseSentence() }}</p>
+            @if ($booking->acceptsInvites())
+                <button type="button" wire:click="{{ $changing ? 'keepResponse' : 'changeResponse' }}" class="text-sm underline">
+                    {{ $changing ? __('Keep this response') : __('Change response') }}
+                </button>
+            @endif
+        </div>
+    @endif
+
+    @if ($booking->acceptsInvites() && ($response === \App\Enums\BookingAttendeeStatus::NeedsAction || $changing))
         @error('status')
             <p class="text-red-600">{{ $message }}</p>
         @enderror
         <div class="flex flex-col gap-3">
-            <button type="button" wire:click="respond('accepted')" class="rounded bg-sky-600 px-4 py-3 text-white">{{ __('Yes, I can help') }}</button>
-            <button type="button" wire:click="respond('tentative')" class="rounded bg-amber-500 px-4 py-3 text-white">{{ __('Maybe') }}</button>
-            <button type="button" wire:click="respond('declined')" class="rounded bg-slate-600 px-4 py-3 text-white">{{ __('I cannot make it') }}</button>
+            @foreach ($choices as $value => [$label, $class])
+                @if ($response->value !== $value)
+                    <button type="button" wire:click="respond('{{ $value }}')" class="rounded px-4 py-3 text-white {{ $class }}">{{ $label }}</button>
+                @endif
+            @endforeach
         </div>
     @endif
 </div>

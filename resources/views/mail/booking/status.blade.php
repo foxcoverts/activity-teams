@@ -1,16 +1,23 @@
 <x-mail::message>
-# {{ $subject }}
+# {{ $title }}
 
 {{ $intro }}
 
 **{{ __('Activity') }}:** {{ $booking->activity->name }}  
 **{{ __('Venue') }}:** {{ $booking->venue->name }}  
 **{{ __('Group') }}:** {{ $booking->group_name }}  
-**{{ __('Starts') }}:** {{ localDate($booking->start_at, $booking->timezone)->isoFormat('ddd D MMM YYYY HH:mm') }}
+<x-booking.schedule :booking="$booking" variant="mail" />
 
-<x-mail::button :url="$url">
-{{ __('View booking') }}
+@if ($attendance && ! $attendance->needsAction())
+<x-mail.response :status="$attendance->status">
+{{ $attendance->status->responseSentence() }}
+</x-mail.response>
+@endif
+@if ($respondUrl)
+<x-mail::button :url="$respondUrl">
+{{ ($attendance && ! $attendance->needsAction()) || ! $booking->acceptsInvites() ? __('View response') : __('Respond') }}
 </x-mail::button>
+@endif
 
 {{ __('Thanks') }},<br>
 {{ config('app.name') }}

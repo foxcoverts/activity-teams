@@ -3,8 +3,7 @@
 namespace App\Listeners;
 
 use App\Events\BookingInvite;
-use App\Mail\BookingInviteMail;
-use Illuminate\Support\Facades\Mail;
+use App\Support\BookingNotificationWindow;
 
 class SendBookingInviteEmail
 {
@@ -17,7 +16,10 @@ class SendBookingInviteEmail
             return;
         }
 
-        Mail::to($event->attendee->email)
-            ->send(new BookingInviteMail($event->booking, $event->attendee));
+        BookingNotificationWindow::push(
+            $event->booking,
+            BookingNotificationWindow::INVITE,
+            inviteUserId: $event->attendee->id,
+        );
     }
 }
