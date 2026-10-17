@@ -14,6 +14,9 @@ use App\Models\Activity;
 use App\Models\Booking;
 use App\Models\Venue;
 use BackedEnum;
+use Carbon\Carbon;
+use Carbon\CarbonInterface;
+use DateTimeZone;
 use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
@@ -25,6 +28,8 @@ use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Resources\Resource;
+use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
@@ -52,10 +57,24 @@ class BookingResource extends Resource
                     ->createOptionForm(VenueResource::getFormComponents())
                     ->createOptionAction(fn (Action $action): Action => $action->authorize('create', Venue::class))
                     ->required(),
-                DateTimePicker::make('start_at')->required(),
-                DateTimePicker::make('end_at')->required(),
+                DateTimePicker::make('start_at')
+                    ->timezone(fn (Get $get): string => static::scheduleTimezone($get))
+                    ->default(fn (): Carbon => Carbon::parse('Saturday 09:30', static::defaultTimezone()))
+                    ->live(onBlur: true)
+                    ->afterStateUpdated(function (mixed $state, mixed $old, Set $set, Get $get): void {
+                        static::shiftEndToKeepDuration($state, $old, $set, $get);
+                    })
+                    ->required(),
+                DateTimePicker::make('end_at')
+                    ->timezone(fn (Get $get): string => static::scheduleTimezone($get))
+                    ->default(fn (): Carbon => Carbon::parse('Saturday 11:30', static::defaultTimezone()))
+                    ->live(onBlur: true)
+                    ->afterStateUpdated(function (mixed $state, Set $set, Get $get): void {
+                        static::keepEndAfterStart($state, $set, $get);
+                    })
+                    ->required(),
                 TextInput::make('timezone')
-                    ->default('Europe/London')
+                    ->default(fn (): string => static::defaultTimezone())
                     ->required(),
                 Select::make('status')
                     ->options(BookingStatus::class)
@@ -174,5 +193,71 @@ class BookingResource extends Resource
             'view' => ViewBooking::route('/{record}'),
             'edit' => EditBooking::route('/{record}/edit'),
         ];
+    }
+
+    public static function defaultTimezone(): string
+    {
+        $timezone = auth()->user()?->timezone;
+
+        if ($timezone instanceof DateTimeZone) {
+            return $timezone->getName();
+        }
+
+        return filled($timezone) ? (string) $timezone : 'Europe/London';
+    }
+
+    public static function scheduleTimezone(Get $get): string
+    {
+        $timezone = $get('timezone');
+
+        return filled($timezone) ? (string) $timezone : static::defaultTimezone();
+    }
+
+    public static function shiftEndToKeepDuration(mixed $state, mixed $old, Set $set, Get $get): void
+    {
+        $start = static::parseSchedule($state);
+
+        if ($start === null) {
+            return;
+        }
+
+        $previousStart = static::parseSchedule($old);
+        $end = static::parseSchedule($get('end_at'));
+        $duration = 120;
+
+        if ($previousStart !== null && $end !== null) {
+            $duration = (int) $previousStart->diffInMinutes($end, absolute: false);
+
+            if ($duration < 0) {
+                $duration = 0;
+            }
+        }
+
+        $set('end_at', $start->addMinutes($duration)->format('Y-m-d H:i:s'));
+    }
+
+    public static function keepEndAfterStart(mixed $state, Set $set, Get $get): void
+    {
+        $end = static::parseSchedule($state);
+        $start = static::parseSchedule($get('start_at'));
+
+        if ($end === null || $start === null || $end->greaterThanOrEqualTo($start)) {
+            return;
+        }
+
+        $set('end_at', $start->format('Y-m-d H:i:s'));
+    }
+
+    protected static function parseSchedule(mixed $value): ?Carbon
+    {
+        if (blank($value)) {
+            return null;
+        }
+
+        if ($value instanceof CarbonInterface) {
+            return Carbon::instance($value)->timezone(config('app.timezone'));
+        }
+
+        return Carbon::parse($value, config('app.timezone'));
     }
 }
