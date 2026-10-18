@@ -16,4 +16,4 @@ As an Activity Manager, I want different types of bookings to enforce or bypass 
 
 ## Progress
 
-The check uses the person's qualifications against the booking's activity. Not built yet.
+The recorded qualification fields, including cover on the scheme enums, are the ones an activity's alternatives will match. An activity does not require a qualification yet, and the booking confirm check is still open.

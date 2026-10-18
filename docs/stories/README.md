@@ -14,7 +14,7 @@ When an enum is shown in Filament, give it a label, and a color and icon when th
 
 ## Core Qualifications & Team Management
 
-- [US-01 Member Qualification & Permit Management](US-01-member-qualification-permit-management.md) — `not-started`
+- [US-01 Member Qualification & Permit Management](US-01-member-qualification-permit-management.md) — `done`
 - [US-02 Activity-Specific Qualification & Staffing Requirements](US-02-activity-specific-qualification-staffing.md) — `not-started`
 - [US-03 Booking Venue Access & Logistics Planning](US-03-booking-venue-access-logistics.md) — `not-started`
 - [US-04 Multi-Venue & Location-Based Management](US-04-multi-venue-location-management.md) — `partial`

@@ -16,4 +16,4 @@ As an Activity Manager, I want the system to track permit and qualification expi
 
 ## Progress
 
-A manager of a team reviews expiry for that team's current members. The records stay on the person. Not built yet.
+The expiry date is stored for every type except Mountain Training, which does not expire. Warnings are not built. When they are, a current qualification is green, one that expires within three months is amber, and an expired one is red.

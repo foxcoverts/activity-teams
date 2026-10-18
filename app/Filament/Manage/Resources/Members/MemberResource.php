@@ -8,6 +8,7 @@ use App\Filament\Manage\NavigationGroup;
 use App\Filament\Manage\Resources\Members\Pages\EditMember;
 use App\Filament\Manage\Resources\Members\Pages\ListMembers;
 use App\Filament\Manage\Resources\Members\Pages\ViewMember;
+use App\Filament\Manage\Resources\Members\RelationManagers\QualificationsRelationManager;
 use App\Models\Team;
 use App\Models\User;
 use BackedEnum;
@@ -176,6 +177,13 @@ class MemberResource extends Resource
                         }
                     }),
             ]);
+    }
+
+    public static function getRelations(): array
+    {
+        return [
+            QualificationsRelationManager::class,
+        ];
     }
 
     public static function getPages(): array

@@ -70,6 +70,13 @@ class User extends Authenticatable implements FilamentUser, HasDefaultTenant, Ha
         ];
     }
 
+    protected static function booted(): void
+    {
+        static::deleting(function (User $user): void {
+            $user->qualifications()->with('detail')->get()->each->delete();
+        });
+    }
+
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()
@@ -140,6 +147,11 @@ class User extends Authenticatable implements FilamentUser, HasDefaultTenant, Ha
     public function keys(): HasMany
     {
         return $this->hasMany(Key::class, 'holder_id')->orderBy('name');
+    }
+
+    public function qualifications(): HasMany
+    {
+        return $this->hasMany(Qualification::class);
     }
 
     public function memberships(): HasMany
