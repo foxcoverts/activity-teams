@@ -20,6 +20,7 @@ use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
+use RalphJSmit\Filament\Activitylog\FilamentActivitylog;
 
 class ManagePanelProvider extends PanelProvider
 {
@@ -35,6 +36,8 @@ class ManagePanelProvider extends PanelProvider
             ->colors([
                 'primary' => Color::Sky,
             ])
+            ->viteTheme('resources/css/filament/theme.css')
+            ->plugin(FilamentActivitylog::make())
             ->tenant(Team::class)
             ->tenantMiddleware([
                 RememberManageTeam::class,

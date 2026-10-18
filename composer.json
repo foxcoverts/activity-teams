@@ -5,6 +5,12 @@
     "description": "Management website for Fox Coverts activity teams",
     "keywords": ["laravel", "framework"],
     "license": "MIT",
+    "repositories": [
+        {
+            "type": "composer",
+            "url": "https://satis.ralphjsmit.com"
+        }
+    ],
     "require": {
         "php": "^8.3",
         "eluceo/ical": "^2.17",
@@ -12,6 +18,7 @@
         "laravel/framework": "^13.17",
         "laravel/tinker": "^3.0",
         "propaganistas/laravel-phone": "^6.1",
+        "ralphjsmit/laravel-filament-activitylog": "^3.0.0-beta2",
         "spatie/laravel-activitylog": "^5.1"
     },
     "require-dev": {
@@ -87,7 +94,8 @@
         "sort-packages": true,
         "allow-plugins": {
             "pestphp/pest-plugin": true,
-            "php-http/discovery": true
+            "php-http/discovery": true,
+            "ralphjsmit/packages": true
         }
     },
     "minimum-stability": "stable",

@@ -52,7 +52,7 @@ When an enum is shown in Filament, give it a label, and a color and icon when th
 ## Audit Streams & Collaboration
 
 - [US-38 Manager Centralised Activity Audit Feed](US-38-manager-activity-audit-feed.md) — `partial`
-- [US-39 Member Booking Transparency & Audit Stream](US-39-member-booking-audit-stream.md) — `partial`
+- [US-39 Member Booking Transparency & Audit Stream](US-39-member-booking-audit-stream.md) — `done`
 - [US-40 Booking & Content Commenting Threads](US-40-booking-commenting-threads.md) — `not-started`
 
 ## Safety, Compliance & Operational Tools

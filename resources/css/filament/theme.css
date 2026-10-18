@@ -1,0 +1,12 @@
+@import '../../../vendor/filament/filament/resources/css/theme.css';
+
+@source '../../../app/Filament/**/*';
+@source '../../../resources/views/filament/**/*';
+@source '../../../vendor/ralphjsmit/laravel-filament-activitylog/resources/**/*.blade.php';
+@source '../../../resources/views/vendor/filament-activitylog/**/*.blade.php';
+
+.fi-rjs-activitylog-timeline ul ul {
+    list-style: disc;
+    margin-top: 0.25rem;
+    padding-inline-start: 1.25rem;
+}

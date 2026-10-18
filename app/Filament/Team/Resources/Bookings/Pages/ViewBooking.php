@@ -6,17 +6,38 @@ use App\Actions\RespondToBookingAction;
 use App\Enums\BookingAttendeeResponse;
 use App\Enums\BookingAttendeeStatus;
 use App\Filament\Team\Resources\Bookings\BookingResource;
+use App\Filament\Team\Resources\Bookings\BookingTimeline;
 use App\Support\LeadAttendanceWarning;
 use Filament\Actions\Action;
 use Filament\Forms\Components\ToggleButtons;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ViewRecord;
+use Filament\Schemas\Components\EmbeddedSchema;
 use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\Schema;
 use InvalidArgumentException;
 
 class ViewBooking extends ViewRecord
 {
     protected static string $resource = BookingResource::class;
+
+    public function content(Schema $schema): Schema
+    {
+        return $schema
+            ->components([
+                $this->getInfolistContentComponent(),
+                EmbeddedSchema::make('timeline'),
+            ]);
+    }
+
+    public function timeline(Schema $schema): Schema
+    {
+        return $schema
+            ->record($this->getRecord())
+            ->components([
+                BookingTimeline::section(),
+            ]);
+    }
 
     protected function getHeaderActions(): array
     {

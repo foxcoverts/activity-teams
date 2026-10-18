@@ -20,6 +20,18 @@ class AsTimezone implements CastsAttributes, SerializesCastableAttributes
             return $value;
         }
 
+        if (is_array($value) && is_string($value['timezone'] ?? null)) {
+            $value = $value['timezone'];
+        }
+
+        if (is_string($value)) {
+            $decoded = json_decode($value, true);
+
+            if (is_array($decoded) && is_string($decoded['timezone'] ?? null)) {
+                $value = $decoded['timezone'];
+            }
+        }
+
         return CarbonTimeZone::instance($value);
     }
 

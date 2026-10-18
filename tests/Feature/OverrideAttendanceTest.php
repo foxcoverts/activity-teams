@@ -10,6 +10,7 @@ use App\Enums\BookingAttendeeStatus;
 use App\Enums\BookingStatus;
 use App\Filament\Manage\Resources\Bookings\Pages\ViewBooking;
 use App\Filament\Manage\Resources\Bookings\RelationManagers\AttendeesRelationManager;
+use App\Filament\Manage\Resources\Members\MemberResource;
 use App\Mail\AttendanceRecordedMail;
 use App\Mail\BookingInviteMail;
 use App\Models\Booking;
@@ -89,9 +90,16 @@ class OverrideAttendanceTest extends TestCase
         $this->assertSame('manager', $activity->properties['via']);
         $this->assertSame($member->id, $activity->properties['attendee_id']);
 
+        $team = $manager->managedTeams()->first();
+
         Livewire::test(ViewBooking::class, ['record' => $booking->getRouteKey()])
-            ->assertSee('Recorded Can help for Casey.')
-            ->assertSee('Alex Leader');
+            ->assertSee('recorded')
+            ->assertSee('Can help')
+            ->assertSeeHtml('<strong>Can help</strong>')
+            ->assertSee('Casey')
+            ->assertSee('Alex Leader')
+            ->assertSeeHtml(MemberResource::getUrl('view', ['record' => $manager], panel: 'manage', tenant: $team))
+            ->assertSeeHtml(MemberResource::getUrl('view', ['record' => $member], panel: 'manage', tenant: $team));
 
         Mail::assertSent(AttendanceRecordedMail::class, function (AttendanceRecordedMail $mail) use ($booking, $member): bool {
             $html = $mail->render();

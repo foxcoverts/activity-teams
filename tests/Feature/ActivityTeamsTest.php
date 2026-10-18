@@ -192,10 +192,7 @@ class ActivityTeamsTest extends TestCase
             ]);
 
         Livewire::test(ListMembers::class)
-            ->mountTableAction('changeRole', $leader)
-            ->assertTableActionDataSet([
-                'role' => MembershipRole::Manager,
-            ]);
+            ->assertTableActionDisabled('changeRole', $leader);
     }
 
     public function test_opening_manage_returns_to_the_last_team(): void

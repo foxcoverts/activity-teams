@@ -3,7 +3,6 @@
 namespace App\Filament\Manage\Resources\Bookings;
 
 use App\Enums\BookingStatus;
-use App\Filament\Bookings\BookingTimeline;
 use App\Filament\Manage\NavigationGroup;
 use App\Filament\Manage\Resources\Bookings\Pages\CreateBooking;
 use App\Filament\Manage\Resources\Bookings\Pages\EditBooking;
@@ -149,7 +148,6 @@ class BookingResource extends Resource
                 TextEntry::make('status')
                     ->badge()
                     ->icon(fn (BookingStatus $state): Heroicon => $state->getIcon()),
-                BookingTimeline::entry(),
                 TextEntry::make('group_name'),
                 TextEntry::make('notes')
                     ->placeholder('-')
