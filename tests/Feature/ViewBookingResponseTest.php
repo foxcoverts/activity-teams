@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Actions\RespondToBookingAction;
 use App\Enums\Accreditation;
+use App\Enums\BookingAttendeeResponse;
 use App\Enums\BookingAttendeeStatus;
 use App\Filament\Team\Resources\Bookings\Pages\ViewBooking;
 use App\Mail\BookingChangedMail;
@@ -32,13 +33,13 @@ class ViewBookingResponseTest extends TestCase
         Livewire::test(ViewBooking::class, ['record' => $booking->getRouteKey()])
             ->mountAction('respond')
             ->assertActionDataSet([
-                'status' => BookingAttendeeStatus::Accepted->value,
+                'response' => BookingAttendeeResponse::Yes,
             ])
             ->assertMountedActionModalDontSee('Awaiting response');
 
         Livewire::test(ViewBooking::class, ['record' => $booking->getRouteKey()])
             ->callAction('respond', data: [
-                'status' => BookingAttendeeStatus::NeedsAction->value,
+                'response' => BookingAttendeeStatus::NeedsAction->value,
             ]);
 
         $this->assertSame(
@@ -88,7 +89,7 @@ class ViewBookingResponseTest extends TestCase
 
         Livewire::test(ViewBooking::class, ['record' => $booking->getRouteKey()])
             ->callAction('respond', data: [
-                'status' => BookingAttendeeStatus::Accepted->value,
+                'response' => BookingAttendeeResponse::Yes->value,
             ]);
 
         $token = $booking->attendees()->find($manager)->attendance->token;

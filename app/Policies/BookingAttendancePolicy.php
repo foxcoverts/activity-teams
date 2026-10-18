@@ -42,6 +42,25 @@ class BookingAttendancePolicy
         return $attendance->user?->is($user) && $attendance->exists;
     }
 
+    public function override(User $user, BookingAttendance $attendance): bool
+    {
+        $booking = $attendance->pivotParent instanceof Booking
+            ? $attendance->pivotParent
+            : $attendance->booking;
+
+        if ($booking->isCancelled()) {
+            return false;
+        }
+
+        $attendance->loadMissing('user');
+
+        if ($attendance->user?->isSuspended()) {
+            return false;
+        }
+
+        return $user->can('manage', Booking::class);
+    }
+
     public function delete(User $user, BookingAttendance $attendance): bool
     {
         if ($attendance->isLeadInstructor() && $attendance->isAccepted()) {

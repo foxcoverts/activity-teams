@@ -124,7 +124,7 @@ class BookingNotificationTest extends TestCase
         $html = (new BookingChangedMail($booking, $attendee))->render();
 
         $this->assertStringContainsString('You said maybe.', $html);
-        $this->assertStringContainsString('Please update your response.', $html);
+        $this->assertStringNotContainsString('Please update your response.', $html);
         $this->assertStringContainsString('Can you attend this event?', $html);
         $this->assertStringContainsString('choice=accepted', $html);
         $this->assertStringNotContainsString('View response', $html);

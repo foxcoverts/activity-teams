@@ -17,4 +17,4 @@ As an Activity Manager, I want the system to automatically handle when a lead in
 
 ## Progress
 
-A lead who answers maybe or no is unassigned. A confirmed booking returns to tentative. A comment alone changes neither. The manager alert, with `References` for that booking's current revision and a subject of its own, is still open.
+A lead who answers maybe or no is unassigned. A confirmed booking returns to tentative. A comment alone changes neither. A manager who records maybe or no for that lead on an upcoming booking uses the same rule. On a past booking the lead is cleared and the booking status stays as it is. The manager alert, with `References` for that booking's current revision and a subject of its own, is still open.

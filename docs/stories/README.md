@@ -30,7 +30,7 @@ When an enum is shown in Filament, give it a label, and a color and icon when th
 - [US-11 Automated Team Leader Assignment Notifications](US-11-team-leader-assignment-notifications.md) — `not-started`
 - [US-25 Historical Roster & Response Transparency](US-25-historical-roster-transparency.md) — `partial`
 - [US-26 Filterable Roster Additions & Batch Management](US-26-filterable-roster-additions.md) — `not-started`
-- [US-27 Manager-Overridden Attendance Updates](US-27-manager-overridden-attendance.md) — `not-started`
+- [US-27 Manager-Overridden Attendance Updates](US-27-manager-overridden-attendance.md) — `done`
 - [US-28 Booking Cancellation Reasons & Participant Notification](US-28-booking-cancellation-reasons.md) — `partial`
 - [US-37 Related Bookings & Multi-Day Event Linking](US-37-related-bookings-multi-day.md) — `not-started`
 

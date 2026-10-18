@@ -2,9 +2,13 @@
 
 namespace App\Enums;
 
+use App\Support\Palette;
+use Filament\Support\Contracts\HasColor;
+use Filament\Support\Contracts\HasIcon;
 use Filament\Support\Contracts\HasLabel;
+use Filament\Support\Icons\Heroicon;
 
-enum BookingAttendeeStatus: string implements HasLabel
+enum BookingAttendeeStatus: string implements HasColor, HasIcon, HasLabel
 {
     case Accepted = 'accepted';
     case Tentative = 'tentative';
@@ -18,6 +22,28 @@ enum BookingAttendeeStatus: string implements HasLabel
             self::Accepted => __('Can help'),
             self::Tentative => __('Maybe'),
             self::Declined => __('Cannot make it'),
+        };
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    public function getColor(): array
+    {
+        return match ($this) {
+            self::Accepted => Palette::positive(),
+            self::Declined => Palette::destructive(),
+            self::Tentative => Palette::uncertain(),
+            self::NeedsAction => Palette::neutral(),
+        };
+    }
+
+    public function getIcon(): Heroicon
+    {
+        return match ($this) {
+            self::Accepted, self::Tentative => Heroicon::CheckCircle,
+            self::Declined => Heroicon::XCircle,
+            self::NeedsAction => Heroicon::QuestionMarkCircle,
         };
     }
 

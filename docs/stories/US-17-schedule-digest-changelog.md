@@ -11,7 +11,10 @@ As a team member, I want to receive an automated periodic digest email summarisi
 
 ## Acceptance criteria
 
-- Dispatches automated schedule digests on a scheduled periodic frequency (for example, daily) rather than firing real-time notifications for every individual tweak.
-- Highlights recent modifications (such as additions, time shifts, or cancellations) at the top of the email.
-- Lists upcoming commitments below the changelog, fully respecting individual user notification preference settings.
+- Dispatches one digest a day. Send nothing when that person's rota is unchanged since the last digest.
+- A person is on the rota for a booking when their attendance is Can help. The digest includes only future bookings.
+- List additions, then removals, then the other future bookings already on the rota. An addition is a future booking they were not on at the last digest and are on now. A removal is a future booking they were on and are no longer on, including because it was cancelled or its time changed.
+- Respects individual notification preference settings.
 - The digest covers many bookings, so it does not set `References` to one booking's revision id.
+
+A member who changes their own attendance does not get a per-booking mail; this digest is that notice. [US-27](US-27-manager-overridden-attendance.md) sends the per-booking confirmation when a manager makes the change. [US-16](US-16-invitation-nudges-reminders.md) reminds people who have not answered. There is no US-32.

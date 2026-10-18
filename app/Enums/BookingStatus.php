@@ -2,7 +2,7 @@
 
 namespace App\Enums;
 
-use Filament\Support\Colors\Color;
+use App\Support\Palette;
 use Filament\Support\Contracts\HasColor;
 use Filament\Support\Contracts\HasIcon;
 use Filament\Support\Contracts\HasLabel;
@@ -29,9 +29,9 @@ enum BookingStatus: string implements HasColor, HasIcon, HasLabel
     public function getColor(): array
     {
         return match ($this) {
-            self::Confirmed => Color::Green,
-            self::Tentative => Color::Yellow,
-            self::Cancelled => Color::Red,
+            self::Confirmed => Palette::positive(),
+            self::Tentative => Palette::uncertain(),
+            self::Cancelled => Palette::destructive(),
         };
     }
 
