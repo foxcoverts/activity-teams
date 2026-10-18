@@ -25,8 +25,8 @@ When an enum is shown in Filament, give it a label, and a color and icon when th
 ## Bookings & Scheduling Lifecycle
 
 - [US-08 Smart Booking Invitee Pre-Selection & Management](US-08-smart-booking-invitee-preselection.md) — `not-started`
-- [US-09 Mandatory Lead Instructor Confirmation Validation](US-09-mandatory-lead-instructor-confirmation.md) — `not-started`
-- [US-10 Lead Instructor Availability Change & Resignation Workflow](US-10-lead-instructor-resignation.md) — `not-started`
+- [US-09 Mandatory Lead Instructor Confirmation Validation](US-09-mandatory-lead-instructor-confirmation.md) — `partial`
+- [US-10 Lead Instructor Availability Change & Resignation Workflow](US-10-lead-instructor-resignation.md) — `partial`
 - [US-11 Automated Team Leader Assignment Notifications](US-11-team-leader-assignment-notifications.md) — `not-started`
 - [US-25 Historical Roster & Response Transparency](US-25-historical-roster-transparency.md) — `partial`
 - [US-26 Filterable Roster Additions & Batch Management](US-26-filterable-roster-additions.md) — `not-started`

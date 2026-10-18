@@ -1,7 +1,7 @@
 ---
 id: US-09
 title: "Mandatory Lead Instructor Confirmation Validation"
-status: not-started
+status: partial
 area: bookings
 ---
 
@@ -13,3 +13,7 @@ As an Activity Manager, I want the system to prevent a booking from being marked
 
 - The system validates booking state transitions; moving a booking from Tentative to Confirmed requires a valid lead instructor to be assigned.
 - Displays a clear validation error or warning if a manager attempts to confirm a session without a designated lead instructor holding the correct qualification for that activity type.
+
+## Progress
+
+Confirm stays closed until someone has accepted, and saving a lead who has not accepted is refused. The check that the lead holds the qualification for that activity is still open.
