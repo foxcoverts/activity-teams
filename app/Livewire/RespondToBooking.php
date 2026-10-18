@@ -7,6 +7,7 @@ use App\Enums\BookingAttendeeStatus;
 use App\Filament\Team\Resources\Bookings\BookingResource;
 use App\Models\Booking;
 use App\Models\User;
+use App\Support\LeadAttendanceWarning;
 use Illuminate\Contracts\View\View;
 use InvalidArgumentException;
 use Livewire\Component;
@@ -75,6 +76,26 @@ class RespondToBooking extends Component
         $this->response = $this->booking->attendees->find($this->attendee)->attendance->status;
         $this->changing = false;
         $this->pendingChoice = null;
+    }
+
+    public function leadWarning(): ?string
+    {
+        if (! $this->booking->isLead($this->attendee) || ! $this->booking->acceptsInvites()) {
+            return null;
+        }
+
+        $aboutToAnswer = $this->pendingChoice !== null
+            || $this->changing
+            || $this->response === BookingAttendeeStatus::NeedsAction;
+
+        if (! $aboutToAnswer) {
+            return null;
+        }
+
+        return LeadAttendanceWarning::message(
+            $this->booking,
+            BookingAttendeeStatus::tryFrom((string) $this->pendingChoice),
+        );
     }
 
     public function pendingChoiceLabel(): ?string

@@ -34,7 +34,6 @@ class AddBookingTest extends TestCase
                 'start_at' => '2026-10-24 09:30:00',
                 'end_at' => '2026-10-24 11:30:00',
                 'timezone' => 'Europe/London',
-                'status' => BookingStatus::Tentative->value,
                 'group_name' => '1st Anytown Scouts',
                 'notes' => 'x20 Young People',
             ])

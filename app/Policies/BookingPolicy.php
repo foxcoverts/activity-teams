@@ -60,7 +60,7 @@ class BookingPolicy
 
     public function delete(User $user, Booking $booking): bool
     {
-        return $user->isTeamLeader() && $this->manage($user);
+        return $booking->isCancelled() && $user->isTeamLeader() && $this->manage($user);
     }
 
     public function respond(User $user, Booking $booking, User $model): bool

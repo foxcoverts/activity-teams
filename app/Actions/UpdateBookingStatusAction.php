@@ -7,80 +7,205 @@ use App\Enums\BookingStatus;
 use App\Events\BookingCancelled;
 use App\Events\BookingChanged;
 use App\Events\BookingConfirmed;
-use App\Events\BookingInvite;
 use App\Events\BookingRestored;
 use App\Models\Booking;
-use App\Models\BookingAttendance;
 use App\Models\User;
+use Illuminate\Validation\ValidationException;
 
 class UpdateBookingStatusAction
 {
     public function __invoke(Booking $booking, User $actor, ?string $cancelReason = null): void
     {
-        $originalStatus = $booking->getOriginal('status');
-        $originalStatus = $originalStatus instanceof BookingStatus
-            ? $originalStatus
-            : BookingStatus::tryFrom((string) $originalStatus);
+        $previousStatus = $this->previousStatus($booking);
 
-        if ($originalStatus === $booking->status) {
-            if ($booking->wasChanged([
-                'sequence',
-                'group_name',
-                'notes',
-                'lead_instructor_id',
-                'timezone',
-            ])) {
-                event(new BookingChanged($booking, $actor, $booking->getChanges(), $this->previousSchedule($booking)));
-            }
-
-            return;
-        }
-
-        if ($originalStatus === BookingStatus::Cancelled && $booking->status !== BookingStatus::Cancelled) {
-            $booking->lead_instructor_id = null;
-            $booking->save();
-
-            $attendees = $booking->attendees->mapWithKeys(function (User $attendee) {
-                if ($attendee->isSuspended()) {
-                    return [];
-                }
-                if ($attendee->attendance->status === BookingAttendeeStatus::Declined) {
-                    return [$attendee->id => ['status' => BookingAttendeeStatus::Declined->value]];
-                }
-                if ($attendee->hasVerifiedEmail()) {
-                    return [$attendee->id => ['status' => BookingAttendeeStatus::NeedsAction->value]];
-                }
-
-                return [];
-            });
-            $booking->attendees()->sync($attendees->all());
+        if ($previousStatus === BookingStatus::Cancelled && ! $booking->isCancelled()) {
+            $this->resetAttendanceExceptDeclined($booking);
             $booking->refresh();
-
-            $attendees
-                ->filter(fn (array $meta) => $meta['status'] === BookingAttendeeStatus::NeedsAction->value)
-                ->keys()
-                ->each(function (string $id) use ($booking) {
-                    $user = User::find($id);
-                    if ($user) {
-                        event(new BookingInvite($booking, $user));
-                    }
-                });
+            $booking->load('attendees');
 
             event(new BookingRestored($booking, $actor, $booking->getChanges(), $this->previousSchedule($booking)));
 
             return;
         }
 
-        if ($booking->isConfirmed()) {
+        if ($previousStatus !== $booking->status && $booking->isConfirmed()) {
             event(new BookingConfirmed($booking, $actor, $booking->getChanges(), $this->previousSchedule($booking)));
-        } elseif ($booking->isCancelled()) {
-            BookingAttendance::query()
-                ->where('booking_id', $booking->id)
-                ->where('status', BookingAttendeeStatus::NeedsAction)
-                ->delete();
-            $booking->refresh();
-            event(new BookingCancelled($booking, $actor, $cancelReason));
+
+            return;
         }
+
+        if ($previousStatus !== $booking->status && $booking->isCancelled()) {
+            event(new BookingCancelled($booking, $actor, $cancelReason ?? $booking->cancellationReason));
+
+            return;
+        }
+
+        if (
+            ! $booking->isCancelled()
+            && $previousStatus === $booking->status
+            && $booking->wasChanged([
+                'sequence',
+                'group_name',
+                'notes',
+                'lead_instructor_id',
+                'timezone',
+            ])
+        ) {
+            event(new BookingChanged($booking, $actor, $booking->getChanges(), $this->previousSchedule($booking)));
+        }
+    }
+
+    /**
+     * @param  array<string, mixed>  $details
+     */
+    public function confirm(Booking $booking, User $actor, string $leadId, array $details): void
+    {
+        if (! $booking->isTentative()) {
+            throw ValidationException::withMessages([
+                'status' => __('Only a tentative booking can be confirmed.'),
+            ]);
+        }
+
+        $this->assertAttending($booking, $leadId);
+
+        $booking->fill($details);
+        $booking->lead_instructor_id = $leadId;
+        $booking->status = BookingStatus::Confirmed;
+        $booking->save();
+
+        $this($booking, $actor);
+    }
+
+    public function cancel(Booking $booking, User $actor, string $reason): void
+    {
+        $reason = trim($reason);
+
+        if ($reason === '') {
+            throw ValidationException::withMessages([
+                'reason' => __('A reason is required.'),
+            ]);
+        }
+
+        if (! $booking->isTentative() && ! $booking->isConfirmed()) {
+            throw ValidationException::withMessages([
+                'status' => __('This booking cannot be cancelled.'),
+            ]);
+        }
+
+        $booking->cancellationReason = $reason;
+        $booking->status = BookingStatus::Cancelled;
+        $booking->save();
+
+        $this($booking, $actor, $reason);
+    }
+
+    /**
+     * @param  array<string, mixed>  $details
+     */
+    public function restore(Booking $booking, User $actor, array $details = []): void
+    {
+        if (! $booking->isCancelled()) {
+            throw ValidationException::withMessages([
+                'status' => __('Only a cancelled booking can be restored.'),
+            ]);
+        }
+
+        unset($details['status'], $details['lead_instructor_id']);
+
+        $booking->fill($details);
+        $booking->status = BookingStatus::Tentative;
+        $booking->save();
+
+        $this($booking, $actor);
+    }
+
+    public function returnToTentative(Booking $booking, User $actor): void
+    {
+        if (! $booking->isConfirmed()) {
+            throw ValidationException::withMessages([
+                'status' => __('Only a confirmed booking can return to tentative.'),
+            ]);
+        }
+
+        $booking->status = BookingStatus::Tentative;
+        $booking->save();
+    }
+
+    public function changeLead(Booking $booking, User $actor, ?string $leadId): void
+    {
+        if (! $booking->isTentative() && ! $booking->isConfirmed()) {
+            throw ValidationException::withMessages([
+                'status' => __('The lead instructor can only be changed on a tentative or confirmed booking.'),
+            ]);
+        }
+
+        if ($leadId === null) {
+            $booking->lead_instructor_id = null;
+
+            if ($booking->isConfirmed()) {
+                $booking->status = BookingStatus::Tentative;
+            }
+
+            $booking->save();
+
+            if ($booking->wasChanged('lead_instructor_id')) {
+                event(new BookingChanged($booking, $actor, $booking->getChanges(), $this->previousSchedule($booking)));
+            }
+
+            return;
+        }
+
+        $this->assertAttending($booking, $leadId);
+
+        $booking->lead_instructor_id = $leadId;
+        $booking->save();
+
+        $this($booking, $actor);
+    }
+
+    public function assertAttending(Booking $booking, string $leadId): void
+    {
+        $booking->loadMissing('attendees');
+        $lead = $booking->attendees->find($leadId);
+
+        if ($lead === null || $lead->attendance?->status !== BookingAttendeeStatus::Accepted) {
+            throw ValidationException::withMessages([
+                'lead_instructor_id' => __('A lead instructor must be attending.'),
+            ]);
+        }
+    }
+
+    private function resetAttendanceExceptDeclined(Booking $booking): void
+    {
+        $booking->load('attendees');
+
+        $rows = [];
+
+        foreach ($booking->attendees as $attendee) {
+            $attendance = $attendee->attendance;
+            $status = $attendance->status === BookingAttendeeStatus::Declined
+                ? BookingAttendeeStatus::Declined
+                : BookingAttendeeStatus::NeedsAction;
+
+            $rows[$attendee->getKey()] = [
+                'status' => $status->value,
+                'comment' => $attendance->comment,
+                'token' => $attendance->token,
+            ];
+        }
+
+        $booking->attendees()->sync($rows);
+    }
+
+    private function previousStatus(Booking $booking): ?BookingStatus
+    {
+        $previous = $booking->getPrevious()['status'] ?? $booking->getOriginal('status');
+
+        if ($previous instanceof BookingStatus) {
+            return $previous;
+        }
+
+        return BookingStatus::tryFrom((string) $previous);
     }
 
     /**

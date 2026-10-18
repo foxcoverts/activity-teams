@@ -3,6 +3,7 @@
 namespace App\Filament\Team\Resources\Bookings;
 
 use App\Enums\BookingStatus;
+use App\Filament\Bookings\BookingTimeline;
 use App\Filament\Team\Resources\Bookings\Pages\ListBookings;
 use App\Filament\Team\Resources\Bookings\Pages\ViewBooking;
 use App\Models\Booking;
@@ -57,7 +58,10 @@ class BookingResource extends Resource
                 TextEntry::make('venue.name')->label(__('Venue')),
                 TextEntry::make('start_at')->dateTime()->placeholder('-'),
                 TextEntry::make('end_at')->dateTime()->placeholder('-'),
-                TextEntry::make('status')->badge(),
+                TextEntry::make('status')
+                    ->badge()
+                    ->icon(fn (BookingStatus $state): Heroicon => $state->getIcon()),
+                BookingTimeline::entry(),
                 TextEntry::make('group_name'),
                 TextEntry::make('notes')->placeholder('-')->columnSpanFull(),
                 TextEntry::make('leadInstructor.name')->label(__('Lead instructor'))->placeholder('-'),
@@ -73,7 +77,9 @@ class BookingResource extends Resource
                 TextColumn::make('activity.name')->searchable(),
                 TextColumn::make('venue.name')->searchable(),
                 TextColumn::make('group_name')->searchable(),
-                TextColumn::make('status')->badge(),
+                TextColumn::make('status')
+                    ->badge()
+                    ->icon(fn (BookingStatus $state): Heroicon => $state->getIcon()),
             ])
             ->filters([
                 SelectFilter::make('status')->options(BookingStatus::class),

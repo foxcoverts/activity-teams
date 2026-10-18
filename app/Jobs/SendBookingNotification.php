@@ -2,6 +2,7 @@
 
 namespace App\Jobs;
 
+use App\Enums\BookingAttendeeStatus;
 use App\Mail\BookingCancelledMail;
 use App\Mail\BookingChangedMail;
 use App\Mail\BookingConfirmedMail;
@@ -44,7 +45,7 @@ class SendBookingNotification implements ShouldQueue
                 $booking,
                 $attendee,
                 $pending['cancel_reason'] ?? null,
-            ));
+            ), skipDeclined: true);
 
             return;
         }
@@ -68,7 +69,7 @@ class SendBookingNotification implements ShouldQueue
                 $attendee,
                 $pending['changes'] ?? [],
                 $pending['previous_schedule'] ?? null,
-            ));
+            ), onlyUserIds: $pending['recipient_user_ids'] ?? null);
 
             return;
         }
@@ -78,10 +79,19 @@ class SendBookingNotification implements ShouldQueue
 
     /**
      * @param  callable(User): BookingChangedMail|BookingConfirmedMail|BookingCancelledMail  $message
+     * @param  list<string>|null  $onlyUserIds
      */
-    private function sendStatus(Booking $booking, callable $message): void
+    private function sendStatus(Booking $booking, callable $message, bool $skipDeclined = false, ?array $onlyUserIds = null): void
     {
         foreach ($booking->attendees as $attendee) {
+            if ($onlyUserIds !== null && ! in_array((string) $attendee->getKey(), $onlyUserIds, true)) {
+                continue;
+            }
+
+            if ($skipDeclined && $attendee->attendance?->status === BookingAttendeeStatus::Declined) {
+                continue;
+            }
+
             if ($attendee->isSuspended() || ! $attendee->hasVerifiedEmail()) {
                 continue;
             }

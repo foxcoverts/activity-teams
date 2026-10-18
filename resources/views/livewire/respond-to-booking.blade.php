@@ -25,6 +25,10 @@
 
     <p><a href="{{ $this->bookingUrl() }}" class="text-sm text-sky-700 underline">{{ __('View booking') }}</a></p>
 
+    @if ($warning = $this->leadWarning())
+        <p class="rounded-lg bg-amber-50 p-4 text-amber-950">{{ $warning }}</p>
+    @endif
+
     @if ($response !== \App\Enums\BookingAttendeeStatus::NeedsAction)
         <div class="space-y-2 rounded-lg p-4 {{ $panelClass }}">
             <p>{{ $response->responseSentence() }}</p>

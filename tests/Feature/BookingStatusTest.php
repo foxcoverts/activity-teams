@@ -1,0 +1,534 @@
+<?php
+
+namespace Tests\Feature;
+
+use App\Actions\RespondToBookingAction;
+use App\Actions\UpdateBookingStatusAction;
+use App\Enums\BookingAttendeeStatus;
+use App\Enums\BookingStatus;
+use App\Filament\Manage\Resources\Bookings\BookingResource;
+use App\Filament\Manage\Resources\Bookings\Pages\CreateBooking;
+use App\Filament\Manage\Resources\Bookings\Pages\EditBooking;
+use App\Filament\Manage\Resources\Bookings\Pages\ListBookings;
+use App\Filament\Manage\Resources\Bookings\Pages\ViewBooking;
+use App\Jobs\SendBookingNotification;
+use App\Livewire\RespondToBooking;
+use App\Mail\BookingCancelledMail;
+use App\Mail\BookingChangedMail;
+use App\Mail\BookingInviteMail;
+use App\Models\Activity;
+use App\Models\Booking;
+use App\Models\BookingAttendance;
+use App\Models\User;
+use App\Models\Venue;
+use Filament\Actions\Action;
+use Filament\Actions\ActionGroup;
+use Filament\Facades\Filament;
+use Filament\Forms\Components\Select;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Queue;
+use Illuminate\Validation\ValidationException;
+use Livewire\Livewire;
+use Spatie\Activitylog\Models\Activity as ActivityLog;
+use Tests\TestCase;
+
+class BookingStatusTest extends TestCase
+{
+    use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        Filament::setCurrentPanel(Filament::getPanel('manage'));
+    }
+
+    public function test_a_new_booking_is_tentative_and_cannot_be_created_confirmed(): void
+    {
+        $leader = User::factory()->teamLeader()->create();
+        $activity = Activity::factory()->create();
+        $venue = Venue::factory()->create();
+
+        $this->actingAs($leader);
+
+        Livewire::test(CreateBooking::class)
+            ->fillForm([
+                'activity_id' => $activity->id,
+                'venue_id' => $venue->id,
+                'start_at' => '2026-10-24 09:30:00',
+                'end_at' => '2026-10-24 11:30:00',
+                'timezone' => 'Europe/London',
+                'group_name' => '1st Anytown Scouts',
+            ])
+            ->call('create')
+            ->assertHasNoFormErrors();
+
+        $this->assertSame(BookingStatus::Tentative, Booking::query()->first()->status);
+
+        Livewire::test(CreateBooking::class)
+            ->fillForm([
+                'activity_id' => $activity->id,
+                'venue_id' => $venue->id,
+                'start_at' => '2026-10-25 09:30:00',
+                'end_at' => '2026-10-25 11:30:00',
+                'timezone' => 'Europe/London',
+                'group_name' => '2nd Anytown Scouts',
+            ])
+            ->set('data.status', BookingStatus::Confirmed->value)
+            ->call('create')
+            ->assertHasErrors(['status']);
+
+        $this->assertSame(1, Booking::query()->count());
+    }
+
+    public function test_confirm_requires_an_attending_lead(): void
+    {
+        $leader = User::factory()->teamLeader()->create();
+        $booking = Booking::factory()->create();
+        $waiting = User::factory()->create();
+        $this->attend($booking, $waiting, BookingAttendeeStatus::NeedsAction);
+
+        $this->actingAs($leader);
+
+        Livewire::test(EditBooking::class, ['record' => $booking->getRouteKey()])
+            ->assertActionDisabled('confirmBooking');
+
+        try {
+            app(UpdateBookingStatusAction::class)->confirm($booking, $leader, $waiting->id, [
+                'group_name' => $booking->group_name,
+            ]);
+            $this->fail('A lead who is not attending was accepted.');
+        } catch (ValidationException $exception) {
+            $this->assertArrayHasKey('lead_instructor_id', $exception->errors());
+        }
+    }
+
+    public function test_confirm_and_change_lead_say_when_no_one_is_attending(): void
+    {
+        $leader = User::factory()->teamLeader()->create();
+        $booking = Booking::factory()->create();
+
+        $this->actingAs($leader);
+
+        $message = 'No one is attending.';
+
+        Livewire::test(EditBooking::class, ['record' => $booking->getRouteKey()])
+            ->assertActionDisabled('confirmBooking')
+            ->assertActionExists('confirmBooking', fn (Action $action): bool => $action->getTooltip() === $message)
+            ->assertActionDisabled('changeLead')
+            ->assertActionExists('changeLead', fn (Action $action): bool => $action->getTooltip() === $message);
+
+        $this->attend($booking, User::factory()->create(), BookingAttendeeStatus::Declined);
+        $this->attend($booking, User::factory()->create(), BookingAttendeeStatus::Tentative);
+        $this->attend($booking, User::factory()->create(), BookingAttendeeStatus::NeedsAction);
+
+        Livewire::test(EditBooking::class, ['record' => $booking->fresh()->getRouteKey()])
+            ->assertActionDisabled('confirmBooking')
+            ->assertActionExists('confirmBooking', fn (Action $action): bool => $action->getTooltip() === $message)
+            ->assertActionDisabled('changeLead')
+            ->assertActionExists('changeLead', fn (Action $action): bool => $action->getTooltip() === $message);
+
+        $this->attend($booking, User::factory()->create(), BookingAttendeeStatus::Accepted);
+
+        Livewire::test(EditBooking::class, ['record' => $booking->fresh()->getRouteKey()])
+            ->assertActionEnabled('confirmBooking')
+            ->assertActionExists('confirmBooking', fn (Action $action): bool => $action->getTooltip() === null)
+            ->assertActionEnabled('changeLead')
+            ->assertActionExists('changeLead', fn (Action $action): bool => $action->getTooltip() === null);
+    }
+
+    public function test_confirm_lists_only_accepted_attendees_as_leads(): void
+    {
+        $leader = User::factory()->teamLeader()->create();
+        $booking = Booking::factory()->create();
+        $accepted = User::factory()->create(['name' => 'Accepted Lead']);
+        $alsoAccepted = User::factory()->create(['name' => 'Also Accepted']);
+        $waiting = User::factory()->create(['name' => 'Waiting Lead']);
+        $this->attend($booking, $accepted, BookingAttendeeStatus::Accepted);
+        $this->attend($booking, $alsoAccepted, BookingAttendeeStatus::Accepted);
+        $this->attend($booking, $waiting, BookingAttendeeStatus::NeedsAction);
+        $this->attend($booking, User::factory()->create(['name' => 'Maybe Person']), BookingAttendeeStatus::Tentative);
+        $this->attend($booking, User::factory()->create(['name' => 'Declined Person']), BookingAttendeeStatus::Declined);
+        $booking->lead_instructor_id = $waiting->id;
+        $booking->save();
+
+        $this->actingAs($leader);
+
+        Livewire::test(EditBooking::class, ['record' => $booking->getRouteKey()])
+            ->mountAction('confirmBooking')
+            ->assertSchemaComponentExists('lead_instructor_id', checkComponentUsing: function (Select $select) use ($accepted, $alsoAccepted): bool {
+                $options = $select->getOptions();
+                $expected = [
+                    $accepted->getKey() => $accepted->name,
+                    $alsoAccepted->getKey() => $alsoAccepted->name,
+                ];
+                ksort($options);
+                ksort($expected);
+
+                return $options === $expected;
+            });
+    }
+
+    public function test_confirming_with_an_accepted_lead_succeeds(): void
+    {
+        $leader = User::factory()->teamLeader()->create();
+        $booking = Booking::factory()->create();
+        $lead = User::factory()->create();
+        $this->attend($booking, $lead, BookingAttendeeStatus::Accepted);
+
+        $this->actingAs($leader);
+
+        Livewire::test(EditBooking::class, ['record' => $booking->getRouteKey()])
+            ->assertActionEnabled('confirmBooking')
+            ->callAction('confirmBooking', data: [
+                'lead_instructor_id' => $lead->id,
+            ]);
+
+        $booking->refresh();
+
+        $this->assertSame(BookingStatus::Confirmed, $booking->status);
+        $this->assertSame($lead->id, $booking->lead_instructor_id);
+    }
+
+    public function test_cancelling_requires_a_reason_and_notifies_everyone_who_has_not_declined(): void
+    {
+        $leader = User::factory()->teamLeader()->create(['name' => 'Alex Leader']);
+        $booking = Booking::factory()->create();
+        $waiting = User::factory()->create();
+        $declined = User::factory()->create();
+        $this->attend($booking, $waiting, BookingAttendeeStatus::NeedsAction);
+        $this->attend($booking, $declined, BookingAttendeeStatus::Declined);
+
+        $this->actingAs($leader);
+
+        try {
+            app(UpdateBookingStatusAction::class)->cancel($booking, $leader, '   ');
+            $this->fail('A blank reason was accepted.');
+        } catch (ValidationException $exception) {
+            $this->assertArrayHasKey('reason', $exception->errors());
+        }
+
+        $this->assertSame(BookingStatus::Tentative, $booking->fresh()->status);
+
+        Queue::fake();
+        Mail::fake();
+
+        Livewire::test(ListBookings::class)
+            ->callTableAction('cancelBooking', $booking, data: [
+                'reason' => 'Weather',
+            ]);
+
+        $booking->refresh();
+        $this->assertSame(BookingStatus::Cancelled, $booking->status);
+        $this->assertDatabaseHas('booking_user', [
+            'booking_id' => $booking->id,
+            'user_id' => $waiting->id,
+            'status' => BookingAttendeeStatus::NeedsAction->value,
+        ]);
+
+        $activity = ActivityLog::query()
+            ->where('subject_id', $booking->id)
+            ->where('description', 'Weather')
+            ->first();
+
+        $this->assertNotNull($activity);
+        $this->assertSame('tentative', $activity->attribute_changes['old']['status'] ?? null);
+        $this->assertSame('cancelled', $activity->attribute_changes['attributes']['status'] ?? null);
+
+        foreach (Queue::pushed(SendBookingNotification::class) as $job) {
+            $job->handle();
+        }
+
+        Mail::assertSent(BookingCancelledMail::class, function (BookingCancelledMail $mail) use ($waiting): bool {
+            return $mail->hasTo($waiting->email) && str_contains($mail->render(), 'Weather');
+        });
+        Mail::assertNotSent(BookingCancelledMail::class, fn (BookingCancelledMail $mail): bool => $mail->hasTo($declined->email));
+
+        $this->actingAs($leader);
+
+        Livewire::test(ViewBooking::class, ['record' => $booking->getRouteKey()])
+            ->assertSee('Weather')
+            ->assertSee('Alex Leader');
+    }
+
+    public function test_restoring_asks_everyone_except_people_who_declined(): void
+    {
+        $leader = User::factory()->teamLeader()->create();
+        $lead = User::factory()->create();
+        $booking = Booking::factory()->cancelled()->create([
+            'lead_instructor_id' => $lead->id,
+        ]);
+        $accepted = User::factory()->create();
+        $maybe = User::factory()->create();
+        $declined = User::factory()->create();
+        $this->attend($booking, $accepted, BookingAttendeeStatus::Accepted);
+        $this->attend($booking, $maybe, BookingAttendeeStatus::Tentative);
+        $this->attend($booking, $declined, BookingAttendeeStatus::Declined);
+
+        Queue::fake();
+        Mail::fake();
+
+        app(UpdateBookingStatusAction::class)->restore($booking, $leader);
+
+        $booking->refresh();
+        $this->assertSame(BookingStatus::Tentative, $booking->status);
+        $this->assertSame($lead->id, $booking->lead_instructor_id);
+        $this->assertSame(BookingAttendeeStatus::NeedsAction, $booking->attendees()->find($accepted)->attendance->status);
+        $this->assertSame(BookingAttendeeStatus::NeedsAction, $booking->attendees()->find($maybe)->attendance->status);
+        $this->assertSame(BookingAttendeeStatus::Declined, $booking->attendees()->find($declined)->attendance->status);
+
+        foreach (Queue::pushed(SendBookingNotification::class) as $job) {
+            $job->handle();
+        }
+
+        Mail::assertSent(BookingChangedMail::class, 2);
+        Mail::assertSent(BookingChangedMail::class, function (BookingChangedMail $mail) use ($accepted): bool {
+            $html = $mail->render();
+
+            return $mail->hasTo($accepted->email)
+                && str_contains($html, 'Yes')
+                && str_contains($html, 'Maybe')
+                && str_contains($html, 'No')
+                && ! str_contains($html, 'You said you can help.');
+        });
+        Mail::assertNotSent(BookingChangedMail::class, fn (BookingChangedMail $mail): bool => $mail->hasTo($declined->email));
+        Mail::assertNotSent(BookingInviteMail::class);
+    }
+
+    public function test_a_lead_who_steps_away_returns_a_confirmed_booking_to_tentative(): void
+    {
+        $booking = Booking::factory()->confirmed()->create();
+        $lead = User::factory()->create();
+        $booking->lead_instructor_id = $lead->id;
+        $booking->save();
+        $token = BookingAttendance::generateToken();
+        $booking->attendees()->attach($lead->id, [
+            'status' => BookingAttendeeStatus::Accepted->value,
+            'token' => $token,
+        ]);
+
+        Livewire::withQueryParams(['invite' => $token, 'choice' => 'declined'])
+            ->test(RespondToBooking::class, [
+                'booking' => $booking,
+                'attendee' => $lead,
+            ])
+            ->assertSee('You are the lead instructor.')
+            ->assertSee('If you cannot attend, another lead instructor will need to be found.')
+            ->call('respond', 'declined');
+
+        $booking->refresh();
+        $this->assertSame(BookingStatus::Tentative, $booking->status);
+        $this->assertNull($booking->lead_instructor_id);
+        $this->assertSame(BookingAttendeeStatus::Declined, $booking->attendees()->find($lead)->attendance->status);
+
+        $booking = Booking::factory()->confirmed()->create();
+        $lead = User::factory()->create();
+        $booking->lead_instructor_id = $lead->id;
+        $booking->save();
+        $this->attend($booking, $lead, BookingAttendeeStatus::Accepted);
+
+        (new RespondToBookingAction($booking))($lead, BookingAttendeeStatus::Tentative);
+
+        $booking->refresh();
+        $this->assertSame(BookingStatus::Tentative, $booking->status);
+        $this->assertNull($booking->lead_instructor_id);
+    }
+
+    public function test_a_comment_from_the_lead_does_not_change_a_confirmed_booking(): void
+    {
+        $booking = Booking::factory()->confirmed()->create();
+        $lead = User::factory()->create();
+        $booking->lead_instructor_id = $lead->id;
+        $booking->save();
+        $this->attend($booking, $lead, BookingAttendeeStatus::Accepted);
+
+        (new RespondToBookingAction($booking))($lead, BookingAttendeeStatus::Accepted, 'Bringing ropes');
+
+        $booking->refresh();
+        $this->assertSame(BookingStatus::Confirmed, $booking->status);
+        $this->assertSame($lead->id, $booking->lead_instructor_id);
+    }
+
+    public function test_changing_or_removing_the_lead_follows_who_is_attending(): void
+    {
+        $leader = User::factory()->teamLeader()->create();
+        $booking = Booking::factory()->confirmed()->create();
+        $attending = User::factory()->create(['name' => 'Casey Lead']);
+        $maybe = User::factory()->create(['name' => 'Maybe Person']);
+        $this->attend($booking, $attending, BookingAttendeeStatus::Accepted);
+        $this->attend($booking, $maybe, BookingAttendeeStatus::Tentative);
+        $booking->lead_instructor_id = $attending->id;
+        $booking->save();
+
+        $this->actingAs($leader);
+
+        Livewire::test(EditBooking::class, ['record' => $booking->getRouteKey()])
+            ->mountAction('changeLead')
+            ->assertSee('Casey Lead')
+            ->assertDontSee('Maybe Person')
+            ->callMountedAction();
+
+        try {
+            app(UpdateBookingStatusAction::class)->changeLead($booking->fresh(), $leader, $maybe->id);
+            $this->fail('A lead who is not attending was saved.');
+        } catch (ValidationException $exception) {
+            $this->assertArrayHasKey('lead_instructor_id', $exception->errors());
+        }
+
+        $booking->refresh();
+        $this->assertSame(BookingStatus::Confirmed, $booking->status);
+        $this->assertSame($attending->id, $booking->lead_instructor_id);
+
+        Livewire::test(EditBooking::class, ['record' => $booking->getRouteKey()])
+            ->callAction('changeLead', data: [
+                'lead_instructor_id' => 'remove',
+            ]);
+
+        $booking->refresh();
+        $this->assertSame(BookingStatus::Tentative, $booking->status);
+        $this->assertNull($booking->lead_instructor_id);
+    }
+
+    public function test_delete_is_only_available_for_a_cancelled_booking(): void
+    {
+        $leader = User::factory()->teamLeader()->create();
+        $tentative = Booking::factory()->create();
+        $cancelled = Booking::factory()->cancelled()->create();
+
+        $this->actingAs($leader);
+
+        $this->assertFalse($leader->can('delete', $tentative));
+        $this->assertTrue($leader->can('delete', $cancelled));
+
+        Livewire::test(EditBooking::class, ['record' => $tentative->getRouteKey()])
+            ->assertActionHidden('delete');
+
+        Livewire::test(ViewBooking::class, ['record' => $cancelled->getRouteKey()])
+            ->assertActionVisible('delete');
+    }
+
+    public function test_a_cancelled_booking_cannot_be_edited_or_quietly_emailed(): void
+    {
+        $leader = User::factory()->teamLeader()->create();
+        $tentative = Booking::factory()->create(['group_name' => 'Still open']);
+        $cancelled = Booking::factory()->cancelled()->create(['group_name' => 'Already cancelled']);
+        $attendee = User::factory()->create();
+        $this->attend($cancelled, $attendee, BookingAttendeeStatus::NeedsAction);
+
+        $this->actingAs($leader);
+
+        $tentativeEditUrl = BookingResource::getUrl('edit', ['record' => $tentative], panel: 'manage');
+        $cancelledEditUrl = BookingResource::getUrl('edit', ['record' => $cancelled], panel: 'manage');
+
+        Livewire::test(ListBookings::class)
+            ->assertSee($tentativeEditUrl)
+            ->assertDontSee($cancelledEditUrl);
+
+        $cancelledView = Livewire::test(ViewBooking::class, ['record' => $cancelled->getRouteKey()])
+            ->assertActionDoesNotExist('edit')
+            ->assertActionVisible('restoreBooking')
+            ->assertActionVisible('delete');
+
+        $this->assertSame(
+            [__('Restore'), __('Delete')],
+            $this->visibleHeaderLabels($cancelledView->instance()),
+        );
+
+        $tentativeView = Livewire::test(ViewBooking::class, ['record' => $tentative->getRouteKey()])
+            ->assertActionVisible('edit');
+
+        $this->assertSame(
+            [__('Edit'), __('Status')],
+            $this->visibleHeaderLabels($tentativeView->instance()),
+        );
+
+        $this->assertFalse(BookingResource::canEdit($cancelled->fresh()));
+
+        Livewire::test(EditBooking::class, ['record' => $cancelled->getRouteKey()])
+            ->assertStatus(403);
+
+        $component = Livewire::test(EditBooking::class, ['record' => $tentative->getRouteKey()])
+            ->fillForm(['group_name' => 'Sneaky change']);
+
+        $tentative->status = BookingStatus::Cancelled;
+        $tentative->save();
+
+        $component->call('save')->assertStatus(403);
+
+        $this->assertSame('Still open', $tentative->fresh()->group_name);
+
+        $cancelled->group_name = 'Quiet change';
+        $cancelled->save();
+
+        Queue::fake();
+        Mail::fake();
+
+        app(UpdateBookingStatusAction::class)($cancelled, $leader);
+
+        $this->assertCount(0, Queue::pushed(SendBookingNotification::class));
+        Mail::assertNothingSent();
+    }
+
+    public function test_restoring_sends_one_email_that_includes_changes_made_then(): void
+    {
+        $leader = User::factory()->teamLeader()->create();
+        $booking = Booking::factory()->cancelled()->create(['group_name' => 'Old Group']);
+        $attendee = User::factory()->create();
+        $this->attend($booking, $attendee, BookingAttendeeStatus::Accepted);
+        $timezone = $booking->timezone instanceof \DateTimeZone
+            ? $booking->timezone->getName()
+            : (string) $booking->timezone;
+
+        $this->actingAs($leader);
+
+        Queue::fake();
+        Mail::fake();
+
+        Livewire::test(ViewBooking::class, ['record' => $booking->getRouteKey()])
+            ->callAction('restoreBooking', data: [
+                'activity_id' => $booking->activity_id,
+                'venue_id' => $booking->venue_id,
+                'start_at' => $booking->start_at->timezone(config('app.timezone'))->format('Y-m-d H:i:s'),
+                'end_at' => $booking->end_at->timezone(config('app.timezone'))->format('Y-m-d H:i:s'),
+                'timezone' => $timezone,
+                'group_name' => 'New Group',
+                'notes' => $booking->notes,
+                'lead_instructor_notes' => $booking->lead_instructor_notes,
+            ]);
+
+        $booking->refresh();
+        $this->assertSame(BookingStatus::Tentative, $booking->status);
+        $this->assertSame('New Group', $booking->group_name);
+
+        foreach (Queue::pushed(SendBookingNotification::class) as $job) {
+            $job->handle();
+        }
+
+        Mail::assertSent(BookingChangedMail::class, function (BookingChangedMail $mail) use ($attendee): bool {
+            return $mail->hasTo($attendee->email)
+                && str_contains($mail->render(), 'Group');
+        });
+        Mail::assertSent(BookingChangedMail::class, 1);
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function visibleHeaderLabels(object $page): array
+    {
+        return collect($page->getCachedHeaderActions())
+            ->filter(fn (Action|ActionGroup $action): bool => $action->isVisible())
+            ->map(fn (Action|ActionGroup $action): string => (string) $action->getLabel())
+            ->values()
+            ->all();
+    }
+
+    private function attend(Booking $booking, User $user, BookingAttendeeStatus $status): void
+    {
+        $booking->attendees()->attach($user->id, [
+            'status' => $status->value,
+            'token' => BookingAttendance::generateToken(),
+        ]);
+    }
+}

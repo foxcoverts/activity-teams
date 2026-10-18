@@ -5,10 +5,12 @@ namespace App\Filament\Team\Resources\Bookings\Pages;
 use App\Actions\RespondToBookingAction;
 use App\Enums\BookingAttendeeStatus;
 use App\Filament\Team\Resources\Bookings\BookingResource;
+use App\Support\LeadAttendanceWarning;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Select;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ViewRecord;
+use Filament\Schemas\Components\Utilities\Get;
 use InvalidArgumentException;
 
 class ViewBooking extends ViewRecord
@@ -27,6 +29,19 @@ class ViewBooking extends ViewRecord
                             ->mapWithKeys(fn (BookingAttendeeStatus $status): array => [$status->value => $status->getLabel()])
                             ->all())
                         ->default(fn (): ?string => $this->currentResponse()?->value)
+                        ->live()
+                        ->helperText(function (Get $get): ?string {
+                            $user = auth()->user();
+
+                            if ($user === null || ! $this->getRecord()->isLead($user)) {
+                                return null;
+                            }
+
+                            return LeadAttendanceWarning::message(
+                                $this->getRecord(),
+                                BookingAttendeeStatus::tryFrom((string) $get('status')),
+                            );
+                        })
                         ->required(),
                 ])
                 ->action(function (array $data): void {

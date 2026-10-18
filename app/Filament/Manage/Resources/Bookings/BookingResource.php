@@ -3,6 +3,7 @@
 namespace App\Filament\Manage\Resources\Bookings;
 
 use App\Enums\BookingStatus;
+use App\Filament\Bookings\BookingTimeline;
 use App\Filament\Manage\Resources\Activities\ActivityResource;
 use App\Filament\Manage\Resources\Bookings\Pages\CreateBooking;
 use App\Filament\Manage\Resources\Bookings\Pages\EditBooking;
@@ -18,11 +19,14 @@ use Carbon\Carbon;
 use Carbon\CarbonInterface;
 use DateTimeZone;
 use Filament\Actions\Action;
+use Filament\Actions\ActionGroup;
 use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
 use Filament\Forms\Components\DateTimePicker;
+use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
@@ -34,7 +38,9 @@ use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Illuminate\Auth\Access\Response;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 
 class BookingResource extends Resource
 {
@@ -44,6 +50,15 @@ class BookingResource extends Resource
 
     protected static ?string $recordTitleAttribute = 'group_name';
 
+    public static function getEditAuthorizationResponse(Model $record): Response
+    {
+        if ($record instanceof Booking && $record->isCancelled()) {
+            return Response::deny(__('A cancelled booking cannot be edited. Restore it to make changes.'));
+        }
+
+        return parent::getEditAuthorizationResponse($record);
+    }
+
     public static function getEloquentQuery(): Builder
     {
         return parent::getEloquentQuery()->with([
@@ -52,54 +67,64 @@ class BookingResource extends Resource
         ]);
     }
 
+    /**
+     * @return array<int, DateTimePicker|Select|Textarea|TextInput>
+     */
+    public static function detailComponents(): array
+    {
+        return [
+            Select::make('activity_id')
+                ->relationship('activity', 'name')
+                ->createOptionForm(ActivityResource::getFormComponents())
+                ->createOptionAction(fn (Action $action): Action => $action->authorize('create', Activity::class))
+                ->required(),
+            Select::make('venue_id')
+                ->relationship('venue', 'name')
+                ->createOptionForm(VenueResource::getFormComponents())
+                ->createOptionAction(fn (Action $action): Action => $action->authorize('create', Venue::class))
+                ->required(),
+            DateTimePicker::make('start_at')
+                ->timezone(fn (Get $get): string => static::scheduleTimezone($get))
+                ->default(fn (): Carbon => Carbon::parse('Saturday 09:30', static::defaultTimezone()))
+                ->live(onBlur: true)
+                ->afterStateUpdated(function (mixed $state, mixed $old, Set $set, Get $get): void {
+                    static::shiftEndToKeepDuration($state, $old, $set, $get);
+                })
+                ->required(),
+            DateTimePicker::make('end_at')
+                ->timezone(fn (Get $get): string => static::scheduleTimezone($get))
+                ->default(fn (): Carbon => Carbon::parse('Saturday 11:30', static::defaultTimezone()))
+                ->live(onBlur: true)
+                ->afterStateUpdated(function (mixed $state, Set $set, Get $get): void {
+                    static::keepEndAfterStart($state, $set, $get);
+                })
+                ->required(),
+            TextInput::make('timezone')
+                ->default(fn (): string => static::defaultTimezone())
+                ->required(),
+            TextInput::make('group_name')
+                ->required(),
+            Textarea::make('notes')
+                ->columnSpanFull(),
+            Textarea::make('lead_instructor_notes')
+                ->columnSpanFull(),
+        ];
+    }
+
     public static function form(Schema $schema): Schema
     {
         return $schema
             ->components([
-                Select::make('activity_id')
-                    ->relationship('activity', 'name')
-                    ->createOptionForm(ActivityResource::getFormComponents())
-                    ->createOptionAction(fn (Action $action): Action => $action->authorize('create', Activity::class))
-                    ->required(),
-                Select::make('venue_id')
-                    ->relationship('venue', 'name')
-                    ->createOptionForm(VenueResource::getFormComponents())
-                    ->createOptionAction(fn (Action $action): Action => $action->authorize('create', Venue::class))
-                    ->required(),
-                DateTimePicker::make('start_at')
-                    ->timezone(fn (Get $get): string => static::scheduleTimezone($get))
-                    ->default(fn (): Carbon => Carbon::parse('Saturday 09:30', static::defaultTimezone()))
-                    ->live(onBlur: true)
-                    ->afterStateUpdated(function (mixed $state, mixed $old, Set $set, Get $get): void {
-                        static::shiftEndToKeepDuration($state, $old, $set, $get);
-                    })
-                    ->required(),
-                DateTimePicker::make('end_at')
-                    ->timezone(fn (Get $get): string => static::scheduleTimezone($get))
-                    ->default(fn (): Carbon => Carbon::parse('Saturday 11:30', static::defaultTimezone()))
-                    ->live(onBlur: true)
-                    ->afterStateUpdated(function (mixed $state, Set $set, Get $get): void {
-                        static::keepEndAfterStart($state, $set, $get);
-                    })
-                    ->required(),
-                TextInput::make('timezone')
-                    ->default(fn (): string => static::defaultTimezone())
-                    ->required(),
+                ...static::detailComponents(),
                 Select::make('status')
                     ->options(BookingStatus::class)
-                    ->default(BookingStatus::Tentative)
-                    ->required(),
-                TextInput::make('cancel_reason')
-                    ->visible(fn ($get) => $get('status') === BookingStatus::Cancelled->value)
-                    ->dehydrated(false),
-                TextInput::make('group_name')
-                    ->required(),
-                Textarea::make('notes')
-                    ->columnSpanFull(),
-                Select::make('lead_instructor_id')
-                    ->relationship('leadInstructor', 'name'),
-                Textarea::make('lead_instructor_notes')
-                    ->columnSpanFull(),
+                    ->disabled()
+                    ->dehydrated(false)
+                    ->visible(fn (string $operation): bool => $operation === 'edit'),
+                Placeholder::make('lead_instructor_name')
+                    ->label(__('Lead instructor'))
+                    ->content(fn (?Booking $record): string => $record?->leadInstructor?->name ?? '—')
+                    ->visible(fn (string $operation): bool => $operation === 'edit'),
             ]);
     }
 
@@ -122,7 +147,9 @@ class BookingResource extends Resource
                 TextEntry::make('timezone')
                     ->placeholder('-'),
                 TextEntry::make('status')
-                    ->badge(),
+                    ->badge()
+                    ->icon(fn (BookingStatus $state): Heroicon => $state->getIcon()),
+                BookingTimeline::entry(),
                 TextEntry::make('group_name'),
                 TextEntry::make('notes')
                     ->placeholder('-')
@@ -159,6 +186,7 @@ class BookingResource extends Resource
                     ->sortable(),
                 TextColumn::make('status')
                     ->badge()
+                    ->icon(fn (BookingStatus $state): Heroicon => $state->getIcon())
                     ->searchable(),
                 TextColumn::make('group_name')
                     ->searchable(),
@@ -177,8 +205,12 @@ class BookingResource extends Resource
                 //
             ])
             ->recordActions([
-                ViewAction::make(),
-                EditAction::make(),
+                ActionGroup::make([
+                    ViewAction::make(),
+                    EditAction::make(),
+                    ...BookingStatusActions::actions(),
+                    DeleteAction::make(),
+                ]),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([

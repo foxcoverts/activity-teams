@@ -14,6 +14,9 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
+use Illuminate\Support\Collection;
+use Spatie\Activitylog\Models\Activity as ActivityLog;
 use Spatie\Activitylog\Models\Concerns\LogsActivity;
 use Spatie\Activitylog\Support\LogOptions;
 
@@ -38,6 +41,8 @@ class Booking extends Model
     protected $attributes = [
         'status' => BookingStatus::Tentative->value,
     ];
+
+    public ?string $cancellationReason = null;
 
     protected function casts(): array
     {
@@ -67,7 +72,63 @@ class Booking extends Model
 
     public function getActivitylogOptions(): LogOptions
     {
-        return LogOptions::defaults()->logFillable()->logOnlyDirty();
+        return LogOptions::defaults()
+            ->logFillable()
+            ->logOnlyDirty()
+            ->setDescriptionForEvent(fn (string $eventName): string => $this->activityDescription($eventName));
+    }
+
+    public function activityDescription(string $eventName): string
+    {
+        $previous = $this->oldAttributes['status'] ?? null;
+        $previous = $previous instanceof BookingStatus ? $previous->value : $previous;
+
+        if (
+            $eventName === 'updated'
+            && $this->status === BookingStatus::Cancelled
+            && $previous !== BookingStatus::Cancelled->value
+            && filled($this->cancellationReason)
+        ) {
+            return $this->cancellationReason;
+        }
+
+        return $eventName;
+    }
+
+    /**
+     * @return MorphMany<ActivityLog, $this>
+     */
+    public function activities(): MorphMany
+    {
+        return $this->activitiesAsSubject()->with('causer')->latest();
+    }
+
+    public function isLead(User $user): bool
+    {
+        return $this->lead_instructor_id !== null
+            && $this->lead_instructor_id === $user->getKey();
+    }
+
+    /**
+     * @return Collection<int, User>
+     */
+    public function acceptedAttendees(): Collection
+    {
+        $this->loadMissing('attendees');
+
+        return $this->attendees
+            ->filter(fn (User $attendee): bool => $attendee->attendance?->status === BookingAttendeeStatus::Accepted)
+            ->values();
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function leadOptions(): array
+    {
+        return $this->acceptedAttendees()
+            ->mapWithKeys(fn (User $user): array => [$user->getKey() => $user->name])
+            ->all();
     }
 
     public function activity(): BelongsTo

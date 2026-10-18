@@ -20,10 +20,11 @@ class BookingNotificationWindow
     /**
      * @param  list<string>  $changes
      * @param  array{start_at: mixed, end_at: mixed, timezone: mixed}|null  $previousSchedule
+     * @param  list<string>|null  $recipientUserIds
      */
-    public static function push(Booking $booking, string $kind, ?string $cancelReason = null, ?string $inviteUserId = null, array $changes = [], ?array $previousSchedule = null): void
+    public static function push(Booking $booking, string $kind, ?string $cancelReason = null, ?string $inviteUserId = null, array $changes = [], ?array $previousSchedule = null, ?array $recipientUserIds = null): void
     {
-        $token = Cache::lock(self::lockKey($booking), 10)->block(5, function () use ($booking, $kind, $cancelReason, $inviteUserId, $changes, $previousSchedule): string {
+        $token = Cache::lock(self::lockKey($booking), 10)->block(5, function () use ($booking, $kind, $cancelReason, $inviteUserId, $changes, $previousSchedule, $recipientUserIds): string {
             $pending = Cache::get(self::cacheKey($booking), [
                 'token' => null,
                 'kinds' => [],
@@ -55,6 +56,10 @@ class BookingNotificationWindow
                 $pending['invite_user_ids'][] = $inviteUserId;
             }
 
+            if (is_array($recipientUserIds)) {
+                $pending['recipient_user_ids'] = array_values(array_unique($recipientUserIds));
+            }
+
             Cache::put(self::cacheKey($booking), $pending, now()->addMinutes(10));
 
             return $pending['token'];
@@ -65,7 +70,7 @@ class BookingNotificationWindow
     }
 
     /**
-     * @return array{token: string, kinds: array<int, string>, cancel_reason: ?string, invite_user_ids: array<int, string>, changes: array<int, string>, previous_schedule: ?array}|null
+     * @return array{token: string, kinds: array<int, string>, cancel_reason: ?string, invite_user_ids: array<int, string>, changes: array<int, string>, previous_schedule: ?array, recipient_user_ids?: array<int, string>}|null
      */
     public static function claim(Booking $booking, string $token): ?array
     {
