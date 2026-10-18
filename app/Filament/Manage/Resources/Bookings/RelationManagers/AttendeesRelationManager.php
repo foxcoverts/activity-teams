@@ -3,7 +3,6 @@
 namespace App\Filament\Manage\Resources\Bookings\RelationManagers;
 
 use App\Actions\AddAttendeeAction;
-use App\Actions\InviteAttendeesAction;
 use App\Actions\OverrideAttendanceAction;
 use App\Enums\BookingAttendeeResponse;
 use App\Enums\BookingAttendeeStatus;
@@ -16,21 +15,26 @@ use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DetachAction;
 use Filament\Actions\DetachBulkAction;
-use Filament\Forms\Components\CheckboxList;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\ToggleButtons;
 use Filament\Resources\RelationManagers\RelationManager;
+use Filament\Support\Enums\Width;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Str;
+use Livewire\Attributes\On;
 use RuntimeException;
 
 class AttendeesRelationManager extends RelationManager
 {
     protected static string $relationship = 'attendees';
+
+    public ?string $inviteSession = null;
 
     public static function canViewForRecord(Model $ownerRecord, string $pageClass): bool
     {
@@ -73,21 +77,17 @@ class AttendeesRelationManager extends RelationManager
             ->headerActions([
                 Action::make('invite')
                     ->visible(fn (): bool => $this->booking()->acceptsInvites())
-                    ->schema([
-                        CheckboxList::make('user_ids')
-                            ->label(__('Members'))
-                            ->options(fn (): array => $this->membersNotOnBooking())
-                            ->searchable()
-                            ->columns(1)
-                            ->required(),
-                    ])
-                    ->action(function (array $data): void {
-                        app(InviteAttendeesAction::class)(
-                            $this->booking(),
-                            $data['user_ids'] ?? [],
-                            auth()->user(),
-                        );
-                    }),
+                    ->modalHeading(__('Invite'))
+                    ->modalSubmitAction(false)
+                    ->modalCancelAction(false)
+                    ->modalWidth(Width::TwoExtraLarge)
+                    ->mountUsing(function (): void {
+                        $this->inviteSession = (string) Str::ulid();
+                    })
+                    ->modalContent(fn (): View => view('filament.manage.invite-attendees-host', [
+                        'booking' => $this->booking(),
+                        'inviteSession' => $this->inviteSession,
+                    ])),
                 Action::make('add')
                     ->label(__('Add'))
                     ->visible(fn (): bool => ! $this->booking()->isCancelled()
@@ -165,6 +165,13 @@ class AttendeesRelationManager extends RelationManager
                         ->authorizeIndividualRecords(fn (User $record): bool => $this->canRemoveAttendee($record)),
                 ]),
             ]);
+    }
+
+    #[On('invites-sent')]
+    #[On('close-invite')]
+    public function closeInvite(): void
+    {
+        $this->unmountTableAction();
     }
 
     /**

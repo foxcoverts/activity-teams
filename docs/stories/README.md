@@ -26,15 +26,16 @@ When an enum is shown in Filament, give it a label, and a color and icon when th
 
 ## Bookings & Scheduling Lifecycle
 
-- [US-08 Smart Booking Invitee Pre-Selection & Management](US-08-smart-booking-invitee-preselection.md) — `not-started`
+- [US-08 Smart Booking Invitee Pre-Selection & Management](US-08-smart-booking-invitee-preselection.md) — `partial`
 - [US-09 Mandatory Lead Instructor Confirmation Validation](US-09-mandatory-lead-instructor-confirmation.md) — `done`
 - [US-10 Lead Instructor Availability Change & Resignation Workflow](US-10-lead-instructor-resignation.md) — `partial`
 - [US-11 Lead Instructor Assignment Notifications](US-11-lead-instructor-assignment-notifications.md) — `not-started`
 - [US-25 Historical Roster & Response Transparency](US-25-historical-roster-transparency.md) — `partial`
-- [US-26 Filterable Roster Additions & Batch Management](US-26-filterable-roster-additions.md) — `not-started`
+- [US-26 Filterable Roster Additions & Batch Management](US-26-filterable-roster-additions.md) — `done`
 - [US-27 Manager-Overridden Attendance Updates](US-27-manager-overridden-attendance.md) — `done`
 - [US-28 Booking Cancellation Reasons & Participant Notification](US-28-booking-cancellation-reasons.md) — `partial`
 - [US-37 Related Bookings & Multi-Day Event Linking](US-37-related-bookings-multi-day.md) — `not-started`
+- [US-50 Invite Someone Who Is Not on the Team](US-50-invite-non-members.md) — `not-started`
 
 ## Communications, ICS & Calendar Integration
 

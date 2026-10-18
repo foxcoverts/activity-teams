@@ -1,7 +1,7 @@
 ---
 id: US-08
 title: "Smart Booking Invitee Pre-Selection & Management"
-status: not-started
+status: partial
 area: bookings
 ---
 
@@ -17,4 +17,4 @@ As an Activity Manager, I want the system to automatically evaluate activity rul
 
 ## Progress
 
-The activity list is the check this story will use to make qualified members easier to identify and invite. Invite pre-selection does not read that list yet. The pre-selected list is still the current members of the booking's team. An activity with no rows accepts a member who holds none.
+The invite modal starts with people who meet the activity when it has qualification rows, and add and remove replace the checkbox list. An activity with no rows starts with an empty list. Venue and key filtering are still open, with [US-03](US-03-booking-venue-access-logistics.md) and [US-04](US-04-multi-venue-location-management.md).

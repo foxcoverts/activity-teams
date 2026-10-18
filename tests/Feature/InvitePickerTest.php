@@ -1,0 +1,181 @@
+<?php
+
+namespace Tests\Feature;
+
+use App\Enums\BookingAttendeeStatus;
+use App\Enums\MountainTrainingAward;
+use App\Filament\Manage\Resources\Bookings\Pages\EditBooking;
+use App\Filament\Manage\Resources\Bookings\RelationManagers\AttendeesRelationManager;
+use App\Livewire\InviteAttendees;
+use App\Models\Activity;
+use App\Models\Booking;
+use App\Models\BookingAttendance;
+use App\Models\MountainTrainingQualification;
+use App\Models\Qualification;
+use App\Models\User;
+use Filament\Facades\Filament;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Livewire\Livewire;
+use Tests\TestCase;
+
+class InvitePickerTest extends TestCase
+{
+    use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        Filament::setCurrentPanel(Filament::getPanel('manage'));
+    }
+
+    public function test_qualified_people_start_queued_and_everyone_else_stays_in_the_picker(): void
+    {
+        [$leader, $booking, $qualified, $other] = $this->teamWithRequirement();
+        User::factory()->create(['name' => 'Outsider Person']);
+        $former = User::factory()->teamMember()->create(['name' => 'Pat Former']);
+        $booking->team->recordLeft($former);
+        $booking->attendees()->attach($former->id, [
+            'status' => BookingAttendeeStatus::Declined->value,
+            'token' => BookingAttendance::generateToken(),
+        ]);
+        $accepted = User::factory()->teamMember()->create(['name' => 'Casey Helper']);
+        $booking->attendees()->attach($accepted->id, [
+            'status' => BookingAttendeeStatus::Accepted->value,
+            'token' => BookingAttendance::generateToken(),
+        ]);
+
+        $this->actingAs($leader);
+
+        Livewire::test(InviteAttendees::class, ['booking' => $booking])
+            ->assertSet('queued', [$qualified->getKey()])
+            ->assertSee('To be invited')
+            ->assertSee('Sam Holder')
+            ->assertSee('Qualified')
+            ->assertSee('Alex Guest')
+            ->assertSee('Casey Helper')
+            ->assertSee('Can help')
+            ->assertSee('Pat Former')
+            ->assertSee('Cannot make it')
+            ->assertDontSee('Outsider Person')
+            ->call('add', $accepted->getKey())
+            ->assertSet('queued', [$qualified->getKey()])
+            ->call('add', $other->getKey())
+            ->assertSet('queued', [$qualified->getKey(), $other->getKey()])
+            ->call('remove', $other->getKey())
+            ->call('remove', $qualified->getKey())
+            ->assertSet('queued', [])
+            ->call('toggleQualified')
+            ->assertDontSee('Alex Guest')
+            ->assertSee('Sam Holder')
+            ->call('addShown')
+            ->assertSet('queued', [$qualified->getKey()]);
+    }
+
+    public function test_an_activity_with_no_requirements_starts_with_an_empty_list(): void
+    {
+        $leader = User::factory()->teamLeader()->create();
+        $member = User::factory()->teamMember()->create(['name' => 'Alex Guest']);
+        $booking = Booking::factory()->create();
+
+        $this->actingAs($leader);
+
+        Livewire::test(InviteAttendees::class, ['booking' => $booking])
+            ->assertSet('queued', [])
+            ->assertSee('No one is queued.')
+            ->assertSee('Alex Guest')
+            ->assertDontSee('Qualified only')
+            ->call('send');
+
+        $this->assertDatabaseMissing('booking_user', [
+            'booking_id' => $booking->id,
+            'user_id' => $member->id,
+        ]);
+    }
+
+    public function test_a_name_filter_narrows_the_picker_and_add_everyone_shown_skips_people_already_on_the_booking(): void
+    {
+        $leader = User::factory()->teamLeader()->create(['name' => 'Alex Leader']);
+        $member = User::factory()->teamMember()->create(['name' => 'Casey Member']);
+        $activity = Activity::factory()->create();
+        $activity->qualificationRequirements()->create([
+            'detail_type' => MountainTrainingQualification::class,
+            'award' => [MountainTrainingAward::ClimbingWallInstructor->value],
+        ]);
+        $booking = Booking::factory()->create(['activity_id' => $activity->getKey()]);
+        $booking->attendees()->attach($member->id, [
+            'status' => BookingAttendeeStatus::NeedsAction->value,
+            'token' => BookingAttendance::generateToken(),
+        ]);
+
+        $this->actingAs($leader);
+
+        Livewire::test(InviteAttendees::class, ['booking' => $booking])
+            ->assertSet('queued', [])
+            ->assertSee('Awaiting response')
+            ->assertDontSee('Managers')
+            ->set('name', 'Casey')
+            ->assertSee('Casey Member')
+            ->assertDontSee('Alex Leader')
+            ->call('addShown')
+            ->assertSet('queued', [])
+            ->set('name', 'alex')
+            ->assertSee('Alex Leader')
+            ->assertDontSee('Casey Member')
+            ->call('addShown')
+            ->assertSet('queued', [$leader->getKey()]);
+    }
+
+    public function test_sending_invites_closes_the_modal_and_the_next_open_starts_again(): void
+    {
+        [$leader, $booking, $qualified, $other] = $this->teamWithRequirement();
+        Qualification::factory()->forMember($other)->mountainTraining()->create();
+
+        $this->actingAs($leader);
+
+        Livewire::test(InviteAttendees::class, ['booking' => $booking])
+            ->call('remove', $other->getKey())
+            ->call('send');
+
+        $this->assertSame(
+            BookingAttendeeStatus::NeedsAction,
+            $booking->attendees()->find($qualified)?->attendance->status,
+        );
+        $this->assertNull($booking->attendees()->find($other->getKey()));
+
+        Livewire::test(InviteAttendees::class, ['booking' => $booking->fresh()])
+            ->assertSet('queued', [$other->getKey()])
+            ->assertSee('Awaiting response');
+
+        Livewire::test(AttendeesRelationManager::class, [
+            'ownerRecord' => $booking,
+            'pageClass' => EditBooking::class,
+        ])
+            ->mountTableAction('invite')
+            ->assertTableActionMounted('invite')
+            ->dispatch('invites-sent')
+            ->assertTableActionNotMounted('invite')
+            ->mountTableAction('invite')
+            ->dispatch('close-invite')
+            ->assertTableActionNotMounted('invite');
+    }
+
+    /**
+     * @return array{User, Booking, User, User}
+     */
+    private function teamWithRequirement(): array
+    {
+        $leader = User::factory()->teamLeader()->create();
+        $qualified = User::factory()->teamMember()->create(['name' => 'Sam Holder']);
+        $other = User::factory()->teamMember()->create(['name' => 'Alex Guest']);
+        $activity = Activity::factory()->create();
+        $activity->qualificationRequirements()->create([
+            'detail_type' => MountainTrainingQualification::class,
+            'award' => [MountainTrainingAward::ClimbingWallInstructor->value],
+        ]);
+        $booking = Booking::factory()->create(['activity_id' => $activity->getKey()]);
+        Qualification::factory()->forMember($qualified)->mountainTraining()->create();
+
+        return [$leader, $booking, $qualified, $other];
+    }
+}

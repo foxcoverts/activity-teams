@@ -1,7 +1,7 @@
 ---
 id: US-26
 title: "Filterable Roster Additions & Batch Management"
-status: not-started
+status: done
 area: bookings
 ---
 
@@ -11,9 +11,9 @@ As an Activity Manager, I want to use quick filters when managing booking roster
 
 ## Acceptance criteria
 
-- Provides quick filter toggles (such as by permits, roles, or availability status) on the roster management view.
-- Allows managers to batch-select or add filtered groups of team members to the booking seamlessly.
+- The invite picker can be narrowed by name, and to people who meet the activity.
+- The manager can add everyone those filters currently show who is not already on the booking.
 
 ## Progress
 
-The invite pool starts as the booking's team. Not built yet.
+The invite modal queues a list, then sends it. The picker can be narrowed by name, and to people who meet the activity when it has qualification rows. Add everyone shown skips anyone already on the booking, and anyone hidden by the current filters. Not asking someone again is that picker rule, not a separate filter. Role is not a filter. Later filters, such as key holders, are not part of this story.

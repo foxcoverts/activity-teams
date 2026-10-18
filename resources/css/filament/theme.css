@@ -10,3 +10,53 @@
     margin-top: 0.25rem;
     padding-inline-start: 1.25rem;
 }
+
+.invite-panel {
+    @apply flex flex-col gap-5;
+}
+
+.invite-block {
+    @apply flex flex-col gap-2;
+}
+
+.invite-heading {
+    @apply text-sm font-semibold text-gray-950 dark:text-white;
+}
+
+.invite-toolbar {
+    @apply flex flex-wrap items-center justify-between gap-3;
+}
+
+.invite-filters {
+    @apply flex flex-wrap items-center gap-2;
+}
+
+.invite-name {
+    @apply w-56 max-w-full;
+}
+
+.invite-list {
+    @apply overflow-hidden rounded-xl border border-gray-200 dark:border-white/10;
+}
+
+.invite-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    @apply items-center gap-3 px-3 py-2.5;
+}
+
+.invite-row + .invite-row {
+    @apply border-t border-gray-200 dark:border-white/10;
+}
+
+.invite-person {
+    @apply flex min-w-0 flex-wrap items-center gap-2;
+}
+
+.invite-empty {
+    @apply px-3 py-3 text-sm text-gray-500 dark:text-gray-400;
+}
+
+.invite-footer {
+    @apply flex justify-end gap-2;
+}
