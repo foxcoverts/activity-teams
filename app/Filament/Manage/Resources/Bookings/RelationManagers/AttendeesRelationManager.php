@@ -23,11 +23,19 @@ use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 use RuntimeException;
 
 class AttendeesRelationManager extends RelationManager
 {
     protected static string $relationship = 'attendees';
+
+    public static function canViewForRecord(Model $ownerRecord, string $pageClass): bool
+    {
+        $user = auth()->user();
+
+        return $user instanceof User && $ownerRecord instanceof Booking && $user->can('update', $ownerRecord);
+    }
 
     public function table(Table $table): Table
     {
@@ -143,13 +151,18 @@ class AttendeesRelationManager extends RelationManager
     protected function membersNotOnBooking(): array
     {
         $booking = $this->booking();
+        $booking->loadMissing('team');
 
-        return User::query()
-            ->whereNot('role', 'suspended')
+        if ($booking->team === null) {
+            return [];
+        }
+
+        return $booking->team->members()
+            ->where('suspended', false)
             ->whereNotNull('email_verified_at')
             ->whereDoesntHave('bookings', fn (Builder $query) => $query->where('booking_id', $booking->id))
             ->ordered()
-            ->pluck('name', 'id')
+            ->pluck('users.name', 'users.id')
             ->all();
     }
 

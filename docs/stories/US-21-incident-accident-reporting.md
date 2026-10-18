@@ -15,3 +15,7 @@ As a team member or activity leader, I want to submit incident and accident repo
 - Requires the reporter to select the relevant activity or venue associated with the incident.
 - Automatically triggers notifications to the specific manager responsible for that selected activity or venue.
 - Automatically sends a copy or confirmation of the submitted report to the original reporter for their records.
+
+## Progress
+
+There is no activity manager or venue manager, because activities and venues are shared. An incident report will likely attach to a booking, or ask which team it belongs to. The rest of that routing waits until this story is built.

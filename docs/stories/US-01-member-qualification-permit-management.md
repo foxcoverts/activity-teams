@@ -13,3 +13,7 @@ As an Activity Manager, I want to record and maintain team members' qualificatio
 
 - Supports polymorphic qualification types with distinct tracking rules (Scout permit expirations, non-expiring Mountain Training, and historical Girlguiding).
 - Managers can create, update, or remove qualifications for active members.
+
+## Progress
+
+A manager of a team reviews and amends qualifications for that team's current members. The records stay on the person. Not built yet.

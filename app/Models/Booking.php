@@ -8,6 +8,7 @@ use App\Enums\BookingAttendeeStatus;
 use App\Enums\BookingStatus;
 use Carbon\Carbon;
 use Database\Factories\BookingFactory;
+use Filament\Facades\Filament;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -16,6 +17,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Support\Collection;
+use Illuminate\Validation\ValidationException;
 use Spatie\Activitylog\Models\Activity as ActivityLog;
 use Spatie\Activitylog\Models\Concerns\LogsActivity;
 use Spatie\Activitylog\Support\LogOptions;
@@ -26,6 +28,7 @@ class Booking extends Model
     use Concerns\HasSequence, Concerns\HasUid, HasFactory, HasUlids, LogsActivity;
 
     protected $fillable = [
+        'team_id',
         'activity_id',
         'venue_id',
         'start_at',
@@ -53,6 +56,41 @@ class Booking extends Model
             'sequence' => AsSequence::class,
             'timezone' => AsTimezone::class,
         ];
+    }
+
+    protected static function booted(): void
+    {
+        static::saving(function (Booking $booking): void {
+            $tenant = Filament::getTenant();
+
+            if (blank($booking->team_id) && $tenant instanceof Team) {
+                $booking->team_id = $tenant->getKey();
+            }
+
+            if (blank($booking->team_id)) {
+                throw ValidationException::withMessages([
+                    'team_id' => __('Choose a team.'),
+                ]);
+            }
+
+            $team = Team::query()->find($booking->team_id);
+
+            if ($team === null) {
+                return;
+            }
+
+            if (filled($booking->activity_id) && ! $team->activities()->whereKey($booking->activity_id)->exists()) {
+                throw ValidationException::withMessages([
+                    'activity_id' => __('Choose an activity this team has been given.'),
+                ]);
+            }
+
+            if (filled($booking->venue_id) && ! $team->venues()->whereKey($booking->venue_id)->exists()) {
+                throw ValidationException::withMessages([
+                    'venue_id' => __('Choose a venue this team has been given.'),
+                ]);
+            }
+        });
     }
 
     /**
@@ -209,15 +247,30 @@ class Booking extends Model
         });
     }
 
+    public function team(): BelongsTo
+    {
+        return $this->belongsTo(Team::class);
+    }
+
     public function scopeForUser(Builder $bookings, User $user): void
     {
-        if ($user->isGuest()) {
-            $bookings->attendeeStatus($user);
-        } elseif ($user->cannot('manage', Booking::class)) {
-            $bookings->where(function (Builder $query) use ($user) {
-                $query->attendeeStatus($user)
-                    ->orWhereIn('status', [BookingStatus::Confirmed]);
-            });
+        if ($user->isSuspended()) {
+            $bookings->whereRaw('0 = 1');
+
+            return;
         }
+
+        $bookings->where(function (Builder $query) use ($user) {
+            $query->attendeeStatus($user)
+                ->orWhere(function (Builder $confirmed) use ($user) {
+                    $confirmed->where('status', BookingStatus::Confirmed)
+                        ->whereHas('team', function (Builder $teams) use ($user) {
+                            $teams->whereHas('members', fn (Builder $members) => $members->whereKey($user->getKey()));
+                        });
+                })
+                ->orWhereHas('team', function (Builder $teams) use ($user) {
+                    $teams->whereHas('managers', fn (Builder $managers) => $managers->whereKey($user->getKey()));
+                });
+        });
     }
 }

@@ -13,3 +13,7 @@ As an Activity Manager, I want a centralised team-wide audit log of recent activ
 
 - Provides a centralised feed view tracking system-wide lifecycle updates (such as booking creations, confirmations, cancellations, and metadata shifts).
 - Filters and displays activity streams according to manager permissions.
+
+## Progress
+
+The feed is the current team's bookings. "System-wide" means that team, within what that manager can see. The central feed itself is still open.

@@ -32,7 +32,7 @@ class BookingStatusMail extends Mailable
         public ?array $previousSchedule = null,
     ) {
         $this->booking->loadMissing(['activity', 'venue']);
-        $this->attendance = $booking->attendees()->find($attendee)?->attendance;
+        $this->attendance = $booking->attendees()->whereKey($attendee->getKey())->first()?->attendance;
     }
 
     public function envelope(): Envelope

@@ -15,7 +15,7 @@ class BookingAttendancePolicy
 
     public function create(User $user, Booking $booking): bool
     {
-        return $user->can('manage', Booking::class);
+        return $this->managesBooking($user, $booking);
     }
 
     public function view(User $user, BookingAttendance $attendance): bool
@@ -35,7 +35,7 @@ class BookingAttendancePolicy
         if ($attendance->isLeadInstructor() && $attendance->isAccepted()) {
             return false;
         }
-        if ($user->can('manage', Booking::class)) {
+        if ($this->managesBooking($user, $booking)) {
             return true;
         }
 
@@ -58,7 +58,7 @@ class BookingAttendancePolicy
             return false;
         }
 
-        return $user->can('manage', Booking::class);
+        return $this->managesBooking($user, $booking);
     }
 
     public function delete(User $user, BookingAttendance $attendance): bool
@@ -67,6 +67,17 @@ class BookingAttendancePolicy
             return false;
         }
 
-        return $user->can('manage', Booking::class);
+        $booking = $attendance->pivotParent instanceof Booking
+            ? $attendance->pivotParent
+            : $attendance->booking;
+
+        return $this->managesBooking($user, $booking);
+    }
+
+    private function managesBooking(User $user, Booking $booking): bool
+    {
+        $booking->loadMissing('team');
+
+        return $booking->team !== null && $user->manages($booking->team);
     }
 }

@@ -14,13 +14,15 @@ class InviteAttendeesAction
      */
     public function __invoke(Booking $booking, iterable $userIds, User $actor): void
     {
-        if (! $booking->acceptsInvites()) {
+        $booking->loadMissing('team');
+
+        if (! $booking->acceptsInvites() || $booking->team === null) {
             return;
         }
 
         foreach ($userIds as $userId) {
             $user = User::query()->find($userId);
-            if (! $user || $user->isSuspended() || ! $user->hasVerifiedEmail()) {
+            if (! $user || $user->isSuspended() || ! $user->hasVerifiedEmail() || ! $user->isCurrentMemberOf($booking->team)) {
                 continue;
             }
 

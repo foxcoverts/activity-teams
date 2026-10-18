@@ -3,6 +3,7 @@
 namespace Database\Factories;
 
 use App\Models\Activity;
+use App\Models\Team;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Str;
 
@@ -20,5 +21,14 @@ class ActivityFactory extends Factory
             'slug' => Str::slug($name),
             'description' => fake()->optional()->sentence(),
         ];
+    }
+
+    public function configure(): static
+    {
+        return $this->afterCreating(function (Activity $activity): void {
+            Team::query()->orderByDesc('id')->first()
+                ?->activities()
+                ->syncWithoutDetaching([$activity->getKey()]);
+        });
     }
 }

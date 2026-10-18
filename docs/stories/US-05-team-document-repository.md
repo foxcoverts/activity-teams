@@ -12,3 +12,7 @@ As an Activity Manager, I want to upload and share internal compliance documents
 ## Acceptance criteria
 
 - Managers can upload, edit, and delete document files with descriptive notes, scoped to activity teams or general campsite use.
+
+## Progress
+
+An activity team is a team in this app. General campsite use is the site scope, the same split keys will use. Not built yet.

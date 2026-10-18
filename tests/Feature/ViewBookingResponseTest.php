@@ -3,7 +3,6 @@
 namespace Tests\Feature;
 
 use App\Actions\RespondToBookingAction;
-use App\Enums\Accreditation;
 use App\Enums\BookingAttendeeResponse;
 use App\Enums\BookingAttendeeStatus;
 use App\Filament\Team\Resources\Bookings\Pages\ViewBooking;
@@ -58,9 +57,7 @@ class ViewBookingResponseTest extends TestCase
         $booking = Booking::factory()->confirmed()->create();
         $invited = User::factory()->teamMember()->create();
         $uninvited = User::factory()->teamMember()->create();
-        $manager = User::factory()->teamMember()->create([
-            'accreditations' => [Accreditation::ManageBookings],
-        ]);
+        $manager = User::factory()->manager()->create();
         $booking->attendees()->attach($invited->id, [
             'status' => BookingAttendeeStatus::NeedsAction->value,
         ]);
@@ -81,9 +78,7 @@ class ViewBookingResponseTest extends TestCase
     public function test_responding_without_an_invite_creates_a_token_for_later_emails(): void
     {
         $booking = Booking::factory()->confirmed()->create();
-        $manager = User::factory()->teamMember()->create([
-            'accreditations' => [Accreditation::ManageBookings],
-        ]);
+        $manager = User::factory()->manager()->create();
 
         $this->actingAs($manager);
 

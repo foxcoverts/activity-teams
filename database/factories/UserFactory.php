@@ -2,11 +2,11 @@
 
 namespace Database\Factories;
 
-use App\Enums\Role;
+use App\Enums\MembershipRole;
 use App\Enums\Section;
+use App\Models\Team;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
-use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 
@@ -26,9 +26,10 @@ class UserFactory extends Factory
             'password' => static::$password ??= Hash::make('password'),
             'remember_token' => Str::random(10),
             'timezone' => 'Europe/London',
-            'role' => Role::TeamMember->value,
-            'accreditations' => '',
             'section' => Section::Adult->value,
+            'suspended' => false,
+            'oversight' => false,
+            'is_system_admin' => false,
         ];
     }
 
@@ -44,30 +45,47 @@ class UserFactory extends Factory
 
     public function guest(): static
     {
-        return $this->state(fn () => ['role' => Role::Guest->value]);
+        return $this->afterCreating(function (User $user): void {
+            $user->memberships()->delete();
+        });
     }
 
     public function teamMember(): static
     {
-        return $this->state(fn () => ['role' => Role::TeamMember->value]);
+        return $this->afterCreating(function (User $user): void {
+            $team = Team::query()->orderByDesc('id')->first() ?? Team::factory()->create();
+            $team->grant($user, MembershipRole::Member);
+        });
+    }
+
+    public function manager(): static
+    {
+        return $this->afterCreating(function (User $user): void {
+            $team = Team::query()->orderByDesc('id')->first() ?? Team::factory()->create();
+            $team->grant($user, MembershipRole::Manager);
+        });
     }
 
     public function teamLeader(): static
     {
-        return $this->state(fn () => ['role' => Role::TeamLeader->value]);
+        return $this->state(fn () => ['is_system_admin' => true])
+            ->afterCreating(function (User $user): void {
+                $team = Team::factory()->create();
+                $team->grant($user, MembershipRole::Manager);
+            });
     }
 
     public function suspended(): static
     {
-        return $this->state(fn () => ['role' => Role::Suspended->value]);
+        return $this->state(fn () => ['suspended' => true])
+            ->afterCreating(function (User $user): void {
+                $team = Team::query()->orderByDesc('id')->first() ?? Team::factory()->create();
+                $team->grant($user, MembershipRole::Member);
+            });
     }
 
-    public function anyRoleExcept(Role $role): static
+    public function oversight(): static
     {
-        $roles = Arr::reject(Role::cases(), fn (Role $value): bool => $value === $role);
-
-        return $this->state(fn () => [
-            'role' => fake()->randomElement($roles)->value,
-        ]);
+        return $this->state(fn () => ['oversight' => true])->teamMember();
     }
 }

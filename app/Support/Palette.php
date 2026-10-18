@@ -45,4 +45,14 @@ final class Palette
     {
         return Color::Gray;
     }
+
+    /**
+     * The person running a team. Same sky as the manage panel.
+     *
+     * @return array<int, string>
+     */
+    public static function manager(): array
+    {
+        return Color::Sky;
+    }
 }

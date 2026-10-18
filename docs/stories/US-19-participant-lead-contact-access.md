@@ -13,3 +13,7 @@ As a team member participating in an event, I want to access the lead instructor
 
 - Members on a confirmed booking roster can view the lead instructor's phone details on the event day.
 - Emergency access requires explicit GDPR consent acknowledgment.
+
+## Progress
+
+A system admin does not bypass these GDPR controls. Not built yet.

@@ -11,6 +11,7 @@ use App\Mail\BookingInviteMail;
 use App\Models\Booking;
 use App\Models\BookingAttendance;
 use App\Models\User;
+use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
 use Livewire\Livewire;
@@ -19,6 +20,13 @@ use Tests\TestCase;
 class InviteAttendeesTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        Filament::setCurrentPanel(Filament::getPanel('manage'));
+    }
 
     public function test_upcoming_bookings_can_be_invited_to(): void
     {

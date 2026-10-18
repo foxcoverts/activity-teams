@@ -2,7 +2,8 @@
 
 namespace App\Filament\Auth;
 
-use App\Enums\Role;
+use App\Enums\MembershipRole;
+use App\Models\Team;
 use App\Models\User;
 use Filament\Auth\Pages\Register as BaseRegister;
 use Illuminate\Database\Eloquent\Model;
@@ -21,8 +22,13 @@ class Register extends BaseRegister
     {
         /** @var User $user */
         $user = parent::handleRegistration($data);
-        $user->role = Role::TeamLeader;
+        $user->is_system_admin = true;
         $user->save();
+
+        $team = Team::query()->create([
+            'name' => __('Team'),
+        ]);
+        $team->grant($user, MembershipRole::Manager);
 
         return $user;
     }

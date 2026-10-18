@@ -5,7 +5,9 @@ namespace App\Policies;
 use App\Enums\BookingStatus;
 use App\Models\Booking;
 use App\Models\BookingAttendance;
+use App\Models\Team;
 use App\Models\User;
+use Filament\Facades\Filament;
 
 class BookingPolicy
 {
@@ -15,7 +17,13 @@ class BookingPolicy
             return false;
         }
 
-        return $user->isTeamLeader() || $user->isBookingManager();
+        $tenant = Filament::getTenant();
+
+        if ($tenant instanceof Team) {
+            return $user->manages($tenant);
+        }
+
+        return $user->managedTeams()->exists();
     }
 
     public function viewAny(User $user, ?BookingStatus $status = null): bool
@@ -26,7 +34,7 @@ class BookingPolicy
 
         return match ($status) {
             BookingStatus::Tentative, BookingStatus::Cancelled => $this->manage($user),
-            default => $this->manage($user) || ! $user->isGuest(),
+            default => $user->teams()->exists() || $this->manage($user),
         };
     }
 
@@ -37,15 +45,21 @@ class BookingPolicy
 
     public function view(User $user, Booking $booking): bool
     {
-        if ($user->isSuspended()) {
+        $booking->loadMissing('team');
+
+        if ($user->isSuspended() || $booking->team === null) {
             return false;
+        }
+
+        if ($user->manages($booking->team)) {
+            return true;
         }
 
         if ($this->attendee($booking, $user)) {
             return true;
         }
 
-        return $this->viewAny($user, $booking->status);
+        return $booking->status === BookingStatus::Confirmed && $user->isCurrentMemberOf($booking->team);
     }
 
     public function create(User $user): bool
@@ -55,12 +69,14 @@ class BookingPolicy
 
     public function update(User $user, Booking $booking): bool
     {
-        return $this->manage($user);
+        $booking->loadMissing('team');
+
+        return $booking->team !== null && $user->manages($booking->team);
     }
 
     public function delete(User $user, Booking $booking): bool
     {
-        return $booking->isCancelled() && $user->isTeamLeader() && $this->manage($user);
+        return $booking->isCancelled() && $this->update($user, $booking);
     }
 
     public function respond(User $user, Booking $booking, User $model): bool
@@ -80,9 +96,13 @@ class BookingPolicy
     private function attendee(Booking $booking, User $user): ?User
     {
         if ($booking->relationLoaded('attendees')) {
-            return $booking->attendees->find($user);
+            $match = $booking->attendees->find($user->getKey());
+
+            return $match instanceof User ? $match : null;
         }
 
-        return $booking->attendees()->find($user);
+        $match = $booking->attendees()->whereKey($user->getKey())->first();
+
+        return $match instanceof User ? $match : null;
     }
 }

@@ -2,11 +2,13 @@
 
 namespace App\Filament\Manage\Resources\Activities;
 
+use App\Filament\Manage\NavigationGroup;
 use App\Filament\Manage\Resources\Activities\Pages\CreateActivity;
 use App\Filament\Manage\Resources\Activities\Pages\EditActivity;
 use App\Filament\Manage\Resources\Activities\Pages\ListActivities;
 use App\Filament\Manage\Resources\Activities\Pages\ViewActivity;
 use App\Models\Activity;
+use App\Models\User;
 use BackedEnum;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
@@ -27,7 +29,22 @@ class ActivityResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
 
+    protected static string|\UnitEnum|null $navigationGroup = NavigationGroup::Site;
+
+    protected static ?int $navigationSort = 3;
+
     protected static ?string $recordTitleAttribute = 'name';
+
+    protected static bool $isScopedToTenant = false;
+
+    protected static ?string $navigationLabel = 'Activity catalog';
+
+    public static function canViewAny(): bool
+    {
+        $user = auth()->user();
+
+        return $user instanceof User && $user->isSystemAdmin();
+    }
 
     /**
      * @return array<int, TextInput|Textarea>

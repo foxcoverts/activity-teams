@@ -2,22 +2,22 @@
 
 namespace App\Filament\Manage\Resources\Users;
 
-use App\Enums\Role;
 use App\Enums\Section;
+use App\Filament\Manage\NavigationGroup;
 use App\Filament\Manage\Resources\Users\Pages\CreateUser;
 use App\Filament\Manage\Resources\Users\Pages\EditUser;
 use App\Filament\Manage\Resources\Users\Pages\ListUsers;
 use App\Filament\Manage\Resources\Users\Pages\ViewUser;
+use App\Filament\Manage\Resources\Users\RelationManagers\MembershipsRelationManager;
 use App\Models\User;
 use BackedEnum;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
-use App\Enums\Accreditation;
-use Filament\Forms\Components\CheckboxList;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
@@ -31,7 +31,15 @@ class UserResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
 
+    protected static string|\UnitEnum|null $navigationGroup = NavigationGroup::Site;
+
+    protected static ?int $navigationSort = 2;
+
     protected static ?string $recordTitleAttribute = 'name';
+
+    protected static bool $isScopedToTenant = false;
+
+    protected static ?string $navigationLabel = 'Users';
 
     public static function form(Schema $schema): Schema
     {
@@ -47,10 +55,6 @@ class UserResource extends Resource
                     ->password()
                     ->dehydrated(fn ($state) => filled($state)),
                 TextInput::make('timezone'),
-                Select::make('role')
-                    ->options(Role::class)
-                    ->default('guest')
-                    ->required(),
                 Select::make('section')
                     ->options(Section::class)
                     ->default('adult')
@@ -60,9 +64,9 @@ class UserResource extends Resource
                 TextInput::make('emergency_name'),
                 TextInput::make('emergency_phone')
                     ->tel(),
-                CheckboxList::make('accreditations')
-                    ->options(Accreditation::class)
-                    ->columns(2),
+                Toggle::make('oversight'),
+                Toggle::make('is_system_admin')
+                    ->label('System admin'),
             ]);
     }
 
@@ -80,8 +84,6 @@ class UserResource extends Resource
                     ->placeholder('-'),
                 TextEntry::make('timezone')
                     ->placeholder('-'),
-                TextEntry::make('role')
-                    ->badge(),
                 TextEntry::make('section')
                     ->badge(),
                 TextEntry::make('phone')
@@ -90,7 +92,13 @@ class UserResource extends Resource
                     ->placeholder('-'),
                 TextEntry::make('emergency_phone')
                     ->placeholder('-'),
-                TextEntry::make('accreditations'),
+                TextEntry::make('oversight')
+                    ->badge(),
+                TextEntry::make('is_system_admin')
+                    ->label('System admin')
+                    ->badge(),
+                TextEntry::make('suspended')
+                    ->badge(),
                 TextEntry::make('created_at')
                     ->dateTime()
                     ->placeholder('-'),
@@ -118,20 +126,22 @@ class UserResource extends Resource
                     ->sortable(),
                 TextColumn::make('timezone')
                     ->searchable(),
-                TextColumn::make('role')
-                    ->badge()
-                    ->searchable(),
                 TextColumn::make('section')
                     ->badge()
                     ->searchable(),
+                TextColumn::make('teams.name')
+                    ->label('Teams')
+                    ->badge(),
                 TextColumn::make('phone')
                     ->searchable(),
                 TextColumn::make('emergency_name')
                     ->searchable(),
                 TextColumn::make('emergency_phone')
                     ->searchable(),
-                TextColumn::make('accreditations')
-                    ->searchable(),
+                TextColumn::make('oversight')
+                    ->badge(),
+                TextColumn::make('suspended')
+                    ->badge(),
                 TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
@@ -158,7 +168,7 @@ class UserResource extends Resource
     public static function getRelations(): array
     {
         return [
-            //
+            MembershipsRelationManager::class,
         ];
     }
 

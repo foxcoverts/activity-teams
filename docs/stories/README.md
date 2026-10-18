@@ -19,15 +19,17 @@ When an enum is shown in Filament, give it a label, and a color and icon when th
 - [US-03 Booking Venue Access & Logistics Planning](US-03-booking-venue-access-logistics.md) — `not-started`
 - [US-04 Multi-Venue & Location-Based Management](US-04-multi-venue-location-management.md) — `partial`
 - [US-05 Team Document & Resource Repository](US-05-team-document-repository.md) — `not-started`
-- [US-06 User Role & Status Badges](US-06-user-role-status-badges.md) — `not-started`
+- [US-06 User Role & Status Badges](US-06-user-role-status-badges.md) — `partial`
 - [US-07 Qualification Expiry Tracking](US-07-qualification-expiry-tracking.md) — `not-started`
+- [US-47 Multiple Activity Teams](US-47-multiple-activity-teams.md) — `done`
+- [US-49 System Administration](US-49-system-administration.md) — `done`
 
 ## Bookings & Scheduling Lifecycle
 
 - [US-08 Smart Booking Invitee Pre-Selection & Management](US-08-smart-booking-invitee-preselection.md) — `not-started`
 - [US-09 Mandatory Lead Instructor Confirmation Validation](US-09-mandatory-lead-instructor-confirmation.md) — `partial`
 - [US-10 Lead Instructor Availability Change & Resignation Workflow](US-10-lead-instructor-resignation.md) — `partial`
-- [US-11 Automated Team Leader Assignment Notifications](US-11-team-leader-assignment-notifications.md) — `not-started`
+- [US-11 Lead Instructor Assignment Notifications](US-11-lead-instructor-assignment-notifications.md) — `not-started`
 - [US-25 Historical Roster & Response Transparency](US-25-historical-roster-transparency.md) — `partial`
 - [US-26 Filterable Roster Additions & Batch Management](US-26-filterable-roster-additions.md) — `not-started`
 - [US-27 Manager-Overridden Attendance Updates](US-27-manager-overridden-attendance.md) — `done`
@@ -59,6 +61,7 @@ When an enum is shown in Filament, give it a label, and a color and icon when th
 - [US-19 On-The-Day Emergency & Contact Access (Participants)](US-19-participant-lead-contact-access.md) — `not-started`
 - [US-20 Annual Profile & Emergency Contact Data Confirmation](US-20-annual-profile-confirmation.md) — `not-started`
 - [US-21 Incident & Accident Reporting & Compliance](US-21-incident-accident-reporting.md) — `not-started`
+- [US-48 Suspend and Restore a Member](US-48-suspend-and-restore-a-member.md) — `not-started`
 - [US-22 Team & Multi-Activity Task Management](US-22-task-management.md) — `not-started`
 - [US-23 Instructor Personal Kit Compliance Tracking](US-23-instructor-kit-compliance.md) — `not-started`
 - [US-24 Equipment & Merchandise Allocation Tracking](US-24-equipment-merchandise-allocation.md) — `not-started`

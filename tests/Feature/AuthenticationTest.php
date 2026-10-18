@@ -46,17 +46,20 @@ class AuthenticationTest extends TestCase
             'token' => BookingAttendance::generateToken(),
         ]);
 
+        $team = $leader->managedTeams()->first();
+
         $this->actingAs($leader)
-            ->get('/manage/bookings')
+            ->get('/manage/'.$team->getKey().'/bookings')
             ->assertOk();
     }
 
     public function test_team_leader_can_open_manage_panel(): void
     {
         $user = User::factory()->teamLeader()->create();
+        $team = $user->managedTeams()->first();
 
         $this->actingAs($user)
             ->get('/manage')
-            ->assertOk();
+            ->assertRedirect('/manage/'.$team->getKey());
     }
 }

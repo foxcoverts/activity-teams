@@ -2,6 +2,9 @@
 
 namespace App\Providers\Filament;
 
+use App\Filament\Manage\NavigationGroup;
+use App\Http\Middleware\RememberManageTeam;
+use App\Models\Team;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -32,6 +35,11 @@ class ManagePanelProvider extends PanelProvider
             ->colors([
                 'primary' => Color::Sky,
             ])
+            ->tenant(Team::class)
+            ->tenantMiddleware([
+                RememberManageTeam::class,
+            ], isPersistent: true)
+            ->navigationGroups(NavigationGroup::class)
             ->discoverResources(in: app_path('Filament/Manage/Resources'), for: 'App\\Filament\\Manage\\Resources')
             ->discoverPages(in: app_path('Filament/Manage/Pages'), for: 'App\\Filament\\Manage\\Pages')
             ->pages([

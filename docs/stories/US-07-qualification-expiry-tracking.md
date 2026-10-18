@@ -13,3 +13,7 @@ As an Activity Manager, I want the system to track permit and qualification expi
 
 - Logs expiration timelines for time-bound qualifications (such as Scout permits).
 - Displays clear status indicators or warnings on member profiles when qualifications are nearing or past their expiry date.
+
+## Progress
+
+A manager of a team reviews expiry for that team's current members. The records stay on the person. Not built yet.

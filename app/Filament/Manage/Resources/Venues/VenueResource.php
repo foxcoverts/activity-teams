@@ -2,10 +2,12 @@
 
 namespace App\Filament\Manage\Resources\Venues;
 
+use App\Filament\Manage\NavigationGroup;
 use App\Filament\Manage\Resources\Venues\Pages\CreateVenue;
 use App\Filament\Manage\Resources\Venues\Pages\EditVenue;
 use App\Filament\Manage\Resources\Venues\Pages\ListVenues;
 use App\Filament\Manage\Resources\Venues\Pages\ViewVenue;
+use App\Models\User;
 use App\Models\Venue;
 use BackedEnum;
 use Filament\Actions\BulkActionGroup;
@@ -27,7 +29,22 @@ class VenueResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
 
+    protected static string|\UnitEnum|null $navigationGroup = NavigationGroup::Site;
+
+    protected static ?int $navigationSort = 4;
+
     protected static ?string $recordTitleAttribute = 'name';
+
+    protected static bool $isScopedToTenant = false;
+
+    protected static ?string $navigationLabel = 'Venue catalog';
+
+    public static function canViewAny(): bool
+    {
+        $user = auth()->user();
+
+        return $user instanceof User && $user->isSystemAdmin();
+    }
 
     /**
      * @return array<int, TextInput|Textarea>

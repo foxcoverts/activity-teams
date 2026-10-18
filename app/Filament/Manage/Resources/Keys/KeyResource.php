@@ -2,6 +2,7 @@
 
 namespace App\Filament\Manage\Resources\Keys;
 
+use App\Filament\Manage\NavigationGroup;
 use App\Filament\Manage\Resources\Keys\Pages\CreateKey;
 use App\Filament\Manage\Resources\Keys\Pages\EditKey;
 use App\Filament\Manage\Resources\Keys\Pages\ListKeys;
@@ -27,7 +28,13 @@ class KeyResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
 
+    protected static string|\UnitEnum|null $navigationGroup = NavigationGroup::Team;
+
+    protected static ?int $navigationSort = 2;
+
     protected static ?string $recordTitleAttribute = 'name';
+
+    protected static bool $isScopedToTenant = false;
 
     public static function form(Schema $schema): Schema
     {

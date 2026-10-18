@@ -21,9 +21,18 @@ class DatabaseSeeder extends Seeder
             ['name' => 'Fox Coverts Campsite', 'notes' => 'Primary campsite venue.']
         );
 
-        User::factory()->teamLeader()->create([
+        $leader = User::factory()->teamLeader()->create([
             'name' => 'Team Leader',
             'email' => 'leader@example.com',
         ]);
+
+        $team = $leader->managedTeams()->first();
+        $team?->update(['name' => 'Climbing']);
+        $team?->activities()->syncWithoutDetaching(
+            Activity::query()->where('slug', 'climbing')->pluck('id')
+        );
+        $team?->venues()->syncWithoutDetaching(
+            Venue::query()->where('slug', 'fox-coverts-campsite')->pluck('id')
+        );
     }
 }

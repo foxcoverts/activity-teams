@@ -13,3 +13,7 @@ As an Activity Manager, I want different types of bookings to enforce or bypass 
 
 - Bookings link to specific activity governance types.
 - Lead instructor and attendee validation dynamically adjust based on the activity profile.
+
+## Progress
+
+The check uses the person's qualifications against the booking's activity. Not built yet.

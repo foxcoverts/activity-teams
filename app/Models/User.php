@@ -3,18 +3,20 @@
 namespace App\Models;
 
 use App\Casts\AsTimezone;
-use App\Casts\AsUniqueEnumCollection;
-use App\Enums\Accreditation;
-use App\Enums\Role;
+use App\Enums\MembershipRole;
 use App\Enums\Section;
 use App\Notifications\SetupAccount;
 use Database\Factories\UserFactory;
 use Filament\Models\Contracts\FilamentUser;
+use Filament\Models\Contracts\HasDefaultTenant;
+use Filament\Models\Contracts\HasTenants;
 use Filament\Panel;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -23,7 +25,7 @@ use Illuminate\Support\Str;
 use Spatie\Activitylog\Models\Concerns\LogsActivity;
 use Spatie\Activitylog\Support\LogOptions;
 
-class User extends Authenticatable implements FilamentUser, MustVerifyEmail
+class User extends Authenticatable implements FilamentUser, HasDefaultTenant, HasTenants, MustVerifyEmail
 {
     /** @use HasFactory<UserFactory> */
     use Concerns\HasUid, HasFactory, HasUlids, LogsActivity, Notifiable;
@@ -37,8 +39,9 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmail
         'password',
         'timezone',
         'section',
-        'role',
-        'accreditations',
+        'suspended',
+        'oversight',
+        'is_system_admin',
         'ical_token',
     ];
 
@@ -48,18 +51,21 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmail
     ];
 
     protected $attributes = [
-        'role' => Role::Guest->value,
         'section' => Section::Adult->value,
+        'suspended' => false,
+        'oversight' => false,
+        'is_system_admin' => false,
     ];
 
     protected function casts(): array
     {
         return [
-            'accreditations' => AsUniqueEnumCollection::of(Accreditation::class),
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
-            'role' => Role::class,
             'section' => Section::class,
+            'suspended' => 'boolean',
+            'oversight' => 'boolean',
+            'is_system_admin' => 'boolean',
             'timezone' => AsTimezone::class,
         ];
     }
@@ -79,10 +85,48 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmail
         }
 
         if ($panel->getId() === 'manage') {
-            return $this->isTeamLeader() || $this->isBookingManager() || $this->isUserManager();
+            return $this->isSystemAdmin() || $this->hasOversight() || $this->managedTeams()->exists();
         }
 
         return true;
+    }
+
+    public function getTenants(Panel $panel): EloquentCollection
+    {
+        if ($panel->getId() !== 'manage') {
+            return new EloquentCollection;
+        }
+
+        if ($this->isSystemAdmin() || $this->hasOversight()) {
+            return Team::query()->orderBy('name')->get();
+        }
+
+        return $this->managedTeams()->orderBy('name')->get();
+    }
+
+    public function canAccessTenant(Model $tenant): bool
+    {
+        if (! $tenant instanceof Team || $this->isSuspended()) {
+            return false;
+        }
+
+        return $this->isSystemAdmin() || $this->hasOversight() || $this->manages($tenant);
+    }
+
+    public function getDefaultTenant(Panel $panel): ?Model
+    {
+        $tenants = $this->getTenants($panel);
+        $remembered = session('manage_team_id');
+
+        if (filled($remembered)) {
+            $match = $tenants->firstWhere('id', $remembered);
+
+            if ($match instanceof Team) {
+                return $match;
+            }
+        }
+
+        return $tenants->first();
     }
 
     public function bookings(): BelongsToMany
@@ -98,6 +142,43 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmail
         return $this->hasMany(Key::class, 'holder_id')->orderBy('name');
     }
 
+    public function memberships(): HasMany
+    {
+        return $this->hasMany(TeamMembership::class);
+    }
+
+    public function teams(): BelongsToMany
+    {
+        return $this->belongsToMany(Team::class, 'team_user')
+            ->withPivot(['id', 'role', 'left_at'])
+            ->withTimestamps()
+            ->wherePivotNull('left_at')
+            ->using(TeamMembership::class);
+    }
+
+    public function managedTeams(): BelongsToMany
+    {
+        return $this->teams()->wherePivot('role', MembershipRole::Manager->value);
+    }
+
+    public function manages(Team $team): bool
+    {
+        if ($this->isSuspended()) {
+            return false;
+        }
+
+        return $this->managedTeams()->whereKey($team->getKey())->exists();
+    }
+
+    public function isCurrentMemberOf(Team $team): bool
+    {
+        if ($this->isSuspended()) {
+            return false;
+        }
+
+        return $this->teams()->whereKey($team->getKey())->exists();
+    }
+
     public function scopeOrdered(Builder $query): void
     {
         $query->orderBy('name');
@@ -108,29 +189,19 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmail
         return filled($this->password);
     }
 
-    public function isTeamLeader(): bool
-    {
-        return $this->role === Role::TeamLeader;
-    }
-
-    public function isGuest(): bool
-    {
-        return $this->role === Role::Guest;
-    }
-
     public function isSuspended(): bool
     {
-        return $this->role === Role::Suspended;
+        return $this->suspended;
     }
 
-    public function isBookingManager(): bool
+    public function hasOversight(): bool
     {
-        return $this->accreditations->contains(Accreditation::ManageBookings);
+        return $this->oversight && ! $this->isSuspended();
     }
 
-    public function isUserManager(): bool
+    public function isSystemAdmin(): bool
     {
-        return $this->accreditations->contains(Accreditation::ManageUsers);
+        return $this->is_system_admin && ! $this->isSuspended();
     }
 
     public function sendAccountSetupNotification(): void

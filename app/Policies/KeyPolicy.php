@@ -9,7 +9,7 @@ class KeyPolicy
 {
     public function manage(User $user): bool
     {
-        return $user->isTeamLeader() || $user->isUserManager();
+        return $user->isSystemAdmin() || $user->managedTeams()->exists();
     }
 
     public function viewAny(User $user): bool
@@ -24,16 +24,16 @@ class KeyPolicy
 
     public function create(User $user): bool
     {
-        return $this->manage($user);
+        return $user->managedTeams()->exists();
     }
 
     public function update(User $user, Key $key): bool
     {
-        return $this->manage($user);
+        return $user->managedTeams()->exists();
     }
 
     public function delete(User $user, Key $key): bool
     {
-        return $user->isTeamLeader();
+        return $user->isSystemAdmin();
     }
 }

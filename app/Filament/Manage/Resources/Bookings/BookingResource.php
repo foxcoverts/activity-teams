@@ -4,27 +4,25 @@ namespace App\Filament\Manage\Resources\Bookings;
 
 use App\Enums\BookingStatus;
 use App\Filament\Bookings\BookingTimeline;
-use App\Filament\Manage\Resources\Activities\ActivityResource;
+use App\Filament\Manage\NavigationGroup;
 use App\Filament\Manage\Resources\Bookings\Pages\CreateBooking;
 use App\Filament\Manage\Resources\Bookings\Pages\EditBooking;
 use App\Filament\Manage\Resources\Bookings\Pages\ListBookings;
 use App\Filament\Manage\Resources\Bookings\Pages\ViewBooking;
 use App\Filament\Manage\Resources\Bookings\RelationManagers\AttendeesRelationManager;
-use App\Filament\Manage\Resources\Venues\VenueResource;
-use App\Models\Activity;
 use App\Models\Booking;
-use App\Models\Venue;
+use App\Models\Team;
 use BackedEnum;
 use Carbon\Carbon;
 use Carbon\CarbonInterface;
 use DateTimeZone;
-use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
+use Filament\Facades\Filament;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Select;
@@ -47,6 +45,10 @@ class BookingResource extends Resource
     protected static ?string $model = Booking::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
+
+    protected static string|\UnitEnum|null $navigationGroup = NavigationGroup::Team;
+
+    protected static ?int $navigationSort = 1;
 
     protected static ?string $recordTitleAttribute = 'group_name';
 
@@ -74,14 +76,12 @@ class BookingResource extends Resource
     {
         return [
             Select::make('activity_id')
-                ->relationship('activity', 'name')
-                ->createOptionForm(ActivityResource::getFormComponents())
-                ->createOptionAction(fn (Action $action): Action => $action->authorize('create', Activity::class))
+                ->label(__('Activity'))
+                ->options(fn (): array => static::teamOptions('activities'))
                 ->required(),
             Select::make('venue_id')
-                ->relationship('venue', 'name')
-                ->createOptionForm(VenueResource::getFormComponents())
-                ->createOptionAction(fn (Action $action): Action => $action->authorize('create', Venue::class))
+                ->label(__('Venue'))
+                ->options(fn (): array => static::teamOptions('venues'))
                 ->required(),
             DateTimePicker::make('start_at')
                 ->timezone(fn (Get $get): string => static::scheduleTimezone($get))
@@ -234,6 +234,23 @@ class BookingResource extends Resource
             'view' => ViewBooking::route('/{record}'),
             'edit' => EditBooking::route('/{record}/edit'),
         ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public static function teamOptions(string $relation): array
+    {
+        $team = Filament::getTenant();
+
+        if (! $team instanceof Team) {
+            return [];
+        }
+
+        return $team->{$relation}()
+            ->orderBy('name')
+            ->pluck('name', $relation === 'activities' ? 'activities.id' : 'venues.id')
+            ->all();
     }
 
     public static function defaultTimezone(): string

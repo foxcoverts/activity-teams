@@ -24,7 +24,7 @@ class BookingInviteMail extends Mailable
         public Booking $booking,
         public User $attendee
     ) {
-        $this->attendance = $booking->attendees()->find($attendee)?->attendance;
+        $this->attendance = $booking->attendees()->whereKey($attendee->getKey())->first()?->attendance;
     }
 
     public function envelope(): Envelope

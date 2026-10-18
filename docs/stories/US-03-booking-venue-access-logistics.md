@@ -14,3 +14,7 @@ As an Activity Manager, I want each booking to evaluate and display on-the-day v
 - Automatically checks the attendance roster to detect if at least one confirmed attendee holds the required venue or equipment key.
 - Displays clear access status indicators on the booking view (for example, Access Secured via Attendee Key, Warden on Site Required, or Key Transfer Needed).
 - Provides logistical action triggers to coordinate key issuance to non-keyholder lead instructors prior to the event window.
+
+## Progress
+
+The roster check looks for a holder of the key that booking needs. A warden is someone who has been given each of those keys, not a separate bypass. "Warden on site required" is the climbing-only shorthand for nobody attending holding the access the booking needs. Not built yet.

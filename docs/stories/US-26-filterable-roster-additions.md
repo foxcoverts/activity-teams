@@ -13,3 +13,7 @@ As an Activity Manager, I want to use quick filters when managing booking roster
 
 - Provides quick filter toggles (such as by permits, roles, or availability status) on the roster management view.
 - Allows managers to batch-select or add filtered groups of team members to the booking seamlessly.
+
+## Progress
+
+The invite pool starts as the booking's team. Not built yet.

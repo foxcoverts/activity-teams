@@ -25,7 +25,7 @@ class AttendanceRecordedMail extends Mailable
         public User $attendee,
     ) {
         $this->booking->loadMissing(['activity', 'venue']);
-        $this->attendance = $booking->attendees()->find($attendee)?->attendance;
+        $this->attendance = $booking->attendees()->whereKey($attendee->getKey())->first()?->attendance;
     }
 
     public function envelope(): Envelope

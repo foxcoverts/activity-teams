@@ -14,3 +14,7 @@ As an Activity Manager, I want the system to automatically evaluate activity rul
 - When a new booking is initialised, the system runs filtering logic based on activity type, venue, and required permits.
 - Presents the manager with an initial invite screen where relevant qualified members are pre-targeted.
 - Replaces generic select-all or none checkbox grids with a streamlined management interface allowing smooth add and remove actions.
+
+## Progress
+
+The pre-selected list is current members of the booking's team. A manager can still search for someone who is not a member. Not built yet.

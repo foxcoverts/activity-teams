@@ -3,13 +3,13 @@
 namespace Tests\Feature;
 
 use App\Enums\BookingStatus;
-use App\Filament\Manage\Resources\Bookings\BookingResource;
 use App\Filament\Manage\Resources\Bookings\Pages\CreateBooking;
 use App\Filament\Manage\Resources\Bookings\Pages\EditBooking;
 use App\Models\Activity;
 use App\Models\Booking;
 use App\Models\User;
 use App\Models\Venue;
+use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Livewire\Livewire;
@@ -18,6 +18,13 @@ use Tests\TestCase;
 class AddBookingTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        Filament::setCurrentPanel(Filament::getPanel('manage'));
+    }
 
     public function test_team_leader_can_create_a_booking(): void
     {
@@ -48,51 +55,15 @@ class AddBookingTest extends TestCase
         $this->assertTrue($booking->venue->is($venue));
     }
 
-    public function test_team_leader_can_create_activity_and_venue_from_the_booking_form(): void
+    public function test_the_booking_form_cannot_create_an_activity_or_venue(): void
     {
         $user = User::factory()->teamLeader()->create();
 
         $this->actingAs($user);
 
         Livewire::test(CreateBooking::class)
-            ->callFormComponentAction('activity_id', 'createOption', [
-                'name' => 'Caving',
-            ])
-            ->assertHasNoFormComponentActionErrors()
-            ->callFormComponentAction('venue_id', 'createOption', [
-                'name' => 'Peak Cavern',
-            ])
-            ->assertHasNoFormComponentActionErrors()
-            ->assertFormSet([
-                'activity_id' => Activity::query()->where('name', 'Caving')->value('id'),
-                'venue_id' => Venue::query()->where('name', 'Peak Cavern')->value('id'),
-            ]);
-
-        $this->assertDatabaseHas(Activity::class, [
-            'name' => 'Caving',
-            'slug' => 'caving',
-        ]);
-        $this->assertDatabaseHas(Venue::class, [
-            'name' => 'Peak Cavern',
-            'slug' => 'peak-cavern',
-        ]);
-    }
-
-    public function test_team_member_cannot_create_activity_or_venue_from_the_booking_form(): void
-    {
-        BookingResource::skipAuthorization();
-
-        try {
-            $user = User::factory()->teamMember()->create();
-
-            $this->actingAs($user);
-
-            Livewire::test(CreateBooking::class)
-                ->assertFormComponentActionHidden('activity_id', 'createOption')
-                ->assertFormComponentActionHidden('venue_id', 'createOption');
-        } finally {
-            BookingResource::skipAuthorization(false);
-        }
+            ->assertFormComponentActionDoesNotExist('activity_id', 'createOption')
+            ->assertFormComponentActionDoesNotExist('venue_id', 'createOption');
     }
 
     public function test_create_booking_defaults_to_saturday_morning_in_the_users_timezone(): void
@@ -187,7 +158,7 @@ class AddBookingTest extends TestCase
         $user = User::factory()->teamMember()->create();
 
         $this->actingAs($user)
-            ->get('/manage/bookings/create')
+            ->get('/manage/'.$user->teams()->first()->getKey().'/bookings/create')
             ->assertForbidden();
     }
 }

@@ -6,45 +6,39 @@ use App\Models\User;
 
 class UserPolicy
 {
-    public function manage(User $user): bool
+    public function viewAny(User $user): bool
+    {
+        return $user->hasOversight();
+    }
+
+    public function view(User $user, User $model): bool
+    {
+        return $user->is($model) || $user->hasOversight() || $this->sharesManagedTeam($user, $model);
+    }
+
+    public function create(User $user): bool
+    {
+        return $user->hasOversight();
+    }
+
+    public function update(User $user, User $model): bool
+    {
+        return $this->view($user, $model);
+    }
+
+    public function delete(User $user, User $model): bool
+    {
+        return $user->hasOversight() && ! $user->is($model);
+    }
+
+    private function sharesManagedTeam(User $user, User $model): bool
     {
         if ($user->isSuspended()) {
             return false;
         }
 
-        return $user->isTeamLeader() || $user->isUserManager();
-    }
-
-    public function viewAny(User $user): bool
-    {
-        return $this->manage($user);
-    }
-
-    public function view(User $user, User $model): bool
-    {
-        return $user->is($model) || $this->manage($user);
-    }
-
-    public function create(User $user): bool
-    {
-        return $this->manage($user);
-    }
-
-    public function update(User $user, User $model): bool
-    {
-        if ($model->isTeamLeader() && ! $user->isTeamLeader()) {
-            return false;
-        }
-
-        return $user->is($model) || $this->manage($user);
-    }
-
-    public function delete(User $user, User $model): bool
-    {
-        if ($model->isTeamLeader()) {
-            return $user->isTeamLeader() && ! $user->is($model);
-        }
-
-        return $user->is($model) || $this->manage($user);
+        return $model->teams()
+            ->whereIn('teams.id', $user->managedTeams()->select('teams.id'))
+            ->exists();
     }
 }
