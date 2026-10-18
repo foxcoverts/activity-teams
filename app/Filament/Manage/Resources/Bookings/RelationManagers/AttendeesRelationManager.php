@@ -7,9 +7,11 @@ use App\Actions\InviteAttendeesAction;
 use App\Actions\OverrideAttendanceAction;
 use App\Enums\BookingAttendeeResponse;
 use App\Enums\BookingAttendeeStatus;
+use App\Models\Activity;
 use App\Models\Booking;
 use App\Models\BookingAttendance;
 use App\Models\User;
+use App\Support\Palette;
 use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DetachAction;
@@ -47,6 +49,26 @@ class AttendeesRelationManager extends RelationManager
                 TextColumn::make('attendance.status')
                     ->badge()
                     ->icon(fn (BookingAttendeeStatus $state): Heroicon => $state->getIcon()),
+                TextColumn::make('qualified')
+                    ->label(__('Qualification'))
+                    ->badge()
+                    ->icon(Heroicon::CheckCircle)
+                    ->color(Palette::positive())
+                    ->placeholder('')
+                    ->state(function (User $record): ?string {
+                        $activity = $this->activity();
+
+                        if (! $activity instanceof Activity || ! $activity->metBy($record)) {
+                            return null;
+                        }
+
+                        return __('Qualified');
+                    })
+                    ->visible(function (): bool {
+                        $activity = $this->activity();
+
+                        return $activity instanceof Activity && $activity->requiresQualification();
+                    }),
             ])
             ->headerActions([
                 Action::make('invite')
@@ -219,6 +241,15 @@ class AttendeesRelationManager extends RelationManager
         }
 
         return $booking;
+    }
+
+    protected function activity(): ?Activity
+    {
+        $this->booking()->loadMissing('activity');
+
+        $activity = $this->booking()->activity;
+
+        return $activity instanceof Activity ? $activity : null;
     }
 
     protected function canRemoveAttendee(User $attendee): bool

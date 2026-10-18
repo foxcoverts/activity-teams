@@ -15,7 +15,7 @@ When an enum is shown in Filament, give it a label, and a color and icon when th
 ## Core Qualifications & Team Management
 
 - [US-01 Member Qualification & Permit Management](US-01-member-qualification-permit-management.md) — `done`
-- [US-02 Activity-Specific Qualification & Staffing Requirements](US-02-activity-specific-qualification-staffing.md) — `not-started`
+- [US-02 Activity-Specific Qualification & Staffing Requirements](US-02-activity-specific-qualification-staffing.md) — `done`
 - [US-03 Booking Venue Access & Logistics Planning](US-03-booking-venue-access-logistics.md) — `not-started`
 - [US-04 Multi-Venue & Location-Based Management](US-04-multi-venue-location-management.md) — `partial`
 - [US-05 Team Document & Resource Repository](US-05-team-document-repository.md) — `not-started`
@@ -27,7 +27,7 @@ When an enum is shown in Filament, give it a label, and a color and icon when th
 ## Bookings & Scheduling Lifecycle
 
 - [US-08 Smart Booking Invitee Pre-Selection & Management](US-08-smart-booking-invitee-preselection.md) — `not-started`
-- [US-09 Mandatory Lead Instructor Confirmation Validation](US-09-mandatory-lead-instructor-confirmation.md) — `partial`
+- [US-09 Mandatory Lead Instructor Confirmation Validation](US-09-mandatory-lead-instructor-confirmation.md) — `done`
 - [US-10 Lead Instructor Availability Change & Resignation Workflow](US-10-lead-instructor-resignation.md) — `partial`
 - [US-11 Lead Instructor Assignment Notifications](US-11-lead-instructor-assignment-notifications.md) — `not-started`
 - [US-25 Historical Roster & Response Transparency](US-25-historical-roster-transparency.md) — `partial`

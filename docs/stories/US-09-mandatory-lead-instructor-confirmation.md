@@ -1,7 +1,7 @@
 ---
 id: US-09
 title: "Mandatory Lead Instructor Confirmation Validation"
-status: partial
+status: done
 area: bookings
 ---
 
@@ -16,4 +16,4 @@ As an Activity Manager, I want the system to prevent a booking from being marked
 
 ## Progress
 
-Confirm stays closed until someone has accepted, and saving a lead who has not accepted is refused. Qualifications are recorded on the person. The check that the lead holds the qualification for that activity is still open.
+Confirm stays closed until someone has accepted, and saving a lead who has not accepted is refused. When the activity lists qualifications, the lead must meet them as well. An activity with no rows accepts any attending lead.

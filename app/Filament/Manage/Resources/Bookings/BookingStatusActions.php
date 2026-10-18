@@ -55,9 +55,7 @@ class BookingStatusActions
             ->modalWidth(Width::ScreenLarge)
             ->modalHeading(__('Confirm booking'))
             ->fillForm(fn (Booking $record): array => [
-                'lead_instructor_id' => $record->acceptedAttendees()->contains(
-                    fn (User $user): bool => $user->getKey() === $record->lead_instructor_id,
-                ) ? $record->lead_instructor_id : null,
+                'lead_instructor_id' => self::currentQualifiedLead($record),
                 ...self::detailDefaults($record),
             ])
             ->schema([
@@ -158,13 +156,7 @@ class BookingStatusActions
 
                         return $options;
                     })
-                    ->default(function (Booking $record): ?string {
-                        $accepted = $record->acceptedAttendees()->contains(
-                            fn (User $user): bool => $user->getKey() === $record->lead_instructor_id,
-                        );
-
-                        return $accepted ? $record->lead_instructor_id : null;
-                    })
+                    ->default(fn (Booking $record): ?string => self::currentQualifiedLead($record))
                     ->live()
                     ->helperText(function (Booking $record, Get $get): ?string {
                         if ($record->isConfirmed() && $get('lead_instructor_id') === 'remove') {
@@ -203,13 +195,28 @@ class BookingStatusActions
         ];
     }
 
-    private static function leadUnavailableReason(Booking $record): ?string
+    private static function currentQualifiedLead(Booking $record): ?string
     {
-        if ($record->acceptedAttendees()->isNotEmpty()) {
+        $leadId = $record->lead_instructor_id;
+
+        if ($leadId === null || ! array_key_exists($leadId, $record->leadOptions())) {
             return null;
         }
 
-        return __('No one is attending.');
+        return $leadId;
+    }
+
+    private static function leadUnavailableReason(Booking $record): ?string
+    {
+        if ($record->acceptedAttendees()->isEmpty()) {
+            return __('No one is attending.');
+        }
+
+        if ($record->leadOptions() === []) {
+            return __('No one attending is qualified to lead this activity.');
+        }
+
+        return null;
     }
 
     private static function canUpdate(Booking $record): bool

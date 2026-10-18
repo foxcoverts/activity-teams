@@ -5,6 +5,7 @@ namespace Tests\Unit;
 use App\Enums\GirlguidingLevel;
 use App\Enums\MountainTrainingAward;
 use App\Enums\ScoutPermitCategory;
+use App\Enums\ScoutPermitType;
 use PHPUnit\Framework\TestCase;
 
 class QualificationCoverTest extends TestCase
@@ -58,6 +59,15 @@ class QualificationCoverTest extends TestCase
         $this->assertSame([$leader], $mci->prerequisites());
         $this->assertSame([$mci], $wmci->prerequisites());
         $this->assertSame([], $rci->prerequisites());
+    }
+
+    public function test_a_supervisory_permit_covers_a_leadership_permit(): void
+    {
+        $this->assertTrue(ScoutPermitType::Supervisory->covers(ScoutPermitType::Leadership));
+        $this->assertTrue(ScoutPermitType::Supervisory->covers(ScoutPermitType::Supervisory));
+        $this->assertFalse(ScoutPermitType::Leadership->covers(ScoutPermitType::Supervisory));
+        $this->assertFalse(ScoutPermitType::Supervisory->covers(ScoutPermitType::Personal));
+        $this->assertFalse(ScoutPermitType::Leadership->covers(ScoutPermitType::Personal));
     }
 
     public function test_girlguiding_level_two_covers_level_one(): void

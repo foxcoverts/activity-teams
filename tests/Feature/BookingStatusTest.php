@@ -6,11 +6,13 @@ use App\Actions\RespondToBookingAction;
 use App\Actions\UpdateBookingStatusAction;
 use App\Enums\BookingAttendeeStatus;
 use App\Enums\BookingStatus;
+use App\Enums\MountainTrainingAward;
 use App\Filament\Manage\Resources\Bookings\BookingResource;
 use App\Filament\Manage\Resources\Bookings\Pages\CreateBooking;
 use App\Filament\Manage\Resources\Bookings\Pages\EditBooking;
 use App\Filament\Manage\Resources\Bookings\Pages\ListBookings;
 use App\Filament\Manage\Resources\Bookings\Pages\ViewBooking;
+use App\Filament\Manage\Resources\Bookings\RelationManagers\AttendeesRelationManager;
 use App\Jobs\SendBookingNotification;
 use App\Livewire\RespondToBooking;
 use App\Mail\BookingCancelledMail;
@@ -19,6 +21,8 @@ use App\Mail\BookingInviteMail;
 use App\Models\Activity;
 use App\Models\Booking;
 use App\Models\BookingAttendance;
+use App\Models\MountainTrainingQualification;
+use App\Models\Qualification;
 use App\Models\User;
 use App\Models\Venue;
 use Filament\Actions\Action;
@@ -136,6 +140,88 @@ class BookingStatusTest extends TestCase
             ->assertActionExists('confirmBooking', fn (Action $action): bool => $action->getTooltip() === null)
             ->assertActionEnabled('changeLead')
             ->assertActionExists('changeLead', fn (Action $action): bool => $action->getTooltip() === null);
+    }
+
+    public function test_the_roster_marks_who_qualifies_and_still_includes_everyone(): void
+    {
+        $leader = User::factory()->teamLeader()->create();
+        $qualified = User::factory()->teamMember()->create(['name' => 'Sam Holder']);
+        $other = User::factory()->teamMember()->create(['name' => 'Alex Guest']);
+        $activity = Activity::factory()->create();
+        $activity->qualificationRequirements()->create([
+            'detail_type' => MountainTrainingQualification::class,
+            'award' => [MountainTrainingAward::ClimbingWallInstructor->value],
+        ]);
+        $booking = Booking::factory()->create(['activity_id' => $activity->getKey()]);
+        Qualification::factory()->forMember($qualified)->mountainTraining()->create();
+        $this->attend($booking, $qualified, BookingAttendeeStatus::Accepted);
+        $this->attend($booking, $other, BookingAttendeeStatus::NeedsAction);
+
+        $this->actingAs($leader);
+
+        Livewire::test(AttendeesRelationManager::class, [
+            'ownerRecord' => $booking->fresh(),
+            'pageClass' => ViewBooking::class,
+        ])
+            ->assertSee('Qualified')
+            ->assertSee('Sam Holder')
+            ->assertSee('Alex Guest')
+            ->assertTableActionVisible('invite');
+
+        $open = Booking::factory()->create();
+        $this->attend($open, $other, BookingAttendeeStatus::NeedsAction);
+
+        Livewire::test(AttendeesRelationManager::class, [
+            'ownerRecord' => $open->fresh(),
+            'pageClass' => ViewBooking::class,
+        ])
+            ->assertDontSee('Qualified')
+            ->assertSee('Alex Guest');
+    }
+
+    public function test_only_a_qualified_attending_person_can_lead(): void
+    {
+        $leader = User::factory()->teamLeader()->create();
+        $qualified = User::factory()->create(['name' => 'Qualified Lead']);
+        $attending = User::factory()->create(['name' => 'Attending Only']);
+        $activity = Activity::factory()->create();
+        $activity->qualificationRequirements()->create([
+            'detail_type' => MountainTrainingQualification::class,
+            'award' => [MountainTrainingAward::ClimbingWallInstructor->value],
+        ]);
+        $booking = Booking::factory()->create(['activity_id' => $activity->getKey()]);
+        Qualification::factory()->forMember($qualified)->mountainTraining()->create();
+        $this->attend($booking, $qualified, BookingAttendeeStatus::Accepted);
+        $this->attend($booking, $attending, BookingAttendeeStatus::Accepted);
+
+        $this->actingAs($leader);
+
+        $this->assertSame(
+            [$qualified->getKey() => 'Qualified Lead'],
+            $booking->fresh()->leadOptions(),
+        );
+
+        Livewire::test(EditBooking::class, ['record' => $booking->getRouteKey()])
+            ->assertActionEnabled('confirmBooking');
+
+        try {
+            app(UpdateBookingStatusAction::class)->confirm($booking, $leader, $attending->id, [
+                'group_name' => $booking->group_name,
+            ]);
+            $this->fail('An unqualified lead was accepted.');
+        } catch (ValidationException $exception) {
+            $this->assertSame(
+                ['The lead instructor must be qualified for this activity.'],
+                $exception->errors()['lead_instructor_id'],
+            );
+        }
+
+        $unqualifiedOnly = Booking::factory()->create(['activity_id' => $activity->getKey()]);
+        $this->attend($unqualifiedOnly, $attending, BookingAttendeeStatus::Accepted);
+
+        Livewire::test(EditBooking::class, ['record' => $unqualifiedOnly->getRouteKey()])
+            ->assertActionDisabled('confirmBooking')
+            ->assertActionExists('confirmBooking', fn (Action $action): bool => $action->getTooltip() === 'No one attending is qualified to lead this activity.');
     }
 
     public function test_confirm_lists_only_accepted_attendees_as_leads(): void

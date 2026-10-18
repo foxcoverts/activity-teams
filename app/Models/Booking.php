@@ -164,7 +164,11 @@ class Booking extends Model
      */
     public function leadOptions(): array
     {
+        $this->loadMissing('activity');
+        $activity = $this->activity;
+
         return $this->acceptedAttendees()
+            ->filter(fn (User $user): bool => ! $activity instanceof Activity || $activity->metBy($user))
             ->mapWithKeys(fn (User $user): array => [$user->getKey() => $user->name])
             ->all();
     }

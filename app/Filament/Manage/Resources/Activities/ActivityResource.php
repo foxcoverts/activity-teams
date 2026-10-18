@@ -2,26 +2,41 @@
 
 namespace App\Filament\Manage\Resources\Activities;
 
+use App\Enums\GirlguidingLevel;
+use App\Enums\GirlguidingScheme;
+use App\Enums\MountainTrainingAward;
+use App\Enums\ScoutPermitActivity;
+use App\Enums\ScoutPermitCategory;
+use App\Enums\ScoutPermitType;
 use App\Filament\Manage\NavigationGroup;
 use App\Filament\Manage\Resources\Activities\Pages\CreateActivity;
 use App\Filament\Manage\Resources\Activities\Pages\EditActivity;
 use App\Filament\Manage\Resources\Activities\Pages\ListActivities;
 use App\Filament\Manage\Resources\Activities\Pages\ViewActivity;
 use App\Models\Activity;
+use App\Models\ActivityQualificationRequirement;
+use App\Models\GirlguidingQualification;
+use App\Models\MountainTrainingQualification;
+use App\Models\ScoutPermit;
 use App\Models\User;
 use BackedEnum;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
+use Filament\Forms\Components\Repeater;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Infolists\Components\RepeatableEntry;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Resources\Resource;
+use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 
 class ActivityResource extends Resource
 {
@@ -46,8 +61,13 @@ class ActivityResource extends Resource
         return $user instanceof User && $user->isSystemAdmin();
     }
 
+    public static function getEloquentQuery(): Builder
+    {
+        return parent::getEloquentQuery()->with('qualificationRequirements');
+    }
+
     /**
-     * @return array<int, TextInput|Textarea>
+     * @return array<int, TextInput|Textarea|Repeater>
      */
     public static function getFormComponents(): array
     {
@@ -57,6 +77,64 @@ class ActivityResource extends Resource
             TextInput::make('slug')
                 ->helperText(__('Leave blank to generate from the name.')),
             Textarea::make('description')
+                ->columnSpanFull(),
+            Repeater::make('qualificationRequirements')
+                ->relationship()
+                ->orderColumn('sort')
+                ->label(__('Acceptable qualifications'))
+                ->helperText(__('Each row is one way to qualify. Leave a field blank for any value. A higher category, permit type, level, or award covers a lower one. Permit restrictions are ignored. Leave this empty when the activity needs no qualification.'))
+                ->schema([
+                    Select::make('detail_type')
+                        ->label(__('Type'))
+                        ->options([
+                            ScoutPermit::class => __('Scout permit'),
+                            MountainTrainingQualification::class => __('Mountain Training'),
+                            GirlguidingQualification::class => __('Girlguiding'),
+                        ])
+                        ->live()
+                        ->required(),
+                    Select::make('permit_activity')
+                        ->label(__('Activity'))
+                        ->options(ScoutPermitActivity::class)
+                        ->multiple()
+                        ->visible(fn (Get $get): bool => $get('detail_type') === ScoutPermit::class)
+                        ->dehydrated(fn (Get $get): bool => $get('detail_type') === ScoutPermit::class),
+                    Select::make('category')
+                        ->options(ScoutPermitCategory::class)
+                        ->multiple()
+                        ->visible(fn (Get $get): bool => $get('detail_type') === ScoutPermit::class && ActivityQualificationRequirement::allowsClimbingCategory($get('permit_activity')))
+                        ->dehydrated(fn (Get $get): bool => $get('detail_type') === ScoutPermit::class && ActivityQualificationRequirement::allowsClimbingCategory($get('permit_activity'))),
+                    Select::make('permit_type')
+                        ->label(__('Permit type'))
+                        ->options(ScoutPermitType::class)
+                        ->multiple()
+                        ->visible(fn (Get $get): bool => $get('detail_type') === ScoutPermit::class)
+                        ->dehydrated(fn (Get $get): bool => $get('detail_type') === ScoutPermit::class),
+                    Select::make('award')
+                        ->options(MountainTrainingAward::class)
+                        ->multiple()
+                        ->visible(fn (Get $get): bool => $get('detail_type') === MountainTrainingQualification::class)
+                        ->dehydrated(fn (Get $get): bool => $get('detail_type') === MountainTrainingQualification::class),
+                    Select::make('scheme')
+                        ->options(GirlguidingScheme::class)
+                        ->multiple()
+                        ->visible(fn (Get $get): bool => $get('detail_type') === GirlguidingQualification::class)
+                        ->dehydrated(fn (Get $get): bool => $get('detail_type') === GirlguidingQualification::class),
+                    Select::make('level')
+                        ->options(GirlguidingLevel::class)
+                        ->multiple()
+                        ->visible(fn (Get $get): bool => $get('detail_type') === GirlguidingQualification::class)
+                        ->dehydrated(fn (Get $get): bool => $get('detail_type') === GirlguidingQualification::class),
+                ])
+                ->itemLabel(function (array $state): ?string {
+                    if (blank($state['detail_type'] ?? null)) {
+                        return null;
+                    }
+
+                    return (new ActivityQualificationRequirement($state))->summary;
+                })
+                ->addActionLabel(__('Add alternative'))
+                ->defaultItems(0)
                 ->columnSpanFull(),
         ];
     }
@@ -77,6 +155,14 @@ class ActivityResource extends Resource
                 TextEntry::make('slug'),
                 TextEntry::make('description')
                     ->placeholder('-')
+                    ->columnSpanFull(),
+                RepeatableEntry::make('qualificationRequirements')
+                    ->label(__('Acceptable qualifications'))
+                    ->placeholder(__('No qualification required.'))
+                    ->schema([
+                        TextEntry::make('summary')
+                            ->hiddenLabel(),
+                    ])
                     ->columnSpanFull(),
                 TextEntry::make('created_at')
                     ->dateTime()

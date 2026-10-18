@@ -46,4 +46,35 @@ class Activity extends Model
     {
         return $this->hasMany(Booking::class);
     }
+
+    public function qualificationRequirements(): HasMany
+    {
+        return $this->hasMany(ActivityQualificationRequirement::class)->orderBy('sort');
+    }
+
+    public function requiresQualification(): bool
+    {
+        return $this->qualificationRequirements()->exists();
+    }
+
+    public function metBy(User $user): bool
+    {
+        $requirements = $this->qualificationRequirements()->get();
+
+        if ($requirements->isEmpty()) {
+            return true;
+        }
+
+        $qualifications = $user->qualifications()->with('detail')->get();
+
+        foreach ($requirements as $requirement) {
+            foreach ($qualifications as $qualification) {
+                if ($requirement->matches($qualification)) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
 }

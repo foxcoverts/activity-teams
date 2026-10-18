@@ -46,4 +46,15 @@ enum ScoutPermitType: string implements HasColor, HasIcon, HasLabel
             self::Supervisory => Heroicon::ShieldCheck,
         };
     }
+
+    /**
+     * @return list<static>
+     */
+    protected function directlyCovers(): array
+    {
+        return match ($this) {
+            self::Supervisory => [self::Leadership],
+            default => [],
+        };
+    }
 }

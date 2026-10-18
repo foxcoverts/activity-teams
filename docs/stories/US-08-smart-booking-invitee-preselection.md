@@ -17,4 +17,4 @@ As an Activity Manager, I want the system to automatically evaluate activity rul
 
 ## Progress
 
-The pre-selected list is current members of the booking's team. A manager can still search for someone who is not a member. Not built yet.
+The activity list is the check this story will use to make qualified members easier to identify and invite. Invite pre-selection does not read that list yet. The pre-selected list is still the current members of the booking's team. An activity with no rows accepts a member who holds none.
