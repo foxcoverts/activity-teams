@@ -7,29 +7,24 @@ use App\Models\User;
 
 class KeyPolicy
 {
-    public function manage(User $user): bool
-    {
-        return $user->isSystemAdmin() || $user->managedTeams()->exists();
-    }
-
     public function viewAny(User $user): bool
     {
-        return $this->manage($user) || $user->keys()->exists();
+        return $user->isSystemAdmin();
     }
 
     public function view(User $user, Key $key): bool
     {
-        return $this->manage($user) || $key->holder_id === $user->id;
+        return $user->isSystemAdmin();
     }
 
     public function create(User $user): bool
     {
-        return $user->managedTeams()->exists();
+        return $user->isSystemAdmin();
     }
 
     public function update(User $user, Key $key): bool
     {
-        return $user->managedTeams()->exists();
+        return $user->isSystemAdmin();
     }
 
     public function delete(User $user, Key $key): bool

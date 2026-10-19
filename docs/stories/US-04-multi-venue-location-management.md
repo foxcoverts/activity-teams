@@ -17,4 +17,10 @@ As an Activity Manager, I want to associate activities and bookings with specifi
 
 ## Progress
 
-A system admin maintains the controlled venue list ([US-49](US-49-system-administration.md)). A team is given venues from that list, and a booking picks from its team's venues. A key ring is one key per activity, and that key may belong to a team or to the site. Address, geo location, and the key ring are still open. The app can store more than one venue.
+A system admin maintains the controlled venue list ([US-49](US-49-system-administration.md)). A team is given venues from that list, and a booking picks from its team's venues. The app can store more than one venue.
+
+A key is one lock. It is not one key per activity, and it has no venue of its own. A key ring lists the keys on it. A booking requires the keys marked for its activity at its venue. Holding one of those keys, or a key that covers one, gives a person that access. A manager can see every holder of the keys that team needs, including someone who is not a current member, and only that person's name.
+
+Travel expectations and warden coordination are manual. They are not screens in this system. The key list and the holder list are what a manager uses while doing that work.
+
+The booking does not yet show the keys it requires. Member lists cannot filter or mark who holds which key. Address and geo location are not part of these criteria.

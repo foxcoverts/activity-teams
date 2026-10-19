@@ -17,4 +17,4 @@ As an Activity Manager, I want each booking to evaluate and display on-the-day v
 
 ## Progress
 
-The roster check looks for a holder of the key that booking needs. A warden is someone who has been given each of those keys, not a separate bypass. "Warden on site required" is the climbing-only shorthand for nobody attending holding the access the booking needs. Not built yet.
+The roster check looks for a holder of the key that booking needs. A warden holds the warden key, which covers every campsite key, as though that one key opened those locks. The keys in the safe are not tracked. That is still not a separate bypass. "Warden on site required" is the climbing-only shorthand for nobody attending holding the access the booking needs. Not built yet.

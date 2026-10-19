@@ -7,7 +7,8 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Spatie\Activitylog\Models\Concerns\LogsActivity;
 use Spatie\Activitylog\Support\LogOptions;
 
@@ -18,12 +19,6 @@ class Key extends Model
 
     protected $fillable = [
         'name',
-        'venue_id',
-        'holder_id',
-    ];
-
-    protected $attributes = [
-        'name' => 'Key',
     ];
 
     public function getActivitylogOptions(): LogOptions
@@ -31,20 +26,80 @@ class Key extends Model
         return LogOptions::defaults()->logFillable()->logOnlyDirty();
     }
 
-    public function venue(): BelongsTo
+    public function requirements(): HasMany
     {
-        return $this->belongsTo(Venue::class);
+        return $this->hasMany(KeyRequirement::class)->orderBy('created_at');
     }
 
-    public function holder(): BelongsTo
+    public function covers(): BelongsToMany
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsToMany(Key::class, 'key_covers', 'key_id', 'covered_key_id')
+            ->using(KeyCover::class)
+            ->orderBy('keys.name');
     }
 
-    public function scopeForUser(Builder $keys, User $user): void
+    public function coveredBy(): BelongsToMany
     {
-        if ($user->cannot('manage', Key::class)) {
-            $keys->where('holder_id', $user->id);
+        return $this->belongsToMany(Key::class, 'key_covers', 'covered_key_id', 'key_id')
+            ->using(KeyCover::class)
+            ->orderBy('keys.name');
+    }
+
+    public function rings(): BelongsToMany
+    {
+        return $this->belongsToMany(KeyRing::class, 'key_ring_key')->orderBy('key_rings.name');
+    }
+
+    public function scopeRelevantTo(Builder $keys, Team $team): void
+    {
+        $keys->whereHas('requirements', function (Builder $requirements) use ($team): void {
+            $requirements
+                ->whereIn('activity_id', $team->activities()->select('activities.id'))
+                ->whereIn('venue_id', $team->venues()->select('venues.id'));
+        });
+    }
+
+    public function accessRings(): Builder
+    {
+        $id = $this->getKey();
+
+        return KeyRing::query()
+            ->where(function (Builder $rings) use ($id): void {
+                $rings->whereHas('keys', fn (Builder $keys) => $keys->whereKey($id))
+                    ->orWhereHas('keys.covers', fn (Builder $covered) => $covered->whereKey($id));
+            })
+            ->orderBy('name');
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function ringDescriptions(): array
+    {
+        $this->loadMissing('rings.holder');
+
+        if ($this->rings->isEmpty()) {
+            return [__('Not on a key ring yet.')];
         }
+
+        return $this->rings
+            ->map(fn (KeyRing $ring): string => $ring->name.': '.($ring->holder?->name ?? __('In the cupboard')))
+            ->all();
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function accessRingDescriptions(): array
+    {
+        $rings = $this->accessRings()->with('holder')->get();
+
+        if ($rings->isEmpty()) {
+            return [__('No key rings')];
+        }
+
+        return $rings
+            ->map(fn (KeyRing $ring): string => $ring->name.': '.($ring->holder?->name ?? __('In the cupboard')))
+            ->all();
     }
 }

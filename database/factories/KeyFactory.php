@@ -3,7 +3,6 @@
 namespace Database\Factories;
 
 use App\Models\Key;
-use App\Models\Venue;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -15,8 +14,6 @@ class KeyFactory extends Factory
     {
         return [
             'name' => fake()->words(2, true),
-            'venue_id' => Venue::factory(),
-            'holder_id' => null,
         ];
     }
 }

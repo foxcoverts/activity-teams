@@ -46,9 +46,4 @@ class Venue extends Model
     {
         return $this->hasMany(Booking::class);
     }
-
-    public function keys(): HasMany
-    {
-        return $this->hasMany(Key::class)->orderBy('name');
-    }
 }

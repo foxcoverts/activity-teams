@@ -10,6 +10,7 @@ use Carbon\Carbon;
 use Database\Factories\BookingFactory;
 use Filament\Facades\Filament;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -181,6 +182,28 @@ class Booking extends Model
     public function venue(): BelongsTo
     {
         return $this->belongsTo(Venue::class);
+    }
+
+    /**
+     * Keys marked required for this booking's activity at its venue.
+     * A key that covers one of these is not itself required.
+     *
+     * @return EloquentCollection<int, Key>
+     */
+    public function requiredKeys(): EloquentCollection
+    {
+        if (blank($this->activity_id) || blank($this->venue_id)) {
+            return new EloquentCollection;
+        }
+
+        return Key::query()
+            ->whereHas('requirements', function (Builder $requirements): void {
+                $requirements
+                    ->where('activity_id', $this->activity_id)
+                    ->where('venue_id', $this->venue_id);
+            })
+            ->orderBy('name')
+            ->get();
     }
 
     public function attendees(): BelongsToMany

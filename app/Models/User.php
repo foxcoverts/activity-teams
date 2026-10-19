@@ -144,9 +144,19 @@ class User extends Authenticatable implements FilamentUser, HasDefaultTenant, Ha
             ->using(BookingAttendance::class);
     }
 
-    public function keys(): HasMany
+    public function keyRings(): HasMany
     {
-        return $this->hasMany(Key::class, 'holder_id')->orderBy('name');
+        return $this->hasMany(KeyRing::class, 'holder_id')->orderBy('name');
+    }
+
+    public function holdsKey(Key $key): bool
+    {
+        return $this->keyRings()
+            ->where(function (Builder $rings) use ($key): void {
+                $rings->whereHas('keys', fn (Builder $keys) => $keys->whereKey($key->getKey()))
+                    ->orWhereHas('keys.covers', fn (Builder $covered) => $covered->whereKey($key->getKey()));
+            })
+            ->exists();
     }
 
     public function qualifications(): HasMany
