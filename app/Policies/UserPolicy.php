@@ -2,7 +2,9 @@
 
 namespace App\Policies;
 
+use App\Models\Team;
 use App\Models\User;
+use Filament\Facades\Filament;
 
 class UserPolicy
 {
@@ -13,7 +15,10 @@ class UserPolicy
 
     public function view(User $user, User $model): bool
     {
-        return $user->is($model) || $user->hasOversight() || $this->sharesManagedTeam($user, $model);
+        return $user->is($model)
+            || $user->hasOversight()
+            || $this->sharesManagedTeam($user, $model)
+            || $this->systemAdminOfCurrentMember($user, $model);
     }
 
     public function create(User $user): bool
@@ -29,6 +34,17 @@ class UserPolicy
     public function delete(User $user, User $model): bool
     {
         return $user->hasOversight() && ! $user->is($model);
+    }
+
+    private function systemAdminOfCurrentMember(User $user, User $model): bool
+    {
+        if (! $user->isSystemAdmin()) {
+            return false;
+        }
+
+        $tenant = Filament::getTenant();
+
+        return $tenant instanceof Team && $model->isCurrentMemberOf($tenant);
     }
 
     private function sharesManagedTeam(User $user, User $model): bool

@@ -29,7 +29,7 @@ class QualificationPolicy
 
     public function create(User $user): bool
     {
-        return $user->managedTeams()->exists();
+        return $user->managedTeams()->exists() || $user->isSystemAdmin();
     }
 
     public function update(User $user, Qualification $qualification): bool

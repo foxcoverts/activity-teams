@@ -3,6 +3,7 @@
 namespace App\Filament\Manage\Resources\Teams;
 
 use App\Filament\Manage\NavigationGroup;
+use App\Filament\Manage\Resources\Members\MemberResource;
 use App\Filament\Manage\Resources\Teams\Pages\CreateTeam;
 use App\Filament\Manage\Resources\Teams\Pages\EditTeam;
 use App\Filament\Manage\Resources\Teams\Pages\ListTeams;
@@ -17,6 +18,7 @@ use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 
 class TeamResource extends Resource
 {
@@ -46,15 +48,22 @@ class TeamResource extends Resource
             ]);
     }
 
+    public static function getEloquentQuery(): Builder
+    {
+        return parent::getEloquentQuery()->with('managers');
+    }
+
     public static function table(Table $table): Table
     {
         return $table
             ->columns([
                 TextColumn::make('name')
                     ->searchable(),
-                TextColumn::make('managers_count')
-                    ->counts('managers')
-                    ->label('Managers'),
+                TextColumn::make('managers.name')
+                    ->label('Managers')
+                    ->listWithLineBreaks()
+                    ->placeholder('No managers')
+                    ->url(fn (Team $record, mixed $state): string => MemberResource::getUrl('index', tenant: $record)),
             ])
             ->recordActions([
                 EditAction::make(),

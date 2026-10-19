@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Contracts\QualificationType;
 use Carbon\CarbonInterface;
 use Database\Factories\QualificationFactory;
+use Filament\Facades\Filament;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -87,6 +88,12 @@ class Qualification extends Model
     {
         if ($actor->isSuspended() || $member->isSuspended()) {
             return false;
+        }
+
+        $tenant = Filament::getTenant();
+
+        if ($actor->isSystemAdmin() && $tenant instanceof Team && $member->isCurrentMemberOf($tenant)) {
+            return true;
         }
 
         $teamIds = $actor->managedTeams()->pluck('teams.id');

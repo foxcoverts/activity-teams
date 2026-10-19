@@ -36,7 +36,12 @@ class TeamVenueResource extends Resource
 
     public static function canViewAny(): bool
     {
-        return static::currentManager() instanceof User;
+        $user = auth()->user();
+        $team = static::currentTeam();
+
+        return $user instanceof User
+            && $team instanceof Team
+            && ($user->manages($team) || $user->isSystemAdmin());
     }
 
     public static function canCreate(): bool
@@ -90,17 +95,5 @@ class TeamVenueResource extends Resource
         $tenant = Filament::getTenant();
 
         return $tenant instanceof Team ? $tenant : null;
-    }
-
-    public static function currentManager(): ?User
-    {
-        $user = auth()->user();
-        $team = static::currentTeam();
-
-        if (! $user instanceof User || ! $team instanceof Team || ! $user->manages($team)) {
-            return null;
-        }
-
-        return $user;
     }
 }

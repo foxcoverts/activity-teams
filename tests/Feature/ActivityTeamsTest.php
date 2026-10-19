@@ -6,13 +6,29 @@ use App\Actions\AddAttendeeAction;
 use App\Actions\InviteAttendeesAction;
 use App\Enums\BookingAttendeeStatus;
 use App\Enums\MembershipRole;
+use App\Enums\ScoutPermitActivity;
+use App\Enums\ScoutPermitCategory;
+use App\Enums\ScoutPermitType;
 use App\Filament\Manage\Resources\Activities\Pages\CreateActivity;
+use App\Filament\Manage\Resources\Bookings\BookingResource;
+use App\Filament\Manage\Resources\Members\MemberResource;
 use App\Filament\Manage\Resources\Members\Pages\ListMembers;
+use App\Filament\Manage\Resources\Members\Pages\ViewMember;
+use App\Filament\Manage\Resources\Members\RelationManagers\QualificationsRelationManager;
+use App\Filament\Manage\Resources\TeamActivities\Pages\ListTeamActivities;
+use App\Filament\Manage\Resources\TeamActivities\TeamActivityResource;
+use App\Filament\Manage\Resources\TeamKeys\TeamKeyResource;
 use App\Filament\Manage\Resources\Teams\Pages\CreateTeam;
+use App\Filament\Manage\Resources\Teams\Pages\ListTeams;
+use App\Filament\Manage\Resources\TeamVenues\Pages\ListTeamVenues;
 use App\Filament\Manage\Resources\Users\Pages\ViewUser;
 use App\Filament\Manage\Resources\Users\RelationManagers\MembershipsRelationManager;
 use App\Models\Activity;
 use App\Models\Booking;
+use App\Models\BookingAttendance;
+use App\Models\Key;
+use App\Models\Qualification;
+use App\Models\ScoutPermit;
 use App\Models\Team;
 use App\Models\User;
 use App\Models\Venue;
@@ -299,6 +315,7 @@ class ActivityTeamsTest extends TestCase
 
         $this->assertFalse($manager->can('create', Activity::class));
         $this->assertFalse($manager->can('delete', $venue));
+        Filament::setTenant(null);
         $this->assertFalse($admin->can('view', $member));
         $this->assertFalse($admin->can('viewAny', User::class));
 
@@ -322,5 +339,121 @@ class ActivityTeamsTest extends TestCase
         $this->assertDatabaseHas(Activity::class, [
             'name' => 'Archery',
         ]);
+    }
+
+    public function test_a_system_admin_can_set_up_a_team_they_do_not_manage(): void
+    {
+        $admin = User::factory()->create(['is_system_admin' => true]);
+        $team = Team::factory()->create(['name' => 'Climbing']);
+        $empty = Team::factory()->create(['name' => 'Unstaffed']);
+        $manager = User::factory()->create(['name' => 'Casey Manager']);
+        $member = User::factory()->create([
+            'name' => 'Alex Member',
+            'phone' => '07000999888',
+            'emergency_phone' => '07000111222',
+        ]);
+        $team->grant($manager, MembershipRole::Manager);
+        $team->grant($member, MembershipRole::Member);
+        $activity = Activity::factory()->create(['name' => 'Scout climbing']);
+        $venue = Venue::factory()->create(['name' => 'Campsite']);
+
+        $this->actingAs($admin);
+        Filament::setTenant($team);
+
+        Livewire::test(ListTeamActivities::class)
+            ->callAction('give', data: [
+                'activity_id' => $activity->getKey(),
+            ]);
+
+        Livewire::test(ListTeamVenues::class)
+            ->callAction('give', data: [
+                'venue_id' => $venue->getKey(),
+            ]);
+
+        $this->assertTrue($team->activities()->whereKey($activity->getKey())->exists());
+        $this->assertTrue($team->venues()->whereKey($venue->getKey())->exists());
+
+        $key = Key::factory()->create(['name' => 'Climbing store']);
+        $key->requirements()->create([
+            'activity_id' => $activity->getKey(),
+            'venue_id' => $venue->getKey(),
+        ]);
+
+        $this->get(TeamKeyResource::getUrl('index'))
+            ->assertOk()
+            ->assertSee('Climbing store');
+
+        Livewire::test(ListTeamActivities::class)
+            ->callTableAction('remove', $activity);
+
+        Livewire::test(ListTeamVenues::class)
+            ->callTableAction('remove', $venue);
+
+        $this->assertFalse($team->fresh()->activities()->whereKey($activity->getKey())->exists());
+        $this->assertFalse($team->fresh()->venues()->whereKey($venue->getKey())->exists());
+
+        $this->get(MemberResource::getUrl('index'))
+            ->assertOk()
+            ->assertSee('Alex Member')
+            ->assertSee('07000999888')
+            ->assertSee('07000111222');
+
+        $this->assertTrue($admin->can('view', $member));
+        $this->assertTrue($admin->can('update', $member));
+
+        Livewire::test(ListMembers::class)
+            ->callTableAction('changeRole', $member, data: [
+                'role' => MembershipRole::Manager->value,
+            ]);
+
+        $this->assertTrue($member->fresh()->manages($team));
+
+        Livewire::test(QualificationsRelationManager::class, [
+            'ownerRecord' => $member,
+            'pageClass' => ViewMember::class,
+        ])->callTableAction('create', data: [
+            'detail_type' => ScoutPermit::class,
+            'activity' => ScoutPermitActivity::ClimbingAndAbseiling->value,
+            'category' => ScoutPermitCategory::NaturalTopRope->value,
+            'permit_type' => ScoutPermitType::Leadership->value,
+            'expires_on' => '2030-06-15',
+        ])->assertHasNoActionErrors();
+
+        $this->assertInstanceOf(Qualification::class, $member->qualifications()->first());
+
+        $booking = Booking::factory()->create(['team_id' => $team->getKey()]);
+        $booking->attendees()->attach($member->getKey(), [
+            'status' => BookingAttendeeStatus::Accepted->value,
+        ]);
+        $attendance = $booking->attendees()->first()?->attendance;
+
+        $this->get(BookingResource::getUrl('create'))->assertForbidden();
+        $this->assertFalse($admin->can('create', Booking::class));
+        $this->assertInstanceOf(BookingAttendance::class, $attendance);
+        $this->assertFalse($admin->can('update', $attendance));
+        $this->assertFalse($admin->can('create', [BookingAttendance::class, $booking]));
+
+        Livewire::test(ListTeams::class)
+            ->assertSee('Casey Manager')
+            ->assertSee('No managers')
+            ->assertSeeHtml('fi-ta-placeholder')
+            ->assertSeeHtml(MemberResource::getUrl('index', tenant: $team))
+            ->assertDontSeeHtml(MemberResource::getUrl('index', tenant: $empty));
+
+        $outsider = User::factory()->manager()->create();
+
+        $this->actingAs($outsider);
+        $this->get(TeamActivityResource::getUrl('index', tenant: $team))->assertNotFound();
+        $this->get(MemberResource::getUrl('index', tenant: $team))->assertNotFound();
+
+        $this->actingAs($manager);
+        Filament::setTenant($team);
+
+        Livewire::test(ListTeamActivities::class)
+            ->callAction('give', data: [
+                'activity_id' => $activity->getKey(),
+            ]);
+
+        $this->assertTrue($team->activities()->whereKey($activity->getKey())->exists());
     }
 }

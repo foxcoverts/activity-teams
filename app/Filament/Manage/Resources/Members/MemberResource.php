@@ -57,7 +57,7 @@ class MemberResource extends Resource
 
         return $user instanceof User
             && $team instanceof Team
-            && ($user->manages($team) || $user->hasOversight());
+            && ($user->manages($team) || $user->hasOversight() || $user->isSystemAdmin());
     }
 
     public static function canCreate(): bool
