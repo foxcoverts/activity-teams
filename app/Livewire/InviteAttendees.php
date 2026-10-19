@@ -4,9 +4,11 @@ namespace App\Livewire;
 
 use App\Actions\InviteAttendeesAction;
 use App\Enums\BookingAttendeeStatus;
+use App\Livewire\Concerns\InteractsWithPersonAccess;
 use App\Models\Activity;
 use App\Models\Booking;
 use App\Models\User;
+use App\Support\BookingPeople;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
@@ -14,12 +16,16 @@ use Livewire\Component;
 
 class InviteAttendees extends Component
 {
+    use InteractsWithPersonAccess;
+
     public Booking $booking;
 
     /** @var list<string> */
     public array $queued = [];
 
     public bool $qualifiedOnly = false;
+
+    public bool $keyHoldersOnly = false;
 
     public string $name = '';
 
@@ -38,6 +44,15 @@ class InviteAttendees extends Component
         }
 
         $this->qualifiedOnly = ! $this->qualifiedOnly;
+    }
+
+    public function toggleKeyHolders(): void
+    {
+        if (! $this->bookingNeedsKeys()) {
+            return;
+        }
+
+        $this->keyHoldersOnly = ! $this->keyHoldersOnly;
     }
 
     public function add(string $userId): void
@@ -99,12 +114,16 @@ class InviteAttendees extends Component
             'queuedPeople' => $this->queuedPeople(),
             'pickerPeople' => $picker,
             'showQualifiedFilter' => $this->requiresQualification(),
+            'showQualified' => $this->requiresQualification(),
+            'showKeyFilter' => $this->bookingNeedsKeys(),
+            'showKeys' => $this->bookingNeedsKeys(),
             'canAddShown' => collect($picker)->contains(fn (array $person): bool => $person['can_add']),
+            'access' => $this->accessView(),
         ]);
     }
 
     /**
-     * @return list<array{id: string, name: string, qualified: bool, status: ?BookingAttendeeStatus, can_add: bool}>
+     * @return list<array{id: string, name: string, qualified: bool, key_badge: ?string, status: ?BookingAttendeeStatus, can_add: bool}>
      */
     public function queuedPeople(): array
     {
@@ -118,7 +137,7 @@ class InviteAttendees extends Component
     }
 
     /**
-     * @return list<array{id: string, name: string, qualified: bool, status: ?BookingAttendeeStatus, can_add: bool}>
+     * @return list<array{id: string, name: string, qualified: bool, key_badge: ?string, status: ?BookingAttendeeStatus, can_add: bool}>
      */
     public function pickerPeople(): array
     {
@@ -126,6 +145,10 @@ class InviteAttendees extends Component
             ->reject(fn (array $person): bool => in_array($person['id'], $this->queued, true))
             ->filter(function (array $person): bool {
                 if ($this->qualifiedOnly && ! $person['qualified']) {
+                    return false;
+                }
+
+                if ($this->keyHoldersOnly && $person['key_badge'] !== 'holder') {
                     return false;
                 }
 
@@ -181,8 +204,33 @@ class InviteAttendees extends Component
         return $user instanceof User && $user->can('update', $this->booking);
     }
 
+    protected function accessBooking(): Booking
+    {
+        return $this->booking;
+    }
+
+    protected function accessPersonAllowed(string $userId, string $panel): bool
+    {
+        $person = $this->roster()->firstWhere('id', $userId);
+
+        if (! is_array($person)) {
+            return false;
+        }
+
+        return match ($panel) {
+            'keys' => filled($person['key_badge']),
+            'qualifications' => $person['qualified'],
+            default => false,
+        };
+    }
+
+    private function bookingNeedsKeys(): bool
+    {
+        return $this->booking->requiredKeys()->isNotEmpty();
+    }
+
     /**
-     * @return Collection<int, array{id: string, name: string, qualified: bool, status: ?BookingAttendeeStatus, can_add: bool}>
+     * @return Collection<int, array{id: string, name: string, qualified: bool, key_badge: ?string, status: ?BookingAttendeeStatus, can_add: bool}>
      */
     private function roster(): Collection
     {
@@ -200,11 +248,15 @@ class InviteAttendees extends Component
 
         $activity = $this->activity();
         $showQualified = $activity instanceof Activity && $activity->requiresQualification();
+        $badges = BookingPeople::keyBadges(
+            $this->booking,
+            $members->values()->merge($attendees->values())->unique(fn (User $user): string => $user->getKey()),
+        );
 
         return $members->keys()
             ->merge($attendees->keys())
             ->unique()
-            ->map(function (string $id) use ($members, $attendees, $activity, $showQualified): array {
+            ->map(function (string $id) use ($members, $attendees, $activity, $showQualified, $badges): array {
                 $member = $members->get($id);
                 $attendee = $attendees->get($id);
                 $user = $member ?? $attendee;
@@ -214,6 +266,7 @@ class InviteAttendees extends Component
                     'id' => $id,
                     'name' => $user->name,
                     'qualified' => $showQualified && $activity->metBy($user),
+                    'key_badge' => $badges[$id] ?? null,
                     'status' => $onBooking ? $attendee->attendance?->status : null,
                     'can_add' => $member instanceof User && ! $onBooking,
                 ];

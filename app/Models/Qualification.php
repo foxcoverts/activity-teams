@@ -6,6 +6,7 @@ use App\Contracts\QualificationType;
 use Carbon\CarbonInterface;
 use Database\Factories\QualificationFactory;
 use Filament\Facades\Filament;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -112,6 +113,14 @@ class Qualification extends Model
         }
 
         return $this->expires_on->copy()->endOfDay()->isPast();
+    }
+
+    public function scopeInDate(Builder $query): void
+    {
+        $query->where(function (Builder $query): void {
+            $query->whereNull('expires_on')
+                ->orWhereDate('expires_on', '>=', now()->toDateString());
+        });
     }
 
     public function user(): BelongsTo

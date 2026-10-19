@@ -1,4 +1,7 @@
 <div class="invite-panel">
+    @if ($access)
+        @include('filament.bookings.person-access', ['access' => $access, 'framed' => false, 'dismiss' => __('Back')])
+    @else
     <section class="invite-block">
         <h3 class="invite-heading">{{ __('To be invited') }}</h3>
 
@@ -7,11 +10,7 @@
                 <div class="invite-row" wire:key="queued-{{ $person['id'] }}">
                     <div class="invite-person">
                         <span>{{ $person['name'] }}</span>
-                        @if ($person['qualified'])
-                            <x-filament::badge :color="\App\Support\Palette::positive()" :icon="\Filament\Support\Icons\Heroicon::CheckCircle">
-                                {{ __('Qualified') }}
-                            </x-filament::badge>
-                        @endif
+                        @include('filament.bookings.person-badges', ['person' => $person, 'showQualified' => $showQualified, 'showKeys' => $showKeys])
                     </div>
 
                     <x-filament::button
@@ -55,6 +54,17 @@
                         {{ __('Qualified only') }}
                     </x-filament::button>
                 @endif
+
+                @if ($showKeyFilter)
+                    <x-filament::button
+                        size="sm"
+                        :color="$keyHoldersOnly ? 'primary' : 'gray'"
+                        :outlined="! $keyHoldersOnly"
+                        wire:click="toggleKeyHolders"
+                    >
+                        {{ __('Key holders only') }}
+                    </x-filament::button>
+                @endif
             </div>
 
             <x-filament::button
@@ -73,11 +83,7 @@
                 <div class="invite-row" wire:key="picker-{{ $person['id'] }}">
                     <div class="invite-person">
                         <span>{{ $person['name'] }}</span>
-                        @if ($person['qualified'])
-                            <x-filament::badge :color="\App\Support\Palette::positive()" :icon="\Filament\Support\Icons\Heroicon::CheckCircle">
-                                {{ __('Qualified') }}
-                            </x-filament::badge>
-                        @endif
+                        @include('filament.bookings.person-badges', ['person' => $person, 'showQualified' => $showQualified, 'showKeys' => $showKeys])
                         @if ($person['status'])
                             <x-filament::badge :color="$person['status']->getColor()" :icon="$person['status']->getIcon()">
                                 {{ $person['status']->getLabel() }}
@@ -112,4 +118,5 @@
             {{ __('Send invites') }}
         </x-filament::button>
     </div>
+    @endif
 </div>

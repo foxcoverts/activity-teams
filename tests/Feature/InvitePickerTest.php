@@ -10,6 +10,8 @@ use App\Livewire\InviteAttendees;
 use App\Models\Activity;
 use App\Models\Booking;
 use App\Models\BookingAttendance;
+use App\Models\Key;
+use App\Models\KeyRing;
 use App\Models\MountainTrainingQualification;
 use App\Models\Qualification;
 use App\Models\User;
@@ -85,6 +87,7 @@ class InvitePickerTest extends TestCase
             ->assertSee('No one is queued.')
             ->assertSee('Alex Guest')
             ->assertDontSee('Qualified only')
+            ->assertDontSee('Key holders only')
             ->call('send');
 
         $this->assertDatabaseMissing('booking_user', [
@@ -158,6 +161,48 @@ class InvitePickerTest extends TestCase
             ->mountTableAction('invite')
             ->dispatch('close-invite')
             ->assertTableActionNotMounted('invite');
+    }
+
+    public function test_key_holders_only_narrows_the_team_list_and_leaves_the_queue(): void
+    {
+        [$leader, $booking, $qualified, $other] = $this->teamWithRequirement();
+        $holder = User::factory()->teamMember()->create(['name' => 'Robin Outsider']);
+        $key = Key::factory()->create(['name' => 'Climbing store']);
+        $key->requirements()->create([
+            'activity_id' => $booking->activity_id,
+            'venue_id' => $booking->venue_id,
+        ]);
+        $ring = KeyRing::factory()->heldBy($holder)->create(['name' => 'Shared climbing']);
+        $ring->keys()->attach($key);
+        $spare = Key::factory()->create(['name' => 'Front door']);
+        KeyRing::factory()->heldBy($other)->create(['name' => 'Spare door'])->keys()->attach($spare);
+
+        $this->actingAs($leader);
+
+        Livewire::test(InviteAttendees::class, ['booking' => $booking])
+            ->assertSet('queued', [$qualified->getKey()])
+            ->assertSee('Key holders only')
+            ->assertSee('Robin Outsider')
+            ->assertSee('Alex Guest')
+            ->assertSee('Key holder')
+            ->assertSee('Other keys')
+            ->call('toggleKeyHolders')
+            ->assertSee('Robin Outsider')
+            ->assertDontSee('Alex Guest')
+            ->assertSet('queued', [$qualified->getKey()])
+            ->call('addShown')
+            ->assertSet('queued', [$qualified->getKey(), $holder->getKey()])
+            ->call('openKeys', $holder->getKey())
+            ->assertSee('Shared climbing')
+            ->assertSee('Climbing store')
+            ->assertDontSee('To be invited')
+            ->assertDontSee('Send invites')
+            ->call('closeAccess')
+            ->assertSee('To be invited')
+            ->assertSee('Send invites')
+            ->call('openQualifications', $qualified->getKey())
+            ->assertSee('Climbing Wall Instructor')
+            ->assertDontSee('Show other qualifications');
     }
 
     /**

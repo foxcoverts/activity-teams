@@ -10,6 +10,7 @@ use App\Models\Activity;
 use App\Models\Booking;
 use App\Models\BookingAttendance;
 use App\Models\User;
+use App\Support\BookingPeople;
 use App\Support\Palette;
 use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
@@ -72,7 +73,45 @@ class AttendeesRelationManager extends RelationManager
                         $activity = $this->activity();
 
                         return $activity instanceof Activity && $activity->requiresQualification();
-                    }),
+                    })
+                    ->disabledClick(fn (?string $state): bool => blank($state))
+                    ->action(
+                        Action::make('qualifications')
+                            ->modalHeading(fn (User $record): string => $record->name)
+                            ->modalWidth(Width::Large)
+                            ->modalSubmitAction(false)
+                            ->modalCancelActionLabel(__('Close'))
+                            ->modalContent(fn (User $record): View => view('filament.bookings.person-access-host', [
+                                'booking' => $this->booking(),
+                                'person' => $record,
+                                'panel' => 'qualifications',
+                            ])),
+                    ),
+                TextColumn::make('key_badge')
+                    ->label(__('Keys'))
+                    ->badge()
+                    ->icon(Heroicon::OutlinedKey)
+                    ->state(fn (User $record): ?string => $this->keyBadge($record))
+                    ->formatStateUsing(fn (?string $state): ?string => match ($state) {
+                        'holder' => __('Key holder'),
+                        'other' => __('Other keys'),
+                        default => null,
+                    })
+                    ->color(fn (?string $state): array => $state === 'holder' ? Palette::positive() : Palette::neutral())
+                    ->visible(fn (): bool => $this->bookingNeedsKeys())
+                    ->disabledClick(fn (?string $state): bool => blank($state))
+                    ->action(
+                        Action::make('heldKeys')
+                            ->modalHeading(fn (User $record): string => $record->name)
+                            ->modalWidth(Width::Large)
+                            ->modalSubmitAction(false)
+                            ->modalCancelActionLabel(__('Close'))
+                            ->modalContent(fn (User $record): View => view('filament.bookings.person-access-host', [
+                                'booking' => $this->booking(),
+                                'person' => $record,
+                                'panel' => 'keys',
+                            ])),
+                    ),
             ])
             ->headerActions([
                 Action::make('invite')
@@ -248,6 +287,25 @@ class AttendeesRelationManager extends RelationManager
         }
 
         return $booking;
+    }
+
+    /** @var array<string, 'holder'|'other'>|null */
+    private ?array $keyBadges = null;
+
+    protected function keyBadge(User $record): ?string
+    {
+        if ($this->keyBadges === null) {
+            $booking = $this->booking();
+            $booking->loadMissing('attendees');
+            $this->keyBadges = BookingPeople::keyBadges($booking, $booking->attendees);
+        }
+
+        return $this->keyBadges[$record->getKey()] ?? null;
+    }
+
+    protected function bookingNeedsKeys(): bool
+    {
+        return $this->booking()->requiredKeys()->isNotEmpty();
     }
 
     protected function activity(): ?Activity

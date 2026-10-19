@@ -5,14 +5,19 @@ namespace App\Filament\Team\Resources\Bookings\Pages;
 use App\Actions\RespondToBookingAction;
 use App\Enums\BookingAttendeeResponse;
 use App\Enums\BookingAttendeeStatus;
+use App\Filament\Bookings\BookingKeysAction;
 use App\Filament\Team\Resources\Bookings\BookingResource;
 use App\Filament\Team\Resources\Bookings\BookingTimeline;
+use App\Livewire\SessionRoster;
+use App\Models\Booking;
+use App\Models\User;
 use App\Support\LeadAttendanceWarning;
 use Filament\Actions\Action;
 use Filament\Forms\Components\ToggleButtons;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ViewRecord;
 use Filament\Schemas\Components\EmbeddedSchema;
+use Filament\Schemas\Components\Livewire;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use InvalidArgumentException;
@@ -23,11 +28,20 @@ class ViewBooking extends ViewRecord
 
     public function content(Schema $schema): Schema
     {
-        return $schema
-            ->components([
-                $this->getInfolistContentComponent(),
-                EmbeddedSchema::make('timeline'),
-            ]);
+        $components = [
+            $this->getInfolistContentComponent(),
+        ];
+
+        $record = $this->getRecord();
+        $user = auth()->user();
+
+        if ($record instanceof Booking && $user instanceof User && $record->isLead($user)) {
+            $components[] = Livewire::make(SessionRoster::class, ['booking' => $record]);
+        }
+
+        $components[] = EmbeddedSchema::make('timeline');
+
+        return $schema->components($components);
     }
 
     public function timeline(Schema $schema): Schema
@@ -41,58 +55,66 @@ class ViewBooking extends ViewRecord
 
     protected function getHeaderActions(): array
     {
-        return [
-            Action::make('respond')
-                ->authorize(fn (): bool => auth()->user()?->can('respond', [$this->record, auth()->user()]) ?? false)
-                ->schema([
-                    ToggleButtons::make('response')
-                        ->label(__('Status'))
-                        ->options(BookingAttendeeResponse::class)
-                        ->inline()
-                        ->default(fn (): ?string => BookingAttendeeResponse::tryFromStatus($this->currentResponse())?->value)
-                        ->live()
-                        ->helperText(function (Get $get): ?string {
-                            $user = auth()->user();
+        $actions = [];
+        $record = $this->getRecord();
+        $user = auth()->user();
 
-                            if ($user === null || ! $this->getRecord()->isLead($user)) {
-                                return null;
-                            }
+        if ($record instanceof Booking && $user instanceof User && $record->isLead($user)) {
+            $actions[] = BookingKeysAction::make();
+        }
 
-                            $choice = $get('response');
+        $actions[] = Action::make('respond')
+            ->authorize(fn (): bool => auth()->user()?->can('respond', [$this->record, auth()->user()]) ?? false)
+            ->schema([
+                ToggleButtons::make('response')
+                    ->label(__('Status'))
+                    ->options(BookingAttendeeResponse::class)
+                    ->inline()
+                    ->default(fn (): ?string => BookingAttendeeResponse::tryFromStatus($this->currentResponse())?->value)
+                    ->live()
+                    ->helperText(function (Get $get): ?string {
+                        $user = auth()->user();
 
-                            return LeadAttendanceWarning::message(
-                                $this->getRecord(),
-                                $choice instanceof BookingAttendeeResponse
-                                    ? $choice->toStatus()
-                                    : BookingAttendeeResponse::tryFrom((string) $choice)?->toStatus(),
-                            );
-                        })
-                        ->required(),
-                ])
-                ->action(function (array $data): void {
-                    $response = $data['response'] ?? null;
-                    $response = $response instanceof BookingAttendeeResponse
-                        ? $response
-                        : BookingAttendeeResponse::tryFrom((string) $response);
+                        if ($user === null || ! $this->getRecord()->isLead($user)) {
+                            return null;
+                        }
 
-                    if ($response === null) {
-                        return;
-                    }
+                        $choice = $get('response');
 
-                    try {
-                        (new RespondToBookingAction($this->record))(
-                            auth()->user(),
-                            $response->toStatus(),
+                        return LeadAttendanceWarning::message(
+                            $this->getRecord(),
+                            $choice instanceof BookingAttendeeResponse
+                                ? $choice->toStatus()
+                                : BookingAttendeeResponse::tryFrom((string) $choice)?->toStatus(),
                         );
-                    } catch (InvalidArgumentException $e) {
-                        Notification::make()->danger()->title($e->getMessage())->send();
+                    })
+                    ->required(),
+            ])
+            ->action(function (array $data): void {
+                $response = $data['response'] ?? null;
+                $response = $response instanceof BookingAttendeeResponse
+                    ? $response
+                    : BookingAttendeeResponse::tryFrom((string) $response);
 
-                        return;
-                    }
+                if ($response === null) {
+                    return;
+                }
 
-                    Notification::make()->success()->title(__('Attendance updated'))->send();
-                }),
-        ];
+                try {
+                    (new RespondToBookingAction($this->record))(
+                        auth()->user(),
+                        $response->toStatus(),
+                    );
+                } catch (InvalidArgumentException $e) {
+                    Notification::make()->danger()->title($e->getMessage())->send();
+
+                    return;
+                }
+
+                Notification::make()->success()->title(__('Attendance updated'))->send();
+            });
+
+        return $actions;
     }
 
     private function currentResponse(): ?BookingAttendeeStatus

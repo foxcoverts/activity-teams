@@ -2,6 +2,7 @@
 
 namespace App\Filament\Manage\Resources\Bookings\Pages;
 
+use App\Filament\Bookings\BookingKeysAction;
 use App\Filament\Manage\Resources\Bookings\BookingResource;
 use App\Filament\Manage\Resources\Bookings\BookingStatusActions;
 use App\Filament\Manage\Resources\Bookings\BookingTimeline;
@@ -41,12 +42,14 @@ class ViewBooking extends ViewRecord
 
         if ($record instanceof Booking && $record->isCancelled()) {
             return [
+                BookingKeysAction::make(),
                 BookingStatusActions::restore()->button(),
                 DeleteAction::make(),
             ];
         }
 
         return [
+            BookingKeysAction::make(),
             EditAction::make(),
             BookingStatusActions::group(),
             DeleteAction::make(),

@@ -17,6 +17,7 @@ use Filament\Schemas\Components\Group;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 
@@ -110,6 +111,18 @@ class QualificationResource extends Resource
                     ->date()
                     ->placeholder('—')
                     ->sortable(),
+            ])
+            ->filters([
+                TernaryFilter::make('expired')
+                    ->label(__('Expired'))
+                    ->placeholder(__('Current'))
+                    ->trueLabel(__('Show expired'))
+                    ->falseLabel(__('Expired only'))
+                    ->queries(
+                        true: fn (Builder $query): Builder => $query,
+                        false: fn (Builder $query): Builder => $query->whereDate('expires_on', '<', now()->toDateString()),
+                        blank: fn (Builder $query): Builder => $query->inDate(),
+                    ),
             ])
             ->emptyStateHeading(__('No qualifications recorded.'))
             ->recordActions([

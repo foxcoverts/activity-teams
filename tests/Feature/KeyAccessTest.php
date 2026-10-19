@@ -2,17 +2,28 @@
 
 namespace Tests\Feature;
 
+use App\Enums\BookingAttendeeStatus;
 use App\Enums\MembershipRole;
+use App\Enums\ScoutPermitActivity;
+use App\Enums\ScoutPermitType;
+use App\Filament\Manage\Resources\Bookings\Pages\ViewBooking as ManageViewBooking;
+use App\Filament\Manage\Resources\Bookings\RelationManagers\AttendeesRelationManager;
 use App\Filament\Manage\Resources\KeyRings\KeyRingResource as ManageKeyRingResource;
 use App\Filament\Manage\Resources\KeyRings\Pages\CreateKeyRing;
 use App\Filament\Manage\Resources\Keys\KeyResource;
 use App\Filament\Manage\Resources\Keys\Pages\CreateKey;
 use App\Filament\Manage\Resources\TeamKeys\TeamKeyResource;
+use App\Filament\Team\Resources\Bookings\BookingResource;
+use App\Filament\Team\Resources\Bookings\Pages\ViewBooking as TeamViewBooking;
 use App\Filament\Team\Resources\KeyRings\KeyRingResource as TeamKeyRingResource;
+use App\Livewire\SessionRoster;
 use App\Models\Activity;
 use App\Models\Booking;
+use App\Models\BookingAttendance;
 use App\Models\Key;
 use App\Models\KeyRing;
+use App\Models\Qualification;
+use App\Models\ScoutPermit;
 use App\Models\Team;
 use App\Models\User;
 use App\Models\Venue;
@@ -253,5 +264,162 @@ class KeyAccessTest extends TestCase
 
         $this->get(TeamKeyRingResource::getUrl('view', ['record' => KeyRing::query()->where('name', 'Someone else')->first()]))
             ->assertNotFound();
+    }
+
+    public function test_a_booking_shows_its_keys_and_who_holds_a_useful_one(): void
+    {
+        $leader = User::factory()->teamLeader()->create();
+        $holder = User::factory()->teamMember()->create(['name' => 'Robin Outsider']);
+        $other = User::factory()->teamMember()->create(['name' => 'Alex Guest']);
+        $booking = Booking::factory()->create();
+        $booking->attendees()->attach($holder->id, [
+            'status' => BookingAttendeeStatus::Accepted->value,
+            'token' => BookingAttendance::generateToken(),
+        ]);
+        $booking->attendees()->attach($other->id, [
+            'status' => BookingAttendeeStatus::Accepted->value,
+            'token' => BookingAttendance::generateToken(),
+        ]);
+
+        $store = Key::factory()->create(['name' => 'Climbing store']);
+        $store->requirements()->create([
+            'activity_id' => $booking->activity_id,
+            'venue_id' => $booking->venue_id,
+        ]);
+        $shared = KeyRing::factory()->heldBy($holder)->create(['name' => 'Shared climbing']);
+        $shared->keys()->attach($store);
+        KeyRing::factory()->create(['name' => 'Spare climbing']);
+        $spare = KeyRing::query()->where('name', 'Spare climbing')->first();
+        $spare->keys()->attach($store);
+        $door = Key::factory()->create(['name' => 'Front door']);
+        KeyRing::factory()->heldBy($other)->create(['name' => 'Door ring'])->keys()->attach($door);
+
+        Filament::setCurrentPanel(Filament::getPanel('manage'));
+        $this->actingAs($leader);
+
+        Livewire::test(ManageViewBooking::class, ['record' => $booking->getRouteKey()])
+            ->mountAction('keys')
+            ->assertMountedActionModalSee('Climbing store')
+            ->assertMountedActionModalSee('Shared climbing: Robin Outsider')
+            ->assertMountedActionModalSee('Spare climbing: In the cupboard');
+
+        Livewire::test(AttendeesRelationManager::class, [
+            'ownerRecord' => $booking,
+            'pageClass' => ManageViewBooking::class,
+        ])->assertSee('Key holder')
+            ->assertSee('Other keys');
+
+        $keys = view('filament.bookings.person-access-host', [
+            'booking' => $booking,
+            'person' => $holder,
+            'panel' => 'keys',
+        ])->render();
+
+        $this->assertStringContainsString('Shared climbing', $keys);
+        $this->assertStringContainsString('Climbing store', $keys);
+        $this->assertStringNotContainsString('closeAccess', $keys);
+        $this->assertStringNotContainsString('toggleOtherQualifications', $keys);
+
+        $empty = Booking::factory()->create();
+
+        Livewire::test(ManageViewBooking::class, ['record' => $empty->getRouteKey()])
+            ->mountAction('keys')
+            ->assertMountedActionModalSee('No keys required.');
+    }
+
+    public function test_a_lead_sees_qualifications_restrictions_and_session_keys(): void
+    {
+        $lead = User::factory()->teamLeader()->create(['name' => 'Lead Instructor', 'phone' => '07000999888']);
+        $holder = User::factory()->teamMember()->create(['name' => 'Sam Holder']);
+        $member = User::factory()->teamMember()->create(['name' => 'Casey Member']);
+        $activity = Activity::factory()->create();
+        $activity->qualificationRequirements()->create([
+            'detail_type' => ScoutPermit::class,
+            'permit_activity' => [ScoutPermitActivity::ClimbingAndAbseiling->value],
+            'permit_type' => [ScoutPermitType::Leadership->value],
+        ]);
+        $booking = Booking::factory()->confirmed()->create([
+            'activity_id' => $activity->getKey(),
+            'lead_instructor_id' => $lead->getKey(),
+        ]);
+        $permit = Qualification::factory()->forMember($holder)->scoutPermit([
+            'restrictions' => 'No night climbing',
+        ])->create(['expires_on' => now()->addYear()->toDateString()]);
+        Qualification::factory()->forMember($holder)->mountainTraining()->create();
+        Qualification::factory()->forMember($holder)->scoutPermit([
+            'activity' => ScoutPermitActivity::Archery,
+            'category' => null,
+            'permit_type' => ScoutPermitType::Supervisory,
+        ])->create(['expires_on' => now()->subDay()->toDateString()]);
+
+        $store = Key::factory()->create(['name' => 'Climbing store']);
+        $store->requirements()->create([
+            'activity_id' => $booking->activity_id,
+            'venue_id' => $booking->venue_id,
+        ]);
+        KeyRing::factory()->heldBy($holder)->create(['name' => 'Shared climbing'])->keys()->attach($store);
+
+        foreach ([$lead, $holder, $member] as $person) {
+            $booking->attendees()->attach($person->id, [
+                'status' => BookingAttendeeStatus::Accepted->value,
+                'token' => BookingAttendance::generateToken(),
+            ]);
+        }
+
+        Filament::setCurrentPanel(Filament::getPanel('team'));
+        $this->actingAs($lead);
+
+        $this->get(BookingResource::getUrl('view', ['record' => $booking]))
+            ->assertOk()
+            ->assertSee('Session')
+            ->assertSee('Key holder')
+            ->assertSee('Sam Holder')
+            ->assertDontSee('07000999888');
+
+        Livewire::test(TeamViewBooking::class, ['record' => $booking->getRouteKey()])
+            ->mountAction('keys')
+            ->assertMountedActionModalSee('Shared climbing: Sam Holder');
+
+        $qualifications = view('filament.bookings.person-access-host', [
+            'booking' => $booking,
+            'person' => $holder,
+            'panel' => 'qualifications',
+        ])->render();
+
+        $this->assertStringContainsString('Show other qualifications', $qualifications);
+        $this->assertStringContainsString('Climbing Wall Instructor', $qualifications);
+        $this->assertStringContainsString('No night climbing', $qualifications);
+        $this->assertStringContainsString('x-on:click="showOther = ! showOther"', $qualifications);
+        $this->assertStringNotContainsString('toggleOtherQualifications', $qualifications);
+
+        Livewire::test(SessionRoster::class, ['booking' => $booking])
+            ->assertSee('Qualified')
+            ->call('openQualifications', $holder->getKey())
+            ->assertSee('Climbing and abseiling — Artificial top rope — Leadership')
+            ->assertDontSee('Climbing Wall Instructor')
+            ->assertDontSee('Archery')
+            ->call('toggleOtherQualifications')
+            ->assertSee('Climbing Wall Instructor')
+            ->assertSee('Archery')
+            ->call('openQualification', $permit->getKey())
+            ->assertSee('No night climbing')
+            ->assertSee('Restrictions')
+            ->tap(function ($roster): void {
+                $this->assertSame(1, substr_count($roster->html(), 'wire:click="closeQualification"'));
+            })
+            ->call('closeQualification')
+            ->assertDontSee('No night climbing')
+            ->assertSee('Climbing and abseiling — Artificial top rope — Leadership');
+
+        $this->actingAs($member);
+
+        $this->get(BookingResource::getUrl('view', ['record' => $booking]))
+            ->assertOk()
+            ->assertDontSee('Key holder')
+            ->assertDontSee('No night climbing')
+            ->assertDontSee('Shared climbing');
+
+        Livewire::test(SessionRoster::class, ['booking' => $booking])
+            ->assertForbidden();
     }
 }

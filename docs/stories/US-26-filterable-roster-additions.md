@@ -16,4 +16,4 @@ As an Activity Manager, I want to use quick filters when managing booking roster
 
 ## Progress
 
-The invite modal queues a list, then sends it. The picker can be narrowed by name, and to people who meet the activity when it has qualification rows. Add everyone shown skips anyone already on the booking, and anyone hidden by the current filters. Not asking someone again is that picker rule, not a separate filter. Role is not a filter. Later filters, such as key holders, are not part of this story.
+The invite modal queues a list, then sends it. The picker can be narrowed by name, and to people who meet the activity when it has qualification rows. Add everyone shown skips anyone already on the booking, and anyone hidden by the current filters. Not asking someone again is that picker rule, not a separate filter. Role is not a filter. A key holder filter is [US-08](US-08-smart-booking-invitee-preselection.md), not this story.

@@ -12,6 +12,7 @@ use App\Filament\Manage\Resources\Members\Pages\ViewMember;
 use App\Filament\Manage\Resources\Members\RelationManagers\QualificationsRelationManager;
 use App\Filament\Team\Resources\Qualifications\Pages\ListQualifications;
 use App\Filament\Team\Resources\Qualifications\QualificationResource;
+use App\Models\GirlguidingQualification;
 use App\Models\MountainTrainingQualification;
 use App\Models\Qualification;
 use App\Models\ScoutPermit;
@@ -228,7 +229,7 @@ class QualificationTest extends TestCase
         $this->get(QualificationResource::getUrl('index'))
             ->assertOk()
             ->assertSee('Qualifications')
-            ->assertSee('Climbing and abseiling — Artificial top rope — Leadership')
+            ->assertDontSee('Climbing and abseiling — Artificial top rope — Leadership')
             ->assertSee('Climbing Wall Instructor')
             ->assertSee('These are the qualifications recorded for you.')
             ->assertDontSee('No night climbing')
@@ -238,6 +239,9 @@ class QualificationTest extends TestCase
             ->assertDontSee('New qualification');
 
         Livewire::test(ListQualifications::class)
+            ->assertDontSee('Climbing and abseiling — Artificial top rope — Leadership')
+            ->filterTable('expired', true)
+            ->assertSee('Climbing and abseiling — Artificial top rope — Leadership')
             ->assertTableActionVisible('view', $permit);
 
         $this->get(QualificationResource::getUrl('view', ['record' => $permit]))
@@ -268,5 +272,55 @@ class QualificationTest extends TestCase
 
         Livewire::test(ListQualifications::class)
             ->assertSee('No qualifications recorded.');
+    }
+
+    public function test_a_manager_hides_expired_qualifications_until_asked(): void
+    {
+        $leader = User::factory()->teamLeader()->create();
+        $member = User::factory()->teamMember()->create();
+        Qualification::factory()->forMember($member)->scoutPermit()->create([
+            'expires_on' => now()->subDay()->toDateString(),
+        ]);
+        Qualification::factory()->forMember($member)->mountainTraining()->create();
+
+        $this->actingAs($leader);
+
+        Livewire::test(QualificationsRelationManager::class, [
+            'ownerRecord' => $member,
+            'pageClass' => ViewMember::class,
+        ])->assertDontSee('Climbing and abseiling — Artificial top rope — Leadership')
+            ->assertSee('Climbing Wall Instructor')
+            ->filterTable('expired', true)
+            ->assertSee('Climbing and abseiling — Artificial top rope — Leadership');
+    }
+
+    public function test_a_manager_can_filter_a_members_qualifications_by_type(): void
+    {
+        $leader = User::factory()->teamLeader()->create();
+        $member = User::factory()->teamMember()->create();
+        Qualification::factory()->forMember($member)->scoutPermit()->create();
+        Qualification::factory()->forMember($member)->mountainTraining()->create();
+        Qualification::factory()->forMember($member)->girlguiding()->create();
+
+        $this->actingAs($leader);
+
+        Livewire::test(QualificationsRelationManager::class, [
+            'ownerRecord' => $member,
+            'pageClass' => ViewMember::class,
+        ])->assertSee('Climbing and abseiling — Artificial top rope — Leadership')
+            ->assertSee('Climbing Wall Instructor')
+            ->assertSee('Climbing — Level 1')
+            ->filterTable('detail_type', ScoutPermit::class)
+            ->assertSee('Climbing and abseiling — Artificial top rope — Leadership')
+            ->assertDontSee('Climbing Wall Instructor')
+            ->assertDontSee('Climbing — Level 1')
+            ->filterTable('detail_type', MountainTrainingQualification::class)
+            ->assertDontSee('Climbing and abseiling — Artificial top rope — Leadership')
+            ->assertSee('Climbing Wall Instructor')
+            ->assertDontSee('Climbing — Level 1')
+            ->filterTable('detail_type', GirlguidingQualification::class)
+            ->assertDontSee('Climbing and abseiling — Artificial top rope — Leadership')
+            ->assertDontSee('Climbing Wall Instructor')
+            ->assertSee('Climbing — Level 1');
     }
 }

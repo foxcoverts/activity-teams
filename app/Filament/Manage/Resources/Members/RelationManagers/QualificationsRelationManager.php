@@ -25,7 +25,10 @@ use Filament\Schemas\Components\Group;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Validation\ValidationException;
 use RuntimeException;
@@ -52,6 +55,25 @@ class QualificationsRelationManager extends RelationManager
     {
         return $table
             ->modifyQueryUsing(fn ($query) => $query->with('detail'))
+            ->filters([
+                TernaryFilter::make('expired')
+                    ->label(__('Expired'))
+                    ->placeholder(__('Current'))
+                    ->trueLabel(__('Show expired'))
+                    ->falseLabel(__('Expired only'))
+                    ->queries(
+                        true: fn (Builder $query): Builder => $query,
+                        false: fn (Builder $query): Builder => $query->whereDate('expires_on', '<', now()->toDateString()),
+                        blank: fn (Builder $query): Builder => $query->inDate(),
+                    ),
+                SelectFilter::make('detail_type')
+                    ->label(__('Type'))
+                    ->options([
+                        MountainTrainingQualification::class => __('Mountain Training'),
+                        GirlguidingQualification::class => __('Girlguiding'),
+                        ScoutPermit::class => __('Scout permit'),
+                    ]),
+            ])
             ->columns([
                 TextColumn::make('type_label')
                     ->label(__('Type')),

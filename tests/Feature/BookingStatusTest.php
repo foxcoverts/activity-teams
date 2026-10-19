@@ -517,7 +517,7 @@ class BookingStatusTest extends TestCase
             ->assertActionVisible('delete');
 
         $this->assertSame(
-            [__('Restore'), __('Delete')],
+            [__('Keys'), __('Restore'), __('Delete')],
             $this->visibleHeaderLabels($cancelledView->instance()),
         );
 
@@ -525,7 +525,7 @@ class BookingStatusTest extends TestCase
             ->assertActionVisible('edit');
 
         $this->assertSame(
-            [__('Edit'), __('Status')],
+            [__('Keys'), __('Edit'), __('Status')],
             $this->visibleHeaderLabels($tentativeView->instance()),
         );
 
