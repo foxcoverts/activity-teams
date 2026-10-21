@@ -449,7 +449,10 @@ class BookingStatusTest extends TestCase
 
         $this->actingAs($leader);
 
-        Livewire::test(EditBooking::class, ['record' => $booking->getRouteKey()])
+        Livewire::test(ViewBooking::class, ['record' => $booking->getRouteKey()])
+            ->assertSee('Casey Lead');
+
+        Livewire::test(ViewBooking::class, ['record' => $booking->getRouteKey()])
             ->mountAction('changeLead')
             ->assertSee('Casey Lead')
             ->assertDontSee('Maybe Person')
@@ -466,7 +469,7 @@ class BookingStatusTest extends TestCase
         $this->assertSame(BookingStatus::Confirmed, $booking->status);
         $this->assertSame($attending->id, $booking->lead_instructor_id);
 
-        Livewire::test(EditBooking::class, ['record' => $booking->getRouteKey()])
+        Livewire::test(ViewBooking::class, ['record' => $booking->getRouteKey()])
             ->callAction('changeLead', data: [
                 'lead_instructor_id' => 'remove',
             ]);

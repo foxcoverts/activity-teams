@@ -3,6 +3,7 @@
 namespace App\Filament\Manage\Resources\Bookings;
 
 use App\Enums\BookingStatus;
+use App\Filament\Forms\Components\TimezoneSelect;
 use App\Filament\Manage\NavigationGroup;
 use App\Filament\Manage\Resources\Bookings\Pages\CreateBooking;
 use App\Filament\Manage\Resources\Bookings\Pages\EditBooking;
@@ -23,12 +24,13 @@ use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\DateTimePicker;
-use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Resources\Resource;
+use Filament\Schemas\Components\Flex;
+use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
@@ -49,7 +51,7 @@ class BookingResource extends Resource
 
     protected static ?int $navigationSort = 1;
 
-    protected static ?string $recordTitleAttribute = 'group_name';
+    protected static ?string $recordTitleAttribute = 'summary';
 
     public static function getEditAuthorizationResponse(Model $record): Response
     {
@@ -69,7 +71,7 @@ class BookingResource extends Resource
     }
 
     /**
-     * @return array<int, DateTimePicker|Select|Textarea|TextInput>
+     * @return array<int, DateTimePicker|Flex|Select|Textarea|TextInput>
      */
     public static function detailComponents(): array
     {
@@ -77,35 +79,47 @@ class BookingResource extends Resource
             Select::make('activity_id')
                 ->label(__('Activity'))
                 ->options(fn (): array => static::teamOptions('activities'))
+                ->default(fn (): ?string => static::singleTeamOption('activities'))
                 ->required(),
+            TextInput::make('group_name')
+                ->required()
+                ->maxLength(255),
+            Flex::make([
+                DateTimePicker::make('start_at')
+                    ->timezone(fn (Get $get): string => static::scheduleTimezone($get))
+                    ->seconds(false)
+                    ->default(fn (): Carbon => Carbon::parse('next Saturday 09:30', static::defaultTimezone()))
+                    ->live(onBlur: true)
+                    ->afterStateUpdated(function (mixed $state, mixed $old, Set $set, Get $get): void {
+                        static::shiftEndToKeepDuration($state, $old, $set, $get);
+                    })
+                    ->required(),
+                DateTimePicker::make('end_at')
+                    ->timezone(fn (Get $get): string => static::scheduleTimezone($get))
+                    ->seconds(false)
+                    ->default(fn (): Carbon => Carbon::parse('Saturday 11:30', static::defaultTimezone()))
+                    ->live(onBlur: true)
+                    ->afterStateUpdated(function (mixed $state, Set $set, Get $get): void {
+                        static::keepEndAfterStart($state, $set, $get);
+                    })
+                    ->required(),
+                TimezoneSelect::make('timezone')
+                    ->searchable()
+                    ->required()
+                    ->selectablePlaceholder(false)
+                    ->default(static::defaultTimezone())
+                    ->live(),
+            ])->from('md'),
             Select::make('venue_id')
                 ->label(__('Venue'))
                 ->options(fn (): array => static::teamOptions('venues'))
-                ->required(),
-            DateTimePicker::make('start_at')
-                ->timezone(fn (Get $get): string => static::scheduleTimezone($get))
-                ->default(fn (): Carbon => Carbon::parse('Saturday 09:30', static::defaultTimezone()))
-                ->live(onBlur: true)
-                ->afterStateUpdated(function (mixed $state, mixed $old, Set $set, Get $get): void {
-                    static::shiftEndToKeepDuration($state, $old, $set, $get);
-                })
-                ->required(),
-            DateTimePicker::make('end_at')
-                ->timezone(fn (Get $get): string => static::scheduleTimezone($get))
-                ->default(fn (): Carbon => Carbon::parse('Saturday 11:30', static::defaultTimezone()))
-                ->live(onBlur: true)
-                ->afterStateUpdated(function (mixed $state, Set $set, Get $get): void {
-                    static::keepEndAfterStart($state, $set, $get);
-                })
-                ->required(),
-            TextInput::make('timezone')
-                ->default(fn (): string => static::defaultTimezone())
-                ->required(),
-            TextInput::make('group_name')
+                ->default(fn (): ?string => static::singleTeamOption('venues'))
                 ->required(),
             Textarea::make('notes')
+                ->label(__('Team notes'))
                 ->columnSpanFull(),
             Textarea::make('lead_instructor_notes')
+                ->helperText('These notes will be visible to the Lead instructor. You can use these to share access arrangements, gate codes, etc.')
                 ->columnSpanFull(),
         ];
     }
@@ -114,16 +128,15 @@ class BookingResource extends Resource
     {
         return $schema
             ->components([
-                ...static::detailComponents(),
-                Select::make('status')
-                    ->options(BookingStatus::class)
-                    ->disabled()
-                    ->dehydrated(false)
-                    ->visible(fn (string $operation): bool => $operation === 'edit'),
-                Placeholder::make('lead_instructor_name')
-                    ->label(__('Lead instructor'))
-                    ->content(fn (?Booking $record): string => $record?->leadInstructor?->name ?? '—')
-                    ->visible(fn (string $operation): bool => $operation === 'edit'),
+                Section::make(fn (?Booking $record): string => __(':Status booking', [
+                    'status' => $record?->status->getLabel() ?? __('New'),
+                ]))
+                    ->icon(fn (?Booking $record): Heroicon => ($record?->status ?? BookingStatus::Tentative)->getIcon())
+                    ->iconColor(fn (?Booking $record): array => ($record?->status ?? BookingStatus::Tentative)->getColor())
+                    ->columnSpanFull()
+                    ->schema([
+                        ...static::detailComponents(),
+                    ]),
             ]);
     }
 
@@ -131,8 +144,6 @@ class BookingResource extends Resource
     {
         return $schema
             ->components([
-                TextEntry::make('id')
-                    ->label('ID'),
                 TextEntry::make('activity.name')
                     ->label('Activity'),
                 TextEntry::make('venue.name')
@@ -146,8 +157,7 @@ class BookingResource extends Resource
                 TextEntry::make('timezone')
                     ->placeholder('-'),
                 TextEntry::make('status')
-                    ->badge()
-                    ->icon(fn (BookingStatus $state): Heroicon => $state->getIcon()),
+                    ->badge(),
                 TextEntry::make('group_name'),
                 TextEntry::make('notes')
                     ->placeholder('-')
@@ -249,6 +259,17 @@ class BookingResource extends Resource
             ->orderBy('name')
             ->pluck('name', $relation === 'activities' ? 'activities.id' : 'venues.id')
             ->all();
+    }
+
+    private static function singleTeamOption(string $relation): ?string
+    {
+        $options = static::teamOptions($relation);
+
+        if (count($options) !== 1) {
+            return null;
+        }
+
+        return (string) array_key_first($options);
     }
 
     public static function defaultTimezone(): string

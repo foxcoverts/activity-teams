@@ -10,6 +10,7 @@ use Carbon\Carbon;
 use Database\Factories\BookingFactory;
 use Filament\Facades\Filament;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -277,6 +278,13 @@ class Booking extends Model
     public function team(): BelongsTo
     {
         return $this->belongsTo(Team::class);
+    }
+
+    public function summary(): Attribute
+    {
+        return Attribute::make(
+            get: fn () => $this->activity->name.' - '.$this->start_at->timezone($this->timezone)->toFormattedDayDateString()
+        );
     }
 
     public function scopeForUser(Builder $bookings, User $user): void

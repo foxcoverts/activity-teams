@@ -3,10 +3,13 @@
 namespace Tests\Feature;
 
 use App\Enums\BookingStatus;
+use App\Enums\MembershipRole;
+use App\Filament\Forms\Components\TimezoneSelect;
 use App\Filament\Manage\Resources\Bookings\Pages\CreateBooking;
 use App\Filament\Manage\Resources\Bookings\Pages\EditBooking;
 use App\Models\Activity;
 use App\Models\Booking;
+use App\Models\Team;
 use App\Models\User;
 use App\Models\Venue;
 use Filament\Facades\Filament;
@@ -55,6 +58,62 @@ class AddBookingTest extends TestCase
         $this->assertTrue($booking->venue->is($venue));
     }
 
+    public function test_create_booking_defaults_to_a_teams_only_activity_and_venue(): void
+    {
+        $user = User::factory()->teamLeader()->create();
+        $activity = Activity::factory()->create();
+        $venue = Venue::factory()->create();
+
+        $this->actingAs($user);
+
+        Livewire::test(CreateBooking::class)
+            ->assertFormSet([
+                'activity_id' => $activity->getKey(),
+                'venue_id' => $venue->getKey(),
+            ])
+            ->fillForm(['group_name' => '1st Anytown Scouts'])
+            ->call('create')
+            ->assertHasNoFormErrors();
+
+        $booking = Booking::query()->firstOrFail();
+        $this->assertTrue($booking->activity->is($activity));
+        $this->assertTrue($booking->venue->is($venue));
+    }
+
+    public function test_create_booking_defaults_each_field_independently(): void
+    {
+        $user = User::factory()->teamLeader()->create();
+        $activity = Activity::factory()->create();
+        Activity::factory()->create();
+        Venue::factory()->create();
+
+        $this->actingAs($user);
+
+        Livewire::test(CreateBooking::class)
+            ->assertFormSet([
+                'activity_id' => null,
+                'venue_id' => $user->managedTeams()->firstOrFail()->venues()->sole()->getKey(),
+            ]);
+    }
+
+    public function test_create_booking_does_not_use_choices_from_another_team(): void
+    {
+        $user = User::factory()->teamLeader()->create();
+        Activity::factory()->create();
+        Venue::factory()->create();
+        $otherTeam = Team::factory()->create();
+        $otherTeam->grant($user, MembershipRole::Manager);
+
+        $this->actingAs($user);
+        Filament::setTenant($otherTeam);
+
+        Livewire::test(CreateBooking::class)
+            ->assertFormSet([
+                'activity_id' => null,
+                'venue_id' => null,
+            ]);
+    }
+
     public function test_the_booking_form_cannot_create_an_activity_or_venue(): void
     {
         $user = User::factory()->teamLeader()->create();
@@ -64,6 +123,18 @@ class AddBookingTest extends TestCase
         Livewire::test(CreateBooking::class)
             ->assertFormComponentActionDoesNotExist('activity_id', 'createOption')
             ->assertFormComponentActionDoesNotExist('venue_id', 'createOption');
+    }
+
+    public function test_booking_form_places_a_searchable_timezone_select_with_grouped_utc_offsets(): void
+    {
+        $user = User::factory()->teamLeader()->create();
+
+        $this->actingAs($user);
+
+        Livewire::test(CreateBooking::class)
+            ->assertSeeInOrder(['Start at', 'End at', 'Timezone', 'Venue'])
+            ->assertFormFieldExists('timezone', fn (TimezoneSelect $field): bool => $field->isSearchable()
+                && preg_match('/^Europe\/London \([+-]\d{2}:\d{2}\)$/', $field->getOptions()['Europe']['Europe/London'] ?? '') === 1);
     }
 
     public function test_create_booking_defaults_to_saturday_morning_in_the_users_timezone(): void
@@ -81,8 +152,8 @@ class AddBookingTest extends TestCase
         Livewire::test(CreateBooking::class)
             ->assertFormSet([
                 'timezone' => 'America/New_York',
-                'start_at' => '2026-10-17 13:30:00',
-                'end_at' => '2026-10-17 15:30:00',
+                'start_at' => '2026-10-17 13:30',
+                'end_at' => '2026-10-17 15:30',
             ])
             ->fillForm([
                 'activity_id' => $activity->id,
@@ -94,8 +165,8 @@ class AddBookingTest extends TestCase
 
         $booking = Booking::query()->first();
         $this->assertNotNull($booking);
-        $this->assertSame('2026-10-17 13:30:00', $booking->start_at->utc()->format('Y-m-d H:i:s'));
-        $this->assertSame('2026-10-17 15:30:00', $booking->end_at->utc()->format('Y-m-d H:i:s'));
+        $this->assertSame('2026-10-17 13:30', $booking->start_at->utc()->format('Y-m-d H:i'));
+        $this->assertSame('2026-10-17 15:30', $booking->end_at->utc()->format('Y-m-d H:i'));
         $this->assertSame('America/New_York', $booking->timezone->getName());
     }
 
@@ -112,20 +183,20 @@ class AddBookingTest extends TestCase
         Livewire::test(CreateBooking::class)
             ->set('data.start_at', '2026-10-18 10:00:00')
             ->assertFormSet([
-                'start_at' => '2026-10-18 14:00:00',
-                'end_at' => '2026-10-18 16:00:00',
+                'start_at' => '2026-10-18 14:00',
+                'end_at' => '2026-10-18 16:00',
             ])
             ->set('data.end_at', '2026-10-18 14:00:00')
             ->assertFormSet([
-                'end_at' => '2026-10-18 18:00:00',
+                'end_at' => '2026-10-18 18:00',
             ])
             ->set('data.start_at', '2026-10-18 09:00:00')
             ->assertFormSet([
-                'end_at' => '2026-10-18 17:00:00',
+                'end_at' => '2026-10-18 17:00',
             ])
             ->set('data.end_at', '2026-10-18 08:00:00')
             ->assertFormSet([
-                'end_at' => '2026-10-18 13:00:00',
+                'end_at' => '2026-10-18 13:00',
             ]);
     }
 
@@ -144,12 +215,12 @@ class AddBookingTest extends TestCase
 
         Livewire::test(EditBooking::class, ['record' => $booking->getRouteKey()])
             ->assertFormSet([
-                'start_at' => '2026-10-20 13:00:00',
-                'end_at' => '2026-10-20 16:00:00',
+                'start_at' => '2026-10-20 13:00',
+                'end_at' => '2026-10-20 16:00',
             ])
             ->set('data.start_at', '2026-10-20 10:00:00')
             ->assertFormSet([
-                'end_at' => '2026-10-20 17:00:00',
+                'end_at' => '2026-10-20 17:00',
             ]);
     }
 
