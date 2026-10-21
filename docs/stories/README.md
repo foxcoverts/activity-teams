@@ -48,7 +48,7 @@ When an enum is shown in Filament, give it a label, and a color and icon when th
 - [US-16 Escalating Invitation Nudges & Booking Reminders](US-16-invitation-nudges-reminders.md) — `not-started`
 - [US-17 Scheduled Schedule Digest & Changelog Notifications](US-17-schedule-digest-changelog.md) — `not-started`
 - [US-29 Booking Share Link Copy Action](US-29-booking-share-link-copy.md) — `not-started`
-- [US-30 Standard URL Sharing Capability](US-30-standard-url-sharing.md) — `not-started`
+- [US-30 Standard URL Sharing Capability](US-30-standard-url-sharing.md) — `done`
 - [US-31 Open Graph Meta Tags for Link Previews](US-31-open-graph-link-previews.md) — `done`
 - [US-45 Outgoing Email Delivery Tracking & Bounce Management](US-45-email-delivery-bounce-tracking.md) — `not-started`
 

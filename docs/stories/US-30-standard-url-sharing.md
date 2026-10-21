@@ -1,7 +1,7 @@
 ---
 id: US-30
 title: "Standard URL Sharing Capability"
-status: not-started
+status: done
 area: communications
 ---
 
