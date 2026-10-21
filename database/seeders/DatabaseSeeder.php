@@ -28,11 +28,10 @@ class DatabaseSeeder extends Seeder
 
         $team = $leader->managedTeams()->first();
         $team?->update(['name' => 'Climbing']);
-        $team?->activities()->syncWithoutDetaching(
-            Activity::query()->where('slug', 'climbing')->pluck('id')
-        );
-        $team?->venues()->syncWithoutDetaching(
-            Venue::query()->where('slug', 'fox-coverts-campsite')->pluck('id')
-        );
+
+        $activity = Activity::query()->where('slug', 'climbing')->firstOrFail();
+        $venue = Venue::query()->where('slug', 'fox-coverts-campsite')->firstOrFail();
+        $team?->addActivity($activity);
+        $team?->addVenue($venue);
     }
 }

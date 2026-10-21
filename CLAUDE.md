@@ -172,6 +172,18 @@ This project has domain-specific skills available in `**/skills/**`. You MUST ac
 - Rerun a test after each change to it.
 - Run `vendor/bin/sail bin phpunit` to call the test runner directly. It accepts the same file path and `--filter=testName` arguments.
 
+## Application Palette
+
+Use `App\Support\Palette` for semantic colors in Filament components and status enums instead of hard-coded Filament color names or `Color` constants:
+
+- `Palette::positive()` for affirmative or confirmed states (green).
+- `Palette::destructive()` for negative, cancellation, or removal states (red).
+- `Palette::uncertain()` for tentative or undecided states (amber).
+- `Palette::neutral()` for present but undecided or informational states (gray).
+- `Palette::manager()` for team-manager identity (sky).
+
+Use the palette method that matches the meaning of the UI, not merely its appearance. If a reusable semantic color is needed and none fits, extend `Palette` with a clearly named method rather than adding a one-off color. The panel's primary color is configured separately.
+
 === ralphjsmit/laravel-filament-activitylog/core rules ===
 
 ## Filament Activitylog Pro

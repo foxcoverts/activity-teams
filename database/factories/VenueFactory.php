@@ -27,8 +27,7 @@ class VenueFactory extends Factory
     {
         return $this->afterCreating(function (Venue $venue): void {
             Team::query()->orderByDesc('id')->first()
-                ?->venues()
-                ->syncWithoutDetaching([$venue->getKey()]);
+                ?->addVenue($venue);
         });
     }
 }

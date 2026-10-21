@@ -17,6 +17,7 @@ class ListTeamActivities extends ListRecords
         return [
             Action::make('give')
                 ->label('Give an activity')
+                ->authorize(fn (): bool => TeamActivityResource::canViewAny())
                 ->schema([
                     Select::make('activity_id')
                         ->label('Activity')
@@ -36,9 +37,14 @@ class ListTeamActivities extends ListRecords
                         ->required(),
                 ])
                 ->action(function (array $data): void {
-                    TeamActivityResource::currentTeam()
-                        ?->activities()
-                        ->syncWithoutDetaching([$data['activity_id']]);
+                    $team = TeamActivityResource::currentTeam();
+                    abort_unless($team !== null, 404);
+
+                    $activity = Activity::query()
+                        ->whereDoesntHave('teams', fn ($teams) => $teams->whereKey($team->getKey()))
+                        ->findOrFail($data['activity_id']);
+
+                    $team->addActivity($activity);
                 }),
         ];
     }

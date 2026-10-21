@@ -79,7 +79,8 @@ class BookingResource extends Resource
             Select::make('activity_id')
                 ->label(__('Activity'))
                 ->options(fn (): array => static::teamOptions('activities'))
-                ->default(fn (): ?string => static::singleTeamOption('activities'))
+                ->default(fn (): ?string => static::teamDefault('activities'))
+                ->selectablePlaceholder(false)
                 ->required(),
             TextInput::make('group_name')
                 ->required()
@@ -113,7 +114,8 @@ class BookingResource extends Resource
             Select::make('venue_id')
                 ->label(__('Venue'))
                 ->options(fn (): array => static::teamOptions('venues'))
-                ->default(fn (): ?string => static::singleTeamOption('venues'))
+                ->default(fn (): ?string => static::teamDefault('venues'))
+                ->selectablePlaceholder(false)
                 ->required(),
             Textarea::make('notes')
                 ->label(__('Team notes'))
@@ -261,15 +263,16 @@ class BookingResource extends Resource
             ->all();
     }
 
-    private static function singleTeamOption(string $relation): ?string
+    private static function teamDefault(string $relation): ?string
     {
-        $options = static::teamOptions($relation);
+        $team = Filament::getTenant();
+        $defaultId = match ($relation) {
+            'activities' => $team instanceof Team ? $team->default_activity_id : null,
+            'venues' => $team instanceof Team ? $team->default_venue_id : null,
+            default => null,
+        };
 
-        if (count($options) !== 1) {
-            return null;
-        }
-
-        return (string) array_key_first($options);
+        return $defaultId === null ? null : (string) $defaultId;
     }
 
     public static function defaultTimezone(): string

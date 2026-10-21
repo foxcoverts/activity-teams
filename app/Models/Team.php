@@ -7,8 +7,10 @@ use Database\Factories\TeamFactory;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class Team extends Model
@@ -49,14 +51,116 @@ class Team extends Model
         return $this->belongsToMany(Activity::class)->withTimestamps();
     }
 
+    public function defaultActivity(): BelongsTo
+    {
+        return $this->belongsTo(Activity::class, 'default_activity_id');
+    }
+
     public function venues(): BelongsToMany
     {
         return $this->belongsToMany(Venue::class)->withTimestamps();
     }
 
+    public function defaultVenue(): BelongsTo
+    {
+        return $this->belongsTo(Venue::class, 'default_venue_id');
+    }
+
+    public function addActivity(Activity $activity): void
+    {
+        $this->addDefaultableRecord($activity, 'activities', 'default_activity_id');
+    }
+
+    public function addVenue(Venue $venue): void
+    {
+        $this->addDefaultableRecord($venue, 'venues', 'default_venue_id');
+    }
+
+    public function removeActivity(Activity $activity): void
+    {
+        $this->removeDefaultableRecord($activity, 'activities', 'default_activity_id');
+    }
+
+    public function removeVenue(Venue $venue): void
+    {
+        $this->removeDefaultableRecord($venue, 'venues', 'default_venue_id');
+    }
+
+    public function setDefaultActivity(Activity $activity): void
+    {
+        $this->setDefaultableRecord($activity, 'activities', 'default_activity_id');
+    }
+
+    public function setDefaultVenue(Venue $venue): void
+    {
+        $this->setDefaultableRecord($venue, 'venues', 'default_venue_id');
+    }
+
     public function bookings(): HasMany
     {
         return $this->hasMany(Booking::class);
+    }
+
+    private function addDefaultableRecord(Activity|Venue $record, string $relation, string $defaultAttribute): void
+    {
+        $defaultId = DB::transaction(function () use ($record, $relation, $defaultAttribute): string {
+            $team = static::query()
+                ->whereKey($this->getKey())
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            $team->{$relation}()->syncWithoutDetaching([$record->getKey()]);
+
+            if ($team->{$defaultAttribute} === null) {
+                $team->{$defaultAttribute} = $record->getKey();
+                $team->save();
+            }
+
+            return (string) $team->{$defaultAttribute};
+        });
+
+        $this->setAttribute($defaultAttribute, $defaultId);
+    }
+
+    private function removeDefaultableRecord(Activity|Venue $record, string $relation, string $defaultAttribute): void
+    {
+        $defaultId = DB::transaction(function () use ($record, $relation, $defaultAttribute): ?string {
+            $team = static::query()
+                ->whereKey($this->getKey())
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            $team->{$relation}()->detach($record->getKey());
+
+            if ($team->{$defaultAttribute} === $record->getKey()) {
+                $table = $record->getTable();
+                $team->{$defaultAttribute} = $team->{$relation}()
+                    ->orderBy("{$table}.name")
+                    ->orderBy("{$table}.id")
+                    ->value("{$table}.id");
+                $team->save();
+            }
+
+            return $team->{$defaultAttribute};
+        });
+
+        $this->setAttribute($defaultAttribute, $defaultId);
+    }
+
+    private function setDefaultableRecord(Activity|Venue $record, string $relation, string $defaultAttribute): void
+    {
+        DB::transaction(function () use ($record, $relation, $defaultAttribute): void {
+            $team = static::query()
+                ->whereKey($this->getKey())
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            $team->{$relation}()->whereKey($record->getKey())->firstOrFail();
+            $team->{$defaultAttribute} = $record->getKey();
+            $team->save();
+        });
+
+        $this->setAttribute($defaultAttribute, $record->getKey());
     }
 
     public function currentManagerCount(): int

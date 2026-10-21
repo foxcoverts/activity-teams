@@ -5,6 +5,14 @@
 @source '../../../vendor/ralphjsmit/laravel-filament-activitylog/resources/**/*.blade.php';
 @source '../../../resources/views/vendor/filament-activitylog/**/*.blade.php';
 
+.fi-ta-col:has(.team-default-action) {
+    cursor: pointer;
+}
+
+.fi-ta-col:has(.team-default-action):is(:hover, :focus-visible) .team-default-action {
+    text-decoration-line: underline;
+}
+
 .fi-rjs-activitylog-timeline ul ul {
     list-style: disc;
     margin-top: 0.25rem;

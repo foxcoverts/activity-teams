@@ -30,6 +30,13 @@ class Venue extends Model
                 $venue->slug = Str::slug($venue->name);
             }
         });
+
+        static::deleting(function (Venue $venue): void {
+            $venue->teams()
+                ->where('teams.default_venue_id', $venue->getKey())
+                ->get()
+                ->each(fn (Team $team) => $team->removeVenue($venue));
+        });
     }
 
     public function getActivitylogOptions(): LogOptions

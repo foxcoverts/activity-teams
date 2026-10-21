@@ -13,6 +13,7 @@ use App\Models\Team;
 use App\Models\User;
 use App\Models\Venue;
 use Filament\Facades\Filament;
+use Filament\Forms\Components\Select;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Livewire\Livewire;
@@ -71,6 +72,8 @@ class AddBookingTest extends TestCase
                 'activity_id' => $activity->getKey(),
                 'venue_id' => $venue->getKey(),
             ])
+            ->assertFormFieldExists('activity_id', fn (Select $field): bool => ! $field->canSelectPlaceholder())
+            ->assertFormFieldExists('venue_id', fn (Select $field): bool => ! $field->canSelectPlaceholder())
             ->fillForm(['group_name' => '1st Anytown Scouts'])
             ->call('create')
             ->assertHasNoFormErrors();
@@ -80,19 +83,40 @@ class AddBookingTest extends TestCase
         $this->assertTrue($booking->venue->is($venue));
     }
 
-    public function test_create_booking_defaults_each_field_independently(): void
+    public function test_create_booking_defaults_each_field_when_multiple_options_exist(): void
     {
         $user = User::factory()->teamLeader()->create();
         $activity = Activity::factory()->create();
         Activity::factory()->create();
         Venue::factory()->create();
+        $team = $user->managedTeams()->firstOrFail();
 
         $this->actingAs($user);
 
         Livewire::test(CreateBooking::class)
             ->assertFormSet([
-                'activity_id' => null,
-                'venue_id' => $user->managedTeams()->firstOrFail()->venues()->sole()->getKey(),
+                'activity_id' => $activity->getKey(),
+                'venue_id' => $team->default_venue_id,
+            ]);
+    }
+
+    public function test_create_booking_uses_the_teams_explicit_activity_and_venue_defaults(): void
+    {
+        $user = User::factory()->teamLeader()->create();
+        $team = $user->managedTeams()->firstOrFail();
+        Activity::factory()->create(['name' => 'Climbing']);
+        $defaultActivity = Activity::factory()->create(['name' => 'Archery']);
+        Venue::factory()->create(['name' => 'Campsite']);
+        $defaultVenue = Venue::factory()->create(['name' => 'Headquarters']);
+        $team->setDefaultActivity($defaultActivity);
+        $team->setDefaultVenue($defaultVenue);
+
+        $this->actingAs($user);
+
+        Livewire::test(CreateBooking::class)
+            ->assertFormSet([
+                'activity_id' => $defaultActivity->getKey(),
+                'venue_id' => $defaultVenue->getKey(),
             ]);
     }
 

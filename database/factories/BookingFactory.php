@@ -23,13 +23,13 @@ class BookingFactory extends Factory
                 ?? Team::factory()->create()->getKey(),
             'activity_id' => function (array $attributes): string {
                 $activity = Activity::factory()->create();
-                Team::query()->findOrFail($attributes['team_id'])->activities()->syncWithoutDetaching([$activity->getKey()]);
+                Team::query()->findOrFail($attributes['team_id'])->addActivity($activity);
 
                 return (string) $activity->getKey();
             },
             'venue_id' => function (array $attributes): string {
                 $venue = Venue::factory()->create();
-                Team::query()->findOrFail($attributes['team_id'])->venues()->syncWithoutDetaching([$venue->getKey()]);
+                Team::query()->findOrFail($attributes['team_id'])->addVenue($venue);
 
                 return (string) $venue->getKey();
             },
@@ -62,11 +62,13 @@ class BookingFactory extends Factory
             }
 
             if (filled($booking->activity_id)) {
-                $team->activities()->syncWithoutDetaching([$booking->activity_id]);
+                $activity = Activity::query()->findOrFail($booking->activity_id);
+                $team->addActivity($activity);
             }
 
             if (filled($booking->venue_id)) {
-                $team->venues()->syncWithoutDetaching([$booking->venue_id]);
+                $venue = Venue::query()->findOrFail($booking->venue_id);
+                $team->addVenue($venue);
             }
         });
     }

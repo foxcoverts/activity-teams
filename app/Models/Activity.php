@@ -30,6 +30,13 @@ class Activity extends Model
                 $activity->slug = Str::slug($activity->name);
             }
         });
+
+        static::deleting(function (Activity $activity): void {
+            $activity->teams()
+                ->where('teams.default_activity_id', $activity->getKey())
+                ->get()
+                ->each(fn (Team $team) => $team->removeActivity($activity));
+        });
     }
 
     public function getActivitylogOptions(): LogOptions

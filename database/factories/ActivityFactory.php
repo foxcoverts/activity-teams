@@ -27,8 +27,7 @@ class ActivityFactory extends Factory
     {
         return $this->afterCreating(function (Activity $activity): void {
             Team::query()->orderByDesc('id')->first()
-                ?->activities()
-                ->syncWithoutDetaching([$activity->getKey()]);
+                ?->addActivity($activity);
         });
     }
 }

@@ -17,6 +17,7 @@ class ListTeamVenues extends ListRecords
         return [
             Action::make('give')
                 ->label('Give a venue')
+                ->authorize(fn (): bool => TeamVenueResource::canViewAny())
                 ->schema([
                     Select::make('venue_id')
                         ->label('Venue')
@@ -36,9 +37,14 @@ class ListTeamVenues extends ListRecords
                         ->required(),
                 ])
                 ->action(function (array $data): void {
-                    TeamVenueResource::currentTeam()
-                        ?->venues()
-                        ->syncWithoutDetaching([$data['venue_id']]);
+                    $team = TeamVenueResource::currentTeam();
+                    abort_unless($team !== null, 404);
+
+                    $venue = Venue::query()
+                        ->whereDoesntHave('teams', fn ($teams) => $teams->whereKey($team->getKey()))
+                        ->findOrFail($data['venue_id']);
+
+                    $team->addVenue($venue);
                 }),
         ];
     }

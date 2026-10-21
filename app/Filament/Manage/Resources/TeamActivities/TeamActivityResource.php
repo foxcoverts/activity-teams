@@ -7,6 +7,7 @@ use App\Filament\Manage\Resources\TeamActivities\Pages\ListTeamActivities;
 use App\Models\Activity;
 use App\Models\Team;
 use App\Models\User;
+use App\Support\Palette;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Facades\Filament;
@@ -70,15 +71,41 @@ class TeamActivityResource extends Resource
             ->columns([
                 TextColumn::make('name')
                     ->searchable(),
+                TextColumn::make('default_activity')
+                    ->label(__('Default'))
+                    ->state(fn (Activity $record): string => static::currentTeam()?->default_activity_id === $record->getKey()
+                        ? __('Default')
+                        : __('Set as default'))
+                    ->badge(fn (Activity $record): bool => static::currentTeam()?->default_activity_id === $record->getKey())
+                    ->color(fn (Activity $record): string|array => static::currentTeam()?->default_activity_id === $record->getKey()
+                        ? Palette::positive()
+                        : 'primary')
+                    ->extraAttributes(fn (Activity $record): array => static::currentTeam()?->default_activity_id === $record->getKey()
+                        ? []
+                        : ['class' => 'team-default-action'])
+                    ->disabledClick(fn (Activity $record): bool => static::currentTeam()?->default_activity_id === $record->getKey())
+                    ->action(
+                        Action::make('setDefault')
+                            ->label('Set as default')
+                            ->color('primary')
+                            ->authorize(fn (): bool => static::canViewAny())
+                            ->visible(fn (Activity $record): bool => static::currentTeam()?->default_activity_id !== $record->getKey())
+                            ->action(function (Activity $record): void {
+                                $team = static::currentTeam();
+                                abort_unless($team instanceof Team, 404);
+
+                                $team->setDefaultActivity($record);
+                            }),
+                    ),
                 TextColumn::make('slug'),
             ])
             ->recordActions([
                 Action::make('remove')
                     ->label('Remove from team')
-                    ->color('danger')
+                    ->color(Palette::destructive())
                     ->requiresConfirmation()
                     ->action(function (Activity $record): void {
-                        static::currentTeam()?->activities()->detach($record);
+                        static::currentTeam()?->removeActivity($record);
                     }),
             ]);
     }

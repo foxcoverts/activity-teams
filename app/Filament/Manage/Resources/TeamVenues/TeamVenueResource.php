@@ -7,6 +7,7 @@ use App\Filament\Manage\Resources\TeamVenues\Pages\ListTeamVenues;
 use App\Models\Team;
 use App\Models\User;
 use App\Models\Venue;
+use App\Support\Palette;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Facades\Filament;
@@ -70,15 +71,41 @@ class TeamVenueResource extends Resource
             ->columns([
                 TextColumn::make('name')
                     ->searchable(),
+                TextColumn::make('default_venue')
+                    ->label(__('Default'))
+                    ->state(fn (Venue $record): string => static::currentTeam()?->default_venue_id === $record->getKey()
+                        ? __('Default')
+                        : __('Set as default'))
+                    ->badge(fn (Venue $record): bool => static::currentTeam()?->default_venue_id === $record->getKey())
+                    ->color(fn (Venue $record): string|array => static::currentTeam()?->default_venue_id === $record->getKey()
+                        ? Palette::positive()
+                        : 'primary')
+                    ->extraAttributes(fn (Venue $record): array => static::currentTeam()?->default_venue_id === $record->getKey()
+                        ? []
+                        : ['class' => 'team-default-action'])
+                    ->disabledClick(fn (Venue $record): bool => static::currentTeam()?->default_venue_id === $record->getKey())
+                    ->action(
+                        Action::make('setDefault')
+                            ->label('Set as default')
+                            ->color('primary')
+                            ->authorize(fn (): bool => static::canViewAny())
+                            ->visible(fn (Venue $record): bool => static::currentTeam()?->default_venue_id !== $record->getKey())
+                            ->action(function (Venue $record): void {
+                                $team = static::currentTeam();
+                                abort_unless($team instanceof Team, 404);
+
+                                $team->setDefaultVenue($record);
+                            }),
+                    ),
                 TextColumn::make('slug'),
             ])
             ->recordActions([
                 Action::make('remove')
                     ->label('Remove from team')
-                    ->color('danger')
+                    ->color(Palette::destructive())
                     ->requiresConfirmation()
                     ->action(function (Venue $record): void {
-                        static::currentTeam()?->venues()->detach($record);
+                        static::currentTeam()?->removeVenue($record);
                     }),
             ]);
     }
