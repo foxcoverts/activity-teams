@@ -16,6 +16,7 @@ Before choosing a command form, check the current shell for `LARAVEL_SAIL=1` (fo
 Sail lifecycle and orchestration commands such as `up`, `stop`, and `open` are different: run them from a shell with access to Docker Compose, not from inside the application container. Commands shown below with a `vendor/bin/sail` prefix are for shells outside the Sail application container; use the equivalent direct command when already inside it.
 
 Before relying on a package's API, confirm its installed version:
+
 - PHP packages: run `composer show --direct` inside the Sail application container, or `vendor/bin/sail composer show --direct` outside it. Use the same context-dependent form for `composer show <vendor/package>`.
 - JS packages: check `package.json` for the installed versions.
 
@@ -86,7 +87,7 @@ This project has domain-specific skills available in `**/skills/**`. You MUST ac
 
 - Execute PHP in app context for debugging and testing code. Do not create models without user approval, prefer tests with factories instead. Prefer existing Artisan commands over custom tinker code.
 - Always use single quotes to prevent shell expansion: `vendor/bin/sail artisan tinker --execute 'Your::code();'`
-  - Double quotes for PHP strings inside: `vendor/bin/sail artisan tinker --execute 'User::where("active", true)->count();'`
+    - Double quotes for PHP strings inside: `vendor/bin/sail artisan tinker --execute 'User::where("active", true)->count();'`
 
 === php rules ===
 
@@ -188,6 +189,9 @@ Use the palette method that matches the meaning of the UI, not merely its appear
 
 - When an enum is shown in Filament, implement `HasLabel`; add `HasColor` and `HasIcon` when they help distinguish values. Return translated labels, semantic colors from `App\Support\Palette`, and `Heroicon` cases. Apply this when the enum is in scope rather than restyling unrelated enums. See `docs/stories/README.md` for the project's reference.
 - Use **Remove**, **Remove selected**, and **Removed** in user-facing actions that take related records off a parent. Keep Filament's detach/dissociate action types and existing localized wording overrides; do not restore relationship jargon in labels, modal copy, or notifications.
+- Do not display seconds in booking dates or times.
+- Do not display record IDs in user-facing screens.
+- Show slugs only on edit forms, never in lists, view screens, or create forms.
 
 ## User Story Progress
 
@@ -269,18 +273,18 @@ activity()
 
 ## LogOptions Methods
 
-| Method | Description |
-|--------|-------------|
-| `logFillable()` | Log all fillable attributes |
-| `logAll()` | Log all attributes |
-| `logOnly(array)` | Log specific attributes |
-| `logExcept(array)` | Exclude attributes |
-| `logOnlyDirty()` | Only log changed attributes |
-| `dontLogEmptyChanges()` | Skip logging when no tracked attributes changed |
+| Method                                  | Description                                      |
+| --------------------------------------- | ------------------------------------------------ |
+| `logFillable()`                         | Log all fillable attributes                      |
+| `logAll()`                              | Log all attributes                               |
+| `logOnly(array)`                        | Log specific attributes                          |
+| `logExcept(array)`                      | Exclude attributes                               |
+| `logOnlyDirty()`                        | Only log changed attributes                      |
+| `dontLogEmptyChanges()`                 | Skip logging when no tracked attributes changed  |
 | `dontLogIfAttributesChangedOnly(array)` | Ignore updates that only change these attributes |
-| `useLogName(string)` | Set custom log name |
-| `setDescriptionForEvent(Closure)` | Custom description per event |
-| `useAttributeRawValues(array)` | Store raw (uncast) values |
+| `useLogName(string)`                    | Set custom log name                              |
+| `setDescriptionForEvent(Closure)`       | Custom description per event                     |
+| `useAttributeRawValues(array)`          | Store raw (uncast) values                        |
 
 ## Querying Activities
 
@@ -351,6 +355,7 @@ Custom action classes must extend the originals. Override protected methods (`sa
 ## Configuration
 
 Key config options in `config/activitylog.php`:
+
 - `enabled`: Master on/off switch (env: `ACTIVITYLOG_ENABLED`)
 - `clean_after_days`: Days to keep records for `activitylog:clean` command
 - `default_log_name`: Default log name (string)

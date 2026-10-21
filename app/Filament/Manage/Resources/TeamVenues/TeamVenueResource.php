@@ -97,7 +97,6 @@ class TeamVenueResource extends Resource
                                 $team->setDefaultVenue($record);
                             }),
                     ),
-                TextColumn::make('slug'),
             ])
             ->recordActions([
                 Action::make('remove')

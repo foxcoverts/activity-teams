@@ -74,8 +74,6 @@ class UserResource extends Resource
     {
         return $schema
             ->components([
-                TextEntry::make('id')
-                    ->label('ID'),
                 TextEntry::make('name'),
                 TextEntry::make('email')
                     ->label('Email address'),
@@ -113,9 +111,6 @@ class UserResource extends Resource
         return $table
             ->recordTitleAttribute('name')
             ->columns([
-                TextColumn::make('id')
-                    ->label('ID')
-                    ->searchable(),
                 TextColumn::make('name')
                     ->searchable(),
                 TextColumn::make('email')

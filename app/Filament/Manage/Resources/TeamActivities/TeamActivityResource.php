@@ -97,7 +97,6 @@ class TeamActivityResource extends Resource
                                 $team->setDefaultActivity($record);
                             }),
                     ),
-                TextColumn::make('slug'),
             ])
             ->recordActions([
                 Action::make('remove')

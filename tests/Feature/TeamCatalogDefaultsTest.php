@@ -39,6 +39,7 @@ class TeamCatalogDefaultsTest extends TestCase
             ->assertSee('Default')
             ->assertSee('Set as default')
             ->assertSeeHtml('team-default-action')
+            ->assertTableColumnDoesNotExist('slug')
             ->assertTableActionHidden('setDefault', $climbing)
             ->assertTableActionVisible('setDefault', $headquarters)
             ->callTableAction('setDefault', $headquarters);
@@ -78,6 +79,7 @@ class TeamCatalogDefaultsTest extends TestCase
             ->assertSee('Default')
             ->assertSee('Set as default')
             ->assertSeeHtml('team-default-action')
+            ->assertTableColumnDoesNotExist('slug')
             ->assertTableActionHidden('setDefault', $campsite)
             ->assertTableActionVisible('setDefault', $headquarters)
             ->callTableAction('setDefault', $headquarters);

@@ -55,8 +55,8 @@ class BookingResource extends Resource
             ->components([
                 TextEntry::make('activity.name')->label(__('Activity')),
                 TextEntry::make('venue.name')->label(__('Venue')),
-                TextEntry::make('start_at')->dateTime()->placeholder('-'),
-                TextEntry::make('end_at')->dateTime()->placeholder('-'),
+                TextEntry::make('start_at')->dateTime('M j, Y H:i')->placeholder('-'),
+                TextEntry::make('end_at')->dateTime('M j, Y H:i')->placeholder('-'),
                 TextEntry::make('status')
                     ->badge()
                     ->icon(fn (BookingStatus $state): Heroicon => $state->getIcon()),
@@ -71,7 +71,7 @@ class BookingResource extends Resource
         return $table
             ->recordTitleAttribute('group_name')
             ->columns([
-                TextColumn::make('start_at')->dateTime()->sortable(),
+                TextColumn::make('start_at')->dateTime('M j, Y H:i')->sortable(),
                 TextColumn::make('activity.name')->searchable(),
                 TextColumn::make('venue.name')->searchable(),
                 TextColumn::make('group_name')->searchable(),

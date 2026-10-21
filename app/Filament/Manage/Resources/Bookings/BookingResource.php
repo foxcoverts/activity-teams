@@ -202,10 +202,10 @@ class BookingResource extends Resource
                 TextEntry::make('venue.name')
                     ->label('Venue'),
                 TextEntry::make('start_at')
-                    ->dateTime()
+                    ->dateTime('M j, Y H:i')
                     ->placeholder('-'),
                 TextEntry::make('end_at')
-                    ->dateTime()
+                    ->dateTime('M j, Y H:i')
                     ->placeholder('-'),
                 TextEntry::make('timezone')
                     ->placeholder('-'),
@@ -222,10 +222,10 @@ class BookingResource extends Resource
                     ->placeholder('-')
                     ->columnSpanFull(),
                 TextEntry::make('created_at')
-                    ->dateTime()
+                    ->dateTime('M j, Y H:i')
                     ->placeholder('-'),
                 TextEntry::make('updated_at')
-                    ->dateTime()
+                    ->dateTime('M j, Y H:i')
                     ->placeholder('-'),
             ]);
     }
@@ -240,10 +240,10 @@ class BookingResource extends Resource
                 TextColumn::make('venue.name')
                     ->searchable(),
                 TextColumn::make('start_at')
-                    ->dateTime()
+                    ->dateTime('M j, Y H:i')
                     ->sortable(),
                 TextColumn::make('end_at')
-                    ->dateTime()
+                    ->dateTime('M j, Y H:i')
                     ->sortable(),
                 TextColumn::make('status')
                     ->badge()
@@ -254,11 +254,11 @@ class BookingResource extends Resource
                 TextColumn::make('leadInstructor.name')
                     ->searchable(),
                 TextColumn::make('created_at')
-                    ->dateTime()
+                    ->dateTime('M j, Y H:i')
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('updated_at')
-                    ->dateTime()
+                    ->dateTime('M j, Y H:i')
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])

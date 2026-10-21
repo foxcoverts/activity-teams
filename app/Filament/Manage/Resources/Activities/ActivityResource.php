@@ -75,7 +75,8 @@ class ActivityResource extends Resource
             TextInput::make('name')
                 ->required(),
             TextInput::make('slug')
-                ->helperText(__('Leave blank to generate from the name.')),
+                ->helperText(__('Leave blank to generate from the name.'))
+                ->visible(fn (string $operation): bool => $operation === 'edit'),
             Textarea::make('description')
                 ->columnSpanFull(),
             Repeater::make('qualificationRequirements')
@@ -149,10 +150,7 @@ class ActivityResource extends Resource
     {
         return $schema
             ->components([
-                TextEntry::make('id')
-                    ->label('ID'),
                 TextEntry::make('name'),
-                TextEntry::make('slug'),
                 TextEntry::make('description')
                     ->placeholder('-')
                     ->columnSpanFull(),
@@ -178,12 +176,7 @@ class ActivityResource extends Resource
         return $table
             ->recordTitleAttribute('name')
             ->columns([
-                TextColumn::make('id')
-                    ->label('ID')
-                    ->searchable(),
                 TextColumn::make('name')
-                    ->searchable(),
-                TextColumn::make('slug')
                     ->searchable(),
                 TextColumn::make('created_at')
                     ->dateTime()
