@@ -184,6 +184,20 @@ Use `App\Support\Palette` for semantic colors in Filament components and status 
 
 Use the palette method that matches the meaning of the UI, not merely its appearance. If a reusable semantic color is needed and none fits, extend `Palette` with a clearly named method rather than adding a one-off color. The panel's primary color is configured separately.
 
+## Filament UI Conventions
+
+- When an enum is shown in Filament, implement `HasLabel`; add `HasColor` and `HasIcon` when they help distinguish values. Return translated labels, semantic colors from `App\Support\Palette`, and `Heroicon` cases. Apply this when the enum is in scope rather than restyling unrelated enums. See `docs/stories/README.md` for the project's reference.
+- Use **Remove**, **Remove selected**, and **Removed** in user-facing actions that take related records off a parent. Keep Filament's detach/dissociate action types and existing localized wording overrides; do not restore relationship jargon in labels, modal copy, or notifications.
+
+## User Story Progress
+
+When a code change meets, partly meets, or stops meeting a user story's acceptance criteria, update that story in the same change. Stories are in `docs/stories/`; keep each file's frontmatter status in sync with its entry in `docs/stories/README.md`.
+
+- Compare the change against the story's acceptance criteria.
+- Use `done` only when every criterion is met in this repository.
+- Use `partial` when some criteria are met and some remain; describe the remaining work in the story file. Criteria for functionality not yet built remain open.
+- Leave unrelated `not-started` stories unchanged.
+
 === ralphjsmit/laravel-filament-activitylog/core rules ===
 
 ## Filament Activitylog Pro
