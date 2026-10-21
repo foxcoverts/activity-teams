@@ -1,47 +1,338 @@
 <laravel-boost-guidelines>
-# Laravel Application
+=== foundation rules ===
 
-This repository contains a Laravel application. Complete the following setup before working on the user's request.
+# Laravel Boost Guidelines
 
-## Prerequisites
+## Foundational Context
 
-Verify that PHP and Composer are available:
+This application is a Laravel application running on PHP 8.5. Always use the APIs that match the installed major version of each package — do not assume a version.
 
-```sh
-php -v
-composer -V
+## Command Execution Context
+
+This repository's `.devcontainer/devcontainer.json` attaches VS Code to the `laravel.test` service in `compose.yaml`, which is the Laravel Sail application container. When the current terminal is already in that container, run application commands directly: `php artisan ...`, `composer ...`, `npm ...`, and `php ...`. Do not wrap them in `vendor/bin/sail`; that would unnecessarily try to start another container.
+
+Before choosing a command form, check the current shell for `LARAVEL_SAIL=1` (for example, `printenv LARAVEL_SAIL`) and consult the Dev Container service configuration if needed. A generic container marker alone does not prove the shell is in Sail. If the shell is outside the Sail application container, use `vendor/bin/sail` for commands that need the app runtime, provided Sail is available.
+
+Sail lifecycle and orchestration commands such as `up`, `stop`, and `open` are different: run them from a shell with access to Docker Compose, not from inside the application container. Commands shown below with a `vendor/bin/sail` prefix are for shells outside the Sail application container; use the equivalent direct command when already inside it.
+
+Before relying on a package's API, confirm its installed version:
+- PHP packages: run `composer show --direct` inside the Sail application container, or `vendor/bin/sail composer show --direct` outside it. Use the same context-dependent form for `composer show <vendor/package>`.
+- JS packages: check `package.json` for the installed versions.
+
+## Skills Activation
+
+This project has domain-specific skills available in `**/skills/**`. You MUST activate the relevant skill whenever you work in that domain—don't wait until you're stuck.
+
+## Conventions
+
+- You must follow all existing code conventions used in this application. When creating or editing a file, check sibling files for the correct structure, approach, and naming.
+- Use descriptive names for variables and methods. For example, `isRegisteredForDiscounts`, not `discount()`.
+- Check for existing components to reuse before writing a new one.
+
+## Verification Scripts
+
+- Do not create verification scripts or tinker when tests cover that functionality and prove they work. Unit and feature tests are more important.
+
+## Application Structure & Architecture
+
+- Stick to existing directory structure; don't create new base folders without approval.
+- Do not change the application's dependencies without approval.
+
+## Frontend Bundling
+
+- If a frontend change doesn't show in the UI or you get a "Unable to locate file in Vite manifest" error, run `vendor/bin/sail npm run build` or ask the user to run `vendor/bin/sail npm run dev` or `vendor/bin/sail composer run dev`.
+
+## Documentation Files
+
+- You must only create documentation files if explicitly requested by the user.
+
+=== boost rules ===
+
+# Laravel Boost
+
+## Tools
+
+- Laravel Boost is an MCP server with tools designed specifically for this application. Prefer Boost tools over manual alternatives like shell commands or file reads.
+- Use `database-query` to run read-only queries against the database instead of writing raw SQL in tinker.
+- Use `database-schema` to inspect table structure before writing migrations or models.
+- Use `get-absolute-url` to resolve the correct scheme, domain, and port for project URLs. Always use this before sharing a URL with the user.
+- Use `browser-logs` to read browser logs, errors, and exceptions. Only recent logs are useful, ignore old entries.
+
+## Searching Documentation (IMPORTANT)
+
+- Use `search-docs` before changes that depend on Laravel ecosystem APIs, behavior, configuration, or version-specific syntax. Skip it for copy-only edits and other changes where package documentation is irrelevant. Reuse sufficient results already in context instead of searching again.
+- Pass a `packages` array to scope results when you know which packages are relevant.
+- Use multiple broad, topic-based queries: `['rate limiting', 'routing rate limiting', 'routing']`. Expect the most relevant results first.
+- Do not add package names to queries because package info is already shared. Use `test resource table`, not `filament 4 test resource table`.
+
+### Search Syntax
+
+1. Use words for auto-stemmed AND logic: `rate limit` matches both "rate" AND "limit".
+2. Use `"quoted phrases"` for exact position matching: `"infinite scroll"` requires adjacent words in order.
+3. Combine words and phrases for mixed queries: `middleware "rate limit"`.
+4. Use multiple queries for OR logic: `queries=["authentication", "middleware"]`.
+
+## Project Rules
+
+- This project contains committed, area-grouped rules in `.ai/rules` when that directory exists, including path-scoped framework guidelines under `.ai/rules/boost`. Before you enter plan mode or create/edit any file, you MUST first: open @.ai/rules/index.md (it maps file globs to rule files), read every rule file whose globs cover the path(s) in scope, and run `grep -rin 'keyword' .ai/rules` to catch what a path match alone misses. Do not write code until you have read and are following every matching rule. If `.ai/rules` does not exist, continue without it.
+
+## Artisan
+
+- Run Artisan commands directly via the command line (e.g., `vendor/bin/sail artisan route:list`). Use `vendor/bin/sail artisan list` to discover available commands and `vendor/bin/sail artisan [command] --help` to check parameters.
+- Inspect routes with `vendor/bin/sail artisan route:list`. Filter with: `--method=GET`, `--name=users`, `--path=api`, `--except-vendor`, `--only-vendor`.
+- Read configuration values using dot notation: `vendor/bin/sail artisan config:show app.name`, `vendor/bin/sail artisan config:show database.default`. Or read config files directly from the `config/` directory.
+
+## Tinker
+
+- Execute PHP in app context for debugging and testing code. Do not create models without user approval, prefer tests with factories instead. Prefer existing Artisan commands over custom tinker code.
+- Always use single quotes to prevent shell expansion: `vendor/bin/sail artisan tinker --execute 'Your::code();'`
+  - Double quotes for PHP strings inside: `vendor/bin/sail artisan tinker --execute 'User::where("active", true)->count();'`
+
+=== php rules ===
+
+# PHP
+
+- Always use curly braces for control structures, even for single-line bodies.
+- Use PHP 8 constructor property promotion: `public function __construct(public GitHub $github) { }`. Do not leave empty zero-parameter `__construct()` methods unless the constructor is private.
+- Use explicit return type declarations and type hints for all method parameters: `function isAccessible(User $user, ?string $path = null): bool`
+- Use TitleCase for Enum keys: `FavoritePerson`, `BestLake`, `Monthly`.
+- Prefer PHPDoc blocks over inline comments. Only add inline comments for exceptionally complex logic.
+- Use array shape type definitions in PHPDoc blocks.
+
+=== deployments rules ===
+
+# Deployment
+
+- Laravel can be deployed using [Laravel Cloud](https://cloud.laravel.com/), which is the fastest way to deploy and scale production Laravel applications.
+
+=== sail rules ===
+
+# Laravel Sail
+
+- This project uses Laravel Sail, and its VS Code Dev Container attaches directly to the `laravel.test` Sail service. Follow the command execution context rules above.
+- From outside the app container, start services using `vendor/bin/sail up -d` and stop them with `vendor/bin/sail stop`. Run `vendor/bin/sail open` from a shell with Docker Compose access.
+- Inside the app container, run application commands directly. For example: `php artisan migrate`, `composer install`, `npm run dev`, or `php [script]`.
+- Outside the app container, prefix app-runtime commands with `vendor/bin/sail`. For example: `vendor/bin/sail artisan migrate`, `vendor/bin/sail composer install`, `vendor/bin/sail npm run dev`, or `vendor/bin/sail php [script]`.
+- View all available Sail commands by running `vendor/bin/sail` without arguments.
+
+=== tests rules ===
+
+# Test Enforcement
+
+- Add or update tests for behavior and logic changes when a test provides meaningful regression coverage.
+- Pure copy, styling, and layout-only changes do not require new or updated tests.
+- When test coverage applies, run the affected tests and ensure they pass.
+- Test the changed behavior and its important failure modes, but do not add tests beyond them.
+- Read the `testing-best-practices` skill before writing tests.
+
+=== laravel/core rules ===
+
+# Do Things the Laravel Way
+
+- Use `vendor/bin/sail artisan make:` commands to create new files (i.e. migrations, controllers, models, etc.). You can list available Artisan commands using `vendor/bin/sail artisan list` and check their parameters with `vendor/bin/sail artisan [command] --help`.
+- If you're creating a generic PHP class, use `vendor/bin/sail artisan make:class`.
+- Pass `--no-interaction` to all Artisan commands to ensure they work without user input. You should also pass the correct `--options` to ensure correct behavior.
+
+### Model Creation
+
+- When creating new models, create useful factories and seeders for them too. Ask the user if they need any other things, using `vendor/bin/sail artisan make:model --help` to check the available options.
+
+## APIs & Eloquent Resources
+
+- For APIs, default to using Eloquent API Resources and API versioning unless existing API routes do not, then you should follow existing application convention.
+
+## URL Generation
+
+- When generating links to other pages, prefer named routes and the `route()` function.
+
+## Testing
+
+- When creating models for tests, use the factories for the models. Check if the factory has custom states that can be used before manually setting up the model.
+- Faker: Use methods such as `$this->faker->word()` or `fake()->randomDigit()`. Follow existing conventions whether to use `$this->faker` or `fake()`.
+- When creating tests, make use of `vendor/bin/sail artisan make:test [options] {name}` to create a feature test, and pass `--unit` to create a unit test. Most tests should be feature tests.
+
+=== pint/core rules ===
+
+# Laravel Pint Code Formatter
+
+- If you have modified any PHP files, you must run `vendor/bin/sail bin pint --dirty --format agent` before finalizing changes to ensure your code matches the project's expected style.
+- Do not run `vendor/bin/sail bin pint --test --format agent`, simply run `vendor/bin/sail bin pint --format agent` to fix any formatting issues.
+
+=== phpunit/core rules ===
+
+# PHPUnit
+
+- This project uses PHPUnit. Create tests with `vendor/bin/sail artisan make:test --phpunit {name}`.
+- Do not include the test suite directory in `{name}`. Use `SomeFeatureTest`, not `Feature/SomeFeatureTest`.
+- Read the `testing-best-practices` skill for guidance on coverage, naming, structure, dependency isolation, and review.
+
+## Running Tests
+
+- Run the narrowest set of tests that covers the change. Pass a file path or `--filter=testName` to `vendor/bin/sail artisan test --compact`.
+- Rerun a test after each change to it.
+- Run `vendor/bin/sail bin phpunit` to call the test runner directly. It accepts the same file path and `--filter=testName` arguments.
+
+=== ralphjsmit/laravel-filament-activitylog/core rules ===
+
+## Filament Activitylog Pro
+
+Easily add beautiful timelines to your Filament apps. Works out-of-the box & integrates with Spatie Activitylog. Its full documentation is available to you as machine-readable Markdown.
+
+- Before writing or changing code that uses this package, consult the docs — do not guess the API.
+- Start at the index: `https://filamentplugins.com/filament-activitylog-pro/docs/v2/llm/llms.txt`, then fetch the specific `<group>/<page>.md` files you need. Each `.md` page is fully assembled. For the whole documentation in one file, use `llm/llms-full.txt` at the same path.
+- The `filament-activitylog-pro` skill describes this workflow in detail — use it whenever you work with this package.
+
+=== spatie/laravel-activitylog/core rules ===
+
+# spatie/laravel-activitylog
+
+Activity logging package for Laravel. Logs model events and manual activities to a database table.
+
+## Key Concepts
+
+- **Activity**: An Eloquent model (`Spatie\Activitylog\Models\Activity`) storing log entries with subject, causer, event, attribute_changes, and properties.
+- **Subject**: The model being acted upon (polymorphic `subject_type`/`subject_id`).
+- **Causer**: The model that caused the action, typically the authenticated user (polymorphic `causer_type`/`causer_id`).
+- **LogOptions**: Fluent configuration object returned by `getActivitylogOptions()` on models using the `LogsActivity` trait.
+- **ActivityEvent**: Enum with cases `Created`, `Updated`, `Deleted`, `Restored`.
+- **`attribute_changes`** column: stores `{"attributes": {...}, "old": {...}}` for tracked model changes.
+- **`properties`** column: stores custom user data set via `withProperties()`.
+
+## Traits
+
+### `LogsActivity`
+
+Add to models to automatically log create/update/delete events. Optionally implement `getActivitylogOptions()` to configure which attributes to track (defaults to logging events without attribute changes).
+
+```php
+use Spatie\Activitylog\Models\Concerns\LogsActivity;
+use Spatie\Activitylog\Support\LogOptions;
+
+class Article extends Model
+{
+    use LogsActivity;
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logFillable()
+            ->logOnlyDirty()
+            ->dontLogEmptyChanges();
+    }
+}
 ```
 
-If either command is unavailable, detect the user's operating system and install the prerequisites with the appropriate command:
+### `CausesActivity`
 
-macOS:
+Add to user/causer models. Provides `activitiesAsCauser()` relationship.
 
-```sh
-/bin/bash -c "$(curl -fsSL https://php.new/install/mac/8.5)"
+### `HasActivity`
+
+Combines `LogsActivity` and `CausesActivity`. Provides `activities()`, `activitiesAsSubject()`, and `activitiesAsCauser()`.
+
+## Manual Logging
+
+```php
+activity()
+    ->performedOn($article)
+    ->causedBy($user)
+    ->event(ActivityEvent::Updated)
+    ->withProperties(['key' => 'value'])
+    ->log('Article was updated');
 ```
 
-Windows PowerShell:
+## LogOptions Methods
 
-```powershell
-Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('https://php.new/install/windows/8.5'))
+| Method | Description |
+|--------|-------------|
+| `logFillable()` | Log all fillable attributes |
+| `logAll()` | Log all attributes |
+| `logOnly(array)` | Log specific attributes |
+| `logExcept(array)` | Exclude attributes |
+| `logOnlyDirty()` | Only log changed attributes |
+| `dontLogEmptyChanges()` | Skip logging when no tracked attributes changed |
+| `dontLogIfAttributesChangedOnly(array)` | Ignore updates that only change these attributes |
+| `useLogName(string)` | Set custom log name |
+| `setDescriptionForEvent(Closure)` | Custom description per event |
+| `useAttributeRawValues(array)` | Store raw (uncast) values |
+
+## Querying Activities
+
+```php
+use Spatie\Activitylog\Models\Activity;
+use Spatie\Activitylog\Enums\ActivityEvent;
+
+Activity::forEvent(ActivityEvent::Created)->get();
+Activity::causedBy($user)->get();
+Activity::forSubject($article)->get();
+Activity::inLog('orders')->get();
 ```
 
-Linux:
+## Setting the causer
 
-```sh
-/bin/bash -c "$(curl -fsSL https://php.new/install/linux/8.5)"
+Override the causer for a block of code:
+
+```php
+use Spatie\Activitylog\Facades\Activity;
+
+Activity::defaultCauser($admin, function () {
+    // all activities here are caused by $admin
+});
+
+// or set globally for the rest of the request
+Activity::defaultCauser($admin);
 ```
 
-After installation, ask the user to restart their terminal. If the agent needs the restarted shell to continue, ask the user to reopen their terminal and rerun their original prompt.
+## Disabling Logging
 
-## Agent Setup
-
-Install Laravel Boost from the application root before making application changes:
-
-```sh
-composer require laravel/boost --dev
-php artisan boost:install
+```php
+activity()->withoutLogging(function () {
+    // no activities logged here
+});
 ```
 
-Boost replaces these bootstrap instructions with guidelines tailored to the application. After installation, read `AGENTS.md` again and continue with the user's original request using the generated guidelines.
+## Accessing Changes and Properties
+
+```php
+$activity = Activity::latest()->first();
+
+// Tracked model changes (set automatically by LogsActivity)
+$activity->attribute_changes; // Collection: {"attributes": {...}, "old": {...}}
+
+// Custom user data (set via withProperties)
+$activity->properties; // Collection
+$activity->getProperty('key'); // single value
+```
+
+## Custom Activity Model
+
+Set `activity_model` in `config/activitylog.php` to a class that extends `Model` and implements `Spatie\Activitylog\Contracts\Activity`. Use a custom model for custom table names or database connections.
+
+## Customizing Actions
+
+The package uses action classes (`LogActivityAction`, `CleanActivityLogAction`) that can be extended and swapped via config:
+
+```php
+// config/activitylog.php
+'actions' => [
+    'log_activity' => \App\Actions\CustomLogActivityAction::class,
+    'clean_log' => \App\Actions\CustomCleanAction::class,
+],
+```
+
+Custom action classes must extend the originals. Override protected methods (`save()`, `beforeActivityLogged()`, `resolveDescription()`, etc.) to customize behavior.
+
+## Configuration
+
+Key config options in `config/activitylog.php`:
+- `enabled`: Master on/off switch (env: `ACTIVITYLOG_ENABLED`)
+- `clean_after_days`: Days to keep records for `activitylog:clean` command
+- `default_log_name`: Default log name (string)
+- `default_auth_driver`: Auth driver for causer resolution
+- `include_soft_deleted_subjects`: Include soft-deleted subjects
+- `activity_model`: Custom Activity model class
+- `default_except_attributes`: Globally excluded attributes
+- `actions.log_activity`: Action class for logging activities
+- `actions.clean_log`: Action class for cleaning old activities
+
 </laravel-boost-guidelines>
