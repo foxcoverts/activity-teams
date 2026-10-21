@@ -13,6 +13,14 @@
     text-decoration-line: underline;
 }
 
+.booking-end-schedule > .fi-sc:has(> .fi-hidden:last-child) {
+    @apply divide-y-0 sm:divide-x-0;
+}
+
+.booking-end-schedule > .fi-sc:has(> .fi-hidden:last-child) > :first-child .fi-input-wrp {
+    @apply rounded-lg;
+}
+
 .fi-rjs-activitylog-timeline ul ul {
     list-style: disc;
     margin-top: 0.25rem;

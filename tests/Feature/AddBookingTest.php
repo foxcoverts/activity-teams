@@ -7,13 +7,18 @@ use App\Enums\MembershipRole;
 use App\Filament\Forms\Components\TimezoneSelect;
 use App\Filament\Manage\Resources\Bookings\Pages\CreateBooking;
 use App\Filament\Manage\Resources\Bookings\Pages\EditBooking;
+use App\Filament\Manage\Resources\Bookings\Pages\ListBookings;
 use App\Models\Activity;
 use App\Models\Booking;
 use App\Models\Team;
 use App\Models\User;
 use App\Models\Venue;
+use Filament\Actions\Testing\TestAction;
 use Filament\Facades\Filament;
+use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
+use Filament\Schemas\Components\FusedGroup;
+use Filament\Schemas\Components\Grid;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Livewire\Livewire;
@@ -42,8 +47,9 @@ class AddBookingTest extends TestCase
             ->fillForm([
                 'activity_id' => $activity->id,
                 'venue_id' => $venue->id,
-                'start_at' => '2026-10-24 09:30:00',
-                'end_at' => '2026-10-24 11:30:00',
+                'start_date' => '2026-10-24',
+                'start_time' => '09:30',
+                'end_time' => '11:30',
                 'timezone' => 'Europe/London',
                 'group_name' => '1st Anytown Scouts',
                 'notes' => 'x20 Young People',
@@ -57,6 +63,8 @@ class AddBookingTest extends TestCase
         $this->assertSame('1st Anytown Scouts', $booking->group_name);
         $this->assertTrue($booking->activity->is($activity));
         $this->assertTrue($booking->venue->is($venue));
+        $this->assertSame('2026-10-24 08:30', $booking->start_at->utc()->format('Y-m-d H:i'));
+        $this->assertSame('2026-10-24 10:30', $booking->end_at->utc()->format('Y-m-d H:i'));
     }
 
     public function test_create_booking_defaults_to_a_teams_only_activity_and_venue(): void
@@ -156,7 +164,24 @@ class AddBookingTest extends TestCase
         $this->actingAs($user);
 
         Livewire::test(CreateBooking::class)
-            ->assertSeeInOrder(['Start at', 'End at', 'Timezone', 'Venue'])
+            ->assertSeeInOrder(['Start', 'End'])
+            ->assertFormComponentExists('schedule_groups', fn (Grid $component): bool => $component->getColumns('default') === 1
+                && $component->getColumns('sm') === 6)
+            ->assertFormComponentExists('schedule_groups.start_schedule', fn (FusedGroup $component): bool => $component->getLabel() === 'Start'
+                && ! $component->isLabelHidden()
+                && $component->getColumnSpan('sm') === 3
+                && isset(
+                    $component->getChildSchema()?->getFlatFields(withHidden: true)['start_date'],
+                    $component->getChildSchema()?->getFlatFields(withHidden: true)['start_time'],
+                ))
+            ->assertFormComponentExists('schedule_groups.end_schedule', fn (FusedGroup $component): bool => isset(
+                $component->getChildSchema()?->getFlatFields(withHidden: true)['end_time'],
+                $component->getChildSchema()?->getFlatFields(withHidden: true)['end_date'],
+            ) && $component->getLabel() === 'End'
+                && ! $component->isLabelHidden()
+                && ! $this->isEndDateVisible($component)
+                && $component->getColumns('sm') === 1
+                && $component->getColumnSpan('sm') === 1)
             ->assertFormFieldExists('timezone', fn (TimezoneSelect $field): bool => $field->isSearchable()
                 && preg_match('/^Europe\/London \([+-]\d{2}:\d{2}\)$/', $field->getOptions()['Europe']['Europe/London'] ?? '') === 1);
     }
@@ -176,8 +201,10 @@ class AddBookingTest extends TestCase
         Livewire::test(CreateBooking::class)
             ->assertFormSet([
                 'timezone' => 'America/New_York',
-                'start_at' => '2026-10-17 13:30',
-                'end_at' => '2026-10-17 15:30',
+                'start_date' => '2026-10-17',
+                'start_time' => '09:30',
+                'end_date' => '2026-10-17',
+                'end_time' => '11:30',
             ])
             ->fillForm([
                 'activity_id' => $activity->id,
@@ -194,7 +221,7 @@ class AddBookingTest extends TestCase
         $this->assertSame('America/New_York', $booking->timezone->getName());
     }
 
-    public function test_changing_the_start_keeps_the_booking_duration(): void
+    public function test_changing_the_start_keeps_the_booking_duration_and_earlier_end_time_rolls_over(): void
     {
         $this->travelTo(Carbon::parse('2026-10-14 12:00:00', 'UTC'));
 
@@ -205,23 +232,173 @@ class AddBookingTest extends TestCase
         $this->actingAs($user);
 
         Livewire::test(CreateBooking::class)
-            ->set('data.start_at', '2026-10-18 10:00:00')
+            ->set('data.start_time', '10:00')
             ->assertFormSet([
-                'start_at' => '2026-10-18 14:00',
-                'end_at' => '2026-10-18 16:00',
+                'start_date' => '2026-10-17',
+                'start_time' => '10:00',
+                'end_date' => '2026-10-17',
+                'end_time' => '12:00',
             ])
-            ->set('data.end_at', '2026-10-18 14:00:00')
+            ->set('data.end_time', '14:00')
             ->assertFormSet([
-                'end_at' => '2026-10-18 18:00',
+                'end_time' => '14:00',
             ])
-            ->set('data.start_at', '2026-10-18 09:00:00')
+            ->set('data.start_time', '09:00')
             ->assertFormSet([
-                'end_at' => '2026-10-18 17:00',
+                'end_time' => '13:00',
             ])
-            ->set('data.end_at', '2026-10-18 08:00:00')
+            ->set('data.end_time', '08:00')
             ->assertFormSet([
-                'end_at' => '2026-10-18 13:00',
+                'end_date' => '2026-10-18',
+                'end_time' => '08:00',
+            ])
+            ->assertFormComponentExists('schedule_groups.end_schedule', fn (FusedGroup $component): bool => $this->isEndDateVisible($component)
+                && $component->getColumns('sm') === 3
+                && $component->getColumnSpan('sm') === 3)
+            ->set('data.end_date', '2026-10-17')
+            ->assertFormSet([
+                'end_date' => '2026-10-17',
+                'end_time' => '09:00',
+            ])
+            ->assertFormComponentExists('schedule_groups.end_schedule', fn (FusedGroup $component): bool => ! $this->isEndDateVisible($component))
+            ->set('data.end_time', '08:00')
+            ->assertFormSet(['end_date' => '2026-10-18'])
+            ->set('data.end_time', '10:00')
+            ->assertFormSet([
+                'end_date' => '2026-10-17',
+                'end_time' => '10:00',
+            ])
+            ->assertFormComponentExists('schedule_groups.end_schedule', fn (FusedGroup $component): bool => ! $this->isEndDateVisible($component)
+                && $component->getColumns('sm') === 1
+                && $component->getColumnSpan('sm') === 1);
+    }
+
+    public function test_creating_an_overnight_booking_saves_both_instants_in_utc(): void
+    {
+        $this->travelTo(Carbon::parse('2026-10-14 12:00:00', 'UTC'));
+
+        $user = User::factory()->teamLeader()->create([
+            'timezone' => 'America/New_York',
+        ]);
+        $activity = Activity::factory()->create();
+        $venue = Venue::factory()->create();
+
+        $this->actingAs($user);
+
+        Livewire::test(CreateBooking::class)
+            ->fillForm([
+                'activity_id' => $activity->id,
+                'venue_id' => $venue->id,
+                'group_name' => '1st Anytown Scouts',
+                'start_date' => '2026-10-17',
+                'start_time' => '22:00',
+                'end_time' => '02:00',
+                'timezone' => 'America/New_York',
+            ])
+            ->assertFormSet(['end_date' => '2026-10-18'])
+            ->assertFormComponentExists('schedule_groups.end_schedule', fn (FusedGroup $component): bool => $this->isEndDateVisible($component))
+            ->call('create')
+            ->assertHasNoFormErrors();
+
+        $booking = Booking::query()->firstOrFail();
+        $this->assertSame('2026-10-18 02:00', $booking->start_at->utc()->format('Y-m-d H:i'));
+        $this->assertSame('2026-10-18 06:00', $booking->end_at->utc()->format('Y-m-d H:i'));
+        $this->assertSame('America/New_York', $booking->timezone->getName());
+    }
+
+    public function test_changing_timezone_preserves_the_schedule_instants(): void
+    {
+        $this->travelTo(Carbon::parse('2026-10-14 12:00:00', 'UTC'));
+
+        $user = User::factory()->teamLeader()->create([
+            'timezone' => 'America/New_York',
+        ]);
+
+        $this->actingAs($user);
+
+        Livewire::test(CreateBooking::class)
+            ->set('data.timezone', 'Europe/London')
+            ->assertFormSet([
+                'start_date' => '2026-10-17',
+                'start_time' => '14:30',
+                'end_date' => '2026-10-17',
+                'end_time' => '16:30',
             ]);
+    }
+
+    public function test_an_overnight_booking_across_a_dst_change_uses_local_wall_times(): void
+    {
+        $user = User::factory()->teamLeader()->create([
+            'timezone' => 'America/New_York',
+        ]);
+        $activity = Activity::factory()->create();
+        $venue = Venue::factory()->create();
+
+        $this->actingAs($user);
+
+        Livewire::test(CreateBooking::class)
+            ->fillForm([
+                'activity_id' => $activity->id,
+                'venue_id' => $venue->id,
+                'group_name' => '1st Anytown Scouts',
+                'start_date' => '2026-10-31',
+                'start_time' => '23:00',
+                'end_time' => '02:00',
+                'timezone' => 'America/New_York',
+            ])
+            ->call('create')
+            ->assertHasNoFormErrors();
+
+        $booking = Booking::query()->firstOrFail();
+        $this->assertSame('2026-11-01 03:00', $booking->start_at->utc()->format('Y-m-d H:i'));
+        $this->assertSame('2026-11-01 07:00', $booking->end_at->utc()->format('Y-m-d H:i'));
+    }
+
+    public function test_table_edit_action_hydrates_and_saves_the_local_schedule(): void
+    {
+        $user = User::factory()->teamLeader()->create();
+        $booking = Booking::factory()->create([
+            'start_at' => Carbon::parse('2026-10-20 13:00:00', 'UTC'),
+            'end_at' => Carbon::parse('2026-10-20 16:00:00', 'UTC'),
+            'timezone' => 'America/New_York',
+        ]);
+
+        $this->actingAs($user);
+
+        Livewire::test(ListBookings::class)
+            ->callAction(TestAction::make('edit')->table($booking), [
+                'start_time' => '10:00',
+            ])
+            ->assertHasNoFormErrors();
+
+        $booking->refresh();
+        $this->assertSame('2026-10-20 14:00', $booking->start_at->utc()->format('Y-m-d H:i'));
+        $this->assertSame('2026-10-20 17:00', $booking->end_at->utc()->format('Y-m-d H:i'));
+    }
+
+    public function test_list_create_action_combines_the_schedule_fields_before_saving(): void
+    {
+        $user = User::factory()->teamLeader()->create();
+        $activity = Activity::factory()->create();
+        $venue = Venue::factory()->create();
+
+        $this->actingAs($user);
+
+        Livewire::test(ListBookings::class)
+            ->callAction('create', data: [
+                'activity_id' => $activity->id,
+                'venue_id' => $venue->id,
+                'group_name' => '1st Anytown Scouts',
+                'start_date' => '2026-10-24',
+                'start_time' => '09:30',
+                'end_time' => '11:30',
+                'timezone' => 'Europe/London',
+            ])
+            ->assertHasNoFormErrors();
+
+        $booking = Booking::query()->firstOrFail();
+        $this->assertSame('2026-10-24 08:30', $booking->start_at->utc()->format('Y-m-d H:i'));
+        $this->assertSame('2026-10-24 10:30', $booking->end_at->utc()->format('Y-m-d H:i'));
     }
 
     public function test_editing_a_booking_keeps_its_existing_duration(): void
@@ -239,13 +416,22 @@ class AddBookingTest extends TestCase
 
         Livewire::test(EditBooking::class, ['record' => $booking->getRouteKey()])
             ->assertFormSet([
-                'start_at' => '2026-10-20 13:00',
-                'end_at' => '2026-10-20 16:00',
+                'start_date' => '2026-10-20',
+                'start_time' => '09:00',
+                'end_date' => '2026-10-20',
+                'end_time' => '12:00',
             ])
-            ->set('data.start_at', '2026-10-20 10:00:00')
+            ->assertFormComponentExists('schedule_groups.end_schedule', fn (FusedGroup $component): bool => $this->isEndDateVisible($component))
+            ->set('data.start_time', '10:00')
             ->assertFormSet([
-                'end_at' => '2026-10-20 17:00',
-            ]);
+                'end_time' => '13:00',
+            ])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $booking->refresh();
+        $this->assertSame('2026-10-20 14:00', $booking->start_at->utc()->format('Y-m-d H:i'));
+        $this->assertSame('2026-10-20 17:00', $booking->end_at->utc()->format('Y-m-d H:i'));
     }
 
     public function test_team_member_cannot_create_a_booking(): void
@@ -255,5 +441,12 @@ class AddBookingTest extends TestCase
         $this->actingAs($user)
             ->get('/manage/'.$user->teams()->first()->getKey().'/bookings/create')
             ->assertForbidden();
+    }
+
+    private function isEndDateVisible(FusedGroup $group): bool
+    {
+        $field = $group->getChildSchema()?->getFlatFields(withHidden: true)['end_date'] ?? null;
+
+        return $field instanceof DatePicker && $field->isVisible();
     }
 }

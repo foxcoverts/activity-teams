@@ -69,7 +69,12 @@ class BookingStatusActions
                 $leadId = (string) $data['lead_instructor_id'];
                 unset($data['lead_instructor_id']);
 
-                app(UpdateBookingStatusAction::class)->confirm($record, self::actor(), $leadId, $data);
+                app(UpdateBookingStatusAction::class)->confirm(
+                    $record,
+                    self::actor(),
+                    $leadId,
+                    BookingResource::mergeScheduleData($data),
+                );
                 self::redirectAfter($record, $action);
             });
     }
@@ -110,7 +115,11 @@ class BookingStatusActions
             ->fillForm(fn (Booking $record): array => self::detailDefaults($record))
             ->schema(BookingResource::detailComponents())
             ->action(function (Booking $record, array $data, Action $action): void {
-                app(UpdateBookingStatusAction::class)->restore($record, self::actor(), $data);
+                app(UpdateBookingStatusAction::class)->restore(
+                    $record,
+                    self::actor(),
+                    BookingResource::mergeScheduleData($data),
+                );
                 self::redirectAfter($record, $action);
             });
     }
@@ -183,7 +192,7 @@ class BookingStatusActions
             ? $record->timezone->getName()
             : (string) $record->timezone;
 
-        return [
+        return BookingResource::hydrateScheduleData([
             'activity_id' => $record->activity_id,
             'venue_id' => $record->venue_id,
             'start_at' => $record->start_at?->timezone(config('app.timezone'))->format('Y-m-d H:i:s'),
@@ -192,7 +201,7 @@ class BookingStatusActions
             'group_name' => $record->group_name,
             'notes' => $record->notes,
             'lead_instructor_notes' => $record->lead_instructor_notes,
-        ];
+        ]);
     }
 
     private static function currentQualifiedLead(Booking $record): ?string

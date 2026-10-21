@@ -27,6 +27,6 @@ class CreateBooking extends CreateRecord
 
         unset($data['status']);
 
-        return $data;
+        return BookingResource::mergeScheduleData($data);
     }
 }

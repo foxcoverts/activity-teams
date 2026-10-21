@@ -60,8 +60,9 @@ class BookingStatusTest extends TestCase
             ->fillForm([
                 'activity_id' => $activity->id,
                 'venue_id' => $venue->id,
-                'start_at' => '2026-10-24 09:30:00',
-                'end_at' => '2026-10-24 11:30:00',
+                'start_date' => '2026-10-24',
+                'start_time' => '09:30',
+                'end_time' => '11:30',
                 'timezone' => 'Europe/London',
                 'group_name' => '1st Anytown Scouts',
             ])
@@ -74,8 +75,9 @@ class BookingStatusTest extends TestCase
             ->fillForm([
                 'activity_id' => $activity->id,
                 'venue_id' => $venue->id,
-                'start_at' => '2026-10-25 09:30:00',
-                'end_at' => '2026-10-25 11:30:00',
+                'start_date' => '2026-10-25',
+                'start_time' => '09:30',
+                'end_time' => '11:30',
                 'timezone' => 'Europe/London',
                 'group_name' => '2nd Anytown Scouts',
             ])
@@ -578,8 +580,10 @@ class BookingStatusTest extends TestCase
             ->callAction('restoreBooking', data: [
                 'activity_id' => $booking->activity_id,
                 'venue_id' => $booking->venue_id,
-                'start_at' => $booking->start_at->timezone(config('app.timezone'))->format('Y-m-d H:i:s'),
-                'end_at' => $booking->end_at->timezone(config('app.timezone'))->format('Y-m-d H:i:s'),
+                'start_date' => $booking->start_at->timezone($timezone)->toDateString(),
+                'start_time' => $booking->start_at->timezone($timezone)->format('H:i'),
+                'end_date' => $booking->end_at->timezone($timezone)->toDateString(),
+                'end_time' => $booking->end_at->timezone($timezone)->format('H:i'),
                 'timezone' => $timezone,
                 'group_name' => 'New Group',
                 'notes' => $booking->notes,

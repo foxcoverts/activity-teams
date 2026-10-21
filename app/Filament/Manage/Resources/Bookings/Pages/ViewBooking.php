@@ -8,7 +8,6 @@ use App\Filament\Manage\Resources\Bookings\BookingStatusActions;
 use App\Filament\Manage\Resources\Bookings\BookingTimeline;
 use App\Models\Booking;
 use Filament\Actions\DeleteAction;
-use Filament\Actions\EditAction;
 use Filament\Resources\Pages\ViewRecord;
 use Filament\Schemas\Components\EmbeddedSchema;
 use Filament\Schemas\Schema;
@@ -50,7 +49,7 @@ class ViewBooking extends ViewRecord
 
         return [
             BookingKeysAction::make(),
-            EditAction::make(),
+            BookingResource::editAction(),
             BookingStatusActions::group(),
             DeleteAction::make(),
         ];

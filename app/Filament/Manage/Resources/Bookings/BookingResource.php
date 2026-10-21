@@ -18,18 +18,21 @@ use Carbon\CarbonInterface;
 use DateTimeZone;
 use Filament\Actions\ActionGroup;
 use Filament\Actions\BulkActionGroup;
+use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
 use Filament\Facades\Filament;
-use Filament\Forms\Components\DateTimePicker;
+use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\TimePicker;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Resources\Resource;
-use Filament\Schemas\Components\Flex;
+use Filament\Schemas\Components\FusedGroup;
+use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
@@ -40,6 +43,7 @@ use Filament\Tables\Table;
 use Illuminate\Auth\Access\Response;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Validation\ValidationException;
 
 class BookingResource extends Resource
 {
@@ -71,7 +75,7 @@ class BookingResource extends Resource
     }
 
     /**
-     * @return array<int, DateTimePicker|Flex|Select|Textarea|TextInput>
+     * @return array<int, DatePicker|FusedGroup|Grid|Select|Textarea|TimePicker|TextInput>
      */
     public static function detailComponents(): array
     {
@@ -85,32 +89,79 @@ class BookingResource extends Resource
             TextInput::make('group_name')
                 ->required()
                 ->maxLength(255),
-            Flex::make([
-                DateTimePicker::make('start_at')
-                    ->timezone(fn (Get $get): string => static::scheduleTimezone($get))
-                    ->seconds(false)
-                    ->default(fn (): Carbon => Carbon::parse('next Saturday 09:30', static::defaultTimezone()))
-                    ->live(onBlur: true)
-                    ->afterStateUpdated(function (mixed $state, mixed $old, Set $set, Get $get): void {
-                        static::shiftEndToKeepDuration($state, $old, $set, $get);
-                    })
-                    ->required(),
-                DateTimePicker::make('end_at')
-                    ->timezone(fn (Get $get): string => static::scheduleTimezone($get))
-                    ->seconds(false)
-                    ->default(fn (): Carbon => Carbon::parse('Saturday 11:30', static::defaultTimezone()))
-                    ->live(onBlur: true)
-                    ->afterStateUpdated(function (mixed $state, Set $set, Get $get): void {
-                        static::keepEndAfterStart($state, $set, $get);
-                    })
-                    ->required(),
-                TimezoneSelect::make('timezone')
-                    ->searchable()
-                    ->required()
-                    ->selectablePlaceholder(false)
-                    ->default(static::defaultTimezone())
-                    ->live(),
-            ])->from('md'),
+            Grid::make(['default' => 1, 'sm' => 6])
+                ->key('schedule_groups')
+                ->schema([
+                    FusedGroup::make([
+                        DatePicker::make('start_date')
+                            ->label(__('Date'))
+                            ->default(fn (): string => static::defaultScheduleStart()->toDateString())
+                            ->live()
+                            ->afterStateUpdated(function (mixed $state, mixed $old, Set $set, Get $get): void {
+                                static::shiftEndToKeepDuration($state, $old, true, $set, $get);
+                            })
+                            ->required()
+                            ->columnSpan(['sm' => 2]),
+                        TimePicker::make('start_time')
+                            ->label(__('Start'))
+                            ->seconds(false)
+                            ->default(fn (): string => static::defaultScheduleStart()->format('H:i'))
+                            ->live(onBlur: true)
+                            ->afterStateUpdated(function (mixed $state, mixed $old, Set $set, Get $get): void {
+                                static::shiftEndToKeepDuration($state, $old, false, $set, $get);
+                            })
+                            ->required()
+                            ->columnSpan(['sm' => 1]),
+                    ])
+                        ->key('start_schedule')
+                        ->label(__('Start'))
+                        ->columns(['default' => 1, 'sm' => 3])
+                        ->columnSpan(['default' => 1, 'sm' => 3]),
+                    FusedGroup::make([
+                        TimePicker::make('end_time')
+                            ->label(__('End'))
+                            ->seconds(false)
+                            ->default(fn (): string => static::defaultScheduleEnd()->format('H:i'))
+                            ->live(onBlur: true)
+                            ->afterStateUpdated(function (mixed $state, mixed $old, Set $set, Get $get): void {
+                                static::updateEndTime($state, $old, $set, $get);
+                            })
+                            ->required()
+                            ->columnSpan(['sm' => 1]),
+                        DatePicker::make('end_date')
+                            ->label(__('Date'))
+                            ->default(fn (): string => static::defaultScheduleStart()->toDateString())
+                            ->live()
+                            ->afterStateUpdated(function (mixed $state, Set $set, Get $get): void {
+                                static::updateEndDate($state, $set, $get);
+                            })
+                            ->minDate(fn (Get $get): mixed => $get('start_date'))
+                            ->visible(fn (Get $get, string $operation): bool => static::shouldShowEndDate($get, $operation))
+                            ->required()
+                            ->columnSpan(['sm' => 2]),
+                    ])
+                        ->key('end_schedule')
+                        ->label(__('End'))
+                        ->extraAttributes(['class' => 'booking-end-schedule'])
+                        ->columns(fn (Get $get, string $operation): array => [
+                            'default' => 1,
+                            'sm' => static::shouldShowEndDate($get, $operation) ? 3 : 1,
+                        ])
+                        ->columnSpan(fn (Get $get, string $operation): array => [
+                            'default' => 1,
+                            'sm' => static::shouldShowEndDate($get, $operation) ? 3 : 1,
+                        ]),
+                ]),
+            TimezoneSelect::make('timezone')
+                ->searchable()
+                ->required()
+                ->selectablePlaceholder(false)
+                ->default(static::defaultTimezone())
+                ->live()
+                ->afterStateUpdated(function (mixed $state, mixed $old, Set $set, Get $get): void {
+                    static::changeScheduleTimezone($state, $old, $set, $get);
+                })
+                ->columnSpanFull(),
             Select::make('venue_id')
                 ->label(__('Venue'))
                 ->options(fn (): array => static::teamOptions('venues'))
@@ -217,7 +268,7 @@ class BookingResource extends Resource
             ->recordActions([
                 ActionGroup::make([
                     ViewAction::make(),
-                    EditAction::make(),
+                    static::editAction(),
                     ...BookingStatusActions::actions(),
                     DeleteAction::make(),
                 ]),
@@ -286,6 +337,19 @@ class BookingResource extends Resource
         return filled($timezone) ? (string) $timezone : 'Europe/London';
     }
 
+    public static function createAction(): CreateAction
+    {
+        return CreateAction::make()
+            ->mutateDataUsing(fn (array $data): array => static::mergeScheduleData($data));
+    }
+
+    public static function editAction(): EditAction
+    {
+        return EditAction::make()
+            ->mutateRecordDataUsing(fn (array $data): array => static::hydrateScheduleData($data))
+            ->mutateDataUsing(fn (array $data): array => static::mergeScheduleData($data));
+    }
+
     public static function scheduleTimezone(Get $get): string
     {
         $timezone = $get('timezone');
@@ -293,51 +357,219 @@ class BookingResource extends Resource
         return filled($timezone) ? (string) $timezone : static::defaultTimezone();
     }
 
-    public static function shiftEndToKeepDuration(mixed $state, mixed $old, Set $set, Get $get): void
+    public static function shouldShowEndDate(Get $get, string $operation): bool
     {
-        $start = static::parseSchedule($state);
+        return $operation === 'edit'
+            || (filled($get('end_date')) && $get('end_date') !== $get('start_date'));
+    }
+
+    public static function defaultScheduleStart(): Carbon
+    {
+        return Carbon::parse('next Saturday 09:30', static::defaultTimezone());
+    }
+
+    public static function defaultScheduleEnd(): Carbon
+    {
+        return static::defaultScheduleStart()->addHours(2);
+    }
+
+    public static function shiftEndToKeepDuration(mixed $state, mixed $old, bool $isDate, Set $set, Get $get): void
+    {
+        $timezone = static::scheduleTimezone($get);
+        $startDate = $isDate ? $state : $get('start_date');
+        $startTime = $isDate ? $get('start_time') : $state;
+        $previousStartDate = $isDate ? $old : $get('start_date');
+        $previousStartTime = $isDate ? $get('start_time') : $old;
+        $start = static::makeScheduleDateTime($startDate, $startTime, $timezone);
 
         if ($start === null) {
             return;
         }
 
-        $previousStart = static::parseSchedule($old);
-        $end = static::parseSchedule($get('end_at'));
-        $duration = 120;
+        $previousStart = static::makeScheduleDateTime($previousStartDate, $previousStartTime, $timezone);
+        $end = static::makeScheduleDateTime(
+            $get('end_date') ?: $get('start_date'),
+            $get('end_time'),
+            $timezone,
+        );
+        $duration = ($previousStart !== null && $end !== null)
+            ? max(0, (int) $previousStart->diffInSeconds($end, absolute: false))
+            : 7200;
 
-        if ($previousStart !== null && $end !== null) {
-            $duration = (int) $previousStart->diffInMinutes($end, absolute: false);
-
-            if ($duration < 0) {
-                $duration = 0;
-            }
-        }
-
-        $set('end_at', $start->addMinutes($duration)->format('Y-m-d H:i:s'));
+        static::setEndSchedule($start->addSeconds($duration), $set);
     }
 
-    public static function keepEndAfterStart(mixed $state, Set $set, Get $get): void
+    public static function updateEndTime(mixed $state, mixed $old, Set $set, Get $get): void
     {
-        $end = static::parseSchedule($state);
-        $start = static::parseSchedule($get('start_at'));
+        $timezone = static::scheduleTimezone($get);
+        $start = static::makeScheduleDateTime($get('start_date'), $get('start_time'), $timezone);
+        $endDate = static::dateValue($get('end_date')) ?? static::dateValue($get('start_date'));
+        $endTime = static::timeValue($state);
+        $previousEndTime = static::timeValue($old);
 
-        if ($end === null || $start === null || $end->greaterThanOrEqualTo($start)) {
+        if ($start === null || $endDate === null || $endTime === null) {
             return;
         }
 
-        $set('end_at', $start->format('Y-m-d H:i:s'));
+        $startDate = $start->toDateString();
+
+        if ($endDate === $startDate && $endTime < $start->format('H:i')) {
+            $endDate = $start->copy()->addDay()->toDateString();
+        } elseif (
+            $endDate === $start->copy()->addDay()->toDateString()
+            && $previousEndTime !== null
+            && $previousEndTime < $start->format('H:i')
+            && $endTime >= $start->format('H:i')
+        ) {
+            $endDate = $startDate;
+        }
+
+        $end = static::makeScheduleDateTime($endDate, $endTime, $timezone);
+
+        if ($end !== null) {
+            static::setEndSchedule($end, $set);
+        }
     }
 
-    protected static function parseSchedule(mixed $value): ?Carbon
+    public static function updateEndDate(mixed $state, Set $set, Get $get): void
+    {
+        $start = static::makeScheduleDateTime(
+            $get('start_date'),
+            $get('start_time'),
+            static::scheduleTimezone($get),
+        );
+        $endDate = static::dateValue($state);
+        $endTime = static::timeValue($get('end_time'));
+
+        if (
+            $start !== null
+            && $endDate === $start->toDateString()
+            && $endTime !== null
+            && $endTime < $start->format('H:i')
+        ) {
+            $set('end_time', $start->format('H:i'));
+        }
+    }
+
+    public static function changeScheduleTimezone(mixed $state, mixed $old, Set $set, Get $get): void
+    {
+        if (! filled($state) || ! filled($old) || $state === $old) {
+            return;
+        }
+
+        $start = static::makeScheduleDateTime($get('start_date'), $get('start_time'), (string) $old);
+        $end = static::makeScheduleDateTime(
+            $get('end_date') ?: $get('start_date'),
+            $get('end_time'),
+            (string) $old,
+        );
+
+        if ($start !== null) {
+            $start = $start->setTimezone((string) $state);
+            $set('start_date', $start->toDateString());
+            $set('start_time', $start->format('H:i'));
+        }
+
+        if ($end !== null) {
+            static::setEndSchedule($end->setTimezone((string) $state), $set);
+        }
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    public static function hydrateScheduleData(array $data): array
+    {
+        $timezone = (string) ($data['timezone'] ?? config('app.timezone'));
+
+        foreach (['start_at' => 'start', 'end_at' => 'end'] as $key => $prefix) {
+            if (blank($data[$key] ?? null)) {
+                continue;
+            }
+
+            $dateTime = Carbon::parse($data[$key])->setTimezone($timezone);
+            $data["{$prefix}_date"] = $dateTime->toDateString();
+            $data["{$prefix}_time"] = $dateTime->format('H:i');
+        }
+
+        unset($data['start_at'], $data['end_at']);
+
+        return $data;
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    public static function mergeScheduleData(array $data): array
+    {
+        $timezone = (string) ($data['timezone'] ?? config('app.timezone'));
+        $start = static::makeScheduleDateTime($data['start_date'] ?? null, $data['start_time'] ?? null, $timezone);
+        $endDate = $data['end_date'] ?? $data['start_date'] ?? null;
+        $end = static::makeScheduleDateTime($endDate, $data['end_time'] ?? null, $timezone);
+
+        if ($start === null || $end === null) {
+            throw ValidationException::withMessages([
+                'start_date' => __('A valid start date and time are required.'),
+                'end_time' => __('A valid end date and time are required.'),
+            ]);
+        }
+
+        if ($end->lessThan($start)) {
+            throw ValidationException::withMessages([
+                'end_date' => __('The end date and time must not be before the start.'),
+            ]);
+        }
+
+        $data['start_at'] = $start->setTimezone(config('app.timezone'))->format('Y-m-d H:i:s');
+        $data['end_at'] = $end->setTimezone(config('app.timezone'))->format('Y-m-d H:i:s');
+        unset($data['start_date'], $data['start_time'], $data['end_date'], $data['end_time']);
+
+        return $data;
+    }
+
+    private static function makeScheduleDateTime(mixed $date, mixed $time, string $timezone): ?Carbon
+    {
+        $date = static::dateValue($date);
+        $time = static::timeValue($time);
+
+        if ($date === null || $time === null) {
+            return null;
+        }
+
+        return Carbon::createFromFormat('!Y-m-d H:i', "{$date} {$time}", $timezone) ?: null;
+    }
+
+    private static function dateValue(mixed $value): ?string
+    {
+        if (blank($value)) {
+            return null;
+        }
+
+        return Carbon::parse($value, config('app.timezone'))->toDateString();
+    }
+
+    private static function timeValue(mixed $value): ?string
     {
         if (blank($value)) {
             return null;
         }
 
         if ($value instanceof CarbonInterface) {
-            return Carbon::instance($value)->timezone(config('app.timezone'));
+            return $value->format('H:i');
         }
 
-        return Carbon::parse($value, config('app.timezone'));
+        if (preg_match('/^\d{2}:\d{2}(?::\d{2})?$/', (string) $value) === 1) {
+            return substr((string) $value, 0, 5);
+        }
+
+        return Carbon::parse($value, config('app.timezone'))->format('H:i');
+    }
+
+    private static function setEndSchedule(Carbon $end, Set $set): void
+    {
+        $set('end_date', $end->toDateString());
+        $set('end_time', $end->format('H:i'));
     }
 }
