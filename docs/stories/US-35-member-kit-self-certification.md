@@ -3,6 +3,7 @@ id: US-35
 title: "Member Kit Self-Certification"
 status: not-started
 area: safety
+scope: extra
 ---
 
 ## Story

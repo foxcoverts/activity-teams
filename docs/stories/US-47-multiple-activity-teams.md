@@ -3,6 +3,7 @@ id: US-47
 title: "Multiple Activity Teams"
 status: done
 area: qualifications
+scope: essential
 ---
 
 ## Story

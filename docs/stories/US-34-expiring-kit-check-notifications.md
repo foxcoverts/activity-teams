@@ -3,6 +3,7 @@ id: US-34
 title: "Expiring Kit Check Notifications & Alerts"
 status: not-started
 area: safety
+scope: extra
 ---
 
 ## Story

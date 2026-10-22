@@ -3,6 +3,7 @@ id: US-42
 title: "Post-Session Debrief, Timing Nudges & Attendance Sign-Off"
 status: not-started
 area: safety
+scope: extra
 ---
 
 ## Story

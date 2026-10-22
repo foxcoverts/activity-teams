@@ -3,6 +3,7 @@ id: US-19
 title: "On-The-Day Emergency & Contact Access (Participants)"
 status: not-started
 area: safety
+scope: required
 ---
 
 ## Story

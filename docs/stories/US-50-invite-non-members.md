@@ -3,6 +3,7 @@ id: US-50
 title: "Invite Someone Who Is Not on the Team"
 status: not-started
 area: bookings
+scope: deferred
 ---
 
 ## Story

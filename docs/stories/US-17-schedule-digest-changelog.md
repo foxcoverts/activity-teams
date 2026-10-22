@@ -3,6 +3,7 @@ id: US-17
 title: "Scheduled Schedule Digest & Changelog Notifications"
 status: not-started
 area: communications
+scope: extra
 ---
 
 ## Story

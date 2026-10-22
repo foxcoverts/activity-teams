@@ -3,6 +3,7 @@ id: US-36
 title: "Merchandise & Stash Requests"
 status: not-started
 area: safety
+scope: extra
 ---
 
 ## Story

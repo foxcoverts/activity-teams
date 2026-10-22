@@ -3,6 +3,7 @@ id: US-24
 title: "Equipment & Merchandise Allocation Tracking"
 status: not-started
 area: safety
+scope: extra
 ---
 
 ## Story

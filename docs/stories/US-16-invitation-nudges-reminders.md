@@ -3,6 +3,7 @@ id: US-16
 title: "Escalating Invitation Nudges & Booking Reminders"
 status: not-started
 area: communications
+scope: extra
 ---
 
 ## Story

@@ -1,12 +1,21 @@
 # User stories
 
-Backlog for Activity Teams. Each story is one file with `id`, `title`, `status`, and `area` in the frontmatter.
+Backlog for Activity Teams. Each story is one file with `id`, `title`, `status`, `area`, and `scope` in the frontmatter.
+
+See the [Relaunch Roadmap](ROADMAP.md) for the legacy-parity comparison, dependency phases, February 2027 target, and delivery approach.
 
 Status is judged against this repository, not climbing-team:
 
 - `done` — acceptance criteria met here
 - `partial` — a slice exists; remaining criteria are still open
 - `not-started` — not built in this app yet
+
+Scope is separate from implementation status:
+
+- `essential` — central to the rewrite's purpose
+- `required` — needed for operational relaunch
+- `extra` — desirable, but not a relaunch requirement
+- `deferred` — possible in the current system, but deliberately held back from relaunch
 
 There is no US-32. Original ids are preserved.
 
@@ -77,3 +86,16 @@ When an enum is shown in Filament, give it a label, and a color and icon when th
 - [US-42 Post-Session Debrief, Timing Nudges & Attendance Sign-Off](US-42-post-session-debrief.md) — `not-started`
 - [US-43 Instructor Experience Logbook & Optional Personal Notes](US-43-instructor-experience-logbook.md) — `not-started`
 - [US-44 Tentative Booking Manager Nudges & Reminder Alerts](US-44-tentative-booking-manager-nudges.md) — `not-started`
+
+## Relaunch scope decisions
+
+- **Essential:** [US-47 Multiple Activity Teams](US-47-multiple-activity-teams.md) is the primary reason for the rewrite.
+- **Operationally required:** [US-18 Lead Instructor Contact Access](US-18-lead-instructor-contact-access.md), [US-19 Participant Lead Contact Access](US-19-participant-lead-contact-access.md), and [US-48 Suspend and Restore a Member](US-48-suspend-and-restore-a-member.md).
+- **Extra:** US-16, US-17, US-20, US-24, US-29, US-34, US-35, US-36, US-41, US-42, US-43, US-44, and US-53.
+  - US-29 has a UI action in the legacy climbing-team app, but not in Activity Teams; it is not a release priority.
+  - US-45 is extra and should be reconsidered during outgoing-mail reimplementation; include delivery/bounce tracking if the mail provider makes it cheap or free.
+- **Deferred:** [US-50 Invite Someone Who Is Not on the Team](US-50-invite-non-members.md) is currently possible, but is not required for relaunch.
+
+## Delivery approach
+
+The product owner built the legacy system without AI and brings strong domain and implementation experience. Use AI assistance especially for bounded Livewire, front-end, and feature-test work, where it can accelerate implementation and test iteration. Keep product decisions, operational acceptance, and review of the resulting behavior with the product owner; use AI for execution and alternatives, not as the authority on legacy requirements.

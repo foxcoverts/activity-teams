@@ -3,6 +3,7 @@ id: US-43
 title: "Instructor Experience Logbook & Optional Personal Notes"
 status: not-started
 area: safety
+scope: extra
 ---
 
 ## Story

@@ -3,6 +3,7 @@ id: US-44
 title: "Tentative Booking Manager Nudges & Reminder Alerts"
 status: not-started
 area: safety
+scope: extra
 ---
 
 ## Story

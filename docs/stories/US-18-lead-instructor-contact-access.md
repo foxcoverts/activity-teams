@@ -3,6 +3,7 @@ id: US-18
 title: "Time-Bound Event Contact Access (Lead Instructors)"
 status: not-started
 area: safety
+scope: required
 ---
 
 ## Story

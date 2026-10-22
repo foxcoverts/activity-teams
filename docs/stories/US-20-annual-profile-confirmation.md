@@ -3,6 +3,7 @@ id: US-20
 title: "Annual Profile & Emergency Contact Data Confirmation"
 status: not-started
 area: safety
+scope: extra
 ---
 
 ## Story

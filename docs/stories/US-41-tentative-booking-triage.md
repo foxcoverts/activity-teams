@@ -3,6 +3,7 @@ id: US-41
 title: "Intelligent Tentative Booking Triage & Readiness Dashboard"
 status: not-started
 area: safety
+scope: extra
 ---
 
 ## Story

@@ -3,6 +3,7 @@ id: US-45
 title: "Outgoing Email Delivery Tracking & Bounce Management"
 status: not-started
 area: communications
+scope: extra
 ---
 
 ## Story

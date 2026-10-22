@@ -3,6 +3,7 @@ id: US-53
 title: "Re-invite After Declined Session Changes"
 status: not-started
 area: bookings
+scope: extra
 ---
 
 ## Story

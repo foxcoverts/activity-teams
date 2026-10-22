@@ -3,6 +3,7 @@ id: US-48
 title: "Suspend and Restore a Member"
 status: not-started
 area: safety
+scope: required
 ---
 
 ## Story
