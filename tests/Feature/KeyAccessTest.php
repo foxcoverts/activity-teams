@@ -388,6 +388,39 @@ class KeyAccessTest extends TestCase
             ->assertSee('Sam Holder')
             ->assertDontSee('07000999888');
 
+        Livewire::test(MemberAttendeesRelationManager::class, [
+            'ownerRecord' => $booking,
+            'pageClass' => MemberViewBooking::class,
+        ])
+            ->mountTableAction('heldKeys', $holder)
+            ->assertMountedActionModalSee('Shared climbing')
+            ->assertMountedActionModalSee('Climbing store');
+
+        Livewire::test(MemberAttendeesRelationManager::class, [
+            'ownerRecord' => $booking,
+            'pageClass' => MemberViewBooking::class,
+        ])
+            ->mountTableAction('qualifications', $holder)
+            ->assertMountedActionModalSee('Climbing and abseiling — Artificial top rope — Leadership');
+
+        $this->actingAs($member);
+
+        Livewire::test(MemberAttendeesRelationManager::class, [
+            'ownerRecord' => $booking,
+            'pageClass' => MemberViewBooking::class,
+        ])
+            ->mountTableAction('heldKeys', $holder)
+            ->assertTableActionNotMounted('heldKeys');
+
+        Livewire::test(MemberAttendeesRelationManager::class, [
+            'ownerRecord' => $booking,
+            'pageClass' => MemberViewBooking::class,
+        ])
+            ->mountTableAction('qualifications', $holder)
+            ->assertTableActionNotMounted('qualifications');
+
+        $this->actingAs($lead);
+
         Livewire::test(MemberViewBooking::class, ['record' => $booking->getRouteKey()])
             ->mountAction('keys')
             ->assertMountedActionModalSee('Shared climbing: Sam Holder');

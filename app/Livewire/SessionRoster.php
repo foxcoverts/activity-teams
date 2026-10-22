@@ -71,7 +71,7 @@ class SessionRoster extends Component
             'showKeys' => $isLead && $roster['show_keys'],
             'showAccessDetails' => $isLead,
             'showHeading' => $this->showHeading,
-            'panel' => 'member',
+            'panel' => 'member-relation-manager',
             'access' => $isLead ? $this->accessView() : null,
         ]);
     }

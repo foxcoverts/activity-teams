@@ -4,7 +4,7 @@
     <button
         type="button"
         class="invite-badge"
-        wire:click="{{ $panel === 'manage'
+        wire:click="{{ in_array($panel, ['manage', 'member-relation-manager'], true)
             ? "mountTableAction('qualifications', '{$person['id']}')"
             : "openQualifications('{$person['id']}')" }}"
     >
@@ -28,7 +28,7 @@
         class="invite-badge"
         title="{{ __('Key holder') }}"
         aria-label="{{ __('Key holder') }}"
-        wire:click="{{ $panel === 'manage'
+        wire:click="{{ in_array($panel, ['manage', 'member-relation-manager'], true)
             ? "mountTableAction('heldKeys', '{$person['id']}')"
             : "openKeys('{$person['id']}')" }}"
     >
