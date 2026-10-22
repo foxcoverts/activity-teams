@@ -22,4 +22,4 @@ As a system admin, I want to set up teams and the shared catalogs they use so th
 
 A system admin can give any team its activities and venues, see that team's keys, and manage its members, roles, and qualifications, even when they do not manage the team. They still cannot create a booking or manage attendance for that team.
 
-The member screen shows phone numbers and emergency contacts to a system admin. That criterion stays open until US-18, US-19, and US-20.
+The system-admin-only member screens currently expose phone numbers and emergency contacts. Close this privacy gap without removing the contact access that a team manager has for their own team under US-47. This is a system-admin role boundary, not a dependency on US-20.

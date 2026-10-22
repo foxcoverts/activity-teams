@@ -12,9 +12,9 @@ As a team member participating in an event, I want to access the lead instructor
 
 ## Acceptance criteria
 
-- Members on a confirmed booking roster can view the lead instructor's phone details on the event day.
+- Members on a confirmed booking roster can view the lead instructor's phone details from 00:00 on the booking start date through 23:59:59 on the booking end date.
 - Emergency access requires explicit GDPR consent acknowledgment.
 
 ## Progress
 
-A system admin does not bypass these GDPR controls. Not built yet.
+A system admin does not bypass these GDPR controls. Confirm which timezone determines the booking dates when implementing the boundary.
