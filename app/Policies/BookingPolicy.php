@@ -34,7 +34,7 @@ class BookingPolicy
 
         return match ($status) {
             BookingStatus::Tentative, BookingStatus::Cancelled => $this->manage($user),
-            default => $user->teams()->exists() || $this->manage($user),
+            default => $user->teams()->exists() || $user->bookings()->exists() || $this->manage($user),
         };
     }
 

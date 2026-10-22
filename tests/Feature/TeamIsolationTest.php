@@ -1,0 +1,203 @@
+<?php
+
+namespace Tests\Feature;
+
+use App\Enums\MembershipRole;
+use App\Filament\Manage\Resources\Bookings\BookingResource as ManageBookingResource;
+use App\Filament\Manage\Resources\Members\MemberResource;
+use App\Filament\Manage\Resources\Members\Pages\ListMembers;
+use App\Filament\Member\Resources\Bookings\BookingResource as MemberBookingResource;
+use App\Filament\Member\Resources\Bookings\Pages\ListBookings as MemberListBookings;
+use App\Models\Booking;
+use App\Models\Team;
+use App\Models\User;
+use Filament\Facades\Filament;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Livewire\Livewire;
+use Tests\TestCase;
+
+/**
+ * Regression coverage for US-47 through the panels. Model-level rules live in ActivityTeamsTest.
+ */
+class TeamIsolationTest extends TestCase
+{
+    use RefreshDatabase;
+
+    private Team $climbing;
+
+    private Team $archery;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->climbing = Team::factory()->create(['name' => 'Climbing']);
+        $this->archery = Team::factory()->create(['name' => 'Archery']);
+    }
+
+    private function person(Team $team, MembershipRole $role, ?User $user = null): User
+    {
+        $user ??= User::factory()->create();
+        $team->grant($user, $role);
+
+        return $user;
+    }
+
+    private function booking(Team $team, string $group, bool $confirmed = true): Booking
+    {
+        return Booking::factory()
+            ->state(['team_id' => $team->getKey(), 'group_name' => $group])
+            ->when($confirmed, fn ($factory) => $factory->confirmed())
+            ->create();
+    }
+
+    public function test_the_manage_panel_lists_only_the_current_teams_bookings(): void
+    {
+        $manager = $this->person($this->climbing, MembershipRole::Manager);
+        $this->person($this->archery, MembershipRole::Manager, $manager);
+        $this->booking($this->climbing, 'Climbing group', confirmed: false);
+        $this->booking($this->archery, 'Archery group', confirmed: false);
+
+        $this->actingAs($manager);
+
+        $this->get(ManageBookingResource::getUrl('index', panel: 'manage', tenant: $this->climbing))
+            ->assertOk()
+            ->assertSee('Climbing group')
+            ->assertDontSee('Archery group');
+
+        $this->get(ManageBookingResource::getUrl('index', panel: 'manage', tenant: $this->archery))
+            ->assertOk()
+            ->assertSee('Archery group')
+            ->assertDontSee('Climbing group');
+    }
+
+    public function test_a_manager_cannot_open_or_change_another_teams_booking(): void
+    {
+        $manager = $this->person($this->climbing, MembershipRole::Manager);
+        $archeryBooking = $this->booking($this->archery, 'Archery group', confirmed: false);
+        $cancelled = Booking::factory()->cancelled()->create(['team_id' => $this->archery->getKey()]);
+
+        $this->actingAs($manager);
+        Filament::setCurrentPanel(Filament::getPanel('manage'));
+
+        foreach (['view', 'edit'] as $page) {
+            $this->get(ManageBookingResource::getUrl($page, ['record' => $archeryBooking], panel: 'manage', tenant: $this->climbing))
+                ->assertNotFound();
+            $this->get(ManageBookingResource::getUrl($page, ['record' => $archeryBooking], panel: 'manage', tenant: $this->archery))
+                ->assertNotFound();
+        }
+
+        $this->assertFalse($manager->can('view', $archeryBooking));
+        $this->assertFalse($manager->can('update', $archeryBooking));
+        $this->assertFalse($manager->can('delete', $cancelled));
+    }
+
+    public function test_every_manager_of_a_team_can_manage_its_bookings(): void
+    {
+        $first = $this->person($this->climbing, MembershipRole::Manager);
+        $second = $this->person($this->climbing, MembershipRole::Manager);
+        $booking = $this->booking($this->climbing, 'Climbing group', confirmed: false);
+
+        foreach ([$first, $second] as $manager) {
+            $this->assertTrue($manager->can('view', $booking));
+            $this->assertTrue($manager->can('update', $booking));
+        }
+
+        $this->assertSame(2, $this->climbing->managers()->count());
+    }
+
+    public function test_a_manager_can_only_open_members_of_the_current_team(): void
+    {
+        $manager = $this->person($this->climbing, MembershipRole::Manager);
+        $climber = $this->person($this->climbing, MembershipRole::Member);
+        $archer = $this->person($this->archery, MembershipRole::Member);
+        $both = $this->person($this->climbing, MembershipRole::Member);
+        $this->person($this->archery, MembershipRole::Member, $both);
+
+        $this->actingAs($manager);
+        Filament::setCurrentPanel(Filament::getPanel('manage'));
+        Filament::setTenant($this->climbing);
+
+        Livewire::test(ListMembers::class)
+            ->assertCanSeeTableRecords([$climber, $both])
+            ->assertCanNotSeeTableRecords([$archer]);
+
+        $this->get(MemberResource::getUrl('view', ['record' => $climber], panel: 'manage', tenant: $this->climbing))->assertOk();
+        $this->get(MemberResource::getUrl('view', ['record' => $archer], panel: 'manage', tenant: $this->climbing))->assertNotFound();
+        $this->get(MemberResource::getUrl('index', panel: 'manage', tenant: $this->archery))->assertNotFound();
+    }
+
+    public function test_a_member_cannot_reach_manage_pages_for_what_they_can_see_in_members(): void
+    {
+        $member = $this->person($this->climbing, MembershipRole::Member);
+        $this->person($this->climbing, MembershipRole::Manager);
+        $booking = $this->booking($this->climbing, 'Climbing group');
+
+        $this->actingAs($member);
+
+        $this->get(MemberBookingResource::getUrl('view', ['record' => $booking], panel: 'member'))->assertOk();
+
+        $this->get('/manage')->assertForbidden();
+        $this->get('/manage/'.$this->climbing->getKey())->assertForbidden();
+        $this->get(ManageBookingResource::getUrl('index', panel: 'manage', tenant: $this->climbing))->assertForbidden();
+
+        foreach (['view', 'edit'] as $page) {
+            $this->get(ManageBookingResource::getUrl($page, ['record' => $booking], panel: 'manage', tenant: $this->climbing))
+                ->assertForbidden();
+        }
+
+        $this->get(MemberResource::getUrl('index', panel: 'manage', tenant: $this->climbing))->assertForbidden();
+    }
+
+    public function test_the_members_workspace_combines_every_team_a_person_belongs_to(): void
+    {
+        $person = $this->person($this->climbing, MembershipRole::Member);
+        $this->person($this->archery, MembershipRole::Member, $person);
+        $climbingConfirmed = $this->booking($this->climbing, 'Climbing confirmed');
+        $archeryConfirmed = $this->booking($this->archery, 'Archery confirmed');
+        $archeryTentative = $this->booking($this->archery, 'Archery tentative', confirmed: false);
+        $otherTeam = Team::factory()->create();
+        $otherConfirmed = $this->booking($otherTeam, 'Other confirmed');
+
+        $this->actingAs($person);
+        Filament::setCurrentPanel(Filament::getPanel('member'));
+
+        $this->assertFalse(Filament::getCurrentPanel()->hasTenancy());
+
+        Livewire::test(MemberListBookings::class)
+            ->assertCanSeeTableRecords([$climbingConfirmed, $archeryConfirmed])
+            ->assertCanNotSeeTableRecords([$archeryTentative, $otherConfirmed]);
+    }
+
+    public function test_a_manager_sees_their_managed_teams_drafts_in_the_members_workspace(): void
+    {
+        $person = $this->person($this->climbing, MembershipRole::Manager);
+        $this->person($this->archery, MembershipRole::Member, $person);
+        $climbingTentative = $this->booking($this->climbing, 'Climbing tentative', confirmed: false);
+        $archeryTentative = $this->booking($this->archery, 'Archery tentative', confirmed: false);
+        $archeryConfirmed = $this->booking($this->archery, 'Archery confirmed');
+
+        $this->actingAs($person);
+        Filament::setCurrentPanel(Filament::getPanel('member'));
+
+        Livewire::test(MemberListBookings::class)
+            ->assertCanSeeTableRecords([$climbingTentative, $archeryConfirmed])
+            ->assertCanNotSeeTableRecords([$archeryTentative]);
+    }
+
+    public function test_someone_who_left_the_team_can_still_open_the_bookings_they_attended(): void
+    {
+        $leaver = $this->person($this->archery, MembershipRole::Member);
+        $this->person($this->archery, MembershipRole::Manager);
+        $attended = $this->booking($this->archery, 'Archery attended');
+        $other = $this->booking($this->archery, 'Archery other');
+        $attended->attendees()->attach($leaver->getKey(), ['status' => 'accepted']);
+
+        $this->archery->recordLeft($leaver);
+
+        $this->actingAs($leaver);
+
+        $this->get(MemberBookingResource::getUrl('view', ['record' => $attended], panel: 'member'))->assertOk();
+        $this->get(MemberBookingResource::getUrl('view', ['record' => $other], panel: 'member'))->assertNotFound();
+    }
+}
