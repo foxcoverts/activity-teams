@@ -13,10 +13,10 @@ use App\Filament\Manage\Resources\KeyRings\Pages\CreateKeyRing;
 use App\Filament\Manage\Resources\Keys\KeyResource;
 use App\Filament\Manage\Resources\Keys\Pages\CreateKey;
 use App\Filament\Manage\Resources\TeamKeys\TeamKeyResource;
-use App\Filament\Team\Resources\Bookings\BookingResource;
-use App\Filament\Team\Resources\Bookings\Pages\ViewBooking as TeamViewBooking;
-use App\Filament\Team\Resources\Bookings\RelationManagers\AttendeesRelationManager as TeamAttendeesRelationManager;
-use App\Filament\Team\Resources\KeyRings\KeyRingResource as TeamKeyRingResource;
+use App\Filament\Member\Resources\Bookings\BookingResource;
+use App\Filament\Member\Resources\Bookings\Pages\ViewBooking as MemberViewBooking;
+use App\Filament\Member\Resources\Bookings\RelationManagers\AttendeesRelationManager as MemberAttendeesRelationManager;
+use App\Filament\Member\Resources\KeyRings\KeyRingResource as MemberKeyRingResource;
 use App\Livewire\SessionRoster;
 use App\Models\Activity;
 use App\Models\Booking;
@@ -250,7 +250,7 @@ class KeyAccessTest extends TestCase
         Filament::setCurrentPanel(Filament::getPanel('member'));
         $this->actingAs($member);
 
-        $this->get(TeamKeyRingResource::getUrl('index'))
+        $this->get(MemberKeyRingResource::getUrl('index'))
             ->assertOk()
             ->assertSee('Key rings')
             ->assertSee('My warden ring')
@@ -259,11 +259,11 @@ class KeyAccessTest extends TestCase
             ->assertDontSee('Someone else')
             ->assertDontSee('New key ring');
 
-        $this->get(TeamKeyRingResource::getUrl('view', ['record' => $own]))
+        $this->get(MemberKeyRingResource::getUrl('view', ['record' => $own]))
             ->assertOk()
             ->assertSee('Warden key, which also opens Climbing store');
 
-        $this->get(TeamKeyRingResource::getUrl('view', ['record' => KeyRing::query()->where('name', 'Someone else')->first()]))
+        $this->get(MemberKeyRingResource::getUrl('view', ['record' => KeyRing::query()->where('name', 'Someone else')->first()]))
             ->assertNotFound();
     }
 
@@ -380,15 +380,15 @@ class KeyAccessTest extends TestCase
             ->assertOk()
             ->assertSee('Confirmed booking');
 
-        Livewire::test(TeamAttendeesRelationManager::class, [
+        Livewire::test(MemberAttendeesRelationManager::class, [
             'ownerRecord' => $booking,
-            'pageClass' => TeamViewBooking::class,
+            'pageClass' => MemberViewBooking::class,
         ])
             ->assertSee('Key holder')
             ->assertSee('Sam Holder')
             ->assertDontSee('07000999888');
 
-        Livewire::test(TeamViewBooking::class, ['record' => $booking->getRouteKey()])
+        Livewire::test(MemberViewBooking::class, ['record' => $booking->getRouteKey()])
             ->mountAction('keys')
             ->assertMountedActionModalSee('Shared climbing: Sam Holder');
 

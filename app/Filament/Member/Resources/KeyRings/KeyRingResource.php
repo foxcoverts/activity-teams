@@ -1,9 +1,9 @@
 <?php
 
-namespace App\Filament\Team\Resources\KeyRings;
+namespace App\Filament\Member\Resources\KeyRings;
 
-use App\Filament\Team\Resources\KeyRings\Pages\ListKeyRings;
-use App\Filament\Team\Resources\KeyRings\Pages\ViewKeyRing;
+use App\Filament\Member\Resources\KeyRings\Pages\ListKeyRings;
+use App\Filament\Member\Resources\KeyRings\Pages\ViewKeyRing;
 use App\Models\KeyRing;
 use App\Models\User;
 use BackedEnum;

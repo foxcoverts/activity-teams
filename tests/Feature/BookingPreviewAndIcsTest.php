@@ -3,7 +3,7 @@
 namespace Tests\Feature;
 
 use App\Enums\BookingAttendeeStatus;
-use App\Filament\Team\Resources\Bookings\BookingResource;
+use App\Filament\Member\Resources\Bookings\BookingResource;
 use App\Models\Activity;
 use App\Models\Booking;
 use App\Models\User;

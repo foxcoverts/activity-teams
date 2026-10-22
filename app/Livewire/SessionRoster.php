@@ -65,7 +65,7 @@ class SessionRoster extends Component
             includeAccessDetails: $isLead,
         );
 
-        return view('filament.team.session-roster', [
+        return view('filament.member.session-roster', [
             'groups' => $roster['groups'],
             'showQualified' => $isLead && $roster['show_qualified'],
             'showKeys' => $isLead && $roster['show_keys'],

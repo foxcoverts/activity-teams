@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Filament\Team\Resources\Qualifications\Pages;
+namespace App\Filament\Member\Resources\Qualifications\Pages;
 
-use App\Filament\Team\Resources\Qualifications\QualificationResource;
+use App\Filament\Member\Resources\Qualifications\QualificationResource;
 use Filament\Resources\Pages\ListRecords;
 use Illuminate\Contracts\Support\Htmlable;
 

@@ -3,7 +3,7 @@
 namespace Tests\Feature;
 
 use App\Enums\BookingAttendeeStatus;
-use App\Filament\Team\Resources\Bookings\BookingResource;
+use App\Filament\Member\Resources\Bookings\BookingResource;
 use App\Livewire\RespondToBooking;
 use App\Mail\BookingInviteMail;
 use App\Models\Booking;

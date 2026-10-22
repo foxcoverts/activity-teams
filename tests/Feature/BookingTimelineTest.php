@@ -8,7 +8,7 @@ use App\Enums\BookingAttendeeStatus;
 use App\Enums\MembershipRole;
 use App\Filament\Manage\Resources\Bookings\Pages\ViewBooking as ManageViewBooking;
 use App\Filament\Manage\Resources\Members\MemberResource;
-use App\Filament\Team\Resources\Bookings\Pages\ViewBooking as TeamViewBooking;
+use App\Filament\Member\Resources\Bookings\Pages\ViewBooking as MemberViewBooking;
 use App\Livewire\SessionRoster;
 use App\Models\Booking;
 use App\Models\User;
@@ -33,14 +33,14 @@ class BookingTimelineTest extends TestCase
         Filament::setCurrentPanel(Filament::getPanel('member'));
         $this->actingAs($member);
 
-        $view = Livewire::test(TeamViewBooking::class, ['record' => $booking->getRouteKey()]);
+        $view = Livewire::test(MemberViewBooking::class, ['record' => $booking->getRouteKey()]);
 
         $view
             ->assertSee('Confirmed booking')
             ->assertSee('Group')
             ->assertSee('Recent activity')
             ->assertSee($leader->name)
-            ->assertSeeHtml('wire:name="App\\Filament\\Team\\Resources\\Bookings\\RelationManagers\\AttendeesRelationManager"')
+            ->assertSeeHtml('wire:name="App\\Filament\\Member\\Resources\\Bookings\\RelationManagers\\AttendeesRelationManager"')
             ->assertDontSeeHtml('/manage/');
     }
 
@@ -59,18 +59,18 @@ class BookingTimelineTest extends TestCase
 
         $this->actingAs($member);
 
-        $view = Livewire::test(TeamViewBooking::class, ['record' => $booking->getRouteKey()]);
+        $view = Livewire::test(MemberViewBooking::class, ['record' => $booking->getRouteKey()]);
 
         $view
             ->assertSee('Confirmed booking')
-            ->assertSeeHtml('wire:name="App\\Filament\\Team\\Resources\\Bookings\\RelationManagers\\AttendeesRelationManager"')
+            ->assertSeeHtml('wire:name="App\\Filament\\Member\\Resources\\Bookings\\RelationManagers\\AttendeesRelationManager"')
             ->assertSeeHtml('--col-span-lg: span 3 / span 3;')
             ->assertSeeHtml('--col-span-lg: span 2 / span 2;');
 
         $outsider = User::factory()->guest()->create();
         $this->actingAs($outsider);
 
-        Livewire::test(TeamViewBooking::class, ['record' => $booking->getRouteKey()])
+        Livewire::test(MemberViewBooking::class, ['record' => $booking->getRouteKey()])
             ->assertNotFound();
 
         Livewire::test(SessionRoster::class, ['booking' => $booking])
@@ -93,7 +93,7 @@ class BookingTimelineTest extends TestCase
         Filament::setCurrentPanel(Filament::getPanel('member'));
         $this->actingAs($member);
 
-        Livewire::test(TeamViewBooking::class, ['record' => $booking->getRouteKey()])
+        Livewire::test(MemberViewBooking::class, ['record' => $booking->getRouteKey()])
             ->assertSeeHtml('<strong>Manager A</strong>')
             ->assertSeeHtml('<strong>Can help</strong>')
             ->assertSeeHtml('<strong>Member B</strong>')

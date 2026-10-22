@@ -1,11 +1,11 @@
 <?php
 
-namespace App\Filament\Team\Resources\Bookings;
+namespace App\Filament\Member\Resources\Bookings;
 
 use App\Enums\BookingStatus;
-use App\Filament\Team\Resources\Bookings\Pages\ListBookings;
-use App\Filament\Team\Resources\Bookings\Pages\ViewBooking;
-use App\Filament\Team\Resources\Bookings\RelationManagers\AttendeesRelationManager;
+use App\Filament\Member\Resources\Bookings\Pages\ListBookings;
+use App\Filament\Member\Resources\Bookings\Pages\ViewBooking;
+use App\Filament\Member\Resources\Bookings\RelationManagers\AttendeesRelationManager;
 use App\Models\Booking;
 use App\Models\User;
 use App\Support\BookingWhen;

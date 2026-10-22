@@ -1,9 +1,9 @@
 <?php
 
-namespace App\Filament\Team\Resources\Qualifications;
+namespace App\Filament\Member\Resources\Qualifications;
 
-use App\Filament\Team\Resources\Qualifications\Pages\ListQualifications;
-use App\Filament\Team\Resources\Qualifications\Pages\ViewQualification;
+use App\Filament\Member\Resources\Qualifications\Pages\ListQualifications;
+use App\Filament\Member\Resources\Qualifications\Pages\ViewQualification;
 use App\Models\GirlguidingQualification;
 use App\Models\MountainTrainingQualification;
 use App\Models\Qualification;

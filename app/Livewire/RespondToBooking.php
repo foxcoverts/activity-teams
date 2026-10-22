@@ -4,7 +4,7 @@ namespace App\Livewire;
 
 use App\Actions\RespondToBookingAction;
 use App\Enums\BookingAttendeeStatus;
-use App\Filament\Team\Resources\Bookings\BookingResource;
+use App\Filament\Member\Resources\Bookings\BookingResource;
 use App\Models\Booking;
 use App\Models\User;
 use App\Support\LeadAttendanceWarning;

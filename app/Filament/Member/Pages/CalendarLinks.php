@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Filament\Team\Pages;
+namespace App\Filament\Member\Pages;
 
 use App\Models\User;
 use Filament\Pages\Page;
@@ -10,7 +10,7 @@ class CalendarLinks extends Page
 {
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-link';
 
-    protected string $view = 'filament.team.pages.calendar-links';
+    protected string $view = 'filament.member.pages.calendar-links';
 
     protected static ?string $navigationLabel = 'Calendar feeds';
 

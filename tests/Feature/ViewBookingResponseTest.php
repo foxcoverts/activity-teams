@@ -5,7 +5,7 @@ namespace Tests\Feature;
 use App\Actions\RespondToBookingAction;
 use App\Enums\BookingAttendeeResponse;
 use App\Enums\BookingAttendeeStatus;
-use App\Filament\Team\Resources\Bookings\Pages\ViewBooking;
+use App\Filament\Member\Resources\Bookings\Pages\ViewBooking;
 use App\Mail\BookingChangedMail;
 use App\Models\Booking;
 use App\Models\BookingAttendance;

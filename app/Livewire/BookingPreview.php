@@ -2,7 +2,7 @@
 
 namespace App\Livewire;
 
-use App\Filament\Team\Resources\Bookings\BookingResource;
+use App\Filament\Member\Resources\Bookings\BookingResource;
 use App\Models\Booking;
 use Carbon\Carbon;
 use Illuminate\Contracts\View\View;

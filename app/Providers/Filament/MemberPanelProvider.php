@@ -44,8 +44,8 @@ class MemberPanelProvider extends PanelProvider
             ])
             ->viteTheme('resources/css/filament/theme.css')
             ->plugin(FilamentActivitylog::make())
-            ->discoverResources(in: app_path('Filament/Team/Resources'), for: 'App\\Filament\\Team\\Resources')
-            ->discoverPages(in: app_path('Filament/Team/Pages'), for: 'App\\Filament\\Team\\Pages')
+            ->discoverResources(in: app_path('Filament/Member/Resources'), for: 'App\\Filament\\Member\\Resources')
+            ->discoverPages(in: app_path('Filament/Member/Pages'), for: 'App\\Filament\\Member\\Pages')
             ->pages([
                 Dashboard::class,
             ])
@@ -72,7 +72,7 @@ class MemberPanelProvider extends PanelProvider
                         return $managePanel->getUrl($user->getDefaultTenant($managePanel));
                     }),
             ])
-            ->discoverWidgets(in: app_path('Filament/Team/Widgets'), for: 'App\\Filament\\Team\\Widgets')
+            ->discoverWidgets(in: app_path('Filament/Member/Widgets'), for: 'App\\Filament\\Member\\Widgets')
             ->widgets([
                 AccountWidget::class,
             ])

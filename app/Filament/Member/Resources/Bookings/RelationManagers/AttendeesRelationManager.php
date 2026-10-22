@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Filament\Team\Resources\Bookings\RelationManagers;
+namespace App\Filament\Member\Resources\Bookings\RelationManagers;
 
 use App\Models\Booking;
 use App\Models\User;
@@ -37,7 +37,7 @@ class AttendeesRelationManager extends RelationManager
             ->columns([
                 TextColumn::make('name'),
             ])
-            ->content(fn (): View => view('filament.team.bookings.guest-list', [
+            ->content(fn (): View => view('filament.member.bookings.guest-list', [
                 'booking' => $this->getOwnerRecord(),
             ]))
             ->paginated(false)

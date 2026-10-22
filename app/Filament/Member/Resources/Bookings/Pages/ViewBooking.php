@@ -1,13 +1,13 @@
 <?php
 
-namespace App\Filament\Team\Resources\Bookings\Pages;
+namespace App\Filament\Member\Resources\Bookings\Pages;
 
 use App\Actions\RespondToBookingAction;
 use App\Enums\BookingAttendeeResponse;
 use App\Enums\BookingAttendeeStatus;
 use App\Filament\Bookings\BookingKeysAction;
-use App\Filament\Team\Resources\Bookings\BookingResource;
-use App\Filament\Team\Resources\Bookings\BookingTimeline;
+use App\Filament\Member\Resources\Bookings\BookingResource;
+use App\Filament\Member\Resources\Bookings\BookingTimeline;
 use App\Models\Booking;
 use App\Models\User;
 use App\Support\LeadAttendanceWarning;

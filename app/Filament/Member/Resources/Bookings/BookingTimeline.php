@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Filament\Team\Resources\Bookings;
+namespace App\Filament\Member\Resources\Bookings;
 
 use App\Models\Activity;
 use App\Models\Booking;

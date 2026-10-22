@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Filament\Team\Resources\KeyRings\Pages;
+namespace App\Filament\Member\Resources\KeyRings\Pages;
 
-use App\Filament\Team\Resources\KeyRings\KeyRingResource;
+use App\Filament\Member\Resources\KeyRings\KeyRingResource;
 use Filament\Resources\Pages\ListRecords;
 use Illuminate\Contracts\Support\Htmlable;
 

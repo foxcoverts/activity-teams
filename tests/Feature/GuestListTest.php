@@ -6,8 +6,8 @@ use App\Enums\BookingAttendeeStatus;
 use App\Enums\MembershipRole;
 use App\Filament\Manage\Resources\Bookings\Pages\ViewBooking as ManageViewBooking;
 use App\Filament\Manage\Resources\Bookings\RelationManagers\AttendeesRelationManager;
-use App\Filament\Team\Resources\Bookings\Pages\ViewBooking as TeamViewBooking;
-use App\Filament\Team\Resources\Bookings\RelationManagers\AttendeesRelationManager as TeamAttendeesRelationManager;
+use App\Filament\Member\Resources\Bookings\Pages\ViewBooking as MemberViewBooking;
+use App\Filament\Member\Resources\Bookings\RelationManagers\AttendeesRelationManager as MemberAttendeesRelationManager;
 use App\Livewire\SessionRoster;
 use App\Models\Booking;
 use App\Models\BookingAttendance;
@@ -146,9 +146,9 @@ class GuestListTest extends TestCase
         Filament::setCurrentPanel(Filament::getPanel('member'));
         $this->actingAs($member);
 
-        Livewire::test(TeamAttendeesRelationManager::class, [
+        Livewire::test(MemberAttendeesRelationManager::class, [
             'ownerRecord' => $booking,
-            'pageClass' => TeamViewBooking::class,
+            'pageClass' => MemberViewBooking::class,
         ])
             ->assertSee('Guest list')
             ->assertSee('Current attendee')
@@ -167,9 +167,9 @@ class GuestListTest extends TestCase
         Filament::setCurrentPanel(Filament::getPanel('member'));
         $this->actingAs(User::factory()->guest()->create());
 
-        Livewire::test(TeamAttendeesRelationManager::class, [
+        Livewire::test(MemberAttendeesRelationManager::class, [
             'ownerRecord' => $booking,
-            'pageClass' => TeamViewBooking::class,
+            'pageClass' => MemberViewBooking::class,
         ])->assertForbidden();
     }
 
