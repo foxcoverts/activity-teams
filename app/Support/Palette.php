@@ -55,4 +55,24 @@ final class Palette
     {
         return Color::Sky;
     }
+
+    /**
+     * A young person's section: Squirrels through Network.
+     *
+     * @return array<int, string>
+     */
+    public static function youth(): array
+    {
+        return Color::Teal;
+    }
+
+    /**
+     * An adult's section, distinct from the youth sections.
+     *
+     * @return array<int, string>
+     */
+    public static function adult(): array
+    {
+        return Color::Indigo;
+    }
 }

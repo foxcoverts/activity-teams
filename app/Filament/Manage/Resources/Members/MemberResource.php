@@ -3,12 +3,14 @@
 namespace App\Filament\Manage\Resources\Members;
 
 use App\Enums\MembershipRole;
-use App\Enums\Section;
+use App\Enums\PersonalDataSection as PersonalDataSectionEnum;
+use App\Enums\Section as MemberSection;
 use App\Filament\Manage\NavigationGroup;
 use App\Filament\Manage\Resources\Members\Pages\EditMember;
 use App\Filament\Manage\Resources\Members\Pages\ListMembers;
 use App\Filament\Manage\Resources\Members\Pages\ViewMember;
 use App\Filament\Manage\Resources\Members\RelationManagers\QualificationsRelationManager;
+use App\Filament\Manage\Schemas\PersonalDataSection;
 use App\Models\Team;
 use App\Models\User;
 use BackedEnum;
@@ -23,6 +25,7 @@ use Filament\Infolists\Components\TextEntry;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Component;
+use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
@@ -84,19 +87,29 @@ class MemberResource extends Resource
     {
         return $schema
             ->components([
-                TextInput::make('name')
-                    ->required(),
-                TextInput::make('email')
-                    ->email()
-                    ->required(),
-                Select::make('section')
-                    ->options(Section::class)
-                    ->required(),
-                TextInput::make('phone')
-                    ->tel(),
-                TextInput::make('emergency_name'),
-                TextInput::make('emergency_phone')
-                    ->tel(),
+                Section::make(__('Member'))
+                    ->icon(Heroicon::User)
+                    ->columns(1)
+                    ->columnSpanFull()
+                    ->schema([
+                        TextInput::make('name')
+                            ->required(),
+                        Select::make('section')
+                            ->options(MemberSection::class)
+                            ->required(),
+                        PersonalDataSection::form(PersonalDataSectionEnum::ContactDetails, [
+                            TextInput::make('email')
+                                ->email()
+                                ->required(),
+                            TextInput::make('phone')
+                                ->tel(),
+                        ]),
+                        PersonalDataSection::form(PersonalDataSectionEnum::EmergencyContact, [
+                            TextInput::make('emergency_name'),
+                            TextInput::make('emergency_phone')
+                                ->tel(),
+                        ]),
+                    ]),
             ]);
     }
 
@@ -104,20 +117,30 @@ class MemberResource extends Resource
     {
         return $schema
             ->components([
-                TextEntry::make('name'),
-                TextEntry::make('email'),
-                TextEntry::make('section')
-                    ->badge(),
-                TextEntry::make('membership_role')
-                    ->label('Role')
-                    ->badge()
-                    ->state(fn (User $record): ?MembershipRole => static::roleOnCurrentTeam($record)),
-                TextEntry::make('phone')
-                    ->placeholder('-'),
-                TextEntry::make('emergency_name')
-                    ->placeholder('-'),
-                TextEntry::make('emergency_phone')
-                    ->placeholder('-'),
+                Section::make(__('Member'))
+                    ->icon(Heroicon::User)
+                    ->columns(1)
+                    ->columnSpanFull()
+                    ->schema([
+                        TextEntry::make('name'),
+                        TextEntry::make('section')
+                            ->badge(),
+                        TextEntry::make('membership_role')
+                            ->label('Role')
+                            ->badge()
+                            ->state(fn (User $record): ?MembershipRole => static::roleOnCurrentTeam($record)),
+                        PersonalDataSection::make(PersonalDataSectionEnum::ContactDetails, [
+                            TextEntry::make('email'),
+                            TextEntry::make('phone')
+                                ->placeholder('-'),
+                        ]),
+                        PersonalDataSection::make(PersonalDataSectionEnum::EmergencyContact, [
+                            TextEntry::make('emergency_name')
+                                ->placeholder('-'),
+                            TextEntry::make('emergency_phone')
+                                ->placeholder('-'),
+                        ]),
+                    ]),
             ]);
     }
 

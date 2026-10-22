@@ -183,7 +183,7 @@ class ActivityTeamsTest extends TestCase
         );
     }
 
-    public function test_member_contact_details_are_hidden_from_member_list_but_visible_on_the_member_record(): void
+    public function test_member_contact_details_are_hidden_from_member_list_and_need_acknowledgement_on_the_member_record(): void
     {
         $leader = User::factory()->teamLeader()->create();
         $member = User::factory()->teamMember()->create([
@@ -195,7 +195,7 @@ class ActivityTeamsTest extends TestCase
         $oversight = User::factory()->oversight()->create();
 
         $this->assertTrue($oversight->can('viewAny', User::class));
-        $this->assertFalse($leader->can('viewAny', User::class));
+        $this->assertFalse($member->can('viewAny', User::class));
         $this->assertTrue($leader->can('view', $member));
 
         $this->actingAs($leader);
@@ -212,8 +212,10 @@ class ActivityTeamsTest extends TestCase
                 'role' => MembershipRole::Member,
             ]);
 
-        $this->get(MemberResource::getUrl('view', ['record' => $member]))
-            ->assertOk()
+        Livewire::test(ViewMember::class, ['record' => $member->getKey()])
+            ->assertDontSee('member@example.test')
+            ->call('acknowledgePersonalData', 'contact-details')
+            ->call('acknowledgePersonalData', 'emergency-contact')
             ->assertSee('member@example.test')
             ->assertSee('07000111222')
             ->assertSee('Emergency Contact')
@@ -223,7 +225,7 @@ class ActivityTeamsTest extends TestCase
             ->assertTableActionDisabled('changeRole', $leader);
     }
 
-    public function test_global_user_directory_hides_contact_details_but_user_record_shows_them(): void
+    public function test_global_user_directory_hides_contact_details_and_user_record_needs_acknowledgement(): void
     {
         $oversight = User::factory()->oversight()->create();
         $member = User::factory()->create([
@@ -244,8 +246,10 @@ class ActivityTeamsTest extends TestCase
             ->assertDontSee('Emergency Contact')
             ->assertDontSee('07000333444');
 
-        $this->get(UserResource::getUrl('view', ['record' => $member]))
-            ->assertOk()
+        Livewire::test(ViewUser::class, ['record' => $member->getKey()])
+            ->assertDontSee('member@example.test')
+            ->call('acknowledgePersonalData', 'contact-details')
+            ->call('acknowledgePersonalData', 'emergency-contact')
             ->assertSee('member@example.test')
             ->assertSee('07000111222')
             ->assertSee('Emergency Contact')
@@ -338,7 +342,7 @@ class ActivityTeamsTest extends TestCase
             ->assertHasFormErrors(['manager_id' => 'required']);
     }
 
-    public function test_system_admin_maintains_the_catalogs_and_the_flag_hides_personal_data(): void
+    public function test_system_admin_maintains_the_catalogs_and_reaches_the_user_directory(): void
     {
         $activity = Activity::factory()->create(['name' => 'Unused']);
         $admin = User::factory()->create(['is_system_admin' => true]);
@@ -357,8 +361,10 @@ class ActivityTeamsTest extends TestCase
         $this->assertFalse($manager->can('create', Activity::class));
         $this->assertFalse($manager->can('delete', $venue));
         Filament::setTenant(null);
-        $this->assertFalse($admin->can('view', $member));
-        $this->assertFalse($admin->can('viewAny', User::class));
+        $this->assertTrue($admin->can('viewAny', User::class));
+        $this->assertTrue($admin->can('view', $member));
+        $this->assertTrue($admin->can('update', $member));
+        $this->assertFalse($admin->can('delete', $member));
 
         $team = Team::factory()->create();
         $team->grant($admin, MembershipRole::Manager);
@@ -439,8 +445,10 @@ class ActivityTeamsTest extends TestCase
             ->assertDontSee('07000999888')
             ->assertDontSee('07000111222');
 
-        $this->get(MemberResource::getUrl('view', ['record' => $member]))
-            ->assertOk()
+        Livewire::test(ViewMember::class, ['record' => $member->getKey()])
+            ->assertDontSee('07000999888')
+            ->call('acknowledgePersonalData', 'contact-details')
+            ->call('acknowledgePersonalData', 'emergency-contact')
             ->assertSee('07000999888')
             ->assertSee('07000111222');
 

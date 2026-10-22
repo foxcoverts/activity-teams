@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Casts\AsTimezone;
 use App\Enums\MembershipRole;
+use App\Enums\PersonalDataSection;
 use App\Enums\Section;
 use App\Notifications\SetupAccount;
 use Database\Factories\UserFactory;
@@ -81,8 +82,10 @@ class User extends Authenticatable implements FilamentUser, HasDefaultTenant, Ha
     {
         return LogOptions::defaults()
             ->logFillable()
+            ->logExcept(['password', ...PersonalDataSection::protectedAttributes()])
             ->logOnlyDirty()
-            ->dontLogIfAttributesChangedOnly(['remember_token', 'password']);
+            ->dontLogEmptyChanges()
+            ->dontLogIfAttributesChangedOnly(['remember_token', 'password', ...PersonalDataSection::protectedAttributes()]);
     }
 
     public function canAccessPanel(Panel $panel): bool
@@ -204,6 +207,20 @@ class User extends Authenticatable implements FilamentUser, HasDefaultTenant, Ha
     public function scopeOrdered(Builder $query): void
     {
         $query->orderBy('name');
+    }
+
+    public function hasAcknowledgedPersonalData(User $subject, PersonalDataSection $section): bool
+    {
+        if ($this->is($subject)) {
+            return true;
+        }
+
+        return PersonalDataAcknowledgement::query()
+            ->current()
+            ->where('viewer_id', $this->getKey())
+            ->where('subject_id', $subject->getKey())
+            ->where('section', $section)
+            ->exists();
     }
 
     public function isActive(): bool
