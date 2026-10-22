@@ -3,6 +3,7 @@ id: US-08
 title: "Smart Booking Invitee Pre-Selection & Management"
 status: done
 area: bookings
+scope: required
 ---
 
 ## Story

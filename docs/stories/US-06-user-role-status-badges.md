@@ -3,6 +3,7 @@ id: US-06
 title: "User Role & Status Badges"
 status: partial
 area: qualifications
+scope: deferred
 ---
 
 ## Story

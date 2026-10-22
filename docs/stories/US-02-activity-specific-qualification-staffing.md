@@ -3,6 +3,7 @@ id: US-02
 title: "Activity-Specific Qualification & Staffing Requirements"
 status: done
 area: qualifications
+scope: required
 ---
 
 ## Story

@@ -3,6 +3,7 @@ id: US-22
 title: "Team & Multi-Activity Task Management"
 status: not-started
 area: safety
+scope: deferred
 ---
 
 ## Story

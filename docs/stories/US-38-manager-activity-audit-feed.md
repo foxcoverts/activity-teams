@@ -3,6 +3,7 @@ id: US-38
 title: "Manager Centralised Activity Audit Feed"
 status: partial
 area: audit
+scope: required
 ---
 
 ## Story

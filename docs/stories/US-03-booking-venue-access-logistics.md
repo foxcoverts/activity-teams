@@ -3,6 +3,7 @@ id: US-03
 title: "Booking Venue Access & Logistics Planning"
 status: not-started
 area: qualifications
+scope: required
 ---
 
 ## Story

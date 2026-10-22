@@ -3,6 +3,7 @@ id: US-51
 title: "Pass a Key Ring"
 status: not-started
 area: qualifications
+scope: required
 ---
 
 ## Story

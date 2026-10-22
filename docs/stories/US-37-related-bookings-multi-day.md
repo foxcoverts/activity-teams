@@ -3,6 +3,7 @@ id: US-37
 title: "Related Bookings & Multi-Day Event Linking"
 status: not-started
 area: bookings
+scope: required
 ---
 
 ## Story

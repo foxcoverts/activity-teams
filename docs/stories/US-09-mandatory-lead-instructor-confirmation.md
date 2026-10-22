@@ -3,6 +3,7 @@ id: US-09
 title: "Mandatory Lead Instructor Confirmation Validation"
 status: done
 area: bookings
+scope: required
 ---
 
 ## Story

@@ -3,6 +3,7 @@ id: US-07
 title: "Qualification Expiry Tracking"
 status: not-started
 area: qualifications
+scope: required
 ---
 
 ## Story

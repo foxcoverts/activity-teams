@@ -3,6 +3,7 @@ id: US-15
 title: "Inbound Calendar Response & Webhook Parsing"
 status: not-started
 area: communications
+scope: required
 ---
 
 ## Story
@@ -21,3 +22,5 @@ As an Activity Manager, I want the system to reliably parse incoming calendar em
 ## Progress
 
 A manager attendance edit stores `via: manager` on the booking activity entry, with the manager as the causer. That is a third channel, separate from the member's own reply and from an iMIP `REPLY`. Parsing inbound calendar mail, and sending a cancellation only for an iMIP decline, is still open.
+
+The legacy mail log was used to check inbound iMIP processing during operation and development. A general mail-log interface is not required for the rewrite; retaining and routing other inbound replies and surfacing processing failures are tracked separately in [US-55](US-55-inbound-email-routing-and-alerts.md).

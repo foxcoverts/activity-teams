@@ -3,6 +3,7 @@ id: US-11
 title: "Lead Instructor Assignment Notifications"
 status: not-started
 area: bookings
+scope: required
 ---
 
 ## Story

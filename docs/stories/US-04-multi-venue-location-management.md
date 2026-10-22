@@ -3,6 +3,7 @@ id: US-04
 title: "Multi-Venue & Location-Based Management"
 status: partial
 area: qualifications
+scope: required
 ---
 
 ## Story

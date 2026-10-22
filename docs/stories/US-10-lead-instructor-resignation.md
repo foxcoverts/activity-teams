@@ -3,6 +3,7 @@ id: US-10
 title: "Lead Instructor Availability Change & Resignation Workflow"
 status: partial
 area: bookings
+scope: required
 ---
 
 ## Story

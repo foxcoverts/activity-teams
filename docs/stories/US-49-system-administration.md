@@ -3,6 +3,7 @@ id: US-49
 title: "System Administration"
 status: partial
 area: qualifications
+scope: required
 ---
 
 ## Story

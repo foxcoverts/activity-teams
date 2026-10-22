@@ -3,6 +3,7 @@ id: US-05
 title: "Team Document & Resource Repository"
 status: not-started
 area: qualifications
+scope: required
 ---
 
 ## Story

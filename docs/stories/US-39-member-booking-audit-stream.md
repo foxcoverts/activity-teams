@@ -3,6 +3,7 @@ id: US-39
 title: "Member Booking Transparency & Audit Stream"
 status: done
 area: audit
+scope: required
 ---
 
 ## Story

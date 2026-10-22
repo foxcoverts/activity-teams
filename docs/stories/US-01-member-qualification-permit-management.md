@@ -3,6 +3,7 @@ id: US-01
 title: "Member Qualification & Permit Management"
 status: done
 area: qualifications
+scope: required
 ---
 
 ## Story

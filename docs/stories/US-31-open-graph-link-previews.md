@@ -3,6 +3,7 @@ id: US-31
 title: "Open Graph Meta Tags for Link Previews"
 status: done
 area: communications
+scope: required
 ---
 
 ## Story

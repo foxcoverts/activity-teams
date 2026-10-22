@@ -3,6 +3,7 @@ id: US-30
 title: "Standard URL Sharing Capability"
 status: done
 area: communications
+scope: required
 ---
 
 ## Story

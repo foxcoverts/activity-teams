@@ -3,6 +3,7 @@ id: US-40
 title: "Booking & Content Commenting Threads"
 status: not-started
 area: audit
+scope: required
 ---
 
 ## Story

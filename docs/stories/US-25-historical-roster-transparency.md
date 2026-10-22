@@ -3,6 +3,7 @@ id: US-25
 title: "Historical Roster & Response Transparency"
 status: done
 area: bookings
+scope: required
 ---
 
 ## Story

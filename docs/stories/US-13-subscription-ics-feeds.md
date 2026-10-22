@@ -3,6 +3,7 @@ id: US-13
 title: "Subscription ICS Export Feeds"
 status: partial
 area: communications
+scope: required
 ---
 
 ## Story

@@ -3,6 +3,7 @@ id: US-21
 title: "Incident & Accident Reporting & Compliance"
 status: not-started
 area: safety
+scope: required
 ---
 
 ## Story

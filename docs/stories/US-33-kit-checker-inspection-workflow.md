@@ -3,6 +3,7 @@ id: US-33
 title: "Kit Checker Inspection & Verification Workflow"
 status: not-started
 area: safety
+scope: deferred
 ---
 
 ## Story

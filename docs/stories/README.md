@@ -61,6 +61,13 @@ When an enum is shown in Filament, give it a label, and a color and icon when th
 - [US-30 Standard URL Sharing Capability](US-30-standard-url-sharing.md) — `done`
 - [US-31 Open Graph Meta Tags for Link Previews](US-31-open-graph-link-previews.md) — `done`
 - [US-45 Outgoing Email Delivery Tracking & Bounce Management](US-45-email-delivery-bounce-tracking.md) — `not-started`
+- [US-54 Team News Posts & Distribution](US-54-team-news-posts.md) — `not-started`
+- [US-55 Inbound Email Routing & Failure Alerts](US-55-inbound-email-routing-and-alerts.md) — `not-started`
+
+## Member Profiles & Preferences
+
+- [US-56 Member Profile & Notification Preferences](US-56-member-profile-and-notification-preferences.md) — `not-started`
+- [US-57 Member Account & Privacy Controls](US-57-member-account-privacy-controls.md) — `not-started`
 
 ## Audit Streams & Collaboration
 
@@ -90,11 +97,11 @@ When an enum is shown in Filament, give it a label, and a color and icon when th
 ## Relaunch scope decisions
 
 - **Essential:** [US-47 Multiple Activity Teams](US-47-multiple-activity-teams.md) is the primary reason for the rewrite.
-- **Operationally required:** [US-18 Lead Instructor Contact Access](US-18-lead-instructor-contact-access.md), [US-19 Participant Lead Contact Access](US-19-participant-lead-contact-access.md), and [US-48 Suspend and Restore a Member](US-48-suspend-and-restore-a-member.md).
+- **Operationally required:** [US-18 Lead Instructor Contact Access](US-18-lead-instructor-contact-access.md), [US-19 Participant Lead Contact Access](US-19-participant-lead-contact-access.md), [US-30 Standard URL Sharing](US-30-standard-url-sharing.md), [US-31 Open Graph Link Previews](US-31-open-graph-link-previews.md), [US-48 Suspend and Restore a Member](US-48-suspend-and-restore-a-member.md), [US-49 System Administration](US-49-system-administration.md), [US-54 Team News Posts & Distribution](US-54-team-news-posts.md), [US-55 Inbound Email Routing & Failure Alerts](US-55-inbound-email-routing-and-alerts.md), [US-56 Member Profile & Notification Preferences](US-56-member-profile-and-notification-preferences.md), and [US-57 Member Account & Privacy Controls](US-57-member-account-privacy-controls.md). US-30/31 are already done. News must be published by managers, available in a combined member feed, and distributed directly to members, with an opt-out for direct delivery.
 - **Extra:** US-16, US-17, US-20, US-24, US-29, US-34, US-35, US-36, US-41, US-42, US-43, US-44, and US-53.
   - US-29 has a UI action in the legacy climbing-team app, but not in Activity Teams; it is not a release priority.
   - US-45 is extra and should be reconsidered during outgoing-mail reimplementation; include delivery/bounce tracking if the mail provider makes it cheap or free.
-- **Deferred:** [US-50 Invite Someone Who Is Not on the Team](US-50-invite-non-members.md) is currently possible, but is not required for relaunch.
+- **Deferred:** [US-06 User Role & Status Badges](US-06-user-role-status-badges.md), [US-22 Team & Multi-Activity Task Management](US-22-task-management.md), [US-50 Invite Someone Who Is Not on the Team](US-50-invite-non-members.md), [US-23 Instructor Kit Compliance](US-23-instructor-kit-compliance.md), and [US-33 Kit Checker Inspection](US-33-kit-checker-inspection-workflow.md). These are deliberately held back from relaunch.
 
 ## Delivery approach
 

@@ -3,6 +3,7 @@ id: US-12
 title: "Public Booking Summary View"
 status: done
 area: communications
+scope: required
 ---
 
 ## Story

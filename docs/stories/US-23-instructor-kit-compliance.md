@@ -3,6 +3,7 @@ id: US-23
 title: "Instructor Personal Kit Compliance Tracking"
 status: not-started
 area: safety
+scope: deferred
 ---
 
 ## Story

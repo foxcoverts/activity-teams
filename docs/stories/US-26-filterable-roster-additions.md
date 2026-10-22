@@ -3,6 +3,7 @@ id: US-26
 title: "Filterable Roster Additions & Batch Management"
 status: done
 area: bookings
+scope: required
 ---
 
 ## Story

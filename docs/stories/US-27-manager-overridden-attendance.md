@@ -3,6 +3,7 @@ id: US-27
 title: "Manager-Overridden Attendance Updates"
 status: done
 area: bookings
+scope: required
 ---
 
 ## Story

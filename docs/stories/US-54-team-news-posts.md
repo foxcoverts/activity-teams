@@ -1,0 +1,20 @@
+---
+id: US-54
+title: "Team News Posts & Distribution"
+status: not-started
+area: communications
+scope: required
+---
+
+## Story
+
+As a team manager, I want to publish news for my team and have members see a combined feed and receive it directly, so that they can stay up to date even when they do not regularly visit the system.
+
+## Acceptance criteria
+
+- A manager can create and publish news for a team they manage, and edit or unpublish that team's posts.
+- A member can view one combined feed of published news for the teams they belong to.
+- Members cannot see news belonging to teams they do not belong to.
+- Publishing a post distributes it directly to the relevant team members through one or more agreed channels, such as email or in-app notifications; it is not available only in the feed.
+- Members can opt out of direct news distribution without losing access to the combined feed.
+- Refinement defines which channels are used, how the opt-out is managed, how subsequent post edits are handled, and how delivery failures are surfaced.

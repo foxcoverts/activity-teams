@@ -3,6 +3,7 @@ id: US-14
 title: "Interactive Email RSVP Action Buttons"
 status: done
 area: communications
+scope: required
 ---
 
 ## Story

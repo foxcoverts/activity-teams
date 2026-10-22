@@ -3,6 +3,7 @@ id: US-52
 title: "Lead Instructor Session Roster"
 status: done
 area: bookings
+scope: required
 ---
 
 ## Story

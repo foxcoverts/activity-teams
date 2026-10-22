@@ -3,6 +3,7 @@ id: US-28
 title: "Booking Cancellation Reasons & Participant Notification"
 status: partial
 area: bookings
+scope: required
 ---
 
 ## Story
