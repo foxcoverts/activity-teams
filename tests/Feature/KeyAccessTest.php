@@ -15,6 +15,7 @@ use App\Filament\Manage\Resources\Keys\Pages\CreateKey;
 use App\Filament\Manage\Resources\TeamKeys\TeamKeyResource;
 use App\Filament\Team\Resources\Bookings\BookingResource;
 use App\Filament\Team\Resources\Bookings\Pages\ViewBooking as TeamViewBooking;
+use App\Filament\Team\Resources\Bookings\RelationManagers\AttendeesRelationManager as TeamAttendeesRelationManager;
 use App\Filament\Team\Resources\KeyRings\KeyRingResource as TeamKeyRingResource;
 use App\Livewire\SessionRoster;
 use App\Models\Activity;
@@ -307,7 +308,11 @@ class KeyAccessTest extends TestCase
             'ownerRecord' => $booking,
             'pageClass' => ManageViewBooking::class,
         ])->assertSee('Key holder')
-            ->assertSee('Other keys');
+            ->assertDontSee('Other keys')
+            ->assertSeeHtml('key-holder-badge')
+            ->mountTableAction('heldKeys', $holder)
+            ->assertMountedActionModalSee('Shared climbing')
+            ->assertMountedActionModalSee('Climbing store');
 
         $keys = view('filament.bookings.person-access-host', [
             'booking' => $booking,
@@ -358,6 +363,8 @@ class KeyAccessTest extends TestCase
             'venue_id' => $booking->venue_id,
         ]);
         KeyRing::factory()->heldBy($holder)->create(['name' => 'Shared climbing'])->keys()->attach($store);
+        $unrelated = Key::factory()->create(['name' => 'Unrelated key']);
+        KeyRing::factory()->heldBy($member)->create(['name' => 'Unrelated ring'])->keys()->attach($unrelated);
 
         foreach ([$lead, $holder, $member] as $person) {
             $booking->attendees()->attach($person->id, [
@@ -371,7 +378,12 @@ class KeyAccessTest extends TestCase
 
         $this->get(BookingResource::getUrl('view', ['record' => $booking]))
             ->assertOk()
-            ->assertSee('Session')
+            ->assertSee('Confirmed booking');
+
+        Livewire::test(TeamAttendeesRelationManager::class, [
+            'ownerRecord' => $booking,
+            'pageClass' => TeamViewBooking::class,
+        ])
             ->assertSee('Key holder')
             ->assertSee('Sam Holder')
             ->assertDontSee('07000999888');
@@ -391,6 +403,12 @@ class KeyAccessTest extends TestCase
         $this->assertStringContainsString('No night climbing', $qualifications);
         $this->assertStringContainsString('x-on:click="showOther = ! showOther"', $qualifications);
         $this->assertStringNotContainsString('toggleOtherQualifications', $qualifications);
+
+        Livewire::test(SessionRoster::class, ['booking' => $booking])
+            ->assertSee('Qualified')
+            ->assertDontSee('Other keys')
+            ->call('openKeys', $member->getKey())
+            ->assertForbidden();
 
         Livewire::test(SessionRoster::class, ['booking' => $booking])
             ->assertSee('Qualified')

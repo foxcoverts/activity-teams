@@ -55,10 +55,18 @@
     @apply overflow-hidden rounded-xl border border-gray-200 dark:border-white/10;
 }
 
+.invite-list.guest-roster-group {
+    @apply overflow-visible rounded-none border-0;
+}
+
 .invite-row {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
     @apply items-center gap-3 px-3 py-2.5;
+}
+
+.invite-group-heading {
+    @apply flex w-full items-center justify-between gap-3 bg-gray-50 px-3 py-2.5 text-start text-sm font-medium text-gray-950 dark:bg-white/5 dark:text-white;
 }
 
 .invite-row + .invite-row {
@@ -70,7 +78,15 @@
 }
 
 .invite-badge {
-    @apply appearance-none bg-transparent p-0;
+    @apply inline-flex items-center self-center appearance-none bg-transparent p-0 leading-none;
+}
+
+.key-holder-badge {
+    @apply justify-center;
+}
+
+.key-holder-badge .fi-badge-label-ctn {
+    @apply hidden;
 }
 
 [x-cloak] {

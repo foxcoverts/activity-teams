@@ -8,7 +8,6 @@ use App\Enums\BookingAttendeeStatus;
 use App\Filament\Bookings\BookingKeysAction;
 use App\Filament\Team\Resources\Bookings\BookingResource;
 use App\Filament\Team\Resources\Bookings\BookingTimeline;
-use App\Livewire\SessionRoster;
 use App\Models\Booking;
 use App\Models\User;
 use App\Support\LeadAttendanceWarning;
@@ -18,7 +17,6 @@ use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ViewRecord;
 use Filament\Schemas\Components\EmbeddedSchema;
 use Filament\Schemas\Components\Grid;
-use Filament\Schemas\Components\Livewire;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use InvalidArgumentException;
@@ -38,7 +36,7 @@ class ViewBooking extends ViewRecord
             $record->loadMissing('team');
 
             if ($record->team !== null && $user->isCurrentMemberOf($record->team)) {
-                $components[] = Livewire::make(SessionRoster::class, ['booking' => $record])
+                $components[] = $this->getRelationManagersContentComponent()
                     ->columnSpan(['default' => 1, 'lg' => 2]);
             }
         }

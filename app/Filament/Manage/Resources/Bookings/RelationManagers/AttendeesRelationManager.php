@@ -10,6 +10,7 @@ use App\Models\Activity;
 use App\Models\Booking;
 use App\Models\BookingAttendance;
 use App\Models\User;
+use App\Support\BookingGuestList;
 use App\Support\BookingPeople;
 use App\Support\Palette;
 use Filament\Actions\Action;
@@ -51,11 +52,7 @@ class AttendeesRelationManager extends RelationManager
         return $table
             ->recordTitleAttribute('name')
             ->columns([
-                TextColumn::make('name')->searchable(),
-                TextColumn::make('email'),
-                TextColumn::make('attendance.status')
-                    ->badge()
-                    ->icon(fn (BookingAttendeeStatus $state): Heroicon => $state->getIcon()),
+                TextColumn::make('name'),
                 TextColumn::make('qualified')
                     ->label(__('Qualification'))
                     ->badge()
@@ -76,19 +73,7 @@ class AttendeesRelationManager extends RelationManager
 
                         return $activity instanceof Activity && $activity->requiresQualification();
                     })
-                    ->disabledClick(fn (?string $state): bool => blank($state))
-                    ->action(
-                        Action::make('qualifications')
-                            ->modalHeading(fn (User $record): string => $record->name)
-                            ->modalWidth(Width::Large)
-                            ->modalSubmitAction(false)
-                            ->modalCancelActionLabel(__('Close'))
-                            ->modalContent(fn (User $record): View => view('filament.bookings.person-access-host', [
-                                'booking' => $this->booking(),
-                                'person' => $record,
-                                'panel' => 'qualifications',
-                            ])),
-                    ),
+                    ->disabledClick(fn (?string $state): bool => blank($state)),
                 TextColumn::make('key_badge')
                     ->label(__('Keys'))
                     ->badge()
@@ -96,25 +81,14 @@ class AttendeesRelationManager extends RelationManager
                     ->state(fn (User $record): ?string => $this->keyBadge($record))
                     ->formatStateUsing(fn (?string $state): ?string => match ($state) {
                         'holder' => __('Key holder'),
-                        'other' => __('Other keys'),
                         default => null,
                     })
                     ->color(fn (?string $state): array => $state === 'holder' ? Palette::positive() : Palette::neutral())
                     ->visible(fn (): bool => $this->bookingNeedsKeys())
-                    ->disabledClick(fn (?string $state): bool => blank($state))
-                    ->action(
-                        Action::make('heldKeys')
-                            ->modalHeading(fn (User $record): string => $record->name)
-                            ->modalWidth(Width::Large)
-                            ->modalSubmitAction(false)
-                            ->modalCancelActionLabel(__('Close'))
-                            ->modalContent(fn (User $record): View => view('filament.bookings.person-access-host', [
-                                'booking' => $this->booking(),
-                                'person' => $record,
-                                'panel' => 'keys',
-                            ])),
-                    ),
+                    ->disabledClick(fn (?string $state): bool => blank($state)),
             ])
+            ->content(fn (): View => $this->guestListContent())
+            ->paginated(false)
             ->headerActions([
                 Action::make('invite')
                     ->visible(fn (): bool => $this->booking()->acceptsInvites())
@@ -156,6 +130,28 @@ class AttendeesRelationManager extends RelationManager
                     }),
             ])
             ->recordActions([
+                Action::make('qualifications')
+                    ->modalHeading(fn (User $record): string => $record->name)
+                    ->modalWidth(Width::Large)
+                    ->modalSubmitAction(false)
+                    ->modalCancelActionLabel(__('Close'))
+                    ->authorize(fn (User $record): bool => $this->isQualified($record))
+                    ->modalContent(fn (User $record): View => view('filament.bookings.person-access-host', [
+                        'booking' => $this->booking(),
+                        'person' => $record,
+                        'panel' => 'qualifications',
+                    ])),
+                Action::make('heldKeys')
+                    ->modalHeading(fn (User $record): string => $record->name)
+                    ->modalWidth(Width::Large)
+                    ->modalSubmitAction(false)
+                    ->modalCancelActionLabel(__('Close'))
+                    ->authorize(fn (User $record): bool => $this->keyBadge($record) === 'holder')
+                    ->modalContent(fn (User $record): View => view('filament.bookings.person-access-host', [
+                        'booking' => $this->booking(),
+                        'person' => $record,
+                        'panel' => 'keys',
+                    ])),
                 Action::make('editAttendance')
                     ->label(__('Edit'))
                     ->authorize(function (User $record): bool {
@@ -190,6 +186,7 @@ class AttendeesRelationManager extends RelationManager
                         );
                     }),
                 DetachAction::make()
+                    ->label(__('Remove'))
                     ->authorize(fn (User $record): bool => $this->canRemoveAttendee($record))
                     ->after(function (User $record): void {
                         activity()
@@ -319,11 +316,75 @@ class AttendeesRelationManager extends RelationManager
         return $activity instanceof Activity ? $activity : null;
     }
 
+    protected function isQualified(User $record): bool
+    {
+        $activity = $this->activity();
+
+        return $activity instanceof Activity
+            && $activity->requiresQualification()
+            && $activity->metBy($record);
+    }
+
     protected function canRemoveAttendee(User $attendee): bool
     {
         $attendance = $attendee->attendance;
 
         return $attendance instanceof BookingAttendance
             && (bool) auth()->user()?->can('delete', $attendance);
+    }
+
+    protected function guestListContent(): View
+    {
+        $booking = $this->booking();
+        $booking->loadMissing(['attendees', 'team', 'activity.qualificationRequirements']);
+        $actor = auth()->user();
+        $canManageBooking = $actor instanceof User
+            && $booking->team !== null
+            && $actor->manages($booking->team);
+
+        $roster = BookingGuestList::forBooking(
+            $booking,
+            $booking->attendees,
+            BookingAttendeeStatus::cases(),
+            includeSuspended: true,
+            includeAccessDetails: true,
+        );
+
+        $roster['groups'] = array_map(
+            function (array $group) use ($booking, $canManageBooking): array {
+                $group['people'] = array_map(
+                    function (array $person) use ($booking, $canManageBooking): array {
+                        $attendee = $booking->attendees->first(
+                            fn (User $attendee): bool => (string) $attendee->getKey() === $person['id'],
+                        );
+                        $attendance = $attendee?->attendance;
+
+                        $person['can_edit'] = $canManageBooking
+                            && $attendee instanceof User
+                            && ! $booking->isCancelled()
+                            && ! $attendee->isSuspended();
+                        $person['can_remove'] = $canManageBooking
+                            && $attendee instanceof User
+                            && $attendance instanceof BookingAttendance
+                            && ! ($booking->isLead($attendee) && $attendance->isAccepted());
+
+                        return $person;
+                    },
+                    $group['people'],
+                );
+
+                return $group;
+            },
+            $roster['groups'],
+        );
+
+        return view('filament.bookings.guest-list', [
+            'groups' => $roster['groups'],
+            'showQualified' => $roster['show_qualified'],
+            'showKeys' => $roster['show_keys'],
+            'panel' => 'manage',
+            'showAccessDetails' => true,
+            'showHeading' => false,
+        ]);
     }
 }

@@ -38,13 +38,10 @@ class BookingTimelineTest extends TestCase
         $view
             ->assertSee('Confirmed booking')
             ->assertSee('Group')
-            ->assertSee('Guest list')
-            ->assertSee($member->name)
             ->assertSee('Recent activity')
             ->assertSee($leader->name)
+            ->assertSeeHtml('wire:name="App\\Filament\\Team\\Resources\\Bookings\\RelationManagers\\AttendeesRelationManager"')
             ->assertDontSeeHtml('/manage/');
-
-        $this->assertSame(1, substr_count($view->html(), 'Guest list'));
     }
 
     public function test_only_current_team_members_can_see_the_guest_list(): void
@@ -66,7 +63,7 @@ class BookingTimelineTest extends TestCase
 
         $view
             ->assertSee('Confirmed booking')
-            ->assertSee('Guest list')
+            ->assertSeeHtml('wire:name="App\\Filament\\Team\\Resources\\Bookings\\RelationManagers\\AttendeesRelationManager"')
             ->assertSeeHtml('--col-span-lg: span 3 / span 3;')
             ->assertSeeHtml('--col-span-lg: span 2 / span 2;');
 

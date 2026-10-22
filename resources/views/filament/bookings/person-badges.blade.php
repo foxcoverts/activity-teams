@@ -1,23 +1,38 @@
+@php($panel = $panel ?? 'invite')
+
 @if ($showQualified && $person['qualified'])
-    <button type="button" class="invite-badge" wire:click="openQualifications('{{ $person['id'] }}')">
+    <button
+        type="button"
+        class="invite-badge"
+        wire:click="{{ $panel === 'manage'
+            ? "mountTableAction('qualifications', '{$person['id']}')"
+            : "openQualifications('{$person['id']}')" }}"
+    >
         <x-filament::badge :color="\App\Support\Palette::positive()" :icon="\Filament\Support\Icons\Heroicon::CheckCircle">
             {{ __('Qualified') }}
         </x-filament::badge>
     </button>
 @endif
 
-@if ($showKeys && $person['key_badge'] === 'holder')
+@if ($panel === 'invite' && $showKeys && $person['key_badge'] === 'other')
     <button type="button" class="invite-badge" wire:click="openKeys('{{ $person['id'] }}')">
-        <x-filament::badge :color="\App\Support\Palette::positive()" :icon="\Filament\Support\Icons\Heroicon::OutlinedKey">
-            {{ __('Key holder') }}
+        <x-filament::badge :color="\App\Support\Palette::neutral()" :icon="\Filament\Support\Icons\Heroicon::OutlinedKey">
+            {{ __('Other keys') }}
         </x-filament::badge>
     </button>
 @endif
 
-@if ($showKeys && $person['key_badge'] === 'other')
-    <button type="button" class="invite-badge" wire:click="openKeys('{{ $person['id'] }}')">
-        <x-filament::badge :color="\App\Support\Palette::neutral()" :icon="\Filament\Support\Icons\Heroicon::OutlinedKey">
-            {{ __('Other keys') }}
+@if ($showKeys && $person['key_badge'] === 'holder')
+    <button
+        type="button"
+        class="invite-badge"
+        title="{{ __('Key holder') }}"
+        aria-label="{{ __('Key holder') }}"
+        wire:click="{{ $panel === 'manage'
+            ? "mountTableAction('heldKeys', '{$person['id']}')"
+            : "openKeys('{$person['id']}')" }}"
+    >
+        <x-filament::badge class="key-holder-badge" :color="\App\Support\Palette::positive()" :icon="\Filament\Support\Icons\Heroicon::OutlinedKey">
         </x-filament::badge>
     </button>
 @endif
