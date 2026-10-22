@@ -147,6 +147,14 @@ class User extends Authenticatable implements FilamentUser, HasDefaultTenant, Ha
             ->using(BookingAttendance::class);
     }
 
+    /**
+     * @return HasMany<Booking, $this>
+     */
+    public function ledBookings(): HasMany
+    {
+        return $this->hasMany(Booking::class, 'lead_instructor_id');
+    }
+
     public function keyRings(): HasMany
     {
         return $this->hasMany(KeyRing::class, 'holder_id')->orderBy('name');
@@ -193,6 +201,21 @@ class User extends Authenticatable implements FilamentUser, HasDefaultTenant, Ha
         }
 
         return $this->managedTeams()->whereKey($team->getKey())->exists();
+    }
+
+    /**
+     * Teams that would have no active (unsuspended) manager if this person were suspended.
+     *
+     * @return EloquentCollection<int, Team>
+     */
+    public function teamsLeftWithoutActiveManager(): EloquentCollection
+    {
+        return $this->managedTeams()->get()->filter(
+            fn (Team $team): bool => ! $team->managers()
+                ->where('users.id', '!=', $this->getKey())
+                ->where('users.suspended', false)
+                ->exists()
+        )->values();
     }
 
     public function isCurrentMemberOf(Team $team): bool

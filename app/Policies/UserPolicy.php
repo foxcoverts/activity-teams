@@ -34,6 +34,25 @@ class UserPolicy
         return $user->hasOversight() && ! $user->is($model);
     }
 
+    /**
+     * Suspension is system-wide, so team managers may suspend anyone who shares one of
+     * their teams, but only oversight and system admins may suspend those with site-wide roles.
+     */
+    public function suspend(User $user, User $model): bool
+    {
+        if ($user->isSuspended() || $user->is($model)) {
+            return false;
+        }
+
+        if ($user->hasOversight() || $user->isSystemAdmin()) {
+            return true;
+        }
+
+        return ! $model->oversight
+            && ! $model->is_system_admin
+            && $this->sharesManagedTeam($user, $model);
+    }
+
     private function sharesManagedTeam(User $user, User $model): bool
     {
         if ($user->isSuspended()) {

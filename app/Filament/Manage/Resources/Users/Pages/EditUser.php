@@ -2,6 +2,7 @@
 
 namespace App\Filament\Manage\Resources\Users\Pages;
 
+use App\Filament\Manage\Actions\SuspensionActions;
 use App\Filament\Manage\Concerns\AcknowledgesPersonalData;
 use App\Filament\Manage\Resources\Users\UserResource;
 use Filament\Actions\DeleteAction;
@@ -19,6 +20,7 @@ class EditUser extends EditRecord
         return [
             ViewAction::make(),
             DeleteAction::make(),
+            SuspensionActions::group($this->getRecord()),
         ];
     }
 }

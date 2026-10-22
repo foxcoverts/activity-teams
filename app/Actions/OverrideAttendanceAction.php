@@ -67,7 +67,7 @@ class OverrideAttendanceAction
 
         $this->stepLeadAway($booking, $attendee, $status);
 
-        if ($booking->isPast() || ! $attendee->hasVerifiedEmail()) {
+        if ($booking->isPast() || $attendee->isSuspended() || ! $attendee->hasVerifiedEmail()) {
             return;
         }
 

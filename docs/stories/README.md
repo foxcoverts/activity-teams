@@ -82,7 +82,7 @@ When an enum is shown in Filament, give it a label, and a color and icon when th
 - [US-19 On-The-Day Emergency & Contact Access (Participants)](US-19-participant-lead-contact-access.md) — `not-started`
 - [US-20 Annual Profile & Emergency Contact Data Confirmation](US-20-annual-profile-confirmation.md) — `not-started`
 - [US-21 Incident & Accident Reporting & Compliance](US-21-incident-accident-reporting.md) — `not-started`
-- [US-48 Suspend and Restore a Member](US-48-suspend-and-restore-a-member.md) — `not-started`
+- [US-48 Suspend and Restore a Member](US-48-suspend-and-restore-a-member.md) — `done`
 - [US-22 Team & Multi-Activity Task Management](US-22-task-management.md) — `not-started`
 - [US-23 Instructor Personal Kit Compliance Tracking](US-23-instructor-kit-compliance.md) — `not-started`
 - [US-24 Equipment & Merchandise Allocation Tracking](US-24-equipment-merchandise-allocation.md) — `not-started`

@@ -115,6 +115,11 @@ class UpdateBookingStatusAction
 
         $booking->fill($details);
         $booking->status = BookingStatus::Tentative;
+
+        if ($booking->leadInstructor?->isSuspended()) {
+            $booking->lead_instructor_id = null;
+        }
+
         $booking->save();
 
         $this($booking, $actor);

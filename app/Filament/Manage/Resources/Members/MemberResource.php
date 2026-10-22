@@ -13,6 +13,7 @@ use App\Filament\Manage\Resources\Members\RelationManagers\QualificationsRelatio
 use App\Filament\Manage\Schemas\PersonalDataSection;
 use App\Models\Team;
 use App\Models\User;
+use App\Support\Palette;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Actions\EditAction;
@@ -129,6 +130,13 @@ class MemberResource extends Resource
                             ->label('Role')
                             ->badge()
                             ->state(fn (User $record): ?MembershipRole => static::roleOnCurrentTeam($record)),
+                        TextEntry::make('suspended')
+                            ->hiddenLabel()
+                            ->badge()
+                            ->icon(Heroicon::NoSymbol)
+                            ->color(Palette::destructive())
+                            ->state(__('Suspended'))
+                            ->visible(fn (User $record): bool => $record->isSuspended()),
                         PersonalDataSection::make(PersonalDataSectionEnum::ContactDetails, [
                             TextEntry::make('email'),
                             TextEntry::make('phone')
