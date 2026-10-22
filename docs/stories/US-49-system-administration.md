@@ -1,7 +1,7 @@
 ---
 id: US-49
 title: "System Administration"
-status: partial
+status: done
 area: qualifications
 scope: required
 ---
@@ -22,4 +22,4 @@ As a system admin, I want to set up teams and the shared catalogs they use so th
 
 A system admin can give any team its activities and venues, see that team's keys, and manage its members, roles, and qualifications, even when they do not manage the team. They still cannot create a booking or manage attendance for that team.
 
-System admins can open the global User screens to grant oversight and system-admin access (only system admins can change those flags). Their view and edit of another person's contact and emergency details requires the US-58 acknowledgement, so the personal-data criterion is met for every screen that currently shows these details. The remaining criteria (creating teams with a first manager, managing the activity and venue catalogs) have not been re-checked, so this story stays `partial`.
+System admins can open the global User screens to grant oversight and system-admin access (only system admins can change those flags). Their view and edit of another person's contact and emergency details requires the US-58 acknowledgement, so the personal-data criterion is met for every screen that currently shows these details. The other criteria are met and tested: a system admin creates a team and must name its first manager, only system admins create, edit and delete activities and venues, a team manager gives their team items from those catalogs, and the booking form cannot create an activity or venue.
