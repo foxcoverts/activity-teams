@@ -78,8 +78,8 @@ When an enum is shown in Filament, give it a label, and a color and icon when th
 
 ## Safety, Compliance & Operational Tools
 
-- [US-18 Time-Bound Event Contact Access (Lead Instructors)](US-18-lead-instructor-contact-access.md) — `not-started`
-- [US-19 On-The-Day Emergency & Contact Access (Participants)](US-19-participant-lead-contact-access.md) — `not-started`
+- [US-18 Time-Bound Event Contact Access (Lead Instructors)](US-18-lead-instructor-contact-access.md) — `done`
+- [US-19 On-The-Day Emergency & Contact Access (Participants)](US-19-participant-lead-contact-access.md) — `done`
 - [US-20 Annual Profile & Emergency Contact Data Confirmation](US-20-annual-profile-confirmation.md) — `not-started`
 - [US-21 Incident & Accident Reporting & Compliance](US-21-incident-accident-reporting.md) — `not-started`
 - [US-48 Suspend and Restore a Member](US-48-suspend-and-restore-a-member.md) — `done`

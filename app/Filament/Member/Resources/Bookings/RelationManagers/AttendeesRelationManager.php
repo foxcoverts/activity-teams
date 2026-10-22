@@ -67,6 +67,28 @@ class AttendeesRelationManager extends RelationManager
                         'person' => $record,
                         'panel' => 'keys',
                     ])),
+                Action::make('contactPhone')
+                    ->modalHeading(fn (User $record): string => $record->name)
+                    ->modalWidth(Width::Large)
+                    ->modalSubmitAction(false)
+                    ->modalCancelActionLabel(__('Close'))
+                    ->authorize(fn (User $record): bool => $this->canViewContact($this->attendee($record), 'viewPhone'))
+                    ->modalContent(fn (User $record): View => view('filament.bookings.contact-details-host', [
+                        'booking' => $this->getOwnerRecord(),
+                        'person' => $record,
+                        'kind' => 'phone',
+                    ])),
+                Action::make('emergencyContact')
+                    ->modalHeading(fn (User $record): string => __(':name — emergency contact', ['name' => $record->name]))
+                    ->modalWidth(Width::Large)
+                    ->modalSubmitAction(false)
+                    ->modalCancelActionLabel(__('Close'))
+                    ->authorize(fn (User $record): bool => $this->canViewContact($this->attendee($record), 'viewEmergencyContact'))
+                    ->modalContent(fn (User $record): View => view('filament.bookings.contact-details-host', [
+                        'booking' => $this->getOwnerRecord(),
+                        'person' => $record,
+                        'kind' => 'emergency',
+                    ])),
             ])
             ->toolbarActions([]);
     }
@@ -108,6 +130,8 @@ class AttendeesRelationManager extends RelationManager
             includeAccessDetails: $isLead,
         );
 
+        $roster['groups'] = $this->withContactAccess($roster['groups'], $booking, $actor);
+
         return view('filament.bookings.guest-list', [
             ...$roster,
             'showAccessDetails' => $isLead,
@@ -116,6 +140,48 @@ class AttendeesRelationManager extends RelationManager
             'showKeys' => $isLead && $roster['show_keys'],
             'panel' => 'member-relation-manager',
         ]);
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $groups
+     * @return list<array<string, mixed>>
+     */
+    private function withContactAccess(array $groups, Booking $booking, User $actor): array
+    {
+        return array_map(function (array $group) use ($booking): array {
+            $group['people'] = array_map(function (array $person) use ($booking): array {
+                $subject = $booking->attendees->find($person['id']);
+
+                return $person + [
+                    'can_phone' => $this->canViewContact($subject, 'viewPhone'),
+                    'can_emergency' => $this->canViewContact($subject, 'viewEmergencyContact'),
+                ];
+            }, $group['people']);
+
+            return $group;
+        }, $groups);
+    }
+
+    private function attendee(User $person): ?User
+    {
+        return $this->getOwnerRecord()->attendees()->whereKey($person->getKey())->first();
+    }
+
+    /**
+     * Nothing is offered when the person has not shared the detail, so no notice is shown for nothing.
+     */
+    private function canViewContact(?User $person, string $ability): bool
+    {
+        $actor = auth()->user();
+        $attendance = $person?->attendance;
+
+        if (! $actor instanceof User || ! $person instanceof User || $attendance === null) {
+            return false;
+        }
+
+        $shared = $ability === 'viewPhone' ? $person->phone : $person->emergency_phone;
+
+        return filled($shared) && $actor->can($ability, $attendance);
     }
 
     private function hasAccessDetail(User $person, string $detail): bool

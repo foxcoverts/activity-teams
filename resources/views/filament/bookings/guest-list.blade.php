@@ -48,6 +48,32 @@
                             @endif
                         </div>
 
+                        @if ($panel === 'member-relation-manager' && (($person['can_phone'] ?? false) || ($person['can_emergency'] ?? false)))
+                            <div class="flex items-center gap-2">
+                                @if ($person['can_phone'])
+                                    <x-filament::button
+                                        size="sm"
+                                        color="gray"
+                                        outlined
+                                        wire:click="mountTableAction('contactPhone', '{{ $person['id'] }}')"
+                                    >
+                                        {{ __('Phone') }}
+                                    </x-filament::button>
+                                @endif
+
+                                @if ($person['can_emergency'])
+                                    <x-filament::button
+                                        size="sm"
+                                        color="gray"
+                                        outlined
+                                        wire:click="mountTableAction('emergencyContact', '{{ $person['id'] }}')"
+                                    >
+                                        {{ __('Emergency') }}
+                                    </x-filament::button>
+                                @endif
+                            </div>
+                        @endif
+
                         @if ($panel === 'manage')
                             <div class="flex items-center gap-2">
                                 @if ($person['can_edit'])
