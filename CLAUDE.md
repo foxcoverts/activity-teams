@@ -1,3 +1,12 @@
+# AI and Credit Efficiency
+
+- Keep AI work proportionate: use the smallest relevant context, the fewest useful tool calls, and focused tests. Avoid broad repository scans, repeated reads, speculative subagents, and external research when the answer is already clear locally.
+- Proceed without asking when the task is bounded, the desired behavior is clear, and implementation is likely more efficient than handing it back.
+- Before substantial open-ended research or multi-step work, assess whether it is best done by Copilot/Cursor, Gemini, or the product owner. If the task depends on live legacy behavior, operational access, product judgment, or real-world acceptance, ask the product owner to investigate or decide rather than guessing from source code.
+- If broad independent reasoning or alternative prioritization is needed, suggest Gemini and offer a concise, sanitized prompt the product owner can use. Never send repository code, private data, credentials, or other sensitive material to Gemini or another external service.
+- When a task is likely to consume significant credits or its direction is uncertain, pause before doing that work. Briefly state what is known, what needs resolving, and the lower-cost options; ask whether to continue with Copilot/Cursor, have the product owner investigate or implement a part, or use Gemini for independent reasoning. Do not pause for routine, clearly scoped implementation.
+- Use the product owner's strong domain and backend experience: keep domain decisions and legacy interpretation with them; favor AI assistance for bounded Livewire, front-end, and feature-test implementation and iteration.
+
 <laravel-boost-guidelines>
 === foundation rules ===
 
