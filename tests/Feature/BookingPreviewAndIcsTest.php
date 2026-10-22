@@ -36,14 +36,14 @@ class BookingPreviewAndIcsTest extends TestCase
             ->assertDontSee('Lead Instructor Person')
             ->assertDontSee('Attendee Person')
             ->assertDontSee('tentative')
-            ->assertSessionHas('url.intended', BookingResource::getUrl('view', ['record' => $booking], panel: 'team'));
+            ->assertSessionHas('url.intended', BookingResource::getUrl('view', ['record' => $booking], panel: 'member'));
     }
 
     public function test_booking_url_shows_public_summary_to_guests(): void
     {
         $booking = $this->sharedBooking();
 
-        $this->get(BookingResource::getUrl('view', ['record' => $booking], panel: 'team'))
+        $this->get(BookingResource::getUrl('view', ['record' => $booking], panel: 'member'))
             ->assertOk()
             ->assertSee('Climbing on Sat, Oct 17, 2026')
             ->assertSee(__('Can you attend this event?'))
@@ -55,9 +55,9 @@ class BookingPreviewAndIcsTest extends TestCase
             ->assertSee('<meta property="og:type" content="website">', false)
             ->assertDontSee('Secret Group Name')
             ->assertDontSee(__('Lead instructor'))
-            ->assertSessionHas('url.intended', BookingResource::getUrl('view', ['record' => $booking], panel: 'team'));
+            ->assertSessionHas('url.intended', BookingResource::getUrl('view', ['record' => $booking], panel: 'member'));
 
-        $this->get(BookingResource::getUrl('index', panel: 'team'))
+        $this->get(BookingResource::getUrl('index', panel: 'member'))
             ->assertRedirect('/login');
     }
 
@@ -89,7 +89,7 @@ class BookingPreviewAndIcsTest extends TestCase
             ->get(route('booking.preview', $booking))
             ->assertOk()
             ->assertSee(__('View full details'))
-            ->assertSee(BookingResource::getUrl('view', ['record' => $booking], panel: 'team'), false)
+            ->assertSee(BookingResource::getUrl('view', ['record' => $booking], panel: 'member'), false)
             ->assertDontSee(__('Please log in to view full details and to RSVP.'))
             ->assertDontSee('Secret Group Name');
     }
@@ -102,10 +102,10 @@ class BookingPreviewAndIcsTest extends TestCase
         ]);
 
         $this->actingAs($user)
-            ->get(BookingResource::getUrl('view', ['record' => $booking], panel: 'team'))
+            ->get(BookingResource::getUrl('view', ['record' => $booking], panel: 'member'))
             ->assertOk()
             ->assertSee('Member Booking')
-            ->assertSee(__('Lead instructor'))
+            ->assertDontSee(__('Lead instructor'))
             ->assertDontSee(__('Can you attend this event?'));
     }
 

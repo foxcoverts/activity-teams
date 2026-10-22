@@ -5,14 +5,17 @@ namespace App\Providers\Filament;
 use App\Filament\Manage\NavigationGroup;
 use App\Http\Middleware\RememberManageTeam;
 use App\Models\Team;
+use Filament\Facades\Filament;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
+use Filament\Navigation\NavigationItem;
 use Filament\Pages\Dashboard;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
+use Filament\Support\Icons\Heroicon;
 use Filament\Widgets\AccountWidget;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
@@ -47,6 +50,12 @@ class ManagePanelProvider extends PanelProvider
             ->discoverPages(in: app_path('Filament/Manage/Pages'), for: 'App\\Filament\\Manage\\Pages')
             ->pages([
                 Dashboard::class,
+            ])
+            ->navigationItems([
+                NavigationItem::make('Members')
+                    ->icon(Heroicon::OutlinedArrowsRightLeft)
+                    ->sort(-1)
+                    ->url(fn (): ?string => Filament::getPanel('member')?->getUrl()),
             ])
             ->discoverWidgets(in: app_path('Filament/Manage/Widgets'), for: 'App\\Filament\\Manage\\Widgets')
             ->widgets([

@@ -30,7 +30,7 @@ class BookingTimelineTest extends TestCase
         $booking = Booking::factory()->confirmed()->create();
         $booking->attendees()->attach($member->id);
 
-        Filament::setCurrentPanel(Filament::getPanel('team'));
+        Filament::setCurrentPanel(Filament::getPanel('member'));
         $this->actingAs($member);
 
         $view = Livewire::test(TeamViewBooking::class, ['record' => $booking->getRouteKey()]);
@@ -58,7 +58,7 @@ class BookingTimelineTest extends TestCase
             'team_id' => $team->getKey(),
         ]);
 
-        Filament::setCurrentPanel(Filament::getPanel('team'));
+        Filament::setCurrentPanel(Filament::getPanel('member'));
 
         $this->actingAs($member);
 
@@ -93,7 +93,7 @@ class BookingTimelineTest extends TestCase
 
         app(OverrideAttendanceAction::class)($booking, $member, $leader, BookingAttendeeStatus::Accepted);
 
-        Filament::setCurrentPanel(Filament::getPanel('team'));
+        Filament::setCurrentPanel(Filament::getPanel('member'));
         $this->actingAs($member);
 
         Livewire::test(TeamViewBooking::class, ['record' => $booking->getRouteKey()])

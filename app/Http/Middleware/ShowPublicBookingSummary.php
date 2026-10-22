@@ -12,7 +12,7 @@ class ShowPublicBookingSummary
 {
     public function handle(Request $request, Closure $next): Response
     {
-        if ($request->user() || ! $request->routeIs('filament.team.resources.bookings.view')) {
+        if ($request->user() || ! $request->routeIs('filament.member.resources.bookings.view')) {
             return $next($request);
         }
 

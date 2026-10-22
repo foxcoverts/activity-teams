@@ -70,7 +70,7 @@ class FilamentDisplayPreferencesTest extends TestCase
         Livewire::test(ManageViewBooking::class, ['record' => $cancelledBooking->getKey()])
             ->assertSee('Cancelled booking');
 
-        Filament::setCurrentPanel(Filament::getPanel('team'));
+        Filament::setCurrentPanel(Filament::getPanel('member'));
         Filament::setTenant($team);
 
         Livewire::test(TeamListBookings::class)
@@ -108,7 +108,7 @@ class FilamentDisplayPreferencesTest extends TestCase
         Livewire::test(ManageViewBooking::class, ['record' => $booking->getKey()])
             ->assertSee('Tue 20 Oct 2026 11:30 to Wed 21 Oct 2026 11:30 (1 day)');
 
-        Filament::setCurrentPanel(Filament::getPanel('team'));
+        Filament::setCurrentPanel(Filament::getPanel('member'));
         Filament::setTenant($team);
 
         Livewire::test(TeamViewBooking::class, ['record' => $booking->getKey()])
@@ -136,7 +136,7 @@ class FilamentDisplayPreferencesTest extends TestCase
         Livewire::test(ManageViewBooking::class, ['record' => $booking->getKey()])
             ->assertSee('Private lead arrangements');
 
-        Filament::setCurrentPanel(Filament::getPanel('team'));
+        Filament::setCurrentPanel(Filament::getPanel('member'));
         Filament::setTenant($team);
         $this->actingAs($lead);
 

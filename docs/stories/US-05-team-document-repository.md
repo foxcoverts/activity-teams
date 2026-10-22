@@ -15,4 +15,4 @@ As an Activity Manager, I want to upload and share internal compliance documents
 
 ## Progress
 
-An activity team is a team in this app. General campsite use is the site scope, the same split keys will use. Not built yet.
+An activity team is a team in this app. General campsite use is the site scope, the same split keys will use. Not built yet. Documents should be reachable in Members across the user's teams, with an optional team filter rather than a tenant switch.

@@ -52,12 +52,12 @@ class BookingPreview extends Component
 
     public function bookingUrl(): string
     {
-        return BookingResource::getUrl('view', ['record' => $this->booking], panel: 'team');
+        return BookingResource::getUrl('view', ['record' => $this->booking], panel: 'member');
     }
 
     public function loginUrl(): string
     {
-        return route('filament.team.auth.login');
+        return route('filament.member.auth.login');
     }
 
     public function render(): View

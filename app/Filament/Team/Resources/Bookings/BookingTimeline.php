@@ -39,6 +39,6 @@ class BookingTimeline
             return null;
         }
 
-        return BookingResource::getUrl('view', ['record' => $booking], panel: 'team');
+        return BookingResource::getUrl('view', ['record' => $booking], panel: 'member');
     }
 }

@@ -122,7 +122,7 @@ class RespondToBookingTest extends TestCase
             ->assertSee('You said you can help.')
             ->assertSee('Change response')
             ->assertSee('View booking')
-            ->assertSee(BookingResource::getUrl('view', ['record' => $booking], panel: 'team'))
+            ->assertSee(BookingResource::getUrl('view', ['record' => $booking], panel: 'member'))
             ->assertSeeHtml('bg-sky-50')
             ->assertDontSee('Yes, I can help')
             ->call('changeResponse')

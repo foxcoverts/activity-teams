@@ -129,7 +129,7 @@ class RespondToBooking extends Component
 
     public function bookingUrl(): string
     {
-        return BookingResource::getUrl('view', ['record' => $this->booking], panel: 'team');
+        return BookingResource::getUrl('view', ['record' => $this->booking], panel: 'member');
     }
 
     public function render(): View

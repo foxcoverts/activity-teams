@@ -246,7 +246,7 @@ class KeyAccessTest extends TestCase
         $own->keys()->attach($wardenKey);
         KeyRing::factory()->heldBy($other)->create(['name' => 'Someone else']);
 
-        Filament::setCurrentPanel(Filament::getPanel('team'));
+        Filament::setCurrentPanel(Filament::getPanel('member'));
         $this->actingAs($member);
 
         $this->get(TeamKeyRingResource::getUrl('index'))
@@ -366,7 +366,7 @@ class KeyAccessTest extends TestCase
             ]);
         }
 
-        Filament::setCurrentPanel(Filament::getPanel('team'));
+        Filament::setCurrentPanel(Filament::getPanel('member'));
         $this->actingAs($lead);
 
         $this->get(BookingResource::getUrl('view', ['record' => $booking]))

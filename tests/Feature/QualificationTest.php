@@ -223,7 +223,7 @@ class QualificationTest extends TestCase
         $award = Qualification::factory()->forMember($member)->mountainTraining()->create();
         $other = Qualification::factory()->forMember($leader)->mountainTraining(MountainTrainingAward::MountainLeader)->create();
 
-        Filament::setCurrentPanel(Filament::getPanel('team'));
+        Filament::setCurrentPanel(Filament::getPanel('member'));
         $this->actingAs($member);
 
         $this->get(QualificationResource::getUrl('index'))
