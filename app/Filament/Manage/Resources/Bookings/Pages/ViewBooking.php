@@ -10,6 +10,7 @@ use App\Models\Booking;
 use Filament\Actions\DeleteAction;
 use Filament\Resources\Pages\ViewRecord;
 use Filament\Schemas\Components\EmbeddedSchema;
+use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Schema;
 
 class ViewBooking extends ViewRecord
@@ -20,9 +21,15 @@ class ViewBooking extends ViewRecord
     {
         return $schema
             ->components([
-                $this->getInfolistContentComponent(),
-                $this->getRelationManagersContentComponent(),
-                EmbeddedSchema::make('timeline'),
+                Grid::make(['default' => 1, 'lg' => 5])
+                    ->schema([
+                        $this->getInfolistContentComponent()
+                            ->columnSpan(['default' => 1, 'lg' => 3]),
+                        $this->getRelationManagersContentComponent()
+                            ->columnSpan(['default' => 1, 'lg' => 2]),
+                        EmbeddedSchema::make('timeline')
+                            ->columnSpan(['default' => 1, 'lg' => 3]),
+                    ]),
             ]);
     }
 

@@ -33,6 +33,8 @@ use RuntimeException;
 
 class AttendeesRelationManager extends RelationManager
 {
+    protected static ?string $title = 'Guest list';
+
     protected static string $relationship = 'attendees';
 
     public ?string $inviteSession = null;

@@ -18,7 +18,7 @@ class BookingTimeline
 {
     public static function section(): Section
     {
-        return Section::make(__('Timeline'))
+        return Section::make(__('Recent activity'))
             ->columnSpanFull()
             ->components([
                 static::entry()->hiddenLabel(),

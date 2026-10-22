@@ -17,6 +17,7 @@ use Filament\Forms\Components\ToggleButtons;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ViewRecord;
 use Filament\Schemas\Components\EmbeddedSchema;
+use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Livewire;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
@@ -28,20 +29,33 @@ class ViewBooking extends ViewRecord
 
     public function content(Schema $schema): Schema
     {
-        $components = [
-            $this->getInfolistContentComponent(),
-        ];
+        $components = [];
 
         $record = $this->getRecord();
         $user = auth()->user();
 
-        if ($record instanceof Booking && $user instanceof User && $record->isLead($user)) {
-            $components[] = Livewire::make(SessionRoster::class, ['booking' => $record]);
+        if ($record instanceof Booking && $user instanceof User) {
+            $record->loadMissing('team');
+
+            if ($record->team !== null && $user->isCurrentMemberOf($record->team)) {
+                $components[] = Livewire::make(SessionRoster::class, ['booking' => $record])
+                    ->columnSpan(['default' => 1, 'lg' => 2]);
+            }
         }
 
-        $components[] = EmbeddedSchema::make('timeline');
+        array_unshift(
+            $components,
+            $this->getInfolistContentComponent()
+                ->columnSpan(['default' => 1, 'lg' => 3]),
+        );
 
-        return $schema->components($components);
+        $components[] = EmbeddedSchema::make('timeline')
+            ->columnSpan(['default' => 1, 'lg' => 3]);
+
+        return $schema->components([
+            Grid::make(['default' => 1, 'lg' => 5])
+                ->schema($components),
+        ]);
     }
 
     public function timeline(Schema $schema): Schema

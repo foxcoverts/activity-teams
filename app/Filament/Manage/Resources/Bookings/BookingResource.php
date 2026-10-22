@@ -12,6 +12,8 @@ use App\Filament\Manage\Resources\Bookings\Pages\ViewBooking;
 use App\Filament\Manage\Resources\Bookings\RelationManagers\AttendeesRelationManager;
 use App\Models\Booking;
 use App\Models\Team;
+use App\Models\User;
+use App\Support\BookingWhen;
 use BackedEnum;
 use Carbon\Carbon;
 use Carbon\CarbonInterface;
@@ -197,36 +199,39 @@ class BookingResource extends Resource
     {
         return $schema
             ->components([
-                TextEntry::make('activity.name')
-                    ->label('Activity'),
-                TextEntry::make('venue.name')
-                    ->label('Venue'),
-                TextEntry::make('start_at')
-                    ->dateTime('M j, Y H:i')
-                    ->placeholder('-'),
-                TextEntry::make('end_at')
-                    ->dateTime('M j, Y H:i')
-                    ->placeholder('-'),
-                TextEntry::make('timezone')
-                    ->placeholder('-'),
-                TextEntry::make('status')
-                    ->badge(),
-                TextEntry::make('group_name'),
-                TextEntry::make('notes')
-                    ->placeholder('-')
-                    ->columnSpanFull(),
-                TextEntry::make('leadInstructor.name')
-                    ->label('Lead instructor')
-                    ->placeholder('-'),
-                TextEntry::make('lead_instructor_notes')
-                    ->placeholder('-')
-                    ->columnSpanFull(),
-                TextEntry::make('created_at')
-                    ->dateTime('M j, Y H:i')
-                    ->placeholder('-'),
-                TextEntry::make('updated_at')
-                    ->dateTime('M j, Y H:i')
-                    ->placeholder('-'),
+                Section::make(fn (?Booking $record): string => __(':Status booking', [
+                    'status' => $record?->status->getLabel() ?? __('Booking'),
+                ]))
+                    ->icon(fn (?Booking $record): Heroicon => ($record?->status ?? BookingStatus::Tentative)->getIcon())
+                    ->iconColor(fn (?Booking $record): array => ($record?->status ?? BookingStatus::Tentative)->getColor())
+                    ->columns(1)
+                    ->columnSpanFull()
+                    ->schema([
+                        TextEntry::make('when')
+                            ->label(__('When'))
+                            ->state(fn (Booking $record): string => BookingWhen::format($record)),
+                        TextEntry::make('venue.name')->label(__('Location')),
+                        TextEntry::make('activity.name')->label(__('Activity')),
+                        TextEntry::make('group_name')
+                            ->label(__('Group'))
+                            ->columnSpanFull(),
+                        TextEntry::make('notes')
+                            ->label(__('Notes'))
+                            ->placeholder('-')
+                            ->columnSpanFull(),
+                        TextEntry::make('lead_instructor_notes')
+                            ->label(__('Lead instructor notes'))
+                            ->placeholder('-')
+                            ->visible(function (Booking $record): bool {
+                                $user = auth()->user();
+                                $record->loadMissing('team');
+
+                                return $user instanceof User
+                                    && $record->team !== null
+                                    && ($record->isLead($user) || $user->manages($record->team));
+                            })
+                            ->columnSpanFull(),
+                    ]),
             ]);
     }
 

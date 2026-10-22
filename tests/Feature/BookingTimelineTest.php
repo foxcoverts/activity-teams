@@ -5,9 +5,11 @@ namespace Tests\Feature;
 use App\Actions\OverrideAttendanceAction;
 use App\Actions\RespondToBookingAction;
 use App\Enums\BookingAttendeeStatus;
+use App\Enums\MembershipRole;
 use App\Filament\Manage\Resources\Bookings\Pages\ViewBooking as ManageViewBooking;
 use App\Filament\Manage\Resources\Members\MemberResource;
 use App\Filament\Team\Resources\Bookings\Pages\ViewBooking as TeamViewBooking;
+use App\Livewire\SessionRoster;
 use App\Models\Booking;
 use App\Models\User;
 use Filament\Facades\Filament;
@@ -31,10 +33,51 @@ class BookingTimelineTest extends TestCase
         Filament::setCurrentPanel(Filament::getPanel('team'));
         $this->actingAs($member);
 
-        Livewire::test(TeamViewBooking::class, ['record' => $booking->getRouteKey()])
-            ->assertSeeInOrder(['Group name', 'Timeline'])
+        $view = Livewire::test(TeamViewBooking::class, ['record' => $booking->getRouteKey()]);
+
+        $view
+            ->assertSee('Confirmed booking')
+            ->assertSee('Group')
+            ->assertSee('Guest list')
+            ->assertSee($member->name)
+            ->assertSee('Recent activity')
             ->assertSee($leader->name)
             ->assertDontSeeHtml('/manage/');
+
+        $this->assertSame(1, substr_count($view->html(), 'Guest list'));
+    }
+
+    public function test_only_current_team_members_can_see_the_guest_list(): void
+    {
+        $leader = User::factory()->teamLeader()->create();
+        $team = $leader->managedTeams()->firstOrFail();
+        $member = User::factory()->create();
+        $team->grant($member, MembershipRole::Member);
+
+        $booking = Booking::factory()->confirmed()->create([
+            'team_id' => $team->getKey(),
+        ]);
+
+        Filament::setCurrentPanel(Filament::getPanel('team'));
+
+        $this->actingAs($member);
+
+        $view = Livewire::test(TeamViewBooking::class, ['record' => $booking->getRouteKey()]);
+
+        $view
+            ->assertSee('Confirmed booking')
+            ->assertSee('Guest list')
+            ->assertSeeHtml('--col-span-lg: span 3 / span 3;')
+            ->assertSeeHtml('--col-span-lg: span 2 / span 2;');
+
+        $outsider = User::factory()->guest()->create();
+        $this->actingAs($outsider);
+
+        Livewire::test(TeamViewBooking::class, ['record' => $booking->getRouteKey()])
+            ->assertNotFound();
+
+        Livewire::test(SessionRoster::class, ['booking' => $booking])
+            ->assertForbidden();
     }
 
     public function test_the_member_timeline_emboldens_people_who_are_not_links(): void
@@ -73,7 +116,9 @@ class BookingTimelineTest extends TestCase
         $memberUrl = MemberResource::getUrl('view', ['record' => $leader], panel: 'manage', tenant: $team);
 
         Livewire::test(ManageViewBooking::class, ['record' => $booking->getRouteKey()])
-            ->assertSeeInOrder(['Group name', 'Attendees', 'Timeline'])
+            ->assertSee('Confirmed booking')
+            ->assertSee('Group')
+            ->assertSee('Recent activity')
             ->assertSee($leader->name)
             ->assertSeeHtml($memberUrl)
             ->assertDontSeeHtml('/users/'.$leader->getKey());

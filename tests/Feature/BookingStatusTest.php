@@ -499,6 +499,34 @@ class BookingStatusTest extends TestCase
             ->assertActionVisible('delete');
     }
 
+    public function test_view_status_actions_match_the_booking_state(): void
+    {
+        $leader = User::factory()->teamLeader()->create();
+        $tentative = Booking::factory()->create();
+        $confirmed = Booking::factory()->confirmed()->create();
+        $cancelled = Booking::factory()->cancelled()->create();
+
+        $this->actingAs($leader);
+
+        Livewire::test(ViewBooking::class, ['record' => $tentative->getRouteKey()])
+            ->assertSee('Tentative booking')
+            ->assertActionVisible('confirmBooking')
+            ->assertActionVisible('cancelBooking')
+            ->assertActionVisible('edit');
+
+        Livewire::test(ViewBooking::class, ['record' => $confirmed->getRouteKey()])
+            ->assertSee('Confirmed booking')
+            ->assertActionVisible('cancelBooking')
+            ->assertActionVisible('returnToTentative')
+            ->assertActionVisible('edit');
+
+        Livewire::test(ViewBooking::class, ['record' => $cancelled->getRouteKey()])
+            ->assertSee('Cancelled booking')
+            ->assertActionDoesNotExist('edit')
+            ->assertActionVisible('restoreBooking')
+            ->assertActionVisible('delete');
+    }
+
     public function test_a_cancelled_booking_cannot_be_edited_or_quietly_emailed(): void
     {
         $leader = User::factory()->teamLeader()->create();

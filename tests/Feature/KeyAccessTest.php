@@ -420,6 +420,9 @@ class KeyAccessTest extends TestCase
             ->assertDontSee('Shared climbing');
 
         Livewire::test(SessionRoster::class, ['booking' => $booking])
+            ->assertSee('Sam Holder')
+            ->assertDontSee('Key holder')
+            ->call('openKeys', $holder->getKey())
             ->assertForbidden();
     }
 }
