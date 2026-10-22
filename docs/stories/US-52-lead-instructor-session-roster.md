@@ -17,6 +17,7 @@ As a lead instructor, I want to see the qualifications and keys of the people on
 - Each person shows whether they hold a key this booking needs, or hold other keys. Opening that shows the rings they hold. The lead can also see the keys the booking needs and every ring that opens them, including a ring held by someone who is not on the session.
 - A member who is not the lead on that booking cannot see those qualifications, restrictions, or key rings.
 - Phone numbers and emergency contacts stay out of this view.
+- Any other personal details about someone on the roster are shown only after the lead instructor acknowledges their proper use as required by [US-58](US-58-personal-data-viewing-acknowledgement.md).
 
 ## Progress
 

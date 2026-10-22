@@ -113,12 +113,6 @@ class UserResource extends Resource
             ->columns([
                 TextColumn::make('name')
                     ->searchable(),
-                TextColumn::make('email')
-                    ->label('Email address')
-                    ->searchable(),
-                TextColumn::make('email_verified_at')
-                    ->dateTime()
-                    ->sortable(),
                 TextColumn::make('timezone')
                     ->searchable(),
                 TextColumn::make('section')
@@ -127,12 +121,6 @@ class UserResource extends Resource
                 TextColumn::make('teams.name')
                     ->label('Teams')
                     ->badge(),
-                TextColumn::make('phone')
-                    ->searchable(),
-                TextColumn::make('emergency_name')
-                    ->searchable(),
-                TextColumn::make('emergency_phone')
-                    ->searchable(),
                 TextColumn::make('oversight')
                     ->badge(),
                 TextColumn::make('suspended')

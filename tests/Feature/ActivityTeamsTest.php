@@ -23,6 +23,7 @@ use App\Filament\Manage\Resources\Teams\Pages\ListTeams;
 use App\Filament\Manage\Resources\TeamVenues\Pages\ListTeamVenues;
 use App\Filament\Manage\Resources\Users\Pages\ViewUser;
 use App\Filament\Manage\Resources\Users\RelationManagers\MembershipsRelationManager;
+use App\Filament\Manage\Resources\Users\UserResource;
 use App\Models\Activity;
 use App\Models\Booking;
 use App\Models\BookingAttendance;
@@ -182,11 +183,13 @@ class ActivityTeamsTest extends TestCase
         );
     }
 
-    public function test_oversight_sees_the_directory_and_a_manager_sees_member_contact_details(): void
+    public function test_member_contact_details_are_hidden_from_member_list_but_visible_on_the_member_record(): void
     {
         $leader = User::factory()->teamLeader()->create();
         $member = User::factory()->teamMember()->create([
+            'email' => 'member@example.test',
             'phone' => '07000111222',
+            'emergency_name' => 'Emergency Contact',
             'emergency_phone' => '07000333444',
         ]);
         $oversight = User::factory()->oversight()->create();
@@ -198,8 +201,10 @@ class ActivityTeamsTest extends TestCase
         $this->actingAs($leader);
 
         Livewire::test(ListMembers::class)
-            ->assertSee('07000111222')
-            ->assertSee('07000333444')
+            ->assertDontSee('member@example.test')
+            ->assertDontSee('07000111222')
+            ->assertDontSee('Emergency Contact')
+            ->assertDontSee('07000333444')
             ->assertSee('Manager')
             ->assertSee('Member')
             ->mountTableAction('changeRole', $member)
@@ -207,8 +212,44 @@ class ActivityTeamsTest extends TestCase
                 'role' => MembershipRole::Member,
             ]);
 
+        $this->get(MemberResource::getUrl('view', ['record' => $member]))
+            ->assertOk()
+            ->assertSee('member@example.test')
+            ->assertSee('07000111222')
+            ->assertSee('Emergency Contact')
+            ->assertSee('07000333444');
+
         Livewire::test(ListMembers::class)
             ->assertTableActionDisabled('changeRole', $leader);
+    }
+
+    public function test_global_user_directory_hides_contact_details_but_user_record_shows_them(): void
+    {
+        $oversight = User::factory()->oversight()->create();
+        $member = User::factory()->create([
+            'name' => 'Alex Member',
+            'email' => 'member@example.test',
+            'phone' => '07000111222',
+            'emergency_name' => 'Emergency Contact',
+            'emergency_phone' => '07000333444',
+        ]);
+
+        $this->actingAs($oversight);
+
+        $this->get(UserResource::getUrl('index'))
+            ->assertOk()
+            ->assertSee('Alex Member')
+            ->assertDontSee('member@example.test')
+            ->assertDontSee('07000111222')
+            ->assertDontSee('Emergency Contact')
+            ->assertDontSee('07000333444');
+
+        $this->get(UserResource::getUrl('view', ['record' => $member]))
+            ->assertOk()
+            ->assertSee('member@example.test')
+            ->assertSee('07000111222')
+            ->assertSee('Emergency Contact')
+            ->assertSee('07000333444');
     }
 
     public function test_opening_manage_returns_to_the_last_team(): void
@@ -395,6 +436,11 @@ class ActivityTeamsTest extends TestCase
         $this->get(MemberResource::getUrl('index'))
             ->assertOk()
             ->assertSee('Alex Member')
+            ->assertDontSee('07000999888')
+            ->assertDontSee('07000111222');
+
+        $this->get(MemberResource::getUrl('view', ['record' => $member]))
+            ->assertOk()
             ->assertSee('07000999888')
             ->assertSee('07000111222');
 

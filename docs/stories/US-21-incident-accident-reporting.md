@@ -17,7 +17,7 @@ As a team member or activity leader, I want to submit incident and accident repo
 - If the reporter belongs to only one team, that team is selected by default; otherwise, the reporter selects the responsible team.
 - Automatically notifies the manager or managers of the selected team.
 - Automatically sends a copy or confirmation of the submitted report to the original reporter for their records.
-- Only the reporter and managers of the selected team can access the report.
+- Only the reporter and managers of the selected team can access the report. Before personal details about another person in the report are displayed, the viewer must acknowledge their proper use as required by [US-58](US-58-personal-data-viewing-acknowledgement.md).
 
 ## Progress
 

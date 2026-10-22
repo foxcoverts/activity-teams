@@ -64,10 +64,11 @@ When an enum is shown in Filament, give it a label, and a color and icon when th
 - [US-54 Team News Posts & Distribution](US-54-team-news-posts.md) — `not-started`
 - [US-55 Inbound Email Routing & Failure Alerts](US-55-inbound-email-routing-and-alerts.md) — `not-started`
 
-## Member Profiles & Preferences
+## Personal Data & Account Privacy
 
 - [US-56 Member Profile & Notification Preferences](US-56-member-profile-and-notification-preferences.md) — `not-started`
 - [US-57 Member Account & Privacy Controls](US-57-member-account-privacy-controls.md) — `not-started`
+- [US-58 Personal Data Viewing Acknowledgement](US-58-personal-data-viewing-acknowledgement.md) — `not-started`
 
 ## Audit Streams & Collaboration
 
@@ -97,7 +98,7 @@ When an enum is shown in Filament, give it a label, and a color and icon when th
 ## Relaunch scope decisions
 
 - **Essential:** [US-47 Multiple Activity Teams](US-47-multiple-activity-teams.md) is the primary reason for the rewrite.
-- **Operationally required:** [US-18 Lead Instructor Contact Access](US-18-lead-instructor-contact-access.md), [US-19 Participant Lead Contact Access](US-19-participant-lead-contact-access.md), [US-30 Standard URL Sharing](US-30-standard-url-sharing.md), [US-31 Open Graph Link Previews](US-31-open-graph-link-previews.md), [US-48 Suspend and Restore a Member](US-48-suspend-and-restore-a-member.md), [US-49 System Administration](US-49-system-administration.md), [US-54 Team News Posts & Distribution](US-54-team-news-posts.md), [US-55 Inbound Email Routing & Failure Alerts](US-55-inbound-email-routing-and-alerts.md), [US-56 Member Profile & Notification Preferences](US-56-member-profile-and-notification-preferences.md), and [US-57 Member Account & Privacy Controls](US-57-member-account-privacy-controls.md). US-30/31 are already done. News must be published by managers, available in a combined member feed, and distributed directly to members, with an opt-out for direct delivery.
+- **Operationally required:** [US-18 Lead Instructor Contact Access](US-18-lead-instructor-contact-access.md), [US-19 Participant Lead Contact Access](US-19-participant-lead-contact-access.md), [US-30 Standard URL Sharing](US-30-standard-url-sharing.md), [US-31 Open Graph Link Previews](US-31-open-graph-link-previews.md), [US-48 Suspend and Restore a Member](US-48-suspend-and-restore-a-member.md), [US-49 System Administration](US-49-system-administration.md), [US-54 Team News Posts & Distribution](US-54-team-news-posts.md), [US-55 Inbound Email Routing & Failure Alerts](US-55-inbound-email-routing-and-alerts.md), [US-56 Member Profile & Notification Preferences](US-56-member-profile-and-notification-preferences.md), [US-57 Member Account & Privacy Controls](US-57-member-account-privacy-controls.md), and [US-58 Personal Data Viewing Acknowledgement](US-58-personal-data-viewing-acknowledgement.md). US-30/31 are already done. News must be published by managers, available in a combined member feed, and distributed directly to members, with an opt-out for direct delivery.
 - **Extra:** US-16, US-17, US-20, US-24, US-29, US-34, US-35, US-36, US-41, US-42, US-43, US-44, and US-53.
   - US-29 has a UI action in the legacy climbing-team app, but not in Activity Teams; it is not a release priority.
   - US-45 is extra and should be reconsidered during outgoing-mail reimplementation; include delivery/bounce tracking if the mail provider makes it cheap or free.

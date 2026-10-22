@@ -201,6 +201,7 @@ Use the palette method that matches the meaning of the UI, not merely its appear
 - Do not display seconds in booking dates or times.
 - Do not display record IDs in user-facing screens.
 - Show slugs only on edit forms, never in lists, view screens, or create forms.
+- Do not show another person's email address, phone number, or emergency-contact details in multi-person lists or tables. Keep those details on individual-person screens where US-58 acknowledgement and existing authorization can be enforced. Only make an exception when a user story explicitly requires it, and preserve its access and time limits.
 
 ## User Story Progress
 

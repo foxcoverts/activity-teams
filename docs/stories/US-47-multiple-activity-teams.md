@@ -23,4 +23,4 @@ As an activity manager, I want bookings, members, and invite lists to belong to 
 - The manage panel keeps one team current, and bookings, members, activities, and venues follow that team.
 - The Members sidebar links to Manage only for users who can access it, and Manage provides a link back to Members.
 - Leaving a team keeps attendance already recorded. They can still open those bookings, and they leave future invite lists.
-- Someone with oversight can open a directory of every account. A team manager sees their team's members, including phone and emergency details, without being the lead instructor on a booking.
+- Someone with oversight can open a directory of every account. A team manager can access their team's members, including phone and emergency details, without being the lead instructor on a booking. Viewing another person's personal details requires the acknowledgement in [US-58](US-58-personal-data-viewing-acknowledgement.md), in addition to the existing access rules.

@@ -13,7 +13,7 @@ As a Lead Instructor, I want time-bound access to participant contact and emerge
 ## Acceptance criteria
 
 - Contact and emergency details become available from 00:00 on the booking start date through 23:59:59 on the booking end date.
-- Viewing data requires clicking an explicit GDPR consent confirmation checkbox acknowledging strict use for team matters.
+- Before viewing the details, the lead instructor must acknowledge their proper use as required by [US-58](US-58-personal-data-viewing-acknowledgement.md).
 
 ## Progress
 

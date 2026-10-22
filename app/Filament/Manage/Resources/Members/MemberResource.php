@@ -127,10 +127,6 @@ class MemberResource extends Resource
             ->columns([
                 TextColumn::make('name')
                     ->searchable(),
-                TextColumn::make('email')
-                    ->searchable(),
-                TextColumn::make('phone'),
-                TextColumn::make('emergency_phone'),
                 TextColumn::make('membership_role')
                     ->label('Role')
                     ->badge()
