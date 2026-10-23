@@ -97,9 +97,10 @@ Start with the cross-cutting privacy acknowledgement, which also closes US-49's 
 4. **Done: finish any remaining US-49 setup capability.** Verify system-admin team creation with a first manager, controlled activity/venue catalogs, team assignments, and that managers cannot create catalog entries from booking forms.
 5. **Done: implement US-48 suspension and restoration**, including access denial, notification suppression, retained history, and the manager exceptions explicitly listed in the story.
 6. **Done: implement US-18 and US-19 as separate, testable access paths.** Phone numbers close at the end of the booking end date; emergency details use the inclusive start-to-end date window; both require US-58 acknowledgment. The booking's own timezone determines the start and end dates (decided; it is required and not null in the database); test the boundary and denial rules in policy-level tests, not only presentation tests.
-7. **Implement the member self-service profile portion of US-56**, including accurate contact and timezone details.
-8. **Implement US-57 account controls** in bounded pieces: password change/reset, personal-data access, then deletion only after the controller has defined retention exceptions for shared records. Keep invitation-only registration.
-9. US-06 role/status badges are deferred; verify the already-completed US-30/31 sharing behavior during release checks.
+7. **Implement US-59 team member invitations** (placeholder named people, email invitation, claim into a new or existing account, suspended-email refusal). It must precede the US-56 profile work because account creation collects the contact details.
+8. **Implement the member self-service profile portion of US-56**, including accurate contact and timezone details.
+9. **Implement US-57 account controls** in bounded pieces: password change/reset, personal-data access, then deletion only after the controller has defined retention exceptions for shared records. Keep invitation-only registration.
+10. US-06 role/status badges are deferred; verify the already-completed US-30/31 sharing behavior during release checks.
 
 US-49 should precede changes that depend on controlled activity or venue catalogs. Phase 1 is not a single large delivery: complete each slice with the smallest meaningful tests and a manual check of its actual panel workflow before moving on.
 

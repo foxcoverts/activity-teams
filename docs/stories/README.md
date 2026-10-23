@@ -69,6 +69,7 @@ When an enum is shown in Filament, give it a label, and a color and icon when th
 - [US-56 Member Profile & Notification Preferences](US-56-member-profile-and-notification-preferences.md) — `not-started`
 - [US-57 Member Account & Privacy Controls](US-57-member-account-privacy-controls.md) — `not-started`
 - [US-58 Personal Data Viewing Acknowledgement](US-58-personal-data-viewing-acknowledgement.md) — `done`
+- [US-59 Team Member Invitations](US-59-team-member-invitations.md) — `not-started`
 
 ## Audit Streams & Collaboration
 
