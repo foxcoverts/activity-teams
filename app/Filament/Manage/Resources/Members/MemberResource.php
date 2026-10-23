@@ -2,6 +2,8 @@
 
 namespace App\Filament\Manage\Resources\Members;
 
+use App\Actions\SendTeamInvitationAction;
+use App\Enums\InvitationStatus;
 use App\Enums\MembershipRole;
 use App\Enums\PersonalDataSection as PersonalDataSectionEnum;
 use App\Enums\Section as MemberSection;
@@ -16,9 +18,11 @@ use App\Models\User;
 use App\Support\Palette;
 use BackedEnum;
 use Filament\Actions\Action;
+use Filament\Actions\ActionGroup;
 use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
 use Filament\Facades\Filament;
+use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\ToggleButtons;
@@ -30,9 +34,12 @@ use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\Filter;
 use Filament\Tables\Table;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Validation\ValidationException;
+use Livewire\Component as LivewireComponent;
 
 class MemberResource extends Resource
 {
@@ -78,7 +85,7 @@ class MemberResource extends Resource
             return $query->whereRaw('0 = 1');
         }
 
-        return $query->whereHas(
+        return $query->with('invitation')->whereHas(
             'teams',
             fn (Builder $teams) => $teams->whereKey($team->getKey()),
         );
@@ -98,10 +105,15 @@ class MemberResource extends Resource
                         Select::make('section')
                             ->options(MemberSection::class)
                             ->required(),
+                        Placeholder::make('role')
+                            ->label(__('Role'))
+                            ->badge()
+                            ->state(fn (User $record): ?MembershipRole => static::roleOnCurrentTeam($record)),
                         PersonalDataSection::form(PersonalDataSectionEnum::ContactDetails, [
                             TextInput::make('email')
                                 ->email()
-                                ->required(),
+                                ->required(fn (?User $record): bool => ! $record?->isPlaceholder())
+                                ->disabled(fn (?User $record): bool => $record?->isPlaceholder() ?? false),
                             TextInput::make('phone')
                                 ->tel(),
                         ]),
@@ -130,6 +142,14 @@ class MemberResource extends Resource
                             ->label('Role')
                             ->badge()
                             ->state(fn (User $record): ?MembershipRole => static::roleOnCurrentTeam($record)),
+                        TextEntry::make('invitation_status')
+                            ->label('Invitation')
+                            ->badge()
+                            ->state(fn (User $record): InvitationStatus => $record->invitationStatus())
+                            ->visible(fn (User $record): bool => $record->isPlaceholder()),
+                        TextEntry::make('invited_email')
+                            ->state(fn (User $record): ?string => $record->invitation?->email)
+                            ->visible(fn (User $record): bool => $record->isPlaceholder() && $record->invitation !== null),
                         TextEntry::make('suspended')
                             ->hiddenLabel()
                             ->badge()
@@ -162,47 +182,22 @@ class MemberResource extends Resource
                     ->label('Role')
                     ->badge()
                     ->state(fn (User $record): ?MembershipRole => static::roleOnCurrentTeam($record)),
+                TextColumn::make('invitation_status')
+                    ->label('Status')
+                    ->badge()
+                    ->state(fn (User $record): InvitationStatus => $record->invitationStatus()),
+            ])
+            ->filters([
+                Filter::make('not_accepted')
+                    ->label('Not yet accepted')
+                    ->query(fn (Builder $query): Builder => $query->whereNull('users.email')),
             ])
             ->recordActions([
+                static::invitationActions(),
                 ViewAction::make(),
                 EditAction::make(),
-                Action::make('changeRole')
-                    ->label('Change role')
-                    ->disabled(fn (User $record): bool => static::cannotStepDown($record))
-                    ->tooltip(fn (User $record): ?string => static::stepDownHint($record))
-                    ->fillForm(fn (User $record): array => [
-                        'role' => static::roleOnCurrentTeam($record)?->value,
-                    ])
-                    ->schema([
-                        ToggleButtons::make('role')
-                            ->options(MembershipRole::class)
-                            ->inline()
-                            ->required(),
-                    ])
-                    ->action(function (User $record, array $data, Schema $schema): void {
-                        $role = $data['role'] instanceof MembershipRole
-                            ? $data['role']
-                            : MembershipRole::from((string) $data['role']);
-
-                        try {
-                            static::currentTeam()?->grant($record, $role);
-                        } catch (ValidationException $exception) {
-                            static::reportOnRole($exception, $schema);
-                        }
-                    }),
-                Action::make('leave')
-                    ->label('Remove from team')
-                    ->color('danger')
-                    ->disabled(fn (User $record): bool => static::cannotStepDown($record))
-                    ->tooltip(fn (User $record): ?string => static::stepDownHint($record))
-                    ->requiresConfirmation()
-                    ->action(function (User $record): void {
-                        try {
-                            static::currentTeam()?->recordLeft($record);
-                        } catch (ValidationException $exception) {
-                            static::reportAsNotification($exception);
-                        }
-                    }),
+                static::changeRoleAction(),
+                static::removeFromTeamAction(),
             ]);
     }
 
@@ -227,6 +222,150 @@ class MemberResource extends Resource
         $tenant = Filament::getTenant();
 
         return $tenant instanceof Team ? $tenant : null;
+    }
+
+    public static function canInvite(): bool
+    {
+        $user = auth()->user();
+        $team = static::currentTeam();
+
+        return $user instanceof User && $team instanceof Team && $user->canInviteTo($team);
+    }
+
+    public static function canManage(): bool
+    {
+        $user = auth()->user();
+        $team = static::currentTeam();
+
+        return $user instanceof User && $team instanceof Team && $user->manages($team);
+    }
+
+    public static function canChangeRole(): bool
+    {
+        $user = auth()->user();
+        $team = static::currentTeam();
+
+        return $user instanceof User
+            && $team instanceof Team
+            && ($user->isSystemAdmin() || $user->manages($team));
+    }
+
+    public static function invitationActions(?User $record = null): ActionGroup
+    {
+        return ActionGroup::make([
+            static::sendInvitationAction($record),
+            static::revokeInvitationAction($record),
+        ])
+            ->record($record)
+            ->label(__('Invitation'))
+            ->button()
+            ->color('gray')
+            ->visible(fn (User $record): bool => static::canInvite() && $record->isPlaceholder());
+    }
+
+    public static function sendInvitationAction(?User $record = null): Action
+    {
+        return Action::make('sendInvitation')
+            ->record($record)
+            ->label(fn (User $record): string => match ($record->invitationStatus()) {
+                InvitationStatus::Invited, InvitationStatus::Expired => __('Resend invitation'),
+                InvitationStatus::Declined => __('Invite again'),
+                default => __('Send invitation'),
+            })
+            ->visible(fn (User $record): bool => static::canInvite() && $record->isPlaceholder())
+            ->modalDescription(fn (User $record): ?string => $record->invitationStatus() === InvitationStatus::Declined
+                ? __('This person declined the invitation. Check the email address is correct before inviting them again.')
+                : null)
+            ->fillForm(fn (User $record): array => ['email' => $record->invitation?->email])
+            ->schema([
+                TextInput::make('email')
+                    ->label('Email address to invite')
+                    ->email()
+                    ->required(),
+            ])
+            ->action(function (User $record, array $data, Schema $schema): void {
+                try {
+                    app(SendTeamInvitationAction::class)->send(auth()->user(), static::currentTeam(), $record, $data['email']);
+                } catch (ValidationException $exception) {
+                    static::reportOnField($exception, $schema, 'email');
+                }
+
+                Notification::make()->success()->title(__('Invitation sent'))->send();
+            });
+    }
+
+    public static function revokeInvitationAction(?User $record = null): Action
+    {
+        return Action::make('revokeInvitation')
+            ->record($record)
+            ->label(__('Revoke invitation'))
+            ->color('danger')
+            ->requiresConfirmation()
+            ->visible(fn (User $record): bool => static::canInvite() && $record->invitationStatus() === InvitationStatus::Invited)
+            ->action(function (User $record): void {
+                app(SendTeamInvitationAction::class)->revoke(auth()->user(), static::currentTeam(), $record);
+
+                Notification::make()->success()->title(__('Invitation revoked'))->send();
+            });
+    }
+
+    public static function changeRoleAction(?User $record = null): Action
+    {
+        return Action::make('changeRole')
+            ->record($record)
+            ->label(__('Change role'))
+            ->visible(fn (): bool => static::canChangeRole())
+            ->disabled(fn (User $record): bool => static::cannotStepDown($record))
+            ->tooltip(fn (User $record): ?string => static::stepDownHint($record))
+            ->fillForm(fn (User $record): array => [
+                'role' => static::roleOnCurrentTeam($record)?->value,
+            ])
+            ->schema([
+                ToggleButtons::make('role')
+                    ->options(MembershipRole::class)
+                    ->inline()
+                    ->required(),
+            ])
+            ->action(function (User $record, array $data, Schema $schema): void {
+                static::authorizeRoleChange();
+
+                $role = $data['role'] instanceof MembershipRole
+                    ? $data['role']
+                    : MembershipRole::from((string) $data['role']);
+
+                try {
+                    static::currentTeam()?->grant($record, $role);
+                } catch (ValidationException $exception) {
+                    static::reportOnRole($exception, $schema);
+                }
+            })
+            ->after(function (LivewireComponent $livewire, User $record): void {
+                if ($livewire instanceof ViewMember) {
+                    $livewire->redirect(static::getUrl('view', ['record' => $record]));
+                }
+            });
+    }
+
+    public static function removeFromTeamAction(?User $record = null): Action
+    {
+        return Action::make('leave')
+            ->record($record)
+            ->label(__('Remove from team'))
+            ->color('danger')
+            ->visible(fn (): bool => static::canManage())
+            ->disabled(fn (User $record): bool => static::cannotStepDown($record))
+            ->tooltip(fn (User $record): ?string => static::stepDownHint($record))
+            ->requiresConfirmation()
+            ->action(function (User $record): void {
+                static::authorizeManagement();
+
+                try {
+                    static::currentTeam()?->recordLeft($record);
+                } catch (ValidationException $exception) {
+                    static::reportAsNotification($exception);
+                }
+            })
+            ->successRedirectUrl(static::getUrl('index'));
     }
 
     public static function cannotStepDown(User $user): bool
@@ -259,8 +398,13 @@ class MemberResource extends Resource
 
     public static function reportOnRole(ValidationException $exception, Schema $schema): never
     {
-        $role = $schema->getFlatComponents(withHidden: true)['role'] ?? null;
-        $path = $role instanceof Component ? $role->getStatePath() : 'role';
+        static::reportOnField($exception, $schema, 'role');
+    }
+
+    public static function reportOnField(ValidationException $exception, Schema $schema, string $field): never
+    {
+        $component = $schema->getFlatComponents(withHidden: true)[$field] ?? null;
+        $path = $component instanceof Component ? $component->getStatePath() : $field;
 
         throw ValidationException::withMessages([
             (string) $path => static::validationMessage($exception),
@@ -273,6 +417,20 @@ class MemberResource extends Resource
             ->danger()
             ->title(static::validationMessage($exception))
             ->send();
+    }
+
+    private static function authorizeManagement(): void
+    {
+        if (! static::canManage()) {
+            throw new AuthorizationException;
+        }
+    }
+
+    private static function authorizeRoleChange(): void
+    {
+        if (! static::canChangeRole()) {
+            throw new AuthorizationException;
+        }
     }
 
     public static function validationMessage(ValidationException $exception): string

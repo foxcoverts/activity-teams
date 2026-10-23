@@ -71,7 +71,7 @@ class OverrideAttendanceAction
             return;
         }
 
-        Mail::to($attendee->email)->send(new AttendanceRecordedMail($booking, $attendee));
+        Mail::to($attendee)->send(new AttendanceRecordedMail($booking, $attendee));
     }
 
     private function stepLeadAway(Booking $booking, User $attendee, BookingAttendeeStatus $status): void

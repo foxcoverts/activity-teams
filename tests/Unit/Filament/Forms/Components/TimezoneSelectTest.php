@@ -21,8 +21,8 @@ class TimezoneSelectTest extends TestCase
         sort($expectedTimezones);
 
         $this->assertSame($expectedTimezones, $timezones);
-        $this->assertSame('Europe/London (+00:00)', $options['Europe']['Europe/London']);
-        $this->assertSame('America/New_York (-05:00)', $options['America']['America/New_York']);
+        $this->assertSame('London (+00:00)', $options['Europe']['Europe/London']);
+        $this->assertSame('New York (-05:00)', $options['America']['America/New_York']);
         $this->assertSame('UTC (+00:00)', $options['UTC']['UTC']);
     }
 
@@ -32,7 +32,7 @@ class TimezoneSelectTest extends TestCase
 
         $options = TimezoneSelect::make('timezone')->getOptions();
 
-        $this->assertSame('Europe/London (+01:00)', $options['Europe']['Europe/London']);
-        $this->assertSame('America/New_York (-04:00)', $options['America']['America/New_York']);
+        $this->assertSame('London (+01:00)', $options['Europe']['Europe/London']);
+        $this->assertSame('New York (-04:00)', $options['America']['America/New_York']);
     }
 }

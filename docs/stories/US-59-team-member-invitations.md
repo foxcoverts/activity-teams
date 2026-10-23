@@ -1,7 +1,7 @@
 ---
 id: US-59
 title: "Team Member Invitations"
-status: not-started
+status: done
 area: membership
 scope: required
 ---
@@ -14,7 +14,7 @@ As a team manager, I want to add people to my team by name and invite them by em
 
 - A team manager can add a named person to their own team as a member or as a manager, giving a name and an email address to invite. Managers never see a list of users outside their team.
 - The named person exists immediately as a placeholder inside that team only. They can be added to bookings and have their attendance set by a manager, even before they accept the invitation.
-- The invitation email is sent to the address given and contains a signed link that expires after 14 days. A manager can resend or revoke a pending invitation; a revoked or expired link cannot be used, and an expired link offers to request a new one from the manager.
+- The invitation email is sent to the address given and contains a signed link that expires after 14 days. A manager can resend or revoke a pending invitation; a revoked or expired link cannot be used, and an expired or revoked link tells the invitee to ask their manager for a new invitation.
 - An invitee can accept the invitation by creating a new account or by signing in to an existing account. The existing account's email address need not match the invited address. Accepting an invitation takes over the named person: the placeholder's team role, booking attendance and lead assignments move to the account, and the placeholder is removed.
 - Before sending an invitation, the app checks whether the address belongs to someone already in the manager's team and, if so, refuses it, saying the person is already a member. This reduces, but cannot prevent, an existing member claiming a placeholder, because an invitee may sign in with a different account.
 - If an account that is already in the team claims a placeholder, the memberships merge into the account's existing one and the higher role wins (manager over member). Attendance and lead assignments move to the account on a best-effort basis. Where both the placeholder and the account already have a record on the same booking: identical responses are kept as they are; if one is needs-action and the other is not, the needs-action record is discarded and the other kept; if both have been answered differently, the account's attendance on that booking becomes needs-action so the member decides.
@@ -43,4 +43,6 @@ As a team manager, I want to add people to my team by name and invite them by em
 
 ## Progress
 
-Story drafted; not started. No open design questions; ready for implementation planning.
+Implemented: placeholder people (nullable `users.email` with a database check constraint and model rule), one invitation per placeholder, Add member and Send/Resend/Invite again/Revoke actions on the Members list with status and a Not yet accepted filter, member actions on both the list and view page, system-admin invitation access, the signed 14-day invitation page (create account with editable email, accept with an existing account, sign out to create another account, decline), panel-scoped email verification for accounts created with a changed address, verified active manager notifications when an invitation is declined, merge rules for roles, attendance, lead assignments, qualifications and key rings, suspended-email and already-in-team checks, attendance recording for people without a verified email, and activity-log entries.
+
+An expired or revoked link tells the invitee to ask their manager for a new invitation; there is no self-service request. A candidate for [US-55](US-55-inbound-email-routing-and-alerts.md) refinement: forward replies to the invitation email to the team's managers, so invitees can reply to contact their manager.

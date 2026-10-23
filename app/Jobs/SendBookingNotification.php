@@ -96,7 +96,7 @@ class SendBookingNotification implements ShouldQueue
                 continue;
             }
 
-            Mail::to($attendee->email)->send($message($attendee));
+            Mail::to($attendee)->send($message($attendee));
         }
     }
 
@@ -116,7 +116,7 @@ class SendBookingNotification implements ShouldQueue
                 continue;
             }
 
-            Mail::to($attendee->email)->send(new BookingInviteMail($booking, $attendee));
+            Mail::to($attendee)->send(new BookingInviteMail($booking, $attendee));
         }
     }
 }

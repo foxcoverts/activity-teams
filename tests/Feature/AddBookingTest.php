@@ -183,7 +183,7 @@ class AddBookingTest extends TestCase
                 && $component->getColumns('sm') === 1
                 && $component->getColumnSpan('sm') === 1)
             ->assertFormFieldExists('timezone', fn (TimezoneSelect $field): bool => $field->isSearchable()
-                && preg_match('/^Europe\/London \([+-]\d{2}:\d{2}\)$/', $field->getOptions()['Europe']['Europe/London'] ?? '') === 1);
+                && preg_match('/^London \([+-]\d{2}:\d{2}\)$/', $field->getOptions()['Europe']['Europe/London'] ?? '') === 1);
     }
 
     public function test_create_booking_defaults_to_saturday_morning_in_the_users_timezone(): void

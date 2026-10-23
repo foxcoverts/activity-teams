@@ -7,7 +7,6 @@ use App\Models\Team;
 use App\Models\User;
 use App\Support\Palette;
 use Filament\Actions\Action;
-use Filament\Actions\ActionGroup;
 use Filament\Notifications\Notification;
 use Filament\Support\Icons\Heroicon;
 
@@ -16,16 +15,12 @@ use Filament\Support\Icons\Heroicon;
  */
 class SuspensionActions
 {
-    public static function group(User $member): ActionGroup
+    public static function list(User $member): array
     {
-        return ActionGroup::make([
+        return [
             static::suspend($member),
             static::restore($member),
-        ])
-            ->label(__('More actions'))
-            ->icon(Heroicon::EllipsisVertical)
-            ->color('gray')
-            ->button();
+        ];
     }
 
     public static function suspend(User $member): Action

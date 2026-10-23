@@ -226,7 +226,6 @@ class AttendeesRelationManager extends RelationManager
 
         return $booking->team->members()
             ->where('suspended', false)
-            ->whereNotNull('email_verified_at')
             ->whereDoesntHave('bookings', fn (Builder $query) => $query->where('booking_id', $booking->id))
             ->ordered()
             ->pluck('users.name', 'users.id')

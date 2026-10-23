@@ -32,7 +32,7 @@ class AddAttendeeAction
 
         $booking->loadMissing('team');
 
-        if ($attendee->isSuspended() || ! $attendee->hasVerifiedEmail() || $booking->team === null || ! $attendee->isCurrentMemberOf($booking->team)) {
+        if ($attendee->isSuspended() || $booking->team === null || ! $attendee->isCurrentMemberOf($booking->team)) {
             throw ValidationException::withMessages([
                 'user_id' => __('Choose a member who can be added to the booking.'),
             ]);

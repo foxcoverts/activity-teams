@@ -24,6 +24,7 @@ class SetupAccount extends Notification
     {
         return (new MailMessage)
             ->subject(__('Account Setup'))
+            ->greeting(__('Hello :name,', ['name' => $notifiable->name]))
             ->line(__('An account has been created for you on :app.', ['app' => config('app.name')]))
             ->action(__('Setup Account'), URL::signedRoute('setup-account', $notifiable))
             ->line(__('You will not receive further notifications until you complete setup.'));

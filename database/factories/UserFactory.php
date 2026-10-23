@@ -43,6 +43,15 @@ class UserFactory extends Factory
         return $this->state(fn () => ['password' => null]);
     }
 
+    public function placeholder(): static
+    {
+        return $this->state(fn () => [
+            'email' => null,
+            'email_verified_at' => null,
+            'password' => null,
+        ]);
+    }
+
     public function guest(): static
     {
         return $this->afterCreating(function (User $user): void {

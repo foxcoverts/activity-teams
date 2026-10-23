@@ -3,11 +3,14 @@
 namespace App\Models;
 
 use App\Casts\AsTimezone;
+use App\Enums\InvitationStatus;
 use App\Enums\MembershipRole;
 use App\Enums\PersonalDataSection;
 use App\Enums\Section;
 use App\Notifications\SetupAccount;
 use Database\Factories\UserFactory;
+use Filament\Auth\Notifications\VerifyEmail;
+use Filament\Facades\Filament;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Models\Contracts\HasDefaultTenant;
 use Filament\Models\Contracts\HasTenants;
@@ -20,6 +23,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Str;
@@ -73,9 +77,30 @@ class User extends Authenticatable implements FilamentUser, HasDefaultTenant, Ha
 
     protected static function booted(): void
     {
+        // Mirrors the database constraint: a person without an email address cannot sign in.
+        static::saving(function (User $user): void {
+            if (blank($user->email)) {
+                $user->email = null;
+                $user->password = null;
+            }
+        });
+
         static::deleting(function (User $user): void {
             $user->qualifications()->with('detail')->get()->each->delete();
         });
+    }
+
+    public function routeNotificationForMail(): array|string|null
+    {
+        return filled($this->email) ? [$this->email => $this->name] : null;
+    }
+
+    public function sendEmailVerificationNotification(): void
+    {
+        $notification = new VerifyEmail;
+        $notification->url = Filament::getPanel('member')->getVerifyEmailUrl($this);
+
+        $this->notify($notification);
     }
 
     public function getActivitylogOptions(): LogOptions
@@ -175,6 +200,35 @@ class User extends Authenticatable implements FilamentUser, HasDefaultTenant, Ha
         return $this->hasMany(Qualification::class);
     }
 
+    public function invitation(): HasOne
+    {
+        return $this->hasOne(TeamInvitation::class);
+    }
+
+    /**
+     * A named person added by a team manager who has not yet taken over the name with an account.
+     */
+    public function isPlaceholder(): bool
+    {
+        return blank($this->email);
+    }
+
+    public function invitationStatus(): InvitationStatus
+    {
+        if (! $this->isPlaceholder()) {
+            return InvitationStatus::Active;
+        }
+
+        $invitation = $this->invitation;
+
+        return match (true) {
+            $invitation === null, $invitation->isRevoked() => InvitationStatus::NotInvited,
+            $invitation->isDeclined() => InvitationStatus::Declined,
+            $invitation->isExpired() => InvitationStatus::Expired,
+            default => InvitationStatus::Invited,
+        };
+    }
+
     public function memberships(): HasMany
     {
         return $this->hasMany(TeamMembership::class);
@@ -201,6 +255,11 @@ class User extends Authenticatable implements FilamentUser, HasDefaultTenant, Ha
         }
 
         return $this->managedTeams()->whereKey($team->getKey())->exists();
+    }
+
+    public function canInviteTo(Team $team): bool
+    {
+        return $this->isSystemAdmin() || $this->manages($team);
     }
 
     /**
