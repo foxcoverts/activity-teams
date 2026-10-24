@@ -85,6 +85,7 @@ class MemberProfileTest extends TestCase
             ->assertSee('Name')
             ->assertSee('Email address')
             ->assertSee('Privacy notice')
+            ->assertSee(route('privacy'), escape: false)
             ->assertDontSee('filament-panels::');
     }
 

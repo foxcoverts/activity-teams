@@ -133,6 +133,7 @@ class AcceptInvitation extends Component implements HasActions, HasSchemas
             'invitation' => $invitation,
             'valid' => $invitation->isPending() && ! $this->declined,
             'account' => Auth::user(),
+            'privacyNoticeUrl' => ContactFields::privacyNoticeUrl(),
         ])->layout('layouts.filament-form')->title(__('Invitation'));
     }
 

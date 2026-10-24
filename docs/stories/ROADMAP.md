@@ -82,7 +82,7 @@ Activity Teams is a new Laravel application. Its Sail compose file provides Mari
 **Phase 0 status: complete.** The owner confirmed the live workflow inventory and relaunch scope, and the high-risk acceptance expectations are captured above and in the relevant stories. The following refinements remain assigned, but do not block Phase 0 closure:
 
 - **Product owner:** decide post-submission report editing and retention details for US-21; finalize US-54 opt-out controls, post-edit behavior, and delivery-failure handling; and define US-55's webhook authentication, safe diagnostics, alert channel, and queue-retention process.
-- **Product owner/controller:** US-57 retention is recorded (named shell kept indefinitely; contact details purged after 30 days). Supply the live privacy-notice URL before relaunch.
+- **Product owner/controller:** US-57 retention is recorded (named shell kept indefinitely; contact details purged after 30 days). The live privacy notice is the in-app `/privacy` page; solicitor review of lawful bases remains with the product owner.
 - **Implementation owner, during delivery:** verify ForwardEmail inbound authentication and routing, assess outbound mail and US-45 cost, and adapt/test the GitHub Actions-to-IONOS workflow for the selected PHP runtime.
 - **Product owner and implementation owner, once Activity Teams is workable:** choose between migrating the target database and importing legacy data into a fresh database; rehearse the chosen approach with backups and rollback.
 

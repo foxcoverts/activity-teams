@@ -47,7 +47,7 @@
                     @endif
                 </p>
                 <p class="text-sm">
-                    <a href="{{ config('app.privacy_notice_url') }}" target="_blank" rel="noopener noreferrer" class="text-sky-700 underline">{{ __('Privacy notice') }}</a>
+                    <a href="{{ $privacyNoticeUrl }}" target="_blank" rel="noopener noreferrer" class="text-sky-700 underline">{{ __('Privacy notice') }}</a>
                 </p>
                 <button type="button" wire:click="useMyAccount" class="w-full rounded bg-sky-600 px-4 py-3 text-white">{{ __('Accept with this account') }}</button>
                 <button type="button" wire:click="signOutAndCreateAccount" class="w-full rounded border px-4 py-3">{{ __('Sign out and create a new account') }}</button>
@@ -115,7 +115,7 @@
                 </div>
 
                 <p class="text-sm">
-                    <a href="{{ config('app.privacy_notice_url') }}" target="_blank" rel="noopener noreferrer" class="text-sky-700 underline">{{ __('Privacy notice') }}</a>
+                    <a href="{{ $privacyNoticeUrl }}" target="_blank" rel="noopener noreferrer" class="text-sky-700 underline">{{ __('Privacy notice') }}</a>
                 </p>
                 <label class="flex items-start gap-2 text-sm">
                     <input type="checkbox" wire:model="privacy_notice_accepted" class="mt-1">

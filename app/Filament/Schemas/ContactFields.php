@@ -54,9 +54,16 @@ class ContactFields
         return Text::make(static::emergencyNoticeCopy());
     }
 
+    public static function privacyNoticeUrl(): string
+    {
+        $url = config('app.privacy_notice_url');
+
+        return filled($url) ? (string) $url : route('privacy');
+    }
+
     public static function privacyNoticeLink(): Text
     {
-        $url = e((string) config('app.privacy_notice_url'));
+        $url = e(static::privacyNoticeUrl());
         $label = e(__('Privacy notice'));
 
         return Text::make(new HtmlString('<a class="underline" href="'.$url.'" target="_blank" rel="noopener noreferrer">'.$label.'</a>'));

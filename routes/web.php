@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\BookingIcsController;
+use App\Http\Controllers\PrivacyPolicyController;
 use App\Http\Middleware\AuthenticateFromParam;
 use App\Livewire\AcceptInvitation;
 use App\Livewire\BookingPreview;
@@ -11,6 +12,7 @@ use Illuminate\Support\Facades\Route;
 Route::get('share/bookings/{booking}', BookingPreview::class)->name('booking.preview');
 Route::get('respond/{booking}/{attendee}', RespondToBooking::class)->name('respond');
 Route::get('invitation/{invitation}', AcceptInvitation::class)->middleware('signed')->name('invitation.show');
+Route::get('privacy', PrivacyPolicyController::class)->name('privacy');
 Route::get('account-deleted', fn () => view('account-deleted'))->name('account.deleted');
 Route::middleware('auth')->get('profile/confirm', ConfirmProfile::class)->name('profile.confirm');
 

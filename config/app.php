@@ -123,6 +123,16 @@ return [
         'store' => env('APP_MAINTENANCE_STORE', 'database'),
     ],
 
-    'privacy_notice_url' => env('PRIVACY_NOTICE_URL', 'https://example.com/privacy'),
+    /*
+    |--------------------------------------------------------------------------
+    | Privacy Notice URL
+    |--------------------------------------------------------------------------
+    |
+    | Optional absolute URL. When empty, links use the in-app /privacy page
+    | rendered from resources/markdown/privacy-policy.md.
+    |
+    */
+
+    'privacy_notice_url' => env('PRIVACY_NOTICE_URL'),
 
 ];

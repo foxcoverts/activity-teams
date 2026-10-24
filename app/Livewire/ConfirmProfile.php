@@ -59,7 +59,7 @@ class ConfirmProfile extends SimplePage
 
     public function getSubheading(): string|Htmlable|null
     {
-        $url = e((string) config('app.privacy_notice_url'));
+        $url = e(ContactFields::privacyNoticeUrl());
         $label = e(__('Privacy notice'));
 
         return new HtmlString(
