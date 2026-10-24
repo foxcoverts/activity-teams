@@ -4,6 +4,7 @@ namespace App\Filament\Manage\Resources\Users\Pages;
 
 use App\Filament\Manage\Concerns\AcknowledgesPersonalData;
 use App\Filament\Manage\Resources\Users\UserResource;
+use App\Models\User;
 use Filament\Actions\EditAction;
 use Filament\Resources\Pages\ViewRecord;
 
@@ -15,7 +16,12 @@ class ViewUser extends ViewRecord
 
     protected function getHeaderActions(): array
     {
+        $record = $this->getRecord();
+
+        abort_unless($record instanceof User, 404);
+
         return [
+            UserResource::invitationActions($record),
             EditAction::make(),
         ];
     }

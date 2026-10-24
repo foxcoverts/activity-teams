@@ -25,12 +25,19 @@ class TeamInvitationDeclinedNotification extends Notification
     {
         $invitation = $this->invitation->loadMissing(['team', 'user']);
 
+        $line = $invitation->isSiteInvitation()
+            ? __(':invitee declined the invitation to become :roles.', [
+                'invitee' => $invitation->user->name,
+                'roles' => $invitation->siteAccessPhrase(),
+            ])
+            : __(':invitee declined the invitation to join :team.', [
+                'invitee' => $invitation->user->name,
+                'team' => $invitation->team->name,
+            ]);
+
         return (new MailMessage)
             ->subject(__('Invitation declined'))
             ->greeting(__('Hello :name,', ['name' => $notifiable->name]))
-            ->line(__(':invitee declined the invitation to join :team.', [
-                'invitee' => $invitation->user->name,
-                'team' => $invitation->team->name,
-            ]));
+            ->line($line);
     }
 }

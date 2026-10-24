@@ -54,6 +54,36 @@ class TeamInvitation extends Model
         return $this->belongsTo(User::class);
     }
 
+    public function isSiteInvitation(): bool
+    {
+        return $this->team_id === null;
+    }
+
+    public function siteAccessPhrase(): string
+    {
+        $this->loadMissing('user');
+
+        $parts = [];
+
+        if ($this->user?->oversight) {
+            $parts[] = __('an oversight user');
+        }
+
+        if ($this->user?->is_system_admin) {
+            $parts[] = __('a system administrator');
+        }
+
+        if ($parts === []) {
+            return __('a site user');
+        }
+
+        if (count($parts) === 1) {
+            return $parts[0];
+        }
+
+        return $parts[0].' '.__('and').' '.$parts[1];
+    }
+
     public function isDeclined(): bool
     {
         return $this->declined_at !== null;

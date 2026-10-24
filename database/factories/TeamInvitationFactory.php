@@ -39,4 +39,16 @@ class TeamInvitationFactory extends Factory
     {
         return $this->state(fn () => ['revoked_at' => now()]);
     }
+
+    public function siteAccess(bool $oversight = false, bool $systemAdmin = true): static
+    {
+        return $this->state(fn (): array => [
+            'team_id' => null,
+        ])->afterCreating(function (TeamInvitation $invitation) use ($oversight, $systemAdmin): void {
+            $invitation->user->forceFill([
+                'oversight' => $oversight,
+                'is_system_admin' => $systemAdmin,
+            ])->save();
+        });
+    }
 }

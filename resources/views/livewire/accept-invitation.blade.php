@@ -1,13 +1,37 @@
 <div class="space-y-6">
     <div class="rounded-xl bg-white p-6 shadow">
-        <h1 class="text-xl font-semibold">{{ __('Invitation to :team', ['team' => $invitation->team->name]) }}</h1>
+        <h1 class="text-xl font-semibold">
+            @if ($invitation->isSiteInvitation())
+                {{ __('Invitation to :app', ['app' => config('app.name')]) }}
+            @else
+                {{ __('Invitation to :team', ['team' => $invitation->team->name]) }}
+            @endif
+        </h1>
 
         @if ($declined)
-            <p class="mt-2">{{ __('You have declined this invitation. Your team manager has been told.') }}</p>
+            <p class="mt-2">
+                @if ($invitation->isSiteInvitation())
+                    {{ __('You have declined this invitation. The system administrators have been told.') }}
+                @else
+                    {{ __('You have declined this invitation. Your team manager has been told.') }}
+                @endif
+            </p>
         @elseif (! $valid)
-            <p class="mt-2">{{ __('This invitation is no longer valid. Ask your team manager to send you a new one.') }}</p>
+            <p class="mt-2">
+                @if ($invitation->isSiteInvitation())
+                    {{ __('This invitation is no longer valid. Ask a system administrator to send you a new one.') }}
+                @else
+                    {{ __('This invitation is no longer valid. Ask your team manager to send you a new one.') }}
+                @endif
+            </p>
         @else
-            <p class="mt-2">{{ __('You have been invited to join :team.', ['team' => $invitation->team->name, 'name' => $invitation->user->name]) }}</p>
+            <p class="mt-2">
+                @if ($invitation->isSiteInvitation())
+                    {{ __('You have been invited as :roles.', ['roles' => $invitation->siteAccessPhrase()]) }}
+                @else
+                    {{ __('You have been invited to join :team.', ['team' => $invitation->team->name, 'name' => $invitation->user->name]) }}
+                @endif
+            </p>
         @endif
     </div>
 
@@ -15,7 +39,13 @@
         @if ($account)
             <div class="space-y-3 rounded-xl bg-white p-6 shadow">
                 <h2 class="font-semibold">{{ __('Use your existing account') }}</h2>
-                <p class="text-sm">{{ __('You are signed in as :name. Accepting adds this team to your account.', ['name' => $account->name]) }}</p>
+                <p class="text-sm">
+                    @if ($invitation->isSiteInvitation())
+                        {{ __('You are signed in as :name. Accepting adds this access to your account.', ['name' => $account->name]) }}
+                    @else
+                        {{ __('You are signed in as :name. Accepting adds this team to your account.', ['name' => $account->name]) }}
+                    @endif
+                </p>
                 <button type="button" wire:click="useMyAccount" class="w-full rounded bg-sky-600 px-4 py-3 text-white">{{ __('Accept with this account') }}</button>
                 <button type="button" wire:click="signOutAndCreateAccount" class="w-full rounded border px-4 py-3">{{ __('Sign out and create a new account') }}</button>
             </div>

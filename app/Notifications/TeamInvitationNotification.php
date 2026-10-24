@@ -26,14 +26,20 @@ class TeamInvitationNotification extends Notification
     {
         $invitation = $this->invitation->loadMissing(['team', 'user']);
 
+        $subject = $invitation->isSiteInvitation()
+            ? __('You have been invited to :app', ['app' => config('app.name')])
+            : __('You have been invited to :team', ['team' => $invitation->team->name]);
+
+        $line = $invitation->isSiteInvitation()
+            ? __('You have been invited as :roles.', ['roles' => $invitation->siteAccessPhrase()])
+            : __('You have been invited to join :team.', ['team' => $invitation->team->name]);
+
         return (new MailMessage)
-            ->subject(__('You have been invited to :team', ['team' => $invitation->team->name]))
+            ->subject($subject)
             ->greeting(__('Hello :name,', [
                 'name' => $invitation->user->name,
             ]))
-            ->line(__('You have been invited to join :team.', [
-                'team' => $invitation->team->name,
-            ]))
+            ->line($line)
             ->action(__('View invitation'), URL::temporarySignedRoute(
                 'invitation.show',
                 $invitation->expires_at,

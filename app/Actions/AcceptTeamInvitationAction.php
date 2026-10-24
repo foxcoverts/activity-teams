@@ -4,9 +4,12 @@ namespace App\Actions;
 
 use App\Enums\BookingAttendeeStatus;
 use App\Enums\MembershipRole;
+use App\Models\Team;
 use App\Models\TeamInvitation;
 use App\Models\User;
 use App\Notifications\TeamInvitationDeclinedNotification;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Str;
@@ -26,8 +29,9 @@ class AcceptTeamInvitationAction
         $placeholder = $invitation->user;
         $email = Str::lower(trim($data['email']));
         $this->guardNewEmail($email);
+        $subject = $this->activitySubject($invitation, $placeholder);
 
-        DB::transaction(function () use ($invitation, $placeholder, $data, $email): void {
+        DB::transaction(function () use ($invitation, $placeholder, $data, $email, $subject): void {
             $placeholder->forceFill([
                 'name' => filled($data['name'] ?? null) ? $data['name'] : $placeholder->name,
                 'email' => $email,
@@ -41,7 +45,7 @@ class AcceptTeamInvitationAction
 
             $invitation->delete();
 
-            activity()->performedOn($invitation->team)->causedBy($placeholder)->log(__('Accepted an invitation and created an account'));
+            activity()->performedOn($subject)->causedBy($placeholder)->log(__('Accepted an invitation and created an account'));
         });
 
         if (! $placeholder->hasVerifiedEmail()) {
@@ -66,11 +70,19 @@ class AcceptTeamInvitationAction
 
         $placeholder = $invitation->user;
         $team = $invitation->team;
+        $subject = $this->activitySubject($invitation, $account);
 
-        DB::transaction(function () use ($placeholder, $account, $team): void {
-            $role = $this->higherRole($team->memberships()->where('user_id', $placeholder->getKey())->value('role'), $team->memberships()->where('user_id', $account->getKey())->whereNull('left_at')->value('role'));
+        DB::transaction(function () use ($placeholder, $account, $team, $subject): void {
+            if ($team instanceof Team) {
+                $role = $this->higherRole($team->memberships()->where('user_id', $placeholder->getKey())->value('role'), $team->memberships()->where('user_id', $account->getKey())->whereNull('left_at')->value('role'));
 
-            $team->grant($account, $role);
+                $team->grant($account, $role);
+            }
+
+            $account->forceFill([
+                'oversight' => $account->oversight || $placeholder->oversight,
+                'is_system_admin' => $account->is_system_admin || $placeholder->is_system_admin,
+            ])->save();
 
             $this->moveAttendance($placeholder, $account);
 
@@ -80,7 +92,7 @@ class AcceptTeamInvitationAction
 
             $placeholder->delete();
 
-            activity()->performedOn($team)->causedBy($account)->log(__('Accepted an invitation with an existing account'));
+            activity()->performedOn($subject)->causedBy($account)->log(__('Accepted an invitation with an existing account'));
         });
 
         return $account;
@@ -92,15 +104,37 @@ class AcceptTeamInvitationAction
 
         $invitation->forceFill(['declined_at' => now()])->save();
 
-        activity()->performedOn($invitation->team)->log(__('Declined an invitation'));
+        activity()->performedOn($this->activitySubject($invitation, $invitation->user))->log(__('Declined an invitation'));
 
-        $managers = $invitation->team->managers()
-            ->where('users.suspended', false)
-            ->whereNotNull('users.password')
-            ->whereNotNull('users.email_verified_at')
+        Notification::send($this->declineRecipients($invitation), new TeamInvitationDeclinedNotification($invitation));
+    }
+
+    private function activitySubject(TeamInvitation $invitation, User $fallback): Model
+    {
+        return $invitation->team ?? $fallback;
+    }
+
+    /**
+     * @return Collection<int, User>
+     */
+    private function declineRecipients(TeamInvitation $invitation)
+    {
+        $team = $invitation->team;
+
+        if ($team instanceof Team) {
+            return $team->managers()
+                ->where('users.suspended', false)
+                ->whereNotNull('users.password')
+                ->whereNotNull('users.email_verified_at')
+                ->get();
+        }
+
+        return User::query()
+            ->where('is_system_admin', true)
+            ->where('suspended', false)
+            ->whereNotNull('password')
+            ->whereNotNull('email_verified_at')
             ->get();
-
-        Notification::send($managers, new TeamInvitationDeclinedNotification($invitation));
     }
 
     private function moveAttendance(User $placeholder, User $account): void

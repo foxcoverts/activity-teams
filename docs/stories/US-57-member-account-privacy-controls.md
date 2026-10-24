@@ -23,3 +23,7 @@ As an invited team member, I want to manage my account security and exercise con
 ## Refinement
 
 Confirm the data included in the export, request verification and completion workflow, retention exceptions and periods, and treatment of shared booking, incident, audit, and legal records. This story supports privacy rights but is not by itself a guarantee of GDPR compliance; the controller's lawful bases, privacy information, and retention policy must also be confirmed.
+
+## Progress
+
+Invitation-only account creation is met by [US-59](US-59-team-member-invitations.md) (team members) and [US-60](US-60-oversight-system-admin-invitations.md) (oversight and system admins), with empty-database registration as the bootstrap that creates the first system admin. Password change, personal-data export, and account deletion remain open.

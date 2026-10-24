@@ -9,6 +9,7 @@ use App\Models\TeamInvitation;
 use App\Models\User;
 use App\Notifications\TeamInvitationNotification;
 use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Str;
@@ -42,6 +43,34 @@ class SendTeamInvitationAction
     }
 
     /**
+     * Add a named placeholder with site-wide access and invite them by email.
+     */
+    public function addAdmin(User $actor, string $name, string $email, bool $oversight, bool $isSystemAdmin, Section $section): User
+    {
+        $this->authorizeSite($actor);
+
+        if (! $oversight && ! $isSystemAdmin) {
+            throw ValidationException::withMessages([
+                'oversight' => __('Choose oversight, system admin, or both.'),
+            ]);
+        }
+
+        $email = $this->normalise($email);
+        $this->guardSiteEmail($email);
+
+        $placeholder = User::query()->create([
+            'name' => $name,
+            'section' => $section,
+            'oversight' => $oversight,
+            'is_system_admin' => $isSystemAdmin,
+        ]);
+
+        $this->issue($actor, null, $placeholder, $email);
+
+        return $placeholder;
+    }
+
+    /**
      * Send, resend or replace the invitation for an existing placeholder. Any earlier link stops working.
      */
     public function send(User $manager, Team $team, User $placeholder, string $email): TeamInvitation
@@ -60,6 +89,17 @@ class SendTeamInvitationAction
         return $this->issue($manager, $team, $placeholder, $email);
     }
 
+    public function sendAdmin(User $actor, User $placeholder, string $email): TeamInvitation
+    {
+        $this->authorizeSite($actor);
+        $this->guardSitePlaceholder($placeholder);
+
+        $email = $this->normalise($email);
+        $this->guardSiteEmail($email);
+
+        return $this->issue($actor, null, $placeholder, $email);
+    }
+
     public function revoke(User $manager, Team $team, User $placeholder): void
     {
         $this->authorize($manager, $team);
@@ -73,12 +113,26 @@ class SendTeamInvitationAction
         }
     }
 
-    private function issue(User $manager, Team $team, User $placeholder, string $email): TeamInvitation
+    public function revokeAdmin(User $actor, User $placeholder): void
+    {
+        $this->authorizeSite($actor);
+        $this->guardSitePlaceholder($placeholder);
+
+        $invitation = $placeholder->invitation;
+
+        if ($invitation instanceof TeamInvitation && $invitation->isPending()) {
+            $invitation->forceFill(['revoked_at' => now()])->save();
+
+            activity()->performedOn($placeholder)->causedBy($actor)->log(__('Revoked the invitation for :name', ['name' => $placeholder->name]));
+        }
+    }
+
+    private function issue(User $actor, ?Team $team, User $placeholder, string $email): TeamInvitation
     {
         $invitation = TeamInvitation::query()->updateOrCreate(
             ['user_id' => $placeholder->getKey()],
             [
-                'team_id' => $team->getKey(),
+                'team_id' => $team?->getKey(),
                 'email' => $email,
                 'token' => Str::random(40),
                 'sent_at' => now(),
@@ -88,11 +142,16 @@ class SendTeamInvitationAction
             ],
         );
 
-        activity()->performedOn($team)->causedBy($manager)->log(__('Invited :name', ['name' => $placeholder->name]));
+        activity()->performedOn($this->activitySubject($team, $placeholder))->causedBy($actor)->log(__('Invited :name', ['name' => $placeholder->name]));
 
         Notification::route('mail', [$email => $placeholder->name])->notify(new TeamInvitationNotification($invitation));
 
         return $invitation;
+    }
+
+    private function activitySubject(?Team $team, User $placeholder): Model
+    {
+        return $team ?? $placeholder;
     }
 
     private function guardEmail(Team $team, string $email): void
@@ -116,9 +175,46 @@ class SendTeamInvitationAction
         }
     }
 
+    private function guardSiteEmail(string $email): void
+    {
+        $existing = User::query()->where('email', $email)->first();
+
+        if (! $existing instanceof User) {
+            return;
+        }
+
+        if ($existing->isSuspended()) {
+            throw ValidationException::withMessages([
+                'email' => __('This email address belongs to a suspended account, so it cannot be invited.'),
+            ]);
+        }
+
+        if (! $existing->isPlaceholder()) {
+            throw ValidationException::withMessages([
+                'email' => __('This person already has an account. Grant access on that account instead.'),
+            ]);
+        }
+    }
+
+    private function guardSitePlaceholder(User $placeholder): void
+    {
+        if (! $placeholder->isPlaceholder() || $placeholder->teams()->exists()) {
+            throw ValidationException::withMessages([
+                'email' => __('Only people who have not yet created an account can be invited.'),
+            ]);
+        }
+    }
+
     private function authorize(User $manager, Team $team): void
     {
         if (! $manager->canInviteTo($team)) {
+            throw new AuthorizationException;
+        }
+    }
+
+    private function authorizeSite(User $actor): void
+    {
+        if (! $actor->canInviteSiteAccess()) {
             throw new AuthorizationException;
         }
     }

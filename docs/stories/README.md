@@ -70,6 +70,7 @@ When an enum is shown in Filament, give it a label, and a color and icon when th
 - [US-57 Member Account & Privacy Controls](US-57-member-account-privacy-controls.md) — `not-started`
 - [US-58 Personal Data Viewing Acknowledgement](US-58-personal-data-viewing-acknowledgement.md) — `done`
 - [US-59 Team Member Invitations](US-59-team-member-invitations.md) — `done`
+- [US-60 Oversight & System Admin Invitations](US-60-oversight-system-admin-invitations.md) — `done`
 
 ## Audit Streams & Collaboration
 

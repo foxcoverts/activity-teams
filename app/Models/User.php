@@ -7,7 +7,6 @@ use App\Enums\InvitationStatus;
 use App\Enums\MembershipRole;
 use App\Enums\PersonalDataSection;
 use App\Enums\Section;
-use App\Notifications\SetupAccount;
 use Database\Factories\UserFactory;
 use Filament\Auth\Notifications\VerifyEmail;
 use Filament\Facades\Filament;
@@ -262,6 +261,11 @@ class User extends Authenticatable implements FilamentUser, HasDefaultTenant, Ha
         return $this->isSystemAdmin() || $this->manages($team);
     }
 
+    public function canInviteSiteAccess(): bool
+    {
+        return $this->isSystemAdmin();
+    }
+
     /**
      * Teams that would have no active (unsuspended) manager if this person were suspended.
      *
@@ -323,11 +327,6 @@ class User extends Authenticatable implements FilamentUser, HasDefaultTenant, Ha
     public function isSystemAdmin(): bool
     {
         return $this->is_system_admin && ! $this->isSuspended();
-    }
-
-    public function sendAccountSetupNotification(): void
-    {
-        $this->notify(new SetupAccount);
     }
 
     public static function generateToken(): string

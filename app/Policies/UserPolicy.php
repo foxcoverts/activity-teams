@@ -21,7 +21,7 @@ class UserPolicy
 
     public function create(User $user): bool
     {
-        return $user->hasOversight();
+        return false;
     }
 
     public function update(User $user, User $model): bool
