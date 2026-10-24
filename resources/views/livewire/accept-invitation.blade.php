@@ -46,6 +46,9 @@
                         {{ __('You are signed in as :name. Accepting adds this team to your account.', ['name' => $account->name]) }}
                     @endif
                 </p>
+                <p class="text-sm">
+                    <a href="{{ config('app.privacy_notice_url') }}" target="_blank" rel="noopener noreferrer" class="text-sky-700 underline">{{ __('Privacy notice') }}</a>
+                </p>
                 <button type="button" wire:click="useMyAccount" class="w-full rounded bg-sky-600 px-4 py-3 text-white">{{ __('Accept with this account') }}</button>
                 <button type="button" wire:click="signOutAndCreateAccount" class="w-full rounded border px-4 py-3">{{ __('Sign out and create a new account') }}</button>
             </div>
@@ -108,28 +111,17 @@
 
                 <div class="space-y-3 rounded border p-4">
                     <h3 class="font-medium">{{ __('Contact details') }}</h3>
-                    <p class="text-sm">{{ __('Your phone number is shown to the lead instructor and to other people attending the same booking, until the end of that booking. Only share it if you are happy for that.') }}</p>
-                    <label class="block text-sm font-medium">
-                        {{ __('Phone') }}
-                        <input type="tel" wire:model="phone" class="mt-1 w-full rounded border px-3 py-2">
-                        @error('phone') <span class="text-red-600">{{ $message }}</span> @enderror
-                    </label>
+                    {{ $this->form }}
                 </div>
 
-                <div class="space-y-3 rounded border p-4">
-                    <h3 class="font-medium">{{ __('Emergency contact') }}</h3>
-                    <p class="text-sm">{{ __('Your emergency contact is shown only to people attending a booking you are attending, on the day of the booking, so they can reach someone if you cannot. Only give details of someone who knows you are sharing them.') }}</p>
-                    <label class="block text-sm font-medium">
-                        {{ __('Emergency contact name') }}
-                        <input type="text" wire:model="emergency_name" class="mt-1 w-full rounded border px-3 py-2">
-                        @error('emergency_name') <span class="text-red-600">{{ $message }}</span> @enderror
-                    </label>
-                    <label class="block text-sm font-medium">
-                        {{ __('Emergency contact phone') }}
-                        <input type="tel" wire:model="emergency_phone" class="mt-1 w-full rounded border px-3 py-2">
-                        @error('emergency_phone') <span class="text-red-600">{{ $message }}</span> @enderror
-                    </label>
-                </div>
+                <p class="text-sm">
+                    <a href="{{ config('app.privacy_notice_url') }}" target="_blank" rel="noopener noreferrer" class="text-sky-700 underline">{{ __('Privacy notice') }}</a>
+                </p>
+                <label class="flex items-start gap-2 text-sm">
+                    <input type="checkbox" wire:model="privacy_notice_accepted" class="mt-1">
+                    <span>{{ __('I have read the privacy notice') }}</span>
+                </label>
+                @error('privacy_notice_accepted') <span class="text-red-600">{{ $message }}</span> @enderror
 
                 <button type="submit" class="w-full rounded bg-sky-600 px-4 py-3 text-white">{{ __('Create account') }}</button>
             </form>

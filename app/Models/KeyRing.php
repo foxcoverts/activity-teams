@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Validation\ValidationException;
 use Spatie\Activitylog\Models\Concerns\LogsActivity;
 use Spatie\Activitylog\Support\LogOptions;
 
@@ -26,9 +27,24 @@ class KeyRing extends Model
         return LogOptions::defaults()->logFillable()->logOnlyDirty();
     }
 
+    protected static function booted(): void
+    {
+        static::saving(function (KeyRing $ring): void {
+            if (! $ring->isDirty('holder_id') || $ring->holder_id === null) {
+                return;
+            }
+
+            if (User::query()->whereKey($ring->holder_id)->doesntExist()) {
+                throw ValidationException::withMessages([
+                    'holder_id' => User::leftRecordMessage(),
+                ]);
+            }
+        });
+    }
+
     public function holder(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'holder_id');
+        return $this->belongsTo(User::class, 'holder_id')->withTrashed();
     }
 
     public function keys(): BelongsToMany

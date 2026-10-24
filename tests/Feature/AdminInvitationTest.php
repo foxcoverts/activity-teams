@@ -340,6 +340,7 @@ class AdminInvitationTest extends TestCase
             ->set('password', 'secret-pass-1')
             ->set('password_confirmation', 'secret-pass-1')
             ->set('timezone', 'Europe/London')
+            ->set('privacy_notice_accepted', true)
             ->call('createAccount')
             ->assertHasNoErrors();
 

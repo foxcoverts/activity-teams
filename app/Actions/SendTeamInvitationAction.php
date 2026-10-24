@@ -156,10 +156,16 @@ class SendTeamInvitationAction
 
     private function guardEmail(Team $team, string $email): void
     {
-        $existing = User::query()->where('email', $email)->first();
+        $existing = User::withTrashed()->where('email', $email)->first();
 
         if (! $existing instanceof User) {
             return;
+        }
+
+        if ($existing->trashed()) {
+            throw ValidationException::withMessages([
+                'email' => __('This email address is already in use.'),
+            ]);
         }
 
         if ($existing->isSuspended()) {
@@ -177,10 +183,16 @@ class SendTeamInvitationAction
 
     private function guardSiteEmail(string $email): void
     {
-        $existing = User::query()->where('email', $email)->first();
+        $existing = User::withTrashed()->where('email', $email)->first();
 
         if (! $existing instanceof User) {
             return;
+        }
+
+        if ($existing->trashed()) {
+            throw ValidationException::withMessages([
+                'email' => __('This email address is already in use.'),
+            ]);
         }
 
         if ($existing->isSuspended()) {

@@ -37,6 +37,7 @@ class MembershipsRelationManager extends RelationManager
             ->headerActions([
                 Action::make('grant')
                     ->label('Add to a team')
+                    ->visible(fn (): bool => ($owner = $this->getOwnerRecord()) instanceof User && ! $owner->trashed())
                     ->schema([
                         Select::make('team_id')
                             ->label('Team')
@@ -66,7 +67,7 @@ class MembershipsRelationManager extends RelationManager
             ->recordActions([
                 Action::make('changeRole')
                     ->label('Change role')
-                    ->visible(fn (TeamMembership $record): bool => $record->left_at === null)
+                    ->visible(fn (TeamMembership $record): bool => $record->left_at === null && ! $record->user?->trashed())
                     ->disabled(fn (TeamMembership $record): bool => static::cannotStepDown($record))
                     ->tooltip(fn (TeamMembership $record): ?string => static::stepDownHint($record))
                     ->fillForm(fn (TeamMembership $record): array => [
@@ -94,7 +95,7 @@ class MembershipsRelationManager extends RelationManager
                     ->label('Leave team')
                     ->color('danger')
                     ->requiresConfirmation()
-                    ->visible(fn (TeamMembership $record): bool => $record->left_at === null)
+                    ->visible(fn (TeamMembership $record): bool => $record->left_at === null && ! $record->user?->trashed())
                     ->disabled(fn (TeamMembership $record): bool => static::cannotStepDown($record))
                     ->tooltip(fn (TeamMembership $record): ?string => static::stepDownHint($record))
                     ->action(function (TeamMembership $record): void {
@@ -116,6 +117,10 @@ class MembershipsRelationManager extends RelationManager
         }
 
         $membership->loadMissing('team', 'user');
+
+        if (! $membership->user instanceof User) {
+            return false;
+        }
 
         return $membership->team->isOnlyManager($membership->user);
     }

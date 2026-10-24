@@ -13,6 +13,7 @@ use App\Filament\Manage\Resources\Members\Pages\ListMembers;
 use App\Filament\Manage\Resources\Members\Pages\ViewMember;
 use App\Filament\Manage\Resources\Members\RelationManagers\QualificationsRelationManager;
 use App\Filament\Manage\Schemas\PersonalDataSection;
+use App\Filament\Schemas\ContactFields;
 use App\Models\Team;
 use App\Models\User;
 use App\Support\Palette;
@@ -78,7 +79,7 @@ class MemberResource extends Resource
 
     public static function getEloquentQuery(): Builder
     {
-        $query = parent::getEloquentQuery();
+        $query = parent::getEloquentQuery()->withTrashed();
         $team = static::currentTeam();
 
         if (! $team instanceof Team) {
@@ -114,13 +115,12 @@ class MemberResource extends Resource
                                 ->email()
                                 ->required(fn (?User $record): bool => ! $record?->isPlaceholder())
                                 ->disabled(fn (?User $record): bool => $record?->isPlaceholder() ?? false),
-                            TextInput::make('phone')
-                                ->tel(),
+                            ContactFields::phoneInput('phone'),
                         ]),
                         PersonalDataSection::form(PersonalDataSectionEnum::EmergencyContact, [
                             TextInput::make('emergency_name'),
-                            TextInput::make('emergency_phone')
-                                ->tel(),
+                            ContactFields::phoneInput('emergency_phone')
+                                ->label(__('Emergency contact phone')),
                         ]),
                     ]),
             ]);
@@ -157,16 +157,22 @@ class MemberResource extends Resource
                             ->color(Palette::destructive())
                             ->state(__('Suspended'))
                             ->visible(fn (User $record): bool => $record->isSuspended()),
+                        TextEntry::make('deleted')
+                            ->hiddenLabel()
+                            ->badge()
+                            ->icon('lucide-ghost')
+                            ->color(Palette::neutral())
+                            ->state(__('Deleted'))
+                            ->visible(fn (User $record): bool => $record->trashed()),
                         PersonalDataSection::make(PersonalDataSectionEnum::ContactDetails, [
                             TextEntry::make('email'),
-                            TextEntry::make('phone')
-                                ->placeholder('-'),
+                            ContactFields::phoneEntry('phone'),
                         ]),
                         PersonalDataSection::make(PersonalDataSectionEnum::EmergencyContact, [
                             TextEntry::make('emergency_name')
                                 ->placeholder('-'),
-                            TextEntry::make('emergency_phone')
-                                ->placeholder('-'),
+                            ContactFields::phoneEntry('emergency_phone')
+                                ->label(__('Emergency contact phone')),
                         ]),
                     ]),
             ]);
@@ -185,12 +191,15 @@ class MemberResource extends Resource
                 TextColumn::make('invitation_status')
                     ->label('Status')
                     ->badge()
-                    ->state(fn (User $record): InvitationStatus => $record->invitationStatus()),
+                    ->state(fn (User $record): InvitationStatus|string => $record->trashed() ? 'deleted' : $record->invitationStatus())
+                    ->formatStateUsing(fn (InvitationStatus|string $state): string => $state === 'deleted' ? __('Deleted') : $state->getLabel())
+                    ->icon(fn (InvitationStatus|string $state): Heroicon|string => $state === 'deleted' ? 'lucide-ghost' : $state->getIcon())
+                    ->color(fn (InvitationStatus|string $state): array => $state === 'deleted' ? Palette::neutral() : $state->getColor()),
             ])
             ->filters([
                 Filter::make('not_accepted')
                     ->label('Not yet accepted')
-                    ->query(fn (Builder $query): Builder => $query->whereNull('users.email')),
+                    ->query(fn (Builder $query): Builder => $query->whereNull('users.email')->whereNull('users.deleted_at')),
             ])
             ->recordActions([
                 static::invitationActions(),
@@ -314,7 +323,7 @@ class MemberResource extends Resource
         return Action::make('changeRole')
             ->record($record)
             ->label(__('Change role'))
-            ->visible(fn (): bool => static::canChangeRole())
+            ->visible(fn (?User $record): bool => static::canChangeRole() && $record instanceof User && ! $record->trashed())
             ->disabled(fn (User $record): bool => static::cannotStepDown($record))
             ->tooltip(fn (User $record): ?string => static::stepDownHint($record))
             ->fillForm(fn (User $record): array => [
@@ -352,7 +361,7 @@ class MemberResource extends Resource
             ->record($record)
             ->label(__('Remove from team'))
             ->color('danger')
-            ->visible(fn (): bool => static::canManage())
+            ->visible(fn (?User $record): bool => static::canManage() && $record instanceof User && ! $record->trashed())
             ->disabled(fn (User $record): bool => static::cannotStepDown($record))
             ->tooltip(fn (User $record): ?string => static::stepDownHint($record))
             ->requiresConfirmation()

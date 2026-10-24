@@ -39,7 +39,7 @@ As a team manager, I want to add people to my team by name and invite them by em
 - Any section or similar team classification is set by the manager, not chosen by the invitee.
 - Legacy created a global `User` with an empty password and re-sent a signed setup link while the account was inactive. It had no claim-into-existing-account path and no suspended-email check.
 - Suspended-email refusal is deliberately explicit: a generic error would lead a manager to ask the person for another email address, working around the suspension without knowing it exists. The message names the reason but reveals nothing else about the account.
-- Depends on US-47 (team isolation), US-48 (suspension), US-56 (profile fields) and US-58 (acknowledgement).
+- Depends on US-47 (team isolation), US-48 (suspension), [US-56](US-56-member-profile.md) (profile fields) and US-58 (acknowledgement).
 
 ## Progress
 

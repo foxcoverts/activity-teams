@@ -74,12 +74,12 @@ class PersonalDataAcknowledgementTest extends TestCase
         Livewire::test(ViewMember::class, ['record' => $this->member->getKey()])
             ->call('acknowledgePersonalData', PersonalDataSection::ContactDetails->value)
             ->assertSee('alex@example.test')
-            ->assertSee('07000111222')
+            ->assertSee('+44 70 0011 1222')
             ->assertDontSee('Sam Emergency')
             ->assertDontSee('07000333444')
             ->call('acknowledgePersonalData', PersonalDataSection::EmergencyContact->value)
             ->assertSee('Sam Emergency')
-            ->assertSee('07000333444');
+            ->assertSee('+44 70 0033 3444');
 
         $this->assertDatabaseHas('personal_data_acknowledgements', [
             'viewer_id' => $this->leader->getKey(),

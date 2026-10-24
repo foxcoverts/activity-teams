@@ -17,9 +17,11 @@
         "filament/filament": "^5.0",
         "laravel/framework": "^13.17",
         "laravel/tinker": "^3.0",
+        "mallardduck/blade-lucide-icons": "^2.0",
         "propaganistas/laravel-phone": "^6.1",
         "ralphjsmit/laravel-filament-activitylog": "^3.0.0-beta2",
-        "spatie/laravel-activitylog": "^5.1"
+        "spatie/laravel-activitylog": "^5.1",
+        "ysfkaya/filament-phone-input": "^4.2"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",

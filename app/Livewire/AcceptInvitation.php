@@ -3,17 +3,29 @@
 namespace App\Livewire;
 
 use App\Actions\AcceptTeamInvitationAction;
+use App\Filament\Schemas\ContactFields;
 use App\Models\TeamInvitation;
 use App\Models\User;
 use App\Support\Timezones;
+use Filament\Actions\Concerns\InteractsWithActions;
+use Filament\Actions\Contracts\HasActions;
+use Filament\Schemas\Concerns\InteractsWithSchemas;
+use Filament\Schemas\Contracts\HasSchemas;
+use Filament\Schemas\Schema;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rules\Password;
 use Livewire\Attributes\Locked;
 use Livewire\Component;
 
-class AcceptInvitation extends Component
+/**
+ * @property-read Schema $form
+ */
+class AcceptInvitation extends Component implements HasActions, HasSchemas
 {
+    use InteractsWithActions;
+    use InteractsWithSchemas;
+
     #[Locked]
     public string $invitationId = '';
 
@@ -30,11 +42,12 @@ class AcceptInvitation extends Component
 
     public string $timezone = 'Europe/London';
 
-    public string $phone = '';
+    /**
+     * @var array<string, mixed>|null
+     */
+    public ?array $data = [];
 
-    public string $emergency_name = '';
-
-    public string $emergency_phone = '';
+    public bool $privacy_notice_accepted = false;
 
     public bool $declined = false;
 
@@ -47,6 +60,7 @@ class AcceptInvitation extends Component
         $this->name = $invitation->user->name;
         $this->email = $invitation->email;
         $this->timezone = (string) (Auth::user()?->timezone ?? config('app.timezone'));
+        $this->form->fill();
 
         // Lets the invitee return here after signing in with an existing account.
         session()->put('url.intended', request()->fullUrl());
@@ -61,10 +75,13 @@ class AcceptInvitation extends Component
             'email' => ['required', 'string', 'email', 'max:255'],
             'password' => ['required', 'confirmed', Password::defaults()],
             'timezone' => ['required', 'timezone:all'],
-            'phone' => ['nullable', 'string', 'max:20'],
-            'emergency_name' => ['nullable', 'required_with:emergency_phone', 'string', 'max:100'],
-            'emergency_phone' => ['nullable', 'required_with:emergency_name', 'string', 'max:20'],
+            'privacy_notice_accepted' => ['accepted'],
         ]);
+
+        $data = [
+            ...$data,
+            ...$this->form->getState(),
+        ];
 
         $user = $accept->createAccount($invitation, $data);
 
@@ -116,7 +133,23 @@ class AcceptInvitation extends Component
             'invitation' => $invitation,
             'valid' => $invitation->isPending() && ! $this->declined,
             'account' => Auth::user(),
-        ])->title(__('Invitation'));
+        ])->layout('layouts.filament-form')->title(__('Invitation'));
+    }
+
+    public function defaultForm(Schema $schema): Schema
+    {
+        return $schema
+            ->statePath('data');
+    }
+
+    public function form(Schema $schema): Schema
+    {
+        return $schema
+            ->components([
+                ContactFields::phoneNotice(),
+                ContactFields::phoneInput('phone'),
+                ...ContactFields::emergencyFields(),
+            ]);
     }
 
     private function invitation(): TeamInvitation

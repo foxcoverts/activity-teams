@@ -10,3 +10,4 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 Schedule::command('model:prune', ['--model' => PersonalDataAcknowledgement::class])->daily();
+Schedule::command('users:purge-deleted')->daily()->withoutOverlapping();

@@ -2,7 +2,11 @@
 
 namespace App\Providers\Filament;
 
+use App\Filament\Auth\EditProfile;
+use App\Filament\Auth\Login;
 use App\Filament\Auth\Register;
+use App\Filament\Pages\ChangePassword;
+use App\Http\Middleware\RequireProfileConfirmation;
 use App\Http\Middleware\ShowPublicBookingSummary;
 use App\Models\User;
 use Filament\Facades\Filament;
@@ -34,11 +38,11 @@ class MemberPanelProvider extends PanelProvider
             ->id('member')
             ->path('')
             ->brandName('Members')
-            ->login()
+            ->login(Login::class)
             ->registration(Register::class)
             ->passwordReset()
             ->emailVerification()
-            ->profile()
+            ->profile(EditProfile::class, isSimple: false)
             ->colors([
                 'primary' => Color::Sky,
             ])
@@ -48,6 +52,10 @@ class MemberPanelProvider extends PanelProvider
             ->discoverPages(in: app_path('Filament/Member/Pages'), for: 'App\\Filament\\Member\\Pages')
             ->pages([
                 Dashboard::class,
+                ChangePassword::class,
+            ])
+            ->userMenuItems([
+                ChangePassword::userMenuItem(),
             ])
             ->navigationItems([
                 NavigationItem::make('Manage')
@@ -90,6 +98,7 @@ class MemberPanelProvider extends PanelProvider
             ->authMiddleware([
                 ShowPublicBookingSummary::class,
                 Authenticate::class,
+                RequireProfileConfirmation::class,
             ]);
     }
 }

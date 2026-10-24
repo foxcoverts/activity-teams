@@ -23,6 +23,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Str;
@@ -32,7 +33,7 @@ use Spatie\Activitylog\Support\LogOptions;
 class User extends Authenticatable implements FilamentUser, HasDefaultTenant, HasTenants, MustVerifyEmail
 {
     /** @use HasFactory<UserFactory> */
-    use Concerns\HasUid, HasFactory, HasUlids, LogsActivity, Notifiable;
+    use Concerns\HasUid, HasFactory, HasUlids, LogsActivity, Notifiable, SoftDeletes;
 
     protected $fillable = [
         'name',
@@ -47,6 +48,8 @@ class User extends Authenticatable implements FilamentUser, HasDefaultTenant, Ha
         'oversight',
         'is_system_admin',
         'ical_token',
+        'privacy_notice_accepted_at',
+        'profile_confirmed_at',
     ];
 
     protected $hidden = [
@@ -59,12 +62,17 @@ class User extends Authenticatable implements FilamentUser, HasDefaultTenant, Ha
         'suspended' => false,
         'oversight' => false,
         'is_system_admin' => false,
+        'privacy_notice_accepted_at' => null,
+        'profile_confirmed_at' => null,
+        'deleted_at' => null,
     ];
 
     protected function casts(): array
     {
         return [
             'email_verified_at' => 'datetime',
+            'privacy_notice_accepted_at' => 'datetime',
+            'profile_confirmed_at' => 'datetime',
             'password' => 'hashed',
             'section' => Section::class,
             'suspended' => 'boolean',
@@ -85,6 +93,10 @@ class User extends Authenticatable implements FilamentUser, HasDefaultTenant, Ha
         });
 
         static::deleting(function (User $user): void {
+            if (! $user->isForceDeleting()) {
+                return;
+            }
+
             $user->qualifications()->with('detail')->get()->each->delete();
         });
     }
@@ -114,7 +126,7 @@ class User extends Authenticatable implements FilamentUser, HasDefaultTenant, Ha
 
     public function canAccessPanel(Panel $panel): bool
     {
-        if (! $this->isActive() || $this->isSuspended()) {
+        if ($this->trashed() || ! $this->isActive() || $this->isSuspended()) {
             return false;
         }
 
@@ -209,7 +221,58 @@ class User extends Authenticatable implements FilamentUser, HasDefaultTenant, Ha
      */
     public function isPlaceholder(): bool
     {
-        return blank($this->email);
+        return blank($this->email) && ! $this->trashed();
+    }
+
+    public static function leftRecordMessage(): string
+    {
+        return __('This person has left. Their record is kept for history and cannot be changed.');
+    }
+
+    public function profileConfirmationIsDue(): bool
+    {
+        if ($this->isPlaceholder() || $this->trashed() || ! $this->isActive()) {
+            return false;
+        }
+
+        $lastConfirmed = $this->profile_confirmed_at ?? $this->created_at;
+
+        return $lastConfirmed === null || $lastConfirmed->lte(now()->subYear());
+    }
+
+    public function hasDeferredProfileConfirmation(): bool
+    {
+        $deferredOn = session('profile_confirmation_deferred_on');
+
+        if (! is_string($deferredOn)) {
+            return false;
+        }
+
+        return $deferredOn === now($this->timezoneName())->toDateString();
+    }
+
+    public function deferProfileConfirmation(): void
+    {
+        session(['profile_confirmation_deferred_on' => now($this->timezoneName())->toDateString()]);
+    }
+
+    public function timezoneName(): string
+    {
+        return $this->timezone?->getName() ?? (string) config('app.timezone');
+    }
+
+    public function isLastSystemAdmin(): bool
+    {
+        if (! $this->is_system_admin) {
+            return false;
+        }
+
+        return ! static::query()
+            ->whereKeyNot($this->getKey())
+            ->where('is_system_admin', true)
+            ->where('suspended', false)
+            ->whereNotNull('password')
+            ->exists();
     }
 
     public function invitationStatus(): InvitationStatus

@@ -41,6 +41,8 @@ class AcceptTeamInvitationAction
                 'phone' => $data['phone'] ?? null,
                 'emergency_name' => $data['emergency_name'] ?? null,
                 'emergency_phone' => $data['emergency_phone'] ?? null,
+                'privacy_notice_accepted_at' => now(),
+                'profile_confirmed_at' => now(),
             ])->save();
 
             $invitation->delete();
@@ -90,7 +92,7 @@ class AcceptTeamInvitationAction
             DB::table('qualifications')->where('user_id', $placeholder->getKey())->update(['user_id' => $account->getKey()]);
             DB::table('key_rings')->where('holder_id', $placeholder->getKey())->update(['holder_id' => $account->getKey()]);
 
-            $placeholder->delete();
+            $placeholder->forceDelete();
 
             activity()->performedOn($subject)->causedBy($account)->log(__('Accepted an invitation with an existing account'));
         });
@@ -190,7 +192,7 @@ class AcceptTeamInvitationAction
 
     private function guardNewEmail(string $email): void
     {
-        if (User::query()->where('email', $email)->exists()) {
+        if (User::withTrashed()->where('email', $email)->exists()) {
             throw ValidationException::withMessages([
                 'email' => __('This email address is already in use.'),
             ]);

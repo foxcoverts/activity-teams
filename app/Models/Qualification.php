@@ -87,7 +87,7 @@ class Qualification extends Model
 
     public static function canMaintain(User $actor, User $member): bool
     {
-        if ($actor->isSuspended() || $member->isSuspended()) {
+        if ($actor->isSuspended() || $member->isSuspended() || $member->trashed()) {
             return false;
         }
 

@@ -2,6 +2,7 @@
 
 namespace App\Filament\Manage\Resources\Users;
 
+use App\Actions\DeleteUserAction;
 use App\Actions\SendTeamInvitationAction;
 use App\Enums\InvitationStatus;
 use App\Enums\PersonalDataSection as PersonalDataSectionEnum;
@@ -13,6 +14,7 @@ use App\Filament\Manage\Resources\Users\Pages\ListUsers;
 use App\Filament\Manage\Resources\Users\Pages\ViewUser;
 use App\Filament\Manage\Resources\Users\RelationManagers\MembershipsRelationManager;
 use App\Filament\Manage\Schemas\PersonalDataSection;
+use App\Filament\Schemas\ContactFields;
 use App\Models\User;
 use App\Support\Palette;
 use BackedEnum;
@@ -22,6 +24,7 @@ use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
+use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
@@ -36,7 +39,9 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\Filter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Validation\ValidationException;
+use Throwable;
 
 class UserResource extends Resource
 {
@@ -68,7 +73,7 @@ class UserResource extends Resource
 
     public static function getEloquentQuery(): Builder
     {
-        return parent::getEloquentQuery()->with('invitation');
+        return parent::getEloquentQuery()->with('invitation')->withTrashed();
     }
 
     public static function form(Schema $schema): Schema
@@ -88,21 +93,21 @@ class UserResource extends Resource
                             ->required(),
                         TimezoneSelect::make('timezone')
                             ->searchable(),
-                        TextInput::make('password')
-                            ->password()
-                            ->dehydrated(fn ($state) => filled($state)),
+                        Placeholder::make('password')
+                            ->label(__('Password'))
+                            ->content(__('Only the user can change their own password.'))
+                            ->hiddenOn('view'),
                         PersonalDataSection::form(PersonalDataSectionEnum::ContactDetails, [
                             TextInput::make('email')
                                 ->label('Email address')
                                 ->email()
                                 ->required(),
-                            TextInput::make('phone')
-                                ->tel(),
+                            ContactFields::phoneInput('phone'),
                         ]),
                         PersonalDataSection::form(PersonalDataSectionEnum::EmergencyContact, [
                             TextInput::make('emergency_name'),
-                            TextInput::make('emergency_phone')
-                                ->tel(),
+                            ContactFields::phoneInput('emergency_phone')
+                                ->label(__('Emergency contact phone')),
                         ]),
                     ]),
                 Section::make(__('Access'))
@@ -140,14 +145,16 @@ class UserResource extends Resource
                                 'oversight' => __('Oversight'),
                                 'system-admin' => __('System admin'),
                                 'suspended' => __('Suspended'),
+                                'deleted' => __('Deleted'),
                                 default => $state,
                             })
-                            ->icon(fn (string $state): Heroicon => match ($state) {
+                            ->icon(fn (string $state): Heroicon|string => match ($state) {
                                 'oversight' => Heroicon::Eye,
                                 'system-admin' => Heroicon::ShieldCheck,
+                                'deleted' => 'lucide-ghost',
                                 default => Heroicon::NoSymbol,
                             })
-                            ->color(fn (string $state): array => $state === 'suspended' ? Palette::destructive() : Palette::neutral()),
+                            ->color(fn (string $state): array => in_array($state, ['suspended', 'deleted'], true) ? Palette::destructive() : Palette::neutral()),
                         TextEntry::make('invitation_status')
                             ->label('Invitation')
                             ->badge()
@@ -159,14 +166,13 @@ class UserResource extends Resource
                         PersonalDataSection::make(PersonalDataSectionEnum::ContactDetails, [
                             TextEntry::make('email')
                                 ->label('Email address'),
-                            TextEntry::make('phone')
-                                ->placeholder('-'),
+                            ContactFields::phoneEntry('phone'),
                         ]),
                         PersonalDataSection::make(PersonalDataSectionEnum::EmergencyContact, [
                             TextEntry::make('emergency_name')
                                 ->placeholder('-'),
-                            TextEntry::make('emergency_phone')
-                                ->placeholder('-'),
+                            ContactFields::phoneEntry('emergency_phone')
+                                ->label(__('Emergency contact phone')),
                         ]),
                     ]),
             ]);
@@ -178,6 +184,7 @@ class UserResource extends Resource
     protected static function statusBadges(User $user): array
     {
         return array_values(array_filter([
+            $user->trashed() ? 'deleted' : null,
             $user->oversight ? 'oversight' : null,
             $user->is_system_admin ? 'system-admin' : null,
             $user->suspended ? 'suspended' : null,
@@ -194,7 +201,10 @@ class UserResource extends Resource
                 TextColumn::make('invitation_status')
                     ->label('Status')
                     ->badge()
-                    ->state(fn (User $record): InvitationStatus => $record->invitationStatus()),
+                    ->state(fn (User $record): InvitationStatus|string => $record->trashed() ? 'deleted' : $record->invitationStatus())
+                    ->formatStateUsing(fn (InvitationStatus|string $state): string => $state === 'deleted' ? __('Deleted') : $state->getLabel())
+                    ->icon(fn (InvitationStatus|string $state): Heroicon|string => $state === 'deleted' ? 'lucide-ghost' : $state->getIcon())
+                    ->color(fn (InvitationStatus|string $state): array => $state === 'deleted' ? Palette::neutral() : $state->getColor()),
                 TextColumn::make('timezone')
                     ->searchable(),
                 TextColumn::make('section')
@@ -219,7 +229,7 @@ class UserResource extends Resource
             ->filters([
                 Filter::make('not_accepted')
                     ->label('Not yet accepted')
-                    ->query(fn (Builder $query): Builder => $query->whereNull('users.email')),
+                    ->query(fn (Builder $query): Builder => $query->whereNull('users.email')->whereNull('users.deleted_at')),
             ])
             ->recordActions([
                 static::invitationActions(),
@@ -228,7 +238,22 @@ class UserResource extends Resource
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
-                    DeleteBulkAction::make(),
+                    DeleteBulkAction::make()
+                        ->using(function (DeleteBulkAction $action, Collection $records): void {
+                            $actor = auth()->user();
+
+                            if (! $actor instanceof User) {
+                                return;
+                            }
+
+                            $records->each(function (User $record) use ($actor, $action): void {
+                                try {
+                                    app(DeleteUserAction::class)->delete($actor, $record);
+                                } catch (Throwable $exception) {
+                                    $action->reportBulkProcessingFailure();
+                                }
+                            });
+                        }),
                 ]),
             ]);
     }

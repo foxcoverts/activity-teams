@@ -10,6 +10,7 @@ use App\Filament\Manage\Resources\KeyRings\Pages\ViewKeyRing;
 use App\Models\KeyRing;
 use App\Models\User;
 use BackedEnum;
+use Closure;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
@@ -22,6 +23,7 @@ use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 
 class KeyRingResource extends Resource
 {
@@ -54,10 +56,38 @@ class KeyRingResource extends Resource
                     ->required(),
                 Select::make('holder_id')
                     ->label(__('Holder'))
-                    ->relationship('holder', 'name')
+                    ->relationship(
+                        'holder',
+                        'name',
+                        function (Builder $query, ?KeyRing $record): Builder {
+                            return $query
+                                ->withTrashed()
+                                ->where(function (Builder $holders) use ($record): void {
+                                    $holders->whereNull($holders->getModel()->getQualifiedDeletedAtColumn());
+
+                                    if ($record instanceof KeyRing && filled($record->holder_id)) {
+                                        $holders->orWhereKey($record->holder_id);
+                                    }
+                                });
+                        },
+                    )
                     ->searchable()
                     ->preload()
-                    ->placeholder(__('In the cupboard')),
+                    ->placeholder(__('In the cupboard'))
+                    ->nullable()
+                    ->rule(fn (?KeyRing $record): Closure => function (string $attribute, mixed $value, Closure $fail) use ($record): void {
+                        if (blank($value)) {
+                            return;
+                        }
+
+                        if ($record instanceof KeyRing && (string) $record->holder_id === (string) $value) {
+                            return;
+                        }
+
+                        if (User::query()->whereKey($value)->doesntExist()) {
+                            $fail(User::leftRecordMessage());
+                        }
+                    }),
                 Select::make('keys')
                     ->relationship('keys', 'name')
                     ->multiple()

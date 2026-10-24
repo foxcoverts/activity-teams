@@ -194,9 +194,17 @@ Use `App\Support\Palette` for semantic colors in Filament components and status 
 
 Use the palette method that matches the meaning of the UI, not merely its appearance. If a reusable semantic color is needed and none fits, extend `Palette` with a clearly named method rather than adding a one-off color. The panel's primary color is configured separately.
 
+## Filament icons
+
+Prefer icons in this order:
+
+1. **Heroicon** (`Filament\Support\Icons\Heroicon`) whenever a suitable glyph exists. Use outlined vs solid the way neighbouring Filament code already does.
+2. **Lucide** (`mallardduck/blade-lucide-icons`, Blade name `lucide-{name}`) only when Heroicons has no suitable glyph. Pass that string to `->icon()` / `HasIcon::getIcon()`.
+3. Do not add further icon packages without approval. Do not migrate existing Heroicons to Lucide, and do not replace Filament chrome icons.
+
 ## Filament UI Conventions
 
-- When an enum is shown in Filament, implement `HasLabel`; add `HasColor` and `HasIcon` when they help distinguish values. Return translated labels, semantic colors from `App\Support\Palette`, and `Heroicon` cases. Apply this when the enum is in scope rather than restyling unrelated enums. See `docs/stories/README.md` for the project's reference.
+- When an enum is shown in Filament, implement `HasLabel`; add `HasColor` and `HasIcon` when they help distinguish values. Return translated labels, semantic colors from `App\Support\Palette`, and icons following the Filament icons hierarchy. Apply this when the enum is in scope rather than restyling unrelated enums. See `docs/stories/README.md` for the project's reference.
 - Use **Remove**, **Remove selected**, and **Removed** in user-facing actions that take related records off a parent. Keep Filament's detach/dissociate action types and existing localized wording overrides; do not restore relationship jargon in labels, modal copy, or notifications.
 - Do not display seconds in booking dates or times.
 - Do not display record IDs in user-facing screens.

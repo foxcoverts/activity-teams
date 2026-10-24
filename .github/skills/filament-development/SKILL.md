@@ -236,7 +236,7 @@ livewire(ListUsers::class)
 - Table columns (`TextColumn`, `IconColumn`, etc.): `Filament\Tables\Columns\`
 - Table filters (`SelectFilter`, `Filter`, etc.): `Filament\Tables\Filters\`
 - Actions (`DeleteAction`, `CreateAction`, etc.): `Filament\Actions\`. Never use `Filament\Tables\Actions\`, `Filament\Forms\Actions\`, or any other sub-namespace for actions.
-- Icons: `Filament\Support\Icons\Heroicon` enum (e.g., `Heroicon::PencilSquare`)
+- Icons: prefer `Filament\Support\Icons\Heroicon` (e.g., `Heroicon::PencilSquare`) whenever a suitable glyph exists; use Lucide (`lucide-{name}` from `mallardduck/blade-lucide-icons`) only when Heroicons has no suitable glyph. Do not add further icon packages without approval.
 
 ## Common mistakes
 

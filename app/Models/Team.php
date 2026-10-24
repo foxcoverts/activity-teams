@@ -170,6 +170,12 @@ class Team extends Model
 
     public function grant(User $user, MembershipRole $role): TeamMembership
     {
+        if ($user->trashed()) {
+            throw ValidationException::withMessages([
+                'role' => User::leftRecordMessage(),
+            ]);
+        }
+
         $membership = $this->memberships()->firstOrNew([
             'user_id' => $user->getKey(),
         ]);
@@ -187,6 +193,12 @@ class Team extends Model
 
     public function recordLeft(User $user): void
     {
+        if ($user->trashed()) {
+            throw ValidationException::withMessages([
+                'role' => User::leftRecordMessage(),
+            ]);
+        }
+
         $membership = $this->memberships()
             ->where('user_id', $user->getKey())
             ->whereNull('left_at')

@@ -2,8 +2,11 @@
 
 namespace App\Providers\Filament;
 
+use App\Filament\Auth\EditProfile;
 use App\Filament\Manage\NavigationGroup;
+use App\Filament\Pages\ChangePassword;
 use App\Http\Middleware\RememberManageTeam;
+use App\Http\Middleware\RequireProfileConfirmation;
 use App\Models\Team;
 use Filament\Facades\Filament;
 use Filament\Http\Middleware\Authenticate;
@@ -35,7 +38,6 @@ class ManagePanelProvider extends PanelProvider
             ->login()
             ->passwordReset()
             ->emailVerification()
-            ->profile()
             ->colors([
                 'primary' => Color::Sky,
             ])
@@ -50,6 +52,10 @@ class ManagePanelProvider extends PanelProvider
             ->discoverPages(in: app_path('Filament/Manage/Pages'), for: 'App\\Filament\\Manage\\Pages')
             ->pages([
                 Dashboard::class,
+            ])
+            ->userMenuItems([
+                EditProfile::userMenuItem(),
+                ChangePassword::userMenuItem(),
             ])
             ->navigationItems([
                 NavigationItem::make('Members')
@@ -74,6 +80,7 @@ class ManagePanelProvider extends PanelProvider
             ])
             ->authMiddleware([
                 Authenticate::class,
+                RequireProfileConfirmation::class,
             ]);
     }
 }

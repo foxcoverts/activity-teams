@@ -123,4 +123,6 @@ return [
         'store' => env('APP_MAINTENANCE_STORE', 'database'),
     ],
 
+    'privacy_notice_url' => env('PRIVACY_NOTICE_URL', 'https://example.com/privacy'),
+
 ];

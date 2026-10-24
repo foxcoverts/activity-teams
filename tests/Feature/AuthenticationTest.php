@@ -21,6 +21,14 @@ class AuthenticationTest extends TestCase
         $this->get('/login')->assertOk();
     }
 
+    public function test_login_page_does_not_offer_registration(): void
+    {
+        $this->get('/login')
+            ->assertOk()
+            ->assertDontSee('sign up for an account')
+            ->assertDontSee(route('filament.member.auth.register'), escape: false);
+    }
+
     public function test_team_member_can_open_bookings_list(): void
     {
         $user = User::factory()->teamMember()->create();

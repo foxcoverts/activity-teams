@@ -217,9 +217,9 @@ class ActivityTeamsTest extends TestCase
             ->call('acknowledgePersonalData', 'contact-details')
             ->call('acknowledgePersonalData', 'emergency-contact')
             ->assertSee('member@example.test')
-            ->assertSee('07000111222')
+            ->assertSee('+44 70 0011 1222')
             ->assertSee('Emergency Contact')
-            ->assertSee('07000333444');
+            ->assertSee('+44 70 0033 3444');
 
         Livewire::test(ListMembers::class)
             ->assertTableActionDisabled('changeRole', $leader);
@@ -251,9 +251,9 @@ class ActivityTeamsTest extends TestCase
             ->call('acknowledgePersonalData', 'contact-details')
             ->call('acknowledgePersonalData', 'emergency-contact')
             ->assertSee('member@example.test')
-            ->assertSee('07000111222')
+            ->assertSee('+44 70 0011 1222')
             ->assertSee('Emergency Contact')
-            ->assertSee('07000333444');
+            ->assertSee('+44 70 0033 3444');
     }
 
     public function test_opening_manage_returns_to_the_last_team(): void
@@ -449,8 +449,8 @@ class ActivityTeamsTest extends TestCase
             ->assertDontSee('07000999888')
             ->call('acknowledgePersonalData', 'contact-details')
             ->call('acknowledgePersonalData', 'emergency-contact')
-            ->assertSee('07000999888')
-            ->assertSee('07000111222');
+            ->assertSee('+44 70 0099 9888')
+            ->assertSee('+44 70 0011 1222');
 
         $this->assertTrue($admin->can('view', $member));
         $this->assertTrue($admin->can('update', $member));

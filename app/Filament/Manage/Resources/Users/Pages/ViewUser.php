@@ -6,6 +6,7 @@ use App\Filament\Manage\Concerns\AcknowledgesPersonalData;
 use App\Filament\Manage\Resources\Users\UserResource;
 use App\Models\User;
 use Filament\Actions\EditAction;
+use Filament\Actions\RestoreAction;
 use Filament\Resources\Pages\ViewRecord;
 
 class ViewUser extends ViewRecord
@@ -23,6 +24,7 @@ class ViewUser extends ViewRecord
         return [
             UserResource::invitationActions($record),
             EditAction::make(),
+            RestoreAction::make(),
         ];
     }
 }

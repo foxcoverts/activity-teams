@@ -26,12 +26,32 @@ class UserPolicy
 
     public function update(User $user, User $model): bool
     {
-        return $this->view($user, $model);
+        return ! $model->trashed() && $this->view($user, $model);
     }
 
     public function delete(User $user, User $model): bool
     {
-        return $user->hasOversight() && ! $user->is($model);
+        if ($model->trashed() || $user->isSuspended()) {
+            return false;
+        }
+
+        if ($user->is($model)) {
+            return true;
+        }
+
+        return $user->hasOversight();
+    }
+
+    public function restore(User $user, User $model): bool
+    {
+        return $user->isSystemAdmin()
+            && $model->trashed()
+            && filled($model->email);
+    }
+
+    public function forceDelete(User $user, User $model): bool
+    {
+        return false;
     }
 
     /**
@@ -40,7 +60,7 @@ class UserPolicy
      */
     public function suspend(User $user, User $model): bool
     {
-        if ($user->isSuspended() || $user->is($model)) {
+        if ($model->trashed() || $user->isSuspended() || $user->is($model)) {
             return false;
         }
 
