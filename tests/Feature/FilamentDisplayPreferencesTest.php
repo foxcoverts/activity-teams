@@ -10,6 +10,9 @@ use App\Filament\Manage\Resources\Activities\Pages\ListActivities;
 use App\Filament\Manage\Resources\Activities\Pages\ViewActivity;
 use App\Filament\Manage\Resources\Bookings\Pages\ListBookings as ManageListBookings;
 use App\Filament\Manage\Resources\Bookings\Pages\ViewBooking as ManageViewBooking;
+use App\Filament\Manage\Resources\Teams\Pages\CreateTeam;
+use App\Filament\Manage\Resources\Teams\Pages\EditTeam;
+use App\Filament\Manage\Resources\Teams\Pages\ListTeams;
 use App\Filament\Manage\Resources\Users\Pages\ViewUser;
 use App\Filament\Manage\Resources\Venues\Pages\CreateVenue;
 use App\Filament\Manage\Resources\Venues\Pages\EditVenue;
@@ -19,6 +22,7 @@ use App\Filament\Member\Resources\Bookings\Pages\ListBookings as MemberListBooki
 use App\Filament\Member\Resources\Bookings\Pages\ViewBooking as MemberViewBooking;
 use App\Models\Activity;
 use App\Models\Booking;
+use App\Models\Team;
 use App\Models\User;
 use App\Models\Venue;
 use Filament\Facades\Filament;
@@ -158,6 +162,10 @@ class FilamentDisplayPreferencesTest extends TestCase
         $venue = Venue::factory()->create([
             'slug' => 'hidden-venue-slug',
         ]);
+        Team::factory()->create([
+            'name' => 'Hidden Team',
+            'slug' => 'hidden-team-slug',
+        ]);
 
         $this->actingAs($user);
         Filament::setCurrentPanel(Filament::getPanel('manage'));
@@ -169,6 +177,10 @@ class FilamentDisplayPreferencesTest extends TestCase
         Livewire::test(ListVenues::class)
             ->assertTableColumnDoesNotExist('id')
             ->assertTableColumnDoesNotExist('slug');
+        Livewire::test(ListTeams::class)
+            ->assertTableColumnDoesNotExist('id')
+            ->assertTableColumnDoesNotExist('slug')
+            ->assertDontSee('hidden-team-slug');
 
         Livewire::test(ViewActivity::class, ['record' => $activity->getKey()])
             ->assertDontSee('ID')
@@ -185,10 +197,11 @@ class FilamentDisplayPreferencesTest extends TestCase
         $user = User::factory()->teamLeader()->create();
         $activity = Activity::factory()->create();
         $venue = Venue::factory()->create();
+        $team = $user->managedTeams()->firstOrFail();
 
         $this->actingAs($user);
         Filament::setCurrentPanel(Filament::getPanel('manage'));
-        Filament::setTenant($user->managedTeams()->firstOrFail());
+        Filament::setTenant($team);
 
         Livewire::test(CreateActivity::class)
             ->assertFormFieldHidden('slug');
@@ -198,5 +211,38 @@ class FilamentDisplayPreferencesTest extends TestCase
             ->assertFormFieldHidden('slug');
         Livewire::test(EditVenue::class, ['record' => $venue->getKey()])
             ->assertFormFieldVisible('slug');
+        Livewire::test(CreateTeam::class)
+            ->assertFormFieldHidden('slug');
+        Livewire::test(EditTeam::class, ['record' => $team->getKey()])
+            ->assertFormFieldVisible('slug');
+    }
+
+    public function test_activity_and_venue_slugs_must_be_url_safe(): void
+    {
+        $user = User::factory()->teamLeader()->create();
+        $activity = Activity::factory()->create(['slug' => 'kept-activity']);
+        $venue = Venue::factory()->create(['slug' => 'kept-venue']);
+
+        $this->actingAs($user);
+        Filament::setCurrentPanel(Filament::getPanel('manage'));
+        Filament::setTenant($user->managedTeams()->firstOrFail());
+
+        Livewire::test(EditActivity::class, ['record' => $activity->getKey()])
+            ->fillForm(['slug' => 'not/a slug'])
+            ->call('save')
+            ->assertHasFormErrors(['slug' => 'alpha_dash']);
+        Livewire::test(EditVenue::class, ['record' => $venue->getKey()])
+            ->fillForm(['slug' => 'not/a slug'])
+            ->call('save')
+            ->assertHasFormErrors(['slug' => 'alpha_dash']);
+
+        $this->assertDatabaseHas(Activity::class, [
+            'id' => $activity->getKey(),
+            'slug' => 'kept-activity',
+        ]);
+        $this->assertDatabaseHas(Venue::class, [
+            'id' => $venue->getKey(),
+            'slug' => 'kept-venue',
+        ]);
     }
 }

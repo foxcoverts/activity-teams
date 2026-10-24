@@ -40,6 +40,11 @@ class TeamResource extends Resource
             ->components([
                 TextInput::make('name')
                     ->required(),
+                TextInput::make('slug')
+                    ->helperText(__('Leave blank to generate from the name.'))
+                    ->alphaDash()
+                    ->unique(ignoreRecord: true)
+                    ->visible(fn (string $operation): bool => $operation === 'edit'),
                 Select::make('manager_id')
                     ->label('First manager')
                     ->options(fn (): array => User::query()->orderBy('name')->pluck('name', 'id')->all())

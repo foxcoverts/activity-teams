@@ -19,6 +19,7 @@ use App\Filament\Manage\Resources\TeamActivities\Pages\ListTeamActivities;
 use App\Filament\Manage\Resources\TeamActivities\TeamActivityResource;
 use App\Filament\Manage\Resources\TeamKeys\TeamKeyResource;
 use App\Filament\Manage\Resources\Teams\Pages\CreateTeam;
+use App\Filament\Manage\Resources\Teams\Pages\EditTeam;
 use App\Filament\Manage\Resources\Teams\Pages\ListTeams;
 use App\Filament\Manage\Resources\TeamVenues\Pages\ListTeamVenues;
 use App\Filament\Manage\Resources\Users\Pages\ViewUser;
@@ -264,12 +265,12 @@ class ActivityTeamsTest extends TestCase
         $second->grant($leader, MembershipRole::Manager);
 
         $this->actingAs($leader)
-            ->get('/manage/'.$second->getKey().'/bookings')
+            ->get('/manage/'.$second->slug.'/bookings')
             ->assertOk();
 
         $this->actingAs($leader)
             ->get('/manage')
-            ->assertRedirect('/manage/'.$second->getKey());
+            ->assertRedirect('/manage/'.$second->slug);
 
         $this->assertNotSame($first->getKey(), $second->getKey());
     }
@@ -280,7 +281,7 @@ class ActivityTeamsTest extends TestCase
         $team = $leader->managedTeams()->first();
 
         $this->actingAs($leader)
-            ->get('/manage/'.$team->getKey())
+            ->get('/manage/'.$team->slug)
             ->assertOk()
             ->assertSeeTextInOrder([
                 'Team admin',
@@ -299,7 +300,7 @@ class ActivityTeamsTest extends TestCase
         $manager = User::factory()->manager()->create();
 
         $this->actingAs($manager)
-            ->get('/manage/'.$manager->managedTeams()->first()->getKey())
+            ->get('/manage/'.$manager->managedTeams()->first()->slug)
             ->assertOk()
             ->assertSee('Team admin')
             ->assertSee('Activities')
@@ -325,7 +326,70 @@ class ActivityTeamsTest extends TestCase
         $team = Team::query()->where('name', 'Archery')->first();
 
         $this->assertNotNull($team);
+        $this->assertSame('archery', $team->slug);
         $this->assertTrue($manager->fresh()->manages($team));
+    }
+
+    public function test_system_admin_can_edit_a_team_slug(): void
+    {
+        $admin = User::factory()->teamLeader()->create();
+        $team = $admin->managedTeams()->firstOrFail();
+
+        $this->actingAs($admin);
+
+        Livewire::test(EditTeam::class, ['record' => $team->getKey()])
+            ->fillForm([
+                'slug' => 'indoor-climbing',
+            ])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $this->assertDatabaseHas(Team::class, [
+            'id' => $team->getKey(),
+            'slug' => 'indoor-climbing',
+        ]);
+    }
+
+    public function test_a_team_slug_must_be_unique(): void
+    {
+        $admin = User::factory()->teamLeader()->create();
+        $team = $admin->managedTeams()->firstOrFail();
+        Team::factory()->create(['slug' => 'taken-slug']);
+
+        $this->actingAs($admin);
+
+        Livewire::test(EditTeam::class, ['record' => $team->getKey()])
+            ->fillForm([
+                'slug' => 'taken-slug',
+            ])
+            ->call('save')
+            ->assertHasFormErrors(['slug' => 'unique']);
+
+        $this->assertDatabaseMissing(Team::class, [
+            'id' => $team->getKey(),
+            'slug' => 'taken-slug',
+        ]);
+    }
+
+    public function test_a_team_slug_must_be_url_safe(): void
+    {
+        $admin = User::factory()->teamLeader()->create();
+        $team = $admin->managedTeams()->firstOrFail();
+        $team->update(['slug' => 'kept-team']);
+
+        $this->actingAs($admin);
+
+        Livewire::test(EditTeam::class, ['record' => $team->getKey()])
+            ->fillForm([
+                'slug' => 'not/a slug',
+            ])
+            ->call('save')
+            ->assertHasFormErrors(['slug' => 'alpha_dash']);
+
+        $this->assertDatabaseHas(Team::class, [
+            'id' => $team->getKey(),
+            'slug' => 'kept-team',
+        ]);
     }
 
     public function test_a_new_team_requires_a_first_manager(): void

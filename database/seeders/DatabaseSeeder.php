@@ -27,7 +27,7 @@ class DatabaseSeeder extends Seeder
         ]);
 
         $team = $leader->managedTeams()->first();
-        $team?->update(['name' => 'Climbing']);
+        $team?->update(['name' => 'Climbing', 'slug' => 'climbing']);
 
         $activity = Activity::query()->where('slug', 'climbing')->firstOrFail();
         $venue = Venue::query()->where('slug', 'fox-coverts-campsite')->firstOrFail();

@@ -56,6 +56,7 @@ class VenueResource extends Resource
                 ->required(),
             TextInput::make('slug')
                 ->helperText(__('Leave blank to generate from the name.'))
+                ->alphaDash()
                 ->visible(fn (string $operation): bool => $operation === 'edit'),
             Textarea::make('notes')
                 ->columnSpanFull(),

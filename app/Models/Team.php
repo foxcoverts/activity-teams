@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class Team extends Model
@@ -20,7 +21,17 @@ class Team extends Model
 
     protected $fillable = [
         'name',
+        'slug',
     ];
+
+    protected static function booted(): void
+    {
+        static::saving(function (Team $team): void {
+            if (blank($team->slug) && filled($team->name)) {
+                $team->slug = Str::slug($team->name);
+            }
+        });
+    }
 
     public function memberships(): HasMany
     {

@@ -43,7 +43,7 @@ class ManagePanelProvider extends PanelProvider
             ])
             ->viteTheme('resources/css/filament/theme.css')
             ->plugin(FilamentActivitylog::make())
-            ->tenant(Team::class)
+            ->tenant(Team::class, slugAttribute: 'slug')
             ->tenantMiddleware([
                 RememberManageTeam::class,
             ], isPersistent: true)

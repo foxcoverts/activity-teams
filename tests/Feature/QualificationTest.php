@@ -92,7 +92,7 @@ class QualificationTest extends TestCase
         ]), '2030-01-01');
     }
 
-    public function test_deleting_a_qualification_or_a_person_deletes_the_detail(): void
+    public function test_deleting_a_qualification_deletes_the_detail(): void
     {
         $member = User::factory()->teamMember()->create();
         $qualification = Qualification::factory()->forMember($member)->create();
@@ -102,12 +102,29 @@ class QualificationTest extends TestCase
 
         $this->assertDatabaseMissing('qualifications', ['id' => $qualification->getKey()]);
         $this->assertDatabaseMissing('scout_permits', ['id' => $detailId]);
+    }
 
-        $again = Qualification::factory()->forMember($member)->girlguiding(GirlguidingLevel::Two)->create();
-        $girlguidingId = $again->detail_id;
+    public function test_soft_deleting_a_person_keeps_their_qualifications(): void
+    {
+        $member = User::factory()->teamMember()->create();
+        $qualification = Qualification::factory()->forMember($member)->girlguiding(GirlguidingLevel::Two)->create();
+
         $member->delete();
 
-        $this->assertDatabaseMissing('qualifications', ['id' => $again->getKey()]);
+        $this->assertTrue($member->trashed());
+        $this->assertDatabaseHas('qualifications', ['id' => $qualification->getKey()]);
+        $this->assertDatabaseHas('girlguiding_qualifications', ['id' => $qualification->detail_id]);
+    }
+
+    public function test_force_deleting_a_person_deletes_their_qualifications_and_details(): void
+    {
+        $member = User::factory()->teamMember()->create();
+        $qualification = Qualification::factory()->forMember($member)->girlguiding(GirlguidingLevel::Two)->create();
+        $girlguidingId = $qualification->detail_id;
+
+        $member->forceDelete();
+
+        $this->assertDatabaseMissing('qualifications', ['id' => $qualification->getKey()]);
         $this->assertDatabaseMissing('girlguiding_qualifications', ['id' => $girlguidingId]);
     }
 

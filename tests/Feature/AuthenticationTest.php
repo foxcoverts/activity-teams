@@ -50,7 +50,7 @@ class AuthenticationTest extends TestCase
         $this->get('/bookings')
             ->assertOk()
             ->assertSeeTextInOrder(['Dashboard', 'Manage'])
-            ->assertSee('/manage/'.$lastManagedTeam->getKey(), false);
+            ->assertSee('/manage/'.$lastManagedTeam->slug, false);
     }
 
     public function test_team_member_does_not_see_manage_link_in_members_sidebar(): void
@@ -86,7 +86,7 @@ class AuthenticationTest extends TestCase
         $team = $leader->managedTeams()->first();
 
         $this->actingAs($leader)
-            ->get('/manage/'.$team->getKey().'/bookings')
+            ->get('/manage/'.$team->slug.'/bookings')
             ->assertOk();
     }
 
@@ -97,7 +97,7 @@ class AuthenticationTest extends TestCase
 
         $this->actingAs($user)
             ->get('/manage')
-            ->assertRedirect('/manage/'.$team->getKey());
+            ->assertRedirect('/manage/'.$team->slug);
     }
 
     public function test_manage_sidebar_links_back_to_members_panel(): void
@@ -107,7 +107,7 @@ class AuthenticationTest extends TestCase
         $membersUrl = Filament::getPanel('member')->getUrl();
 
         $this->actingAs($manager)
-            ->get('/manage/'.$team->getKey())
+            ->get('/manage/'.$team->slug)
             ->assertOk()
             ->assertSeeTextInOrder(['Dashboard', 'Members', 'Team admin', 'Site admin'])
             ->assertSee('href="'.$membersUrl.'"', false);

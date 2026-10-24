@@ -19,6 +19,8 @@ class RespondToBookingTest extends TestCase
 
     public function test_attendee_can_accept_via_token_link(): void
     {
+        $this->travelTo('2026-10-23 12:00:00');
+
         $booking = Booking::factory()->create([
             'start_at' => '2026-10-24 08:30:00',
             'end_at' => '2026-10-24 10:30:00',
@@ -60,6 +62,8 @@ class RespondToBookingTest extends TestCase
 
     public function test_overnight_booking_shows_start_and_end(): void
     {
+        $this->travelTo('2026-10-23 12:00:00');
+
         $booking = Booking::factory()->create([
             'start_at' => '2026-10-24 21:00:00',
             'end_at' => '2026-10-24 23:30:00',
