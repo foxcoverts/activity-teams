@@ -8,14 +8,16 @@ use App\Enums\MountainTrainingAward;
 use App\Enums\ScoutPermitActivity;
 use App\Enums\ScoutPermitCategory;
 use App\Enums\ScoutPermitType;
+use App\Filament\Admin\Resources\Users\Pages\ViewUser;
 use App\Filament\Manage\Resources\Members\Pages\ViewMember;
-use App\Filament\Manage\Resources\Members\RelationManagers\QualificationsRelationManager;
 use App\Filament\Member\Resources\Qualifications\Pages\ListQualifications;
 use App\Filament\Member\Resources\Qualifications\QualificationResource;
+use App\Filament\RelationManagers\QualificationsRelationManager;
 use App\Models\GirlguidingQualification;
 use App\Models\MountainTrainingQualification;
 use App\Models\Qualification;
 use App\Models\ScoutPermit;
+use App\Models\Team;
 use App\Models\User;
 use Filament\Auth\Pages\EditProfile;
 use Filament\Facades\Filament;
@@ -130,25 +132,25 @@ class QualificationTest extends TestCase
 
     public function test_a_manager_can_record_edit_and_remove_a_current_members_qualification(): void
     {
-        $leader = User::factory()->teamLeader()->create();
-        $member = User::factory()->teamMember()->create();
-        $team = $leader->managedTeams()->first();
+        $manager = User::factory()->teamManager()->create();
+        $team = $manager->managedTeams()->first();
+        $member = User::factory()->teamMember($team)->create();
         $oversight = User::factory()->oversight()->create();
 
-        $this->actingAs($leader);
+        $this->actingAs($manager);
         Filament::setTenant($team);
 
-        $manager = Livewire::test(QualificationsRelationManager::class, [
+        $relationManager = Livewire::test(QualificationsRelationManager::class, [
             'ownerRecord' => $member,
             'pageClass' => ViewMember::class,
         ])->assertSee('Add qualification')
             ->assertDontSee('New qualification');
 
-        $create = collect($manager->instance()->getTable()->getHeaderActions())
+        $create = collect($relationManager->instance()->getTable()->getHeaderActions())
             ->first(fn ($action): bool => $action->getName() === 'create');
         $this->assertSame('Add Qualification', $create->getModalHeading());
 
-        $manager->callTableAction('create', data: [
+        $relationManager->callTableAction('create', data: [
             'detail_type' => ScoutPermit::class,
             'activity' => ScoutPermitActivity::ClimbingAndAbseiling->value,
             'category' => ScoutPermitCategory::NaturalTopRope->value,
@@ -165,7 +167,7 @@ class QualificationTest extends TestCase
         $this->assertTrue(ActivityLog::query()
             ->where('subject_type', $qualification->getMorphClass())
             ->where('subject_id', $qualification->getKey())
-            ->where('causer_id', $leader->getKey())
+            ->where('causer_id', $manager->getKey())
             ->exists());
 
         Livewire::test(QualificationsRelationManager::class, [
@@ -183,29 +185,31 @@ class QualificationTest extends TestCase
 
         $this->assertSame(ScoutPermitCategory::NaturalLeadClimbing, $qualification->fresh()->detail->category);
 
-        $deputy = User::factory()->teamLeader()->create();
-        $deputy->managedTeams()->first()->grant($member, MembershipRole::Member);
-        $this->assertTrue($deputy->can('update', $qualification));
+        $otherTeam = Team::factory()->create();
+        $otherManager = User::factory()->teamManager($otherTeam)->create();
+        $otherTeam->grant($member, MembershipRole::Member);
+        $this->assertTrue($otherManager->can('update', $qualification));
         $this->assertTrue($oversight->can('view', $qualification));
         $this->assertFalse($oversight->can('update', $qualification));
         $this->assertTrue($member->can('view', $qualification));
         $this->assertFalse($member->can('update', $qualification));
 
         $member->update(['suspended' => true]);
-        $this->assertFalse(Qualification::canMaintain($leader, $member->fresh()));
+        $this->assertFalse(Qualification::canMaintain($manager, $member->fresh()));
 
         $this->actingAs($oversight);
-        Filament::setTenant($team);
+        Filament::setCurrentPanel(Filament::getPanel('admin'));
 
         Livewire::test(QualificationsRelationManager::class, [
             'ownerRecord' => $member->fresh(),
-            'pageClass' => ViewMember::class,
+            'pageClass' => ViewUser::class,
         ])->assertTableActionHidden('create')
             ->assertTableActionHidden('edit', $qualification)
             ->assertTableActionHidden('delete', $qualification)
             ->assertSee('Natural lead climbing');
 
-        $this->actingAs($leader);
+        $this->actingAs($manager);
+        Filament::setCurrentPanel(Filament::getPanel('manage'));
         Filament::setTenant($team);
 
         Livewire::test(QualificationsRelationManager::class, [
@@ -215,7 +219,7 @@ class QualificationTest extends TestCase
 
         $member->update(['suspended' => false]);
 
-        $this->actingAs($leader);
+        $this->actingAs($manager);
         Filament::setTenant($team);
 
         Livewire::test(QualificationsRelationManager::class, [
@@ -229,7 +233,7 @@ class QualificationTest extends TestCase
 
     public function test_a_member_sees_their_own_qualifications_in_the_team_menu(): void
     {
-        $leader = User::factory()->teamLeader()->create();
+        $manager = User::factory()->teamManager()->create();
         $member = User::factory()->teamMember()->create();
 
         $permit = Qualification::factory()->forMember($member)->scoutPermit([
@@ -238,7 +242,7 @@ class QualificationTest extends TestCase
             'expires_on' => now()->subDay()->toDateString(),
         ]);
         $award = Qualification::factory()->forMember($member)->mountainTraining()->create();
-        $other = Qualification::factory()->forMember($leader)->mountainTraining(MountainTrainingAward::MountainLeader)->create();
+        $other = Qualification::factory()->forMember($manager)->mountainTraining(MountainTrainingAward::MountainLeader)->create();
 
         Filament::setCurrentPanel(Filament::getPanel('member'));
         $this->actingAs($member);
@@ -293,14 +297,14 @@ class QualificationTest extends TestCase
 
     public function test_a_manager_hides_expired_qualifications_until_asked(): void
     {
-        $leader = User::factory()->teamLeader()->create();
+        $manager = User::factory()->teamManager()->create();
         $member = User::factory()->teamMember()->create();
         Qualification::factory()->forMember($member)->scoutPermit()->create([
             'expires_on' => now()->subDay()->toDateString(),
         ]);
         Qualification::factory()->forMember($member)->mountainTraining()->create();
 
-        $this->actingAs($leader);
+        $this->actingAs($manager);
 
         Livewire::test(QualificationsRelationManager::class, [
             'ownerRecord' => $member,
@@ -313,13 +317,13 @@ class QualificationTest extends TestCase
 
     public function test_a_manager_can_filter_a_members_qualifications_by_type(): void
     {
-        $leader = User::factory()->teamLeader()->create();
+        $manager = User::factory()->teamManager()->create();
         $member = User::factory()->teamMember()->create();
         Qualification::factory()->forMember($member)->scoutPermit()->create();
         Qualification::factory()->forMember($member)->mountainTraining()->create();
         Qualification::factory()->forMember($member)->girlguiding()->create();
 
-        $this->actingAs($leader);
+        $this->actingAs($manager);
 
         Livewire::test(QualificationsRelationManager::class, [
             'ownerRecord' => $member,

@@ -4,20 +4,20 @@ namespace Tests\Feature;
 
 use App\Enums\BookingStatus;
 use App\Enums\MembershipRole;
-use App\Filament\Manage\Resources\Activities\Pages\CreateActivity;
-use App\Filament\Manage\Resources\Activities\Pages\EditActivity;
-use App\Filament\Manage\Resources\Activities\Pages\ListActivities;
-use App\Filament\Manage\Resources\Activities\Pages\ViewActivity;
+use App\Filament\Admin\Resources\Activities\Pages\CreateActivity;
+use App\Filament\Admin\Resources\Activities\Pages\EditActivity;
+use App\Filament\Admin\Resources\Activities\Pages\ListActivities;
+use App\Filament\Admin\Resources\Activities\Pages\ViewActivity;
+use App\Filament\Admin\Resources\Teams\Pages\CreateTeam;
+use App\Filament\Admin\Resources\Teams\Pages\EditTeam;
+use App\Filament\Admin\Resources\Teams\Pages\ListTeams;
+use App\Filament\Admin\Resources\Users\Pages\ViewUser;
+use App\Filament\Admin\Resources\Venues\Pages\CreateVenue;
+use App\Filament\Admin\Resources\Venues\Pages\EditVenue;
+use App\Filament\Admin\Resources\Venues\Pages\ListVenues;
+use App\Filament\Admin\Resources\Venues\Pages\ViewVenue;
 use App\Filament\Manage\Resources\Bookings\Pages\ListBookings as ManageListBookings;
 use App\Filament\Manage\Resources\Bookings\Pages\ViewBooking as ManageViewBooking;
-use App\Filament\Manage\Resources\Teams\Pages\CreateTeam;
-use App\Filament\Manage\Resources\Teams\Pages\EditTeam;
-use App\Filament\Manage\Resources\Teams\Pages\ListTeams;
-use App\Filament\Manage\Resources\Users\Pages\ViewUser;
-use App\Filament\Manage\Resources\Venues\Pages\CreateVenue;
-use App\Filament\Manage\Resources\Venues\Pages\EditVenue;
-use App\Filament\Manage\Resources\Venues\Pages\ListVenues;
-use App\Filament\Manage\Resources\Venues\Pages\ViewVenue;
 use App\Filament\Member\Resources\Bookings\Pages\ListBookings as MemberListBookings;
 use App\Filament\Member\Resources\Bookings\Pages\ViewBooking as MemberViewBooking;
 use App\Models\Activity;
@@ -36,7 +36,7 @@ class FilamentDisplayPreferencesTest extends TestCase
 
     public function test_booking_dates_and_times_are_rendered_without_seconds_in_both_panels(): void
     {
-        $user = User::factory()->teamLeader()->create(['timezone' => 'Europe/London']);
+        $user = User::factory()->teamManager()->create(['timezone' => 'Europe/London']);
         $team = $user->managedTeams()->firstOrFail();
         $booking = Booking::factory()->create([
             'team_id' => $team->getKey(),
@@ -95,7 +95,7 @@ class FilamentDisplayPreferencesTest extends TestCase
 
     public function test_booking_when_shows_both_local_dates_for_a_multi_day_booking(): void
     {
-        $user = User::factory()->teamLeader()->create(['timezone' => 'Europe/London']);
+        $user = User::factory()->teamManager()->create(['timezone' => 'Europe/London']);
         $team = $user->managedTeams()->firstOrFail();
         $booking = Booking::factory()->create([
             'team_id' => $team->getKey(),
@@ -121,7 +121,7 @@ class FilamentDisplayPreferencesTest extends TestCase
 
     public function test_lead_instructor_notes_are_visible_only_to_the_lead_and_team_managers(): void
     {
-        $manager = User::factory()->teamLeader()->create();
+        $manager = User::factory()->teamManager()->create();
         $team = $manager->managedTeams()->firstOrFail();
         $lead = User::factory()->create();
         $member = User::factory()->create();
@@ -155,7 +155,7 @@ class FilamentDisplayPreferencesTest extends TestCase
 
     public function test_catalog_lists_and_view_screens_hide_record_ids_and_slugs(): void
     {
-        $user = User::factory()->teamLeader()->create();
+        $admin = User::factory()->systemAdmin()->create();
         $activity = Activity::factory()->create([
             'slug' => 'hidden-activity-slug',
         ]);
@@ -167,9 +167,8 @@ class FilamentDisplayPreferencesTest extends TestCase
             'slug' => 'hidden-team-slug',
         ]);
 
-        $this->actingAs($user);
-        Filament::setCurrentPanel(Filament::getPanel('manage'));
-        Filament::setTenant($user->managedTeams()->firstOrFail());
+        $this->actingAs($admin);
+        Filament::setCurrentPanel(Filament::getPanel('admin'));
 
         Livewire::test(ListActivities::class)
             ->assertTableColumnDoesNotExist('id')
@@ -188,20 +187,19 @@ class FilamentDisplayPreferencesTest extends TestCase
         Livewire::test(ViewVenue::class, ['record' => $venue->getKey()])
             ->assertDontSee('ID')
             ->assertDontSee('hidden-venue-slug');
-        Livewire::test(ViewUser::class, ['record' => $user->getKey()])
+        Livewire::test(ViewUser::class, ['record' => $admin->getKey()])
             ->assertDontSee('ID');
     }
 
     public function test_slugs_are_hidden_on_create_forms_and_visible_on_edit_forms(): void
     {
-        $user = User::factory()->teamLeader()->create();
+        $admin = User::factory()->systemAdmin()->create();
         $activity = Activity::factory()->create();
         $venue = Venue::factory()->create();
-        $team = $user->managedTeams()->firstOrFail();
+        $team = Team::factory()->create();
 
-        $this->actingAs($user);
-        Filament::setCurrentPanel(Filament::getPanel('manage'));
-        Filament::setTenant($team);
+        $this->actingAs($admin);
+        Filament::setCurrentPanel(Filament::getPanel('admin'));
 
         Livewire::test(CreateActivity::class)
             ->assertFormFieldHidden('slug');
@@ -217,21 +215,25 @@ class FilamentDisplayPreferencesTest extends TestCase
             ->assertFormFieldVisible('slug');
     }
 
-    public function test_activity_and_venue_slugs_must_be_url_safe(): void
+    public function test_slugs_must_be_url_safe(): void
     {
-        $user = User::factory()->teamLeader()->create();
+        $admin = User::factory()->systemAdmin()->create();
         $activity = Activity::factory()->create(['slug' => 'kept-activity']);
         $venue = Venue::factory()->create(['slug' => 'kept-venue']);
+        $team = Team::factory()->create(['slug' => 'kept-team']);
 
-        $this->actingAs($user);
-        Filament::setCurrentPanel(Filament::getPanel('manage'));
-        Filament::setTenant($user->managedTeams()->firstOrFail());
+        $this->actingAs($admin);
+        Filament::setCurrentPanel(Filament::getPanel('admin'));
 
         Livewire::test(EditActivity::class, ['record' => $activity->getKey()])
             ->fillForm(['slug' => 'not/a slug'])
             ->call('save')
             ->assertHasFormErrors(['slug' => 'alpha_dash']);
         Livewire::test(EditVenue::class, ['record' => $venue->getKey()])
+            ->fillForm(['slug' => 'not/a slug'])
+            ->call('save')
+            ->assertHasFormErrors(['slug' => 'alpha_dash']);
+        Livewire::test(EditTeam::class, ['record' => $team->getKey()])
             ->fillForm(['slug' => 'not/a slug'])
             ->call('save')
             ->assertHasFormErrors(['slug' => 'alpha_dash']);
@@ -243,6 +245,10 @@ class FilamentDisplayPreferencesTest extends TestCase
         $this->assertDatabaseHas(Venue::class, [
             'id' => $venue->getKey(),
             'slug' => 'kept-venue',
+        ]);
+        $this->assertDatabaseHas(Team::class, [
+            'id' => $team->getKey(),
+            'slug' => 'kept-team',
         ]);
     }
 }

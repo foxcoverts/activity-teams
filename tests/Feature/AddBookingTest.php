@@ -37,7 +37,7 @@ class AddBookingTest extends TestCase
 
     public function test_team_leader_can_create_a_booking(): void
     {
-        $user = User::factory()->teamLeader()->create();
+        $user = User::factory()->teamManager()->create();
         $activity = Activity::factory()->create(['name' => 'Climbing']);
         $venue = Venue::factory()->create(['name' => 'Fox Coverts Campsite']);
 
@@ -69,7 +69,7 @@ class AddBookingTest extends TestCase
 
     public function test_create_booking_defaults_to_a_teams_only_activity_and_venue(): void
     {
-        $user = User::factory()->teamLeader()->create();
+        $user = User::factory()->teamManager()->create();
         $activity = Activity::factory()->create();
         $venue = Venue::factory()->create();
 
@@ -93,7 +93,7 @@ class AddBookingTest extends TestCase
 
     public function test_create_booking_defaults_each_field_when_multiple_options_exist(): void
     {
-        $user = User::factory()->teamLeader()->create();
+        $user = User::factory()->teamManager()->create();
         $activity = Activity::factory()->create();
         Activity::factory()->create();
         Venue::factory()->create();
@@ -110,7 +110,7 @@ class AddBookingTest extends TestCase
 
     public function test_create_booking_uses_the_teams_explicit_activity_and_venue_defaults(): void
     {
-        $user = User::factory()->teamLeader()->create();
+        $user = User::factory()->teamManager()->create();
         $team = $user->managedTeams()->firstOrFail();
         Activity::factory()->create(['name' => 'Climbing']);
         $defaultActivity = Activity::factory()->create(['name' => 'Archery']);
@@ -130,7 +130,7 @@ class AddBookingTest extends TestCase
 
     public function test_create_booking_does_not_use_choices_from_another_team(): void
     {
-        $user = User::factory()->teamLeader()->create();
+        $user = User::factory()->teamManager()->create();
         Activity::factory()->create();
         Venue::factory()->create();
         $otherTeam = Team::factory()->create();
@@ -148,7 +148,7 @@ class AddBookingTest extends TestCase
 
     public function test_the_booking_form_cannot_create_an_activity_or_venue(): void
     {
-        $user = User::factory()->teamLeader()->create();
+        $user = User::factory()->teamManager()->create();
 
         $this->actingAs($user);
 
@@ -159,7 +159,7 @@ class AddBookingTest extends TestCase
 
     public function test_booking_form_places_a_searchable_timezone_select_with_grouped_utc_offsets(): void
     {
-        $user = User::factory()->teamLeader()->create();
+        $user = User::factory()->teamManager()->create();
 
         $this->actingAs($user);
 
@@ -190,7 +190,7 @@ class AddBookingTest extends TestCase
     {
         $this->travelTo(Carbon::parse('2026-10-14 12:00:00', 'UTC'));
 
-        $user = User::factory()->teamLeader()->create([
+        $user = User::factory()->teamManager()->create([
             'timezone' => 'America/New_York',
         ]);
         $activity = Activity::factory()->create();
@@ -225,7 +225,7 @@ class AddBookingTest extends TestCase
     {
         $this->travelTo(Carbon::parse('2026-10-14 12:00:00', 'UTC'));
 
-        $user = User::factory()->teamLeader()->create([
+        $user = User::factory()->teamManager()->create([
             'timezone' => 'America/New_York',
         ]);
 
@@ -277,7 +277,7 @@ class AddBookingTest extends TestCase
     {
         $this->travelTo(Carbon::parse('2026-10-14 12:00:00', 'UTC'));
 
-        $user = User::factory()->teamLeader()->create([
+        $user = User::factory()->teamManager()->create([
             'timezone' => 'America/New_York',
         ]);
         $activity = Activity::factory()->create();
@@ -310,7 +310,7 @@ class AddBookingTest extends TestCase
     {
         $this->travelTo(Carbon::parse('2026-10-14 12:00:00', 'UTC'));
 
-        $user = User::factory()->teamLeader()->create([
+        $user = User::factory()->teamManager()->create([
             'timezone' => 'America/New_York',
         ]);
 
@@ -328,7 +328,7 @@ class AddBookingTest extends TestCase
 
     public function test_an_overnight_booking_across_a_dst_change_uses_local_wall_times(): void
     {
-        $user = User::factory()->teamLeader()->create([
+        $user = User::factory()->teamManager()->create([
             'timezone' => 'America/New_York',
         ]);
         $activity = Activity::factory()->create();
@@ -356,7 +356,7 @@ class AddBookingTest extends TestCase
 
     public function test_table_edit_action_hydrates_and_saves_the_local_schedule(): void
     {
-        $user = User::factory()->teamLeader()->create();
+        $user = User::factory()->teamManager()->create();
         $booking = Booking::factory()->create([
             'start_at' => Carbon::parse('2026-10-20 13:00:00', 'UTC'),
             'end_at' => Carbon::parse('2026-10-20 16:00:00', 'UTC'),
@@ -378,7 +378,7 @@ class AddBookingTest extends TestCase
 
     public function test_list_create_action_combines_the_schedule_fields_before_saving(): void
     {
-        $user = User::factory()->teamLeader()->create();
+        $user = User::factory()->teamManager()->create();
         $activity = Activity::factory()->create();
         $venue = Venue::factory()->create();
 
@@ -403,7 +403,7 @@ class AddBookingTest extends TestCase
 
     public function test_editing_a_booking_keeps_its_existing_duration(): void
     {
-        $user = User::factory()->teamLeader()->create([
+        $user = User::factory()->teamManager()->create([
             'timezone' => 'America/New_York',
         ]);
         $booking = Booking::factory()->create([
@@ -439,7 +439,7 @@ class AddBookingTest extends TestCase
         $user = User::factory()->teamMember()->create();
 
         $this->actingAs($user)
-            ->get('/manage/'.$user->teams()->first()->getKey().'/bookings/create')
+            ->get('/manage/'.$user->teams()->first()->slug.'/bookings/create')
             ->assertForbidden();
     }
 

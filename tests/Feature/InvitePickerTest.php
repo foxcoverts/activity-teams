@@ -33,7 +33,7 @@ class InvitePickerTest extends TestCase
 
     public function test_qualified_people_start_queued_and_everyone_else_stays_in_the_picker(): void
     {
-        [$leader, $booking, $qualified, $other] = $this->teamWithRequirement();
+        [$manager, $booking, $qualified, $other] = $this->teamWithRequirement();
         User::factory()->create(['name' => 'Outsider Person']);
         $former = User::factory()->teamMember()->create(['name' => 'Pat Former']);
         $booking->team->recordLeft($former);
@@ -47,7 +47,7 @@ class InvitePickerTest extends TestCase
             'token' => BookingAttendance::generateToken(),
         ]);
 
-        $this->actingAs($leader);
+        $this->actingAs($manager);
 
         Livewire::test(InviteAttendees::class, ['booking' => $booking])
             ->assertSet('queued', [$qualified->getKey()])
@@ -76,11 +76,11 @@ class InvitePickerTest extends TestCase
 
     public function test_an_activity_with_no_requirements_starts_with_an_empty_list(): void
     {
-        $leader = User::factory()->teamLeader()->create();
+        $manager = User::factory()->teamManager()->create();
         $member = User::factory()->teamMember()->create(['name' => 'Alex Guest']);
         $booking = Booking::factory()->create();
 
-        $this->actingAs($leader);
+        $this->actingAs($manager);
 
         Livewire::test(InviteAttendees::class, ['booking' => $booking])
             ->assertSet('queued', [])
@@ -98,7 +98,7 @@ class InvitePickerTest extends TestCase
 
     public function test_a_name_filter_narrows_the_picker_and_add_everyone_shown_skips_people_already_on_the_booking(): void
     {
-        $leader = User::factory()->teamLeader()->create(['name' => 'Alex Leader']);
+        $manager = User::factory()->teamManager()->create(['name' => 'Alex Leader']);
         $member = User::factory()->teamMember()->create(['name' => 'Casey Member']);
         $activity = Activity::factory()->create();
         $activity->qualificationRequirements()->create([
@@ -111,7 +111,7 @@ class InvitePickerTest extends TestCase
             'token' => BookingAttendance::generateToken(),
         ]);
 
-        $this->actingAs($leader);
+        $this->actingAs($manager);
 
         Livewire::test(InviteAttendees::class, ['booking' => $booking])
             ->assertSet('queued', [])
@@ -126,15 +126,15 @@ class InvitePickerTest extends TestCase
             ->assertSee('Alex Leader')
             ->assertDontSee('Casey Member')
             ->call('addShown')
-            ->assertSet('queued', [$leader->getKey()]);
+            ->assertSet('queued', [$manager->getKey()]);
     }
 
     public function test_sending_invites_closes_the_modal_and_the_next_open_starts_again(): void
     {
-        [$leader, $booking, $qualified, $other] = $this->teamWithRequirement();
+        [$manager, $booking, $qualified, $other] = $this->teamWithRequirement();
         Qualification::factory()->forMember($other)->mountainTraining()->create();
 
-        $this->actingAs($leader);
+        $this->actingAs($manager);
 
         Livewire::test(InviteAttendees::class, ['booking' => $booking])
             ->call('remove', $other->getKey())
@@ -165,7 +165,7 @@ class InvitePickerTest extends TestCase
 
     public function test_key_holders_only_narrows_the_team_list_and_leaves_the_queue(): void
     {
-        [$leader, $booking, $qualified, $other] = $this->teamWithRequirement();
+        [$manager, $booking, $qualified, $other] = $this->teamWithRequirement();
         $holder = User::factory()->teamMember()->create(['name' => 'Robin Outsider']);
         $key = Key::factory()->create(['name' => 'Climbing store']);
         $key->requirements()->create([
@@ -177,7 +177,7 @@ class InvitePickerTest extends TestCase
         $spare = Key::factory()->create(['name' => 'Front door']);
         KeyRing::factory()->heldBy($other)->create(['name' => 'Spare door'])->keys()->attach($spare);
 
-        $this->actingAs($leader);
+        $this->actingAs($manager);
 
         Livewire::test(InviteAttendees::class, ['booking' => $booking])
             ->assertSet('queued', [$qualified->getKey()])
@@ -210,7 +210,7 @@ class InvitePickerTest extends TestCase
      */
     private function teamWithRequirement(): array
     {
-        $leader = User::factory()->teamLeader()->create();
+        $manager = User::factory()->teamManager()->create();
         $qualified = User::factory()->teamMember()->create(['name' => 'Sam Holder']);
         $other = User::factory()->teamMember()->create(['name' => 'Alex Guest']);
         $activity = Activity::factory()->create();
@@ -221,6 +221,6 @@ class InvitePickerTest extends TestCase
         $booking = Booking::factory()->create(['activity_id' => $activity->getKey()]);
         Qualification::factory()->forMember($qualified)->mountainTraining()->create();
 
-        return [$leader, $booking, $qualified, $other];
+        return [$manager, $booking, $qualified, $other];
     }
 }

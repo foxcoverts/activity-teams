@@ -3,6 +3,8 @@
 namespace App\Models;
 
 use App\Casts\AsTimezone;
+use App\Enums\AccountRole;
+use App\Enums\AccountStatus;
 use App\Enums\InvitationStatus;
 use App\Enums\MembershipRole;
 use App\Enums\PersonalDataSection;
@@ -130,11 +132,11 @@ class User extends Authenticatable implements FilamentUser, HasDefaultTenant, Ha
             return false;
         }
 
-        if ($panel->getId() === 'manage') {
-            return $this->isSystemAdmin() || $this->hasOversight() || $this->managedTeams()->exists();
-        }
-
-        return true;
+        return match ($panel->getId()) {
+            'manage' => $this->isSystemAdmin() || $this->managedTeams()->exists(),
+            'admin' => $this->isSystemAdmin() || $this->hasOversight(),
+            default => true,
+        };
     }
 
     public function getTenants(Panel $panel): EloquentCollection
@@ -143,7 +145,7 @@ class User extends Authenticatable implements FilamentUser, HasDefaultTenant, Ha
             return new EloquentCollection;
         }
 
-        if ($this->isSystemAdmin() || $this->hasOversight()) {
+        if ($this->isSystemAdmin()) {
             return Team::query()->orderBy('name')->get();
         }
 
@@ -156,7 +158,7 @@ class User extends Authenticatable implements FilamentUser, HasDefaultTenant, Ha
             return false;
         }
 
-        return $this->isSystemAdmin() || $this->hasOversight() || $this->manages($tenant);
+        return $this->isSystemAdmin() || $this->manages($tenant);
     }
 
     public function getDefaultTenant(Panel $panel): ?Model
@@ -291,6 +293,35 @@ class User extends Authenticatable implements FilamentUser, HasDefaultTenant, Ha
         };
     }
 
+    public function status(): AccountStatus
+    {
+        if ($this->trashed()) {
+            return AccountStatus::Deleted;
+        }
+
+        if ($this->isSuspended()) {
+            return AccountStatus::Suspended;
+        }
+
+        return AccountStatus::from($this->invitationStatus()->value);
+    }
+
+    /**
+     * @return array<int, AccountRole>
+     */
+    public function roles(): array
+    {
+        $roles = [];
+        if ($this->isSystemAdmin()) {
+            $roles[] = AccountRole::SystemAdmin;
+        }
+        if ($this->hasOversight()) {
+            $roles[] = AccountRole::Oversight;
+        }
+
+        return $roles;
+    }
+
     public function memberships(): HasMany
     {
         return $this->hasMany(TeamMembership::class);
@@ -351,6 +382,28 @@ class User extends Authenticatable implements FilamentUser, HasDefaultTenant, Ha
         }
 
         return $this->teams()->whereKey($team->getKey())->exists();
+    }
+
+    public function roleOn(Team|string $team): ?MembershipRole
+    {
+        $teamId = $team instanceof Team ? $team->getKey() : $team;
+
+        $role = $this->relationLoaded('teams')
+            ? $this->teams->find($teamId)?->pivot?->role
+            : $this->teams()->whereKey($teamId)->first()?->pivot?->role;
+
+        return $role instanceof MembershipRole ? $role : MembershipRole::tryFrom((string) $role);
+    }
+
+    public function teamRole(): ?MembershipRole
+    {
+        $this->loadMissing('teams');
+
+        if ($this->teams->contains(fn (Team $team): bool => $team->pivot->role === MembershipRole::Manager)) {
+            return MembershipRole::Manager;
+        }
+
+        return $this->teams->isNotEmpty() ? MembershipRole::Member : null;
     }
 
     public function scopeOrdered(Builder $query): void

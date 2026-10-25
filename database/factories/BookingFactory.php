@@ -42,6 +42,11 @@ class BookingFactory extends Factory
         ];
     }
 
+    public function forTeam(Team $team): static
+    {
+        return $this->state(fn () => ['team_id' => $team->getKey()]);
+    }
+
     public function confirmed(): static
     {
         return $this->state(fn () => ['status' => BookingStatus::Confirmed]);

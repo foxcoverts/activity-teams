@@ -42,7 +42,7 @@ class OverrideAttendanceTest extends TestCase
     {
         Mail::fake();
 
-        $manager = User::factory()->teamLeader()->create(['name' => 'Alex Leader']);
+        $manager = User::factory()->teamManager()->create(['name' => 'Alex Leader']);
         $member = User::factory()->teamMember()->create(['name' => 'Casey']);
         $other = User::factory()->teamMember()->create();
         $booking = Booking::factory()->create();
@@ -143,7 +143,7 @@ class OverrideAttendanceTest extends TestCase
     {
         Mail::fake();
 
-        $manager = User::factory()->teamLeader()->create();
+        $manager = User::factory()->teamManager()->create();
         $member = User::factory()->teamMember()->create();
         $booking = Booking::factory()->create();
         $this->attend($booking, $member, BookingAttendeeStatus::NeedsAction);
@@ -169,7 +169,7 @@ class OverrideAttendanceTest extends TestCase
     {
         Mail::fake();
 
-        $manager = User::factory()->teamLeader()->create();
+        $manager = User::factory()->teamManager()->create();
         $lead = User::factory()->teamMember()->create();
         $booking = Booking::factory()->confirmed()->create([
             'start_at' => now()->subDays(2),
@@ -198,7 +198,7 @@ class OverrideAttendanceTest extends TestCase
     {
         Mail::fake();
 
-        $manager = User::factory()->teamLeader()->create();
+        $manager = User::factory()->teamManager()->create();
         $lead = User::factory()->teamMember()->create();
         $booking = Booking::factory()->confirmed()->create([
             'lead_instructor_id' => $lead->id,
@@ -216,7 +216,7 @@ class OverrideAttendanceTest extends TestCase
 
     public function test_a_cancelled_booking_refuses_an_attendance_edit(): void
     {
-        $manager = User::factory()->teamLeader()->create();
+        $manager = User::factory()->teamManager()->create();
         $member = User::factory()->teamMember()->create();
         $booking = Booking::factory()->cancelled()->create();
         $this->attend($booking, $member, BookingAttendeeStatus::NeedsAction);
@@ -245,7 +245,7 @@ class OverrideAttendanceTest extends TestCase
     {
         Mail::fake();
 
-        $manager = User::factory()->teamLeader()->create();
+        $manager = User::factory()->teamManager()->create();
         $already = User::factory()->teamMember()->create(['name' => 'Already There']);
         $member = User::factory()->teamMember()->create(['name' => 'Casey']);
         $booking = Booking::factory()->create();
@@ -291,7 +291,7 @@ class OverrideAttendanceTest extends TestCase
     {
         Mail::fake();
 
-        $manager = User::factory()->teamLeader()->create();
+        $manager = User::factory()->teamManager()->create();
         $member = User::factory()->teamMember()->create();
         $booking = Booking::factory()->confirmed()->create([
             'start_at' => now()->subDays(2),
@@ -318,7 +318,7 @@ class OverrideAttendanceTest extends TestCase
 
     public function test_a_cancelled_booking_refuses_adding_an_attendee(): void
     {
-        $manager = User::factory()->teamLeader()->create();
+        $manager = User::factory()->teamManager()->create();
         $member = User::factory()->teamMember()->create();
         $booking = Booking::factory()->cancelled()->create();
 

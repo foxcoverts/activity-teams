@@ -2,8 +2,8 @@
 
 namespace App\Filament\Manage\Resources\Members\Pages;
 
+use App\Filament\Concerns\AcknowledgesPersonalData;
 use App\Filament\Manage\Actions\SuspensionActions;
-use App\Filament\Manage\Concerns\AcknowledgesPersonalData;
 use App\Filament\Manage\Resources\Members\MemberResource;
 use Filament\Actions\ActionGroup;
 use Filament\Actions\ViewAction;

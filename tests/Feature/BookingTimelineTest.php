@@ -23,10 +23,10 @@ class BookingTimelineTest extends TestCase
 
     public function test_the_member_timeline_does_not_link_into_manage(): void
     {
-        $leader = User::factory()->teamLeader()->create();
+        $manager = User::factory()->teamManager()->create();
         $member = User::factory()->teamMember()->create();
 
-        $this->actingAs($leader);
+        $this->actingAs($manager);
         $booking = Booking::factory()->confirmed()->create();
         $booking->attendees()->attach($member->id);
 
@@ -39,15 +39,15 @@ class BookingTimelineTest extends TestCase
             ->assertSee('Confirmed booking')
             ->assertSee('Group')
             ->assertSee('Recent activity')
-            ->assertSee($leader->name)
+            ->assertSee($manager->name)
             ->assertSeeHtml('wire:name="App\\Filament\\Member\\Resources\\Bookings\\RelationManagers\\AttendeesRelationManager"')
             ->assertDontSeeHtml('/manage/');
     }
 
     public function test_only_current_team_members_can_see_the_guest_list(): void
     {
-        $leader = User::factory()->teamLeader()->create();
-        $team = $leader->managedTeams()->firstOrFail();
+        $manager = User::factory()->teamManager()->create();
+        $team = $manager->managedTeams()->firstOrFail();
         $member = User::factory()->create();
         $team->grant($member, MembershipRole::Member);
 
@@ -79,16 +79,16 @@ class BookingTimelineTest extends TestCase
 
     public function test_the_member_timeline_emboldens_people_who_are_not_links(): void
     {
-        $leader = User::factory()->teamLeader()->create(['name' => 'Manager A']);
+        $manager = User::factory()->teamManager()->create(['name' => 'Manager A']);
         $member = User::factory()->teamMember()->create(['name' => 'Member B']);
         $booking = Booking::factory()->confirmed()->create();
         $booking->attendees()->attach($member->id, [
             'status' => BookingAttendeeStatus::NeedsAction->value,
         ]);
 
-        $this->actingAs($leader);
+        $this->actingAs($manager);
 
-        app(OverrideAttendanceAction::class)($booking, $member, $leader, BookingAttendeeStatus::Accepted);
+        app(OverrideAttendanceAction::class)($booking, $member, $manager, BookingAttendeeStatus::Accepted);
 
         Filament::setCurrentPanel(Filament::getPanel('member'));
         $this->actingAs($member);
@@ -104,32 +104,32 @@ class BookingTimelineTest extends TestCase
     {
         Filament::setCurrentPanel(Filament::getPanel('manage'));
 
-        $leader = User::factory()->teamLeader()->create();
-        $team = $leader->managedTeams()->first();
+        $manager = User::factory()->teamManager()->create();
+        $team = $manager->managedTeams()->first();
 
-        $this->actingAs($leader);
+        $this->actingAs($manager);
         $booking = Booking::factory()->confirmed()->create();
 
-        $memberUrl = MemberResource::getUrl('view', ['record' => $leader], panel: 'manage', tenant: $team);
+        $memberUrl = MemberResource::getUrl('view', ['record' => $manager], panel: 'manage', tenant: $team);
 
         Livewire::test(ManageViewBooking::class, ['record' => $booking->getRouteKey()])
             ->assertSee('Confirmed booking')
             ->assertSee('Group')
             ->assertSee('Recent activity')
-            ->assertSee($leader->name)
+            ->assertSee($manager->name)
             ->assertSeeHtml($memberUrl)
-            ->assertDontSeeHtml('/users/'.$leader->getKey());
+            ->assertDontSeeHtml('/users/'.$manager->getKey());
     }
 
     public function test_the_manage_timeline_links_the_person_a_change_is_about(): void
     {
         Filament::setCurrentPanel(Filament::getPanel('manage'));
 
-        $leader = User::factory()->teamLeader()->create();
+        $manager = User::factory()->teamManager()->create();
         $member = User::factory()->teamMember()->create(['name' => 'Casey']);
-        $team = $leader->managedTeams()->first();
+        $team = $manager->managedTeams()->first();
 
-        $this->actingAs($leader);
+        $this->actingAs($manager);
 
         $booking = Booking::factory()->confirmed()->create();
         $booking->lead_instructor_id = $member->getKey();
@@ -145,7 +145,7 @@ class BookingTimelineTest extends TestCase
     {
         Filament::setCurrentPanel(Filament::getPanel('manage'));
 
-        $leader = User::factory()->teamLeader()->create();
+        $manager = User::factory()->teamManager()->create();
         $member = User::factory()->teamMember()->create(['name' => 'Casey']);
         $booking = Booking::factory()->confirmed()->create();
         $booking->attendees()->attach($member->id, [
@@ -154,7 +154,7 @@ class BookingTimelineTest extends TestCase
 
         (new RespondToBookingAction($booking, $member))($member, BookingAttendeeStatus::Tentative);
 
-        $this->actingAs($leader);
+        $this->actingAs($manager);
 
         Livewire::test(ManageViewBooking::class, ['record' => $booking->getRouteKey()])
             ->assertSee('said')
@@ -167,9 +167,9 @@ class BookingTimelineTest extends TestCase
     {
         Filament::setCurrentPanel(Filament::getPanel('manage'));
 
-        $leader = User::factory()->teamLeader()->create();
+        $manager = User::factory()->teamManager()->create();
 
-        $this->actingAs($leader);
+        $this->actingAs($manager);
 
         $booking = Booking::factory()->confirmed()->create();
         $booking->start_at = $booking->start_at->copy()->addHour();

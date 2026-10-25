@@ -50,11 +50,11 @@ class BookingStatusTest extends TestCase
 
     public function test_a_new_booking_is_tentative_and_cannot_be_created_confirmed(): void
     {
-        $leader = User::factory()->teamLeader()->create();
+        $manager = User::factory()->teamManager()->create();
         $activity = Activity::factory()->create();
         $venue = Venue::factory()->create();
 
-        $this->actingAs($leader);
+        $this->actingAs($manager);
 
         Livewire::test(CreateBooking::class)
             ->fillForm([
@@ -90,18 +90,18 @@ class BookingStatusTest extends TestCase
 
     public function test_confirm_requires_an_attending_lead(): void
     {
-        $leader = User::factory()->teamLeader()->create();
+        $manager = User::factory()->teamManager()->create();
         $booking = Booking::factory()->create();
         $waiting = User::factory()->create();
         $this->attend($booking, $waiting, BookingAttendeeStatus::NeedsAction);
 
-        $this->actingAs($leader);
+        $this->actingAs($manager);
 
         Livewire::test(EditBooking::class, ['record' => $booking->getRouteKey()])
             ->assertActionDisabled('confirmBooking');
 
         try {
-            app(UpdateBookingStatusAction::class)->confirm($booking, $leader, $waiting->id, [
+            app(UpdateBookingStatusAction::class)->confirm($booking, $manager, $waiting->id, [
                 'group_name' => $booking->group_name,
             ]);
             $this->fail('A lead who is not attending was accepted.');
@@ -112,10 +112,10 @@ class BookingStatusTest extends TestCase
 
     public function test_confirm_and_change_lead_say_when_no_one_is_attending(): void
     {
-        $leader = User::factory()->teamLeader()->create();
+        $manager = User::factory()->teamManager()->create();
         $booking = Booking::factory()->create();
 
-        $this->actingAs($leader);
+        $this->actingAs($manager);
 
         $message = 'No one is attending.';
 
@@ -146,7 +146,7 @@ class BookingStatusTest extends TestCase
 
     public function test_the_roster_marks_who_qualifies_and_still_includes_everyone(): void
     {
-        $leader = User::factory()->teamLeader()->create();
+        $manager = User::factory()->teamManager()->create();
         $qualified = User::factory()->teamMember()->create(['name' => 'Sam Holder']);
         $other = User::factory()->teamMember()->create(['name' => 'Alex Guest']);
         $activity = Activity::factory()->create();
@@ -159,7 +159,7 @@ class BookingStatusTest extends TestCase
         $this->attend($booking, $qualified, BookingAttendeeStatus::Accepted);
         $this->attend($booking, $other, BookingAttendeeStatus::NeedsAction);
 
-        $this->actingAs($leader);
+        $this->actingAs($manager);
 
         Livewire::test(AttendeesRelationManager::class, [
             'ownerRecord' => $booking->fresh(),
@@ -183,7 +183,7 @@ class BookingStatusTest extends TestCase
 
     public function test_only_a_qualified_attending_person_can_lead(): void
     {
-        $leader = User::factory()->teamLeader()->create();
+        $manager = User::factory()->teamManager()->create();
         $qualified = User::factory()->create(['name' => 'Qualified Lead']);
         $attending = User::factory()->create(['name' => 'Attending Only']);
         $activity = Activity::factory()->create();
@@ -196,7 +196,7 @@ class BookingStatusTest extends TestCase
         $this->attend($booking, $qualified, BookingAttendeeStatus::Accepted);
         $this->attend($booking, $attending, BookingAttendeeStatus::Accepted);
 
-        $this->actingAs($leader);
+        $this->actingAs($manager);
 
         $this->assertSame(
             [$qualified->getKey() => 'Qualified Lead'],
@@ -207,7 +207,7 @@ class BookingStatusTest extends TestCase
             ->assertActionEnabled('confirmBooking');
 
         try {
-            app(UpdateBookingStatusAction::class)->confirm($booking, $leader, $attending->id, [
+            app(UpdateBookingStatusAction::class)->confirm($booking, $manager, $attending->id, [
                 'group_name' => $booking->group_name,
             ]);
             $this->fail('An unqualified lead was accepted.');
@@ -228,7 +228,7 @@ class BookingStatusTest extends TestCase
 
     public function test_confirm_lists_only_accepted_attendees_as_leads(): void
     {
-        $leader = User::factory()->teamLeader()->create();
+        $manager = User::factory()->teamManager()->create();
         $booking = Booking::factory()->create();
         $accepted = User::factory()->create(['name' => 'Accepted Lead']);
         $alsoAccepted = User::factory()->create(['name' => 'Also Accepted']);
@@ -241,7 +241,7 @@ class BookingStatusTest extends TestCase
         $booking->lead_instructor_id = $waiting->id;
         $booking->save();
 
-        $this->actingAs($leader);
+        $this->actingAs($manager);
 
         Livewire::test(EditBooking::class, ['record' => $booking->getRouteKey()])
             ->mountAction('confirmBooking')
@@ -260,12 +260,12 @@ class BookingStatusTest extends TestCase
 
     public function test_confirming_with_an_accepted_lead_succeeds(): void
     {
-        $leader = User::factory()->teamLeader()->create();
+        $manager = User::factory()->teamManager()->create();
         $booking = Booking::factory()->create();
         $lead = User::factory()->create();
         $this->attend($booking, $lead, BookingAttendeeStatus::Accepted);
 
-        $this->actingAs($leader);
+        $this->actingAs($manager);
 
         Livewire::test(EditBooking::class, ['record' => $booking->getRouteKey()])
             ->assertActionEnabled('confirmBooking')
@@ -281,17 +281,17 @@ class BookingStatusTest extends TestCase
 
     public function test_cancelling_requires_a_reason_and_notifies_everyone_who_has_not_declined(): void
     {
-        $leader = User::factory()->teamLeader()->create(['name' => 'Alex Leader']);
+        $manager = User::factory()->teamManager()->create(['name' => 'Alex Leader']);
         $booking = Booking::factory()->create();
         $waiting = User::factory()->create();
         $declined = User::factory()->create();
         $this->attend($booking, $waiting, BookingAttendeeStatus::NeedsAction);
         $this->attend($booking, $declined, BookingAttendeeStatus::Declined);
 
-        $this->actingAs($leader);
+        $this->actingAs($manager);
 
         try {
-            app(UpdateBookingStatusAction::class)->cancel($booking, $leader, '   ');
+            app(UpdateBookingStatusAction::class)->cancel($booking, $manager, '   ');
             $this->fail('A blank reason was accepted.');
         } catch (ValidationException $exception) {
             $this->assertArrayHasKey('reason', $exception->errors());
@@ -333,7 +333,7 @@ class BookingStatusTest extends TestCase
         });
         Mail::assertNotSent(BookingCancelledMail::class, fn (BookingCancelledMail $mail): bool => $mail->hasTo($declined->email));
 
-        $this->actingAs($leader);
+        $this->actingAs($manager);
 
         Livewire::test(ViewBooking::class, ['record' => $booking->getRouteKey()])
             ->assertSee('Weather')
@@ -342,7 +342,7 @@ class BookingStatusTest extends TestCase
 
     public function test_restoring_asks_everyone_except_people_who_declined(): void
     {
-        $leader = User::factory()->teamLeader()->create();
+        $manager = User::factory()->teamManager()->create();
         $lead = User::factory()->create();
         $booking = Booking::factory()->cancelled()->create([
             'lead_instructor_id' => $lead->id,
@@ -357,7 +357,7 @@ class BookingStatusTest extends TestCase
         Queue::fake();
         Mail::fake();
 
-        app(UpdateBookingStatusAction::class)->restore($booking, $leader);
+        app(UpdateBookingStatusAction::class)->restore($booking, $manager);
 
         $booking->refresh();
         $this->assertSame(BookingStatus::Tentative, $booking->status);
@@ -440,7 +440,7 @@ class BookingStatusTest extends TestCase
 
     public function test_changing_or_removing_the_lead_follows_who_is_attending(): void
     {
-        $leader = User::factory()->teamLeader()->create();
+        $manager = User::factory()->teamManager()->create();
         $booking = Booking::factory()->confirmed()->create();
         $attending = User::factory()->create(['name' => 'Casey Lead']);
         $maybe = User::factory()->create(['name' => 'Maybe Person']);
@@ -449,7 +449,7 @@ class BookingStatusTest extends TestCase
         $booking->lead_instructor_id = $attending->id;
         $booking->save();
 
-        $this->actingAs($leader);
+        $this->actingAs($manager);
 
         Livewire::test(ViewBooking::class, ['record' => $booking->getRouteKey()])
             ->assertSee('Casey Lead');
@@ -461,7 +461,7 @@ class BookingStatusTest extends TestCase
             ->callMountedAction();
 
         try {
-            app(UpdateBookingStatusAction::class)->changeLead($booking->fresh(), $leader, $maybe->id);
+            app(UpdateBookingStatusAction::class)->changeLead($booking->fresh(), $manager, $maybe->id);
             $this->fail('A lead who is not attending was saved.');
         } catch (ValidationException $exception) {
             $this->assertArrayHasKey('lead_instructor_id', $exception->errors());
@@ -483,14 +483,14 @@ class BookingStatusTest extends TestCase
 
     public function test_delete_is_only_available_for_a_cancelled_booking(): void
     {
-        $leader = User::factory()->teamLeader()->create();
+        $manager = User::factory()->teamManager()->create();
         $tentative = Booking::factory()->create();
         $cancelled = Booking::factory()->cancelled()->create();
 
-        $this->actingAs($leader);
+        $this->actingAs($manager);
 
-        $this->assertFalse($leader->can('delete', $tentative));
-        $this->assertTrue($leader->can('delete', $cancelled));
+        $this->assertFalse($manager->can('delete', $tentative));
+        $this->assertTrue($manager->can('delete', $cancelled));
 
         Livewire::test(EditBooking::class, ['record' => $tentative->getRouteKey()])
             ->assertActionHidden('delete');
@@ -501,12 +501,12 @@ class BookingStatusTest extends TestCase
 
     public function test_view_status_actions_match_the_booking_state(): void
     {
-        $leader = User::factory()->teamLeader()->create();
+        $manager = User::factory()->teamManager()->create();
         $tentative = Booking::factory()->create();
         $confirmed = Booking::factory()->confirmed()->create();
         $cancelled = Booking::factory()->cancelled()->create();
 
-        $this->actingAs($leader);
+        $this->actingAs($manager);
 
         Livewire::test(ViewBooking::class, ['record' => $tentative->getRouteKey()])
             ->assertSee('Tentative booking')
@@ -529,13 +529,13 @@ class BookingStatusTest extends TestCase
 
     public function test_a_cancelled_booking_cannot_be_edited_or_quietly_emailed(): void
     {
-        $leader = User::factory()->teamLeader()->create();
+        $manager = User::factory()->teamManager()->create();
         $tentative = Booking::factory()->create(['group_name' => 'Still open']);
         $cancelled = Booking::factory()->cancelled()->create(['group_name' => 'Already cancelled']);
         $attendee = User::factory()->create();
         $this->attend($cancelled, $attendee, BookingAttendeeStatus::NeedsAction);
 
-        $this->actingAs($leader);
+        $this->actingAs($manager);
 
         $tentativeEditUrl = BookingResource::getUrl('edit', ['record' => $tentative], panel: 'manage');
         $cancelledEditUrl = BookingResource::getUrl('edit', ['record' => $cancelled], panel: 'manage');
@@ -583,7 +583,7 @@ class BookingStatusTest extends TestCase
         Queue::fake();
         Mail::fake();
 
-        app(UpdateBookingStatusAction::class)($cancelled, $leader);
+        app(UpdateBookingStatusAction::class)($cancelled, $manager);
 
         $this->assertCount(0, Queue::pushed(SendBookingNotification::class));
         Mail::assertNothingSent();
@@ -591,7 +591,7 @@ class BookingStatusTest extends TestCase
 
     public function test_restoring_sends_one_email_that_includes_changes_made_then(): void
     {
-        $leader = User::factory()->teamLeader()->create();
+        $manager = User::factory()->teamManager()->create();
         $booking = Booking::factory()->cancelled()->create(['group_name' => 'Old Group']);
         $attendee = User::factory()->create();
         $this->attend($booking, $attendee, BookingAttendeeStatus::Accepted);
@@ -599,7 +599,7 @@ class BookingStatusTest extends TestCase
             ? $booking->timezone->getName()
             : (string) $booking->timezone;
 
-        $this->actingAs($leader);
+        $this->actingAs($manager);
 
         Queue::fake();
         Mail::fake();

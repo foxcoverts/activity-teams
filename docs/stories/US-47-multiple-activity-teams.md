@@ -20,7 +20,12 @@ As an activity manager, I want bookings, members, and invite lists to belong to 
 - The Members panel is the personal, cross-team workspace for bookings and invitations a user may access. It has no current-team tenant switch.
 - Team-scoped resources such as documents or news may offer a team filter within Members, but do not require switching the current tenant.
 - Managers remain members and lead instructors and use Members for day-to-day member tools, as well as Manage for team management.
-- The manage panel keeps one team current, and bookings, members, activities, and venues follow that team.
-- The Members sidebar links to Manage only for users who can access it, and Manage provides a link back to Members.
+- The manage panel keeps one team current, and bookings, members, activities, and venues follow that team. It is for team managers and system admins, not for oversight-only accounts.
+- Site-wide Users, Teams, catalogs, and key rings live on a separate untenanted Admin panel. Oversight and system admins can open it; team managers cannot.
+- Sidebars link among Members, Manage, and Admin only for users who can open each panel. Manage is hidden when the user has no team to make current.
 - Leaving a team keeps attendance already recorded. They can still open those bookings, and they leave future invite lists.
-- Someone with oversight can open a directory of every account. A team manager can access their team's members, including phone and emergency details, without being the lead instructor on a booking. Viewing another person's personal details requires the acknowledgement in [US-58](US-58-personal-data-viewing-acknowledgement.md), in addition to the existing access rules.
+- Someone with oversight can open a directory of every account on Admin Users, including a team filter and that person's qualifications. A team manager can access their team's members, including phone and emergency details, without being the lead instructor on a booking. Viewing another person's personal details requires the acknowledgement in [US-58](US-58-personal-data-viewing-acknowledgement.md), in addition to the existing access rules.
+
+## Progress
+
+Implemented: Members stays the untenanted personal workspace; Manage is tenanted by team slug for managers and system admins; Admin at `/admin` holds Users, Teams, catalogs, and key rings. Oversight uses Admin rather than a fake Manage tenant. Panel links follow `canAccessPanel`, and Manage is omitted when there is no current team.

@@ -17,7 +17,7 @@ abstract class TestCase extends BaseTestCase
         if ($user instanceof User && Filament::getCurrentPanel()?->getId() === 'manage') {
             $team = $user->managedTeams()->first();
 
-            if ($team === null && ($user->isSystemAdmin() || $user->hasOversight())) {
+            if ($team === null && $user->isSystemAdmin()) {
                 $team = $user->getTenants(Filament::getCurrentPanel())->first();
             }
 

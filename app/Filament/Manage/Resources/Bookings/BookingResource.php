@@ -55,8 +55,6 @@ class BookingResource extends Resource
 
     protected static string|\UnitEnum|null $navigationGroup = NavigationGroup::Team;
 
-    protected static ?int $navigationSort = 1;
-
     protected static ?string $recordTitleAttribute = 'summary';
 
     public static function getEditAuthorizationResponse(Model $record): Response

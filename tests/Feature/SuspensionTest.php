@@ -6,11 +6,11 @@ use App\Actions\OverrideAttendanceAction;
 use App\Actions\UpdateBookingStatusAction;
 use App\Enums\BookingAttendeeStatus;
 use App\Enums\MembershipRole;
+use App\Filament\Admin\Resources\Users\Pages\EditUser;
 use App\Filament\Manage\Actions\SuspensionActions;
 use App\Filament\Manage\Resources\Members\MemberResource;
 use App\Filament\Manage\Resources\Members\Pages\EditMember;
 use App\Filament\Manage\Resources\Members\Pages\ViewMember;
-use App\Filament\Manage\Resources\Users\Pages\EditUser;
 use App\Filament\Member\Resources\Bookings\BookingResource as MemberBookingResource;
 use App\Filament\Member\Resources\Bookings\Pages\ViewBooking as MemberViewBooking;
 use App\Filament\Member\Resources\Bookings\RelationManagers\AttendeesRelationManager as MemberAttendeesRelationManager;
@@ -181,8 +181,8 @@ class SuspensionTest extends TestCase
         $otherTeam->grant($outsideManager, MembershipRole::Manager);
         $plainMember = User::factory()->create();
         $this->team->grant($plainMember, MembershipRole::Member);
-        $oversight = User::factory()->create(['oversight' => true]);
-        $admin = User::factory()->create(['is_system_admin' => true]);
+        $oversight = User::factory()->oversight()->create();
+        $admin = User::factory()->systemAdmin()->create();
 
         $this->assertTrue($this->manager->can('suspend', $this->member));
         $this->assertTrue($oversight->can('suspend', $this->member));
@@ -195,8 +195,8 @@ class SuspensionTest extends TestCase
 
     public function test_a_team_manager_cannot_suspend_someone_with_a_site_wide_role(): void
     {
-        $oversight = User::factory()->create(['oversight' => true]);
-        $admin = User::factory()->create(['is_system_admin' => true]);
+        $oversight = User::factory()->oversight()->create();
+        $admin = User::factory()->systemAdmin()->create();
         $this->team->grant($oversight, MembershipRole::Member);
         $this->team->grant($admin, MembershipRole::Member);
 
@@ -208,7 +208,7 @@ class SuspensionTest extends TestCase
 
     public function test_the_action_is_hidden_from_people_who_cannot_suspend(): void
     {
-        $plainMember = User::factory()->create(['is_system_admin' => true]);
+        $plainMember = User::factory()->systemAdmin()->create();
         $this->team->grant($plainMember, MembershipRole::Member);
 
         $this->actAs($this->manager);
@@ -219,8 +219,9 @@ class SuspensionTest extends TestCase
 
     public function test_the_global_user_edit_page_offers_suspension_to_a_system_admin(): void
     {
-        $admin = User::factory()->create(['is_system_admin' => true]);
+        $admin = User::factory()->systemAdmin()->create();
 
+        Filament::setCurrentPanel(Filament::getPanel('admin'));
         $this->actAs($admin);
 
         Livewire::test(EditUser::class, ['record' => $this->member->getKey()])
@@ -236,7 +237,7 @@ class SuspensionTest extends TestCase
         $other = Team::factory()->create(['name' => 'Archery']);
         $other->grant($this->manager, MembershipRole::Manager);
         $other->grant($backup, MembershipRole::Manager);
-        $admin = User::factory()->create(['is_system_admin' => true]);
+        $admin = User::factory()->systemAdmin()->create();
 
         $this->assertSame(['Climbing'], $this->manager->teamsLeftWithoutActiveManager()->pluck('name')->all());
 

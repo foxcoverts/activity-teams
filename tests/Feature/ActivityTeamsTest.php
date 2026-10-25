@@ -9,22 +9,23 @@ use App\Enums\MembershipRole;
 use App\Enums\ScoutPermitActivity;
 use App\Enums\ScoutPermitCategory;
 use App\Enums\ScoutPermitType;
-use App\Filament\Manage\Resources\Activities\Pages\CreateActivity;
+use App\Filament\Admin\Resources\Activities\Pages\CreateActivity;
+use App\Filament\Admin\Resources\Teams\Pages\CreateTeam;
+use App\Filament\Admin\Resources\Teams\Pages\EditTeam;
+use App\Filament\Admin\Resources\Teams\Pages\ListTeams;
+use App\Filament\Admin\Resources\Users\Pages\ListUsers;
+use App\Filament\Admin\Resources\Users\Pages\ViewUser;
+use App\Filament\Admin\Resources\Users\RelationManagers\MembershipsRelationManager;
+use App\Filament\Admin\Resources\Users\UserResource;
+use App\Filament\Manage\Resources\Activities\ActivityResource;
+use App\Filament\Manage\Resources\Activities\Pages\ListActivities;
 use App\Filament\Manage\Resources\Bookings\BookingResource;
+use App\Filament\Manage\Resources\Keys\KeyResource;
 use App\Filament\Manage\Resources\Members\MemberResource;
 use App\Filament\Manage\Resources\Members\Pages\ListMembers;
 use App\Filament\Manage\Resources\Members\Pages\ViewMember;
-use App\Filament\Manage\Resources\Members\RelationManagers\QualificationsRelationManager;
-use App\Filament\Manage\Resources\TeamActivities\Pages\ListTeamActivities;
-use App\Filament\Manage\Resources\TeamActivities\TeamActivityResource;
-use App\Filament\Manage\Resources\TeamKeys\TeamKeyResource;
-use App\Filament\Manage\Resources\Teams\Pages\CreateTeam;
-use App\Filament\Manage\Resources\Teams\Pages\EditTeam;
-use App\Filament\Manage\Resources\Teams\Pages\ListTeams;
-use App\Filament\Manage\Resources\TeamVenues\Pages\ListTeamVenues;
-use App\Filament\Manage\Resources\Users\Pages\ViewUser;
-use App\Filament\Manage\Resources\Users\RelationManagers\MembershipsRelationManager;
-use App\Filament\Manage\Resources\Users\UserResource;
+use App\Filament\Manage\Resources\Venues\Pages\ListVenues;
+use App\Filament\RelationManagers\QualificationsRelationManager;
 use App\Models\Activity;
 use App\Models\Booking;
 use App\Models\BookingAttendance;
@@ -53,28 +54,67 @@ class ActivityTeamsTest extends TestCase
 
     public function test_a_person_can_belong_to_more_than_one_team(): void
     {
-        $leader = User::factory()->teamLeader()->create();
-        $climbing = $leader->managedTeams()->first();
-        $member = User::factory()->teamMember()->create();
+        $climbing = Team::factory()->create();
         $archery = Team::factory()->create();
-        $archery->grant($leader, MembershipRole::Manager);
-        $archery->grant($member, MembershipRole::Member);
+
+        $manager = User::factory()->teamManager($climbing)->teamManager($archery)->create();
+        $member = User::factory()->teamMember($climbing)->teamMember($archery)->create();
+        $managerMember = User::factory()->teamManager($climbing)->teamMember($archery)->create();
 
         $this->assertTrue($member->isCurrentMemberOf($climbing));
         $this->assertTrue($member->isCurrentMemberOf($archery));
-        $this->assertTrue($leader->manages($climbing));
-        $this->assertTrue($leader->manages($archery));
+        $this->assertTrue($manager->manages($climbing));
+        $this->assertTrue($manager->manages($archery));
+        $this->assertTrue($managerMember->manages($climbing));
+        $this->assertTrue($managerMember->isCurrentMemberOf($archery));
+    }
+
+    public function test_role_on_a_team_returns_the_current_membership_role(): void
+    {
+        $climbing = Team::factory()->create();
+        $archery = Team::factory()->create();
+        $user = User::factory()->teamManager($climbing)->teamMember($archery)->create();
+
+        $this->assertSame(MembershipRole::Manager, $user->roleOn($climbing));
+        $this->assertSame(MembershipRole::Member, $user->roleOn($archery));
+        $this->assertNull($user->roleOn(Team::factory()->create()));
+
+        $user->load('teams');
+
+        $this->assertSame(MembershipRole::Manager, $user->roleOn($climbing));
+        $this->assertSame(MembershipRole::Member, $user->roleOn($archery));
+    }
+
+    public function test_the_users_list_shows_team_role_when_filtered_by_team(): void
+    {
+        $climbing = Team::factory()->create();
+        $archery = Team::factory()->create();
+        $admin = User::factory()->systemAdmin()->teamManager($climbing)->teamMember($archery)->create();
+        $member = User::factory()->teamMember($climbing)->create();
+
+        Filament::setCurrentPanel(Filament::getPanel('admin'));
+        $this->actingAs($admin);
+
+        Livewire::test(ListUsers::class)
+            ->assertCanSeeTableRecords([$admin, $member])
+            ->assertTableColumnVisible('teams.name')
+            ->assertTableColumnHidden('team_role')
+            ->filterTable('team', $climbing)
+            ->assertTableColumnHidden('teams.name')
+            ->assertTableColumnVisible('team_role')
+            ->assertTableColumnStateSet('team_role', MembershipRole::Manager, $admin)
+            ->assertTableColumnStateSet('team_role', MembershipRole::Member, $member);
     }
 
     public function test_the_last_manager_cannot_step_down(): void
     {
-        $leader = User::factory()->teamLeader()->create();
-        $team = $leader->managedTeams()->first();
-        $deputy = User::factory()->manager()->create();
+        $manager = User::factory()->teamManager()->create();
+        $team = $manager->managedTeams()->first();
+        $deputy = User::factory()->teamManager($team)->create();
 
-        $team->recordLeft($leader);
+        $team->recordLeft($manager);
 
-        $this->assertFalse($leader->fresh()->manages($team));
+        $this->assertFalse($manager->fresh()->manages($team));
         $this->assertTrue($deputy->fresh()->manages($team));
 
         $this->expectException(ValidationException::class);
@@ -83,26 +123,28 @@ class ActivityTeamsTest extends TestCase
 
     public function test_the_last_manager_is_told_why_they_cannot_step_down(): void
     {
-        $leader = User::factory()->teamLeader()->create();
-        $member = User::factory()->teamMember()->create();
-        $team = $leader->managedTeams()->first();
-        $membership = $leader->memberships()->first();
+        $manager = User::factory()->teamManager()->create();
+        $team = $manager->managedTeams()->first();
+        $member = User::factory()->teamMember($team)->create();
+        $membership = $manager->memberships()->first();
 
-        $this->actingAs($leader);
+        Filament::setCurrentPanel(Filament::getPanel('manage'));
+        $this->actingAs($manager);
 
         Livewire::test(ListMembers::class)
-            ->assertTableActionDisabled('changeRole', $leader)
-            ->assertTableActionDisabled('leave', $leader)
+            ->assertTableActionDisabled('changeRole', $manager)
+            ->assertTableActionDisabled('leave', $manager)
             ->assertTableActionEnabled('changeRole', $member)
             ->assertTableActionEnabled('leave', $member)
             ->assertSee(Team::lastManagerMessage());
 
         $oversight = User::factory()->oversight()->create();
 
+        Filament::setCurrentPanel(Filament::getPanel('admin'));
         $this->actingAs($oversight);
 
         Livewire::test(MembershipsRelationManager::class, [
-            'ownerRecord' => $leader,
+            'ownerRecord' => $manager,
             'pageClass' => ViewUser::class,
         ])
             ->assertTableActionDisabled('changeRole', $membership)
@@ -111,11 +153,12 @@ class ActivityTeamsTest extends TestCase
 
         $team->grant($member, MembershipRole::Manager);
 
-        $this->actingAs($leader);
+        Filament::setCurrentPanel(Filament::getPanel('manage'));
+        $this->actingAs($manager);
 
         Livewire::test(ListMembers::class)
-            ->assertTableActionEnabled('changeRole', $leader)
-            ->assertTableActionEnabled('leave', $leader)
+            ->assertTableActionEnabled('changeRole', $manager)
+            ->assertTableActionEnabled('leave', $manager)
             ->assertDontSee(Team::lastManagerMessage());
     }
 
@@ -123,14 +166,16 @@ class ActivityTeamsTest extends TestCase
     {
         $climber = User::factory()->teamMember()->create();
         $climbing = $climber->teams()->first();
-        $archerLeader = User::factory()->teamLeader()->create();
-        $archer = User::factory()->teamMember()->create();
-        $confirmed = Booking::factory()->confirmed()->create();
-        $tentative = Booking::factory()->create();
+        $archery = Team::factory()->create();
+        $archeryManager = User::factory()->teamManager($archery)->create();
+        $archer = User::factory()->teamMember($archery)->create();
+
+        $confirmed = Booking::factory()->forTeam($archery)->confirmed()->create();
+        $tentative = Booking::factory()->forTeam($archery)->create();
 
         $this->assertTrue($archer->can('view', $confirmed));
         $this->assertFalse($archer->can('view', $tentative));
-        $this->assertTrue($archerLeader->can('view', $tentative));
+        $this->assertTrue($archeryManager->can('view', $tentative));
         $this->assertFalse($climber->can('view', $confirmed));
         $this->assertFalse(
             Booking::query()->forUser($climber)->whereKey($confirmed->getKey())->exists()
@@ -143,30 +188,31 @@ class ActivityTeamsTest extends TestCase
 
     public function test_invite_and_add_only_offer_current_members(): void
     {
-        $leader = User::factory()->teamLeader()->create();
-        $member = User::factory()->teamMember()->create();
+        $manager = User::factory()->teamManager()->create();
+        $team = $manager->managedTeams()->first();
+        $member = User::factory()->teamMember($team)->create();
         $outsider = User::factory()->create();
-        $booking = Booking::factory()->create();
+        $booking = Booking::factory()->forTeam($team)->create();
         $booking->attendees()->attach($outsider->id, [
             'status' => 'needs-action',
             'token' => 'already-on-roster',
         ]);
 
-        (new InviteAttendeesAction)($booking, [$outsider->id, $member->id], $leader);
+        (new InviteAttendeesAction)($booking, [$outsider->id, $member->id], $manager);
 
         $this->assertTrue($booking->attendees()->whereKey($member->getKey())->exists());
         $this->assertSame('already-on-roster', $booking->attendees()->find($outsider)->attendance->token);
 
         $this->expectException(ValidationException::class);
-        (new AddAttendeeAction)($booking, $outsider, $leader, BookingAttendeeStatus::Accepted);
+        (new AddAttendeeAction)($booking, $outsider, $manager, BookingAttendeeStatus::Accepted);
     }
 
     public function test_leaving_keeps_attendance_and_drops_future_invites(): void
     {
-        $leader = User::factory()->teamLeader()->create();
-        $member = User::factory()->teamMember()->create();
-        $team = $leader->managedTeams()->first();
-        $booking = Booking::factory()->confirmed()->create();
+        $manager = User::factory()->teamManager()->create();
+        $team = $manager->managedTeams()->first();
+        $member = User::factory()->teamMember($team)->create();
+        $booking = Booking::factory()->forTeam($team)->confirmed()->create();
         $booking->attendees()->attach($member->id, [
             'status' => 'accepted',
         ]);
@@ -176,7 +222,7 @@ class ActivityTeamsTest extends TestCase
         $this->assertTrue($member->fresh()->can('view', $booking));
         $this->assertFalse($member->fresh()->isCurrentMemberOf($team));
 
-        (new InviteAttendeesAction)($booking, [$member->id], $leader);
+        (new InviteAttendeesAction)($booking, [$member->id], $manager);
 
         $this->assertSame(
             'accepted',
@@ -186,7 +232,7 @@ class ActivityTeamsTest extends TestCase
 
     public function test_member_contact_details_are_hidden_from_member_list_and_need_acknowledgement_on_the_member_record(): void
     {
-        $leader = User::factory()->teamLeader()->create();
+        $manager = User::factory()->teamManager()->create();
         $member = User::factory()->teamMember()->create([
             'email' => 'member@example.test',
             'phone' => '07000111222',
@@ -197,9 +243,9 @@ class ActivityTeamsTest extends TestCase
 
         $this->assertTrue($oversight->can('viewAny', User::class));
         $this->assertFalse($member->can('viewAny', User::class));
-        $this->assertTrue($leader->can('view', $member));
+        $this->assertTrue($manager->can('view', $member));
 
-        $this->actingAs($leader);
+        $this->actingAs($manager);
 
         Livewire::test(ListMembers::class)
             ->assertDontSee('member@example.test')
@@ -223,7 +269,7 @@ class ActivityTeamsTest extends TestCase
             ->assertSee('+44 70 0033 3444');
 
         Livewire::test(ListMembers::class)
-            ->assertTableActionDisabled('changeRole', $leader);
+            ->assertTableActionDisabled('changeRole', $manager);
     }
 
     public function test_global_user_directory_hides_contact_details_and_user_record_needs_acknowledgement(): void
@@ -237,6 +283,7 @@ class ActivityTeamsTest extends TestCase
             'emergency_phone' => '07000333444',
         ]);
 
+        Filament::setCurrentPanel(Filament::getPanel('admin'));
         $this->actingAs($oversight);
 
         $this->get(UserResource::getUrl('index'))
@@ -259,16 +306,16 @@ class ActivityTeamsTest extends TestCase
 
     public function test_opening_manage_returns_to_the_last_team(): void
     {
-        $leader = User::factory()->teamLeader()->create();
-        $first = $leader->managedTeams()->first();
-        $second = Team::factory()->create(['name' => 'Archery']);
-        $second->grant($leader, MembershipRole::Manager);
+        $first = Team::factory()->create(['name' => 'First']);
+        $second = Team::factory()->create(['name' => 'Second']);
 
-        $this->actingAs($leader)
+        $manager = User::factory()->teamManager($first)->teamManager($second)->create();
+
+        $this->actingAs($manager)
             ->get('/manage/'.$second->slug.'/bookings')
             ->assertOk();
 
-        $this->actingAs($leader)
+        $this->actingAs($manager)
             ->get('/manage')
             ->assertRedirect('/manage/'.$second->slug);
 
@@ -277,27 +324,23 @@ class ActivityTeamsTest extends TestCase
 
     public function test_manage_navigation_separates_the_team_from_the_site(): void
     {
-        $leader = User::factory()->teamLeader()->create();
-        $team = $leader->managedTeams()->first();
+        $manager = User::factory()->teamManager()->create();
+        $team = $manager->managedTeams()->first();
 
-        $this->actingAs($leader)
+        $this->actingAs($manager)
             ->get('/manage/'.$team->slug)
             ->assertOk()
             ->assertSeeTextInOrder([
                 'Team admin',
-                'Bookings',
                 'Activities',
+                'Bookings',
                 'Venues',
-                'Site admin',
-                'Teams',
-                'Activity catalog',
-                'Venue catalog',
             ]);
     }
 
     public function test_a_manager_does_not_see_site_admin_navigation(): void
     {
-        $manager = User::factory()->manager()->create();
+        $manager = User::factory()->teamManager()->create();
 
         $this->actingAs($manager)
             ->get('/manage/'.$manager->managedTeams()->first()->slug)
@@ -310,9 +353,10 @@ class ActivityTeamsTest extends TestCase
 
     public function test_system_admin_creates_a_team_and_its_first_manager(): void
     {
-        $admin = User::factory()->teamLeader()->create();
+        $admin = User::factory()->systemAdmin()->create();
         $manager = User::factory()->create();
 
+        Filament::setCurrentPanel(Filament::getPanel('admin'));
         $this->actingAs($admin);
 
         Livewire::test(CreateTeam::class)
@@ -332,9 +376,10 @@ class ActivityTeamsTest extends TestCase
 
     public function test_system_admin_can_edit_a_team_slug(): void
     {
-        $admin = User::factory()->teamLeader()->create();
-        $team = $admin->managedTeams()->firstOrFail();
+        $admin = User::factory()->systemAdmin()->create();
+        $team = Team::factory()->create();
 
+        Filament::setCurrentPanel(Filament::getPanel('admin'));
         $this->actingAs($admin);
 
         Livewire::test(EditTeam::class, ['record' => $team->getKey()])
@@ -352,10 +397,11 @@ class ActivityTeamsTest extends TestCase
 
     public function test_a_team_slug_must_be_unique(): void
     {
-        $admin = User::factory()->teamLeader()->create();
-        $team = $admin->managedTeams()->firstOrFail();
+        $admin = User::factory()->systemAdmin()->create();
+        $team = Team::factory()->create();
         Team::factory()->create(['slug' => 'taken-slug']);
 
+        Filament::setCurrentPanel(Filament::getPanel('admin'));
         $this->actingAs($admin);
 
         Livewire::test(EditTeam::class, ['record' => $team->getKey()])
@@ -373,10 +419,10 @@ class ActivityTeamsTest extends TestCase
 
     public function test_a_team_slug_must_be_url_safe(): void
     {
-        $admin = User::factory()->teamLeader()->create();
-        $team = $admin->managedTeams()->firstOrFail();
-        $team->update(['slug' => 'kept-team']);
+        $admin = User::factory()->systemAdmin()->create();
+        $team = Team::factory()->create(['slug' => 'kept-team']);
 
+        Filament::setCurrentPanel(Filament::getPanel('admin'));
         $this->actingAs($admin);
 
         Livewire::test(EditTeam::class, ['record' => $team->getKey()])
@@ -394,8 +440,9 @@ class ActivityTeamsTest extends TestCase
 
     public function test_a_new_team_requires_a_first_manager(): void
     {
-        $admin = User::factory()->teamLeader()->create();
+        $admin = User::factory()->systemAdmin()->create();
 
+        Filament::setCurrentPanel(Filament::getPanel('admin'));
         $this->actingAs($admin);
 
         Livewire::test(CreateTeam::class)
@@ -409,8 +456,8 @@ class ActivityTeamsTest extends TestCase
     public function test_system_admin_maintains_the_catalogs_and_reaches_the_user_directory(): void
     {
         $activity = Activity::factory()->create(['name' => 'Unused']);
-        $admin = User::factory()->create(['is_system_admin' => true]);
-        $leader = User::factory()->teamLeader()->create();
+        $admin = User::factory()->systemAdmin()->create();
+        $manager = User::factory()->teamManager()->create();
         $member = User::factory()->teamMember()->create([
             'phone' => '07000999888',
         ]);
@@ -419,26 +466,24 @@ class ActivityTeamsTest extends TestCase
         $this->assertTrue($admin->can('update', $activity));
         $this->assertTrue($admin->can('delete', $activity));
         $this->assertTrue($admin->can('create', Venue::class));
-        $manager = User::factory()->manager()->create();
+
         $venue = Venue::factory()->create();
 
         $this->assertFalse($manager->can('create', Activity::class));
         $this->assertFalse($manager->can('delete', $venue));
-        Filament::setTenant(null);
+
         $this->assertTrue($admin->can('viewAny', User::class));
         $this->assertTrue($admin->can('view', $member));
         $this->assertTrue($admin->can('update', $member));
         $this->assertFalse($admin->can('delete', $member));
 
         $team = Team::factory()->create();
-        $team->grant($admin, MembershipRole::Manager);
         $team->activities()->syncWithoutDetaching([$activity->getKey()]);
 
         $this->assertTrue($team->activities()->whereKey($activity->getKey())->exists());
 
-        $home = $admin->managedTeams()->first();
+        Filament::setCurrentPanel(Filament::getPanel('admin'));
         $this->actingAs($admin);
-        Filament::setTenant($home);
 
         Livewire::test(CreateActivity::class)
             ->fillForm([
@@ -454,29 +499,27 @@ class ActivityTeamsTest extends TestCase
 
     public function test_a_system_admin_can_set_up_a_team_they_do_not_manage(): void
     {
-        $admin = User::factory()->create(['is_system_admin' => true]);
+        $admin = User::factory()->systemAdmin()->create();
         $team = Team::factory()->create(['name' => 'Climbing']);
         $empty = Team::factory()->create(['name' => 'Unstaffed']);
-        $manager = User::factory()->create(['name' => 'Casey Manager']);
-        $member = User::factory()->create([
+        $manager = User::factory()->teamManager($team)->create(['name' => 'Casey Manager']);
+        $member = User::factory()->teamMember($team)->create([
             'name' => 'Alex Member',
             'phone' => '07000999888',
             'emergency_phone' => '07000111222',
         ]);
-        $team->grant($manager, MembershipRole::Manager);
-        $team->grant($member, MembershipRole::Member);
         $activity = Activity::factory()->create(['name' => 'Scout climbing']);
         $venue = Venue::factory()->create(['name' => 'Campsite']);
 
         $this->actingAs($admin);
         Filament::setTenant($team);
 
-        Livewire::test(ListTeamActivities::class)
+        Livewire::test(ListActivities::class)
             ->callAction('give', data: [
                 'activity_id' => $activity->getKey(),
             ]);
 
-        Livewire::test(ListTeamVenues::class)
+        Livewire::test(ListVenues::class)
             ->callAction('give', data: [
                 'venue_id' => $venue->getKey(),
             ]);
@@ -490,14 +533,14 @@ class ActivityTeamsTest extends TestCase
             'venue_id' => $venue->getKey(),
         ]);
 
-        $this->get(TeamKeyResource::getUrl('index'))
+        $this->get(KeyResource::getUrl('index'))
             ->assertOk()
             ->assertSee('Climbing store');
 
-        Livewire::test(ListTeamActivities::class)
+        Livewire::test(ListActivities::class)
             ->callTableAction('remove', $activity);
 
-        Livewire::test(ListTeamVenues::class)
+        Livewire::test(ListVenues::class)
             ->callTableAction('remove', $venue);
 
         $this->assertFalse($team->fresh()->activities()->whereKey($activity->getKey())->exists());
@@ -539,7 +582,7 @@ class ActivityTeamsTest extends TestCase
 
         $this->assertInstanceOf(Qualification::class, $member->qualifications()->first());
 
-        $booking = Booking::factory()->create(['team_id' => $team->getKey()]);
+        $booking = Booking::factory()->forTeam($team)->create();
         $booking->attendees()->attach($member->getKey(), [
             'status' => BookingAttendeeStatus::Accepted->value,
         ]);
@@ -551,23 +594,27 @@ class ActivityTeamsTest extends TestCase
         $this->assertFalse($admin->can('update', $attendance));
         $this->assertFalse($admin->can('create', [BookingAttendance::class, $booking]));
 
+        Filament::setCurrentPanel(Filament::getPanel('admin'));
+
         Livewire::test(ListTeams::class)
             ->assertSee('Casey Manager')
             ->assertSee('No managers')
             ->assertSeeHtml('fi-ta-placeholder')
-            ->assertSeeHtml(MemberResource::getUrl('index', tenant: $team))
-            ->assertDontSeeHtml(MemberResource::getUrl('index', tenant: $empty));
+            ->assertSeeHtml(MemberResource::getUrl('index', panel: 'manage', tenant: $team))
+            ->assertDontSeeHtml(MemberResource::getUrl('index', panel: 'manage', tenant: $empty));
 
-        $outsider = User::factory()->manager()->create();
+        $outsideTeam = Team::factory()->create();
+        $outsider = User::factory()->teamManager($outsideTeam)->create();
 
+        Filament::setCurrentPanel(Filament::getPanel('manage'));
         $this->actingAs($outsider);
-        $this->get(TeamActivityResource::getUrl('index', tenant: $team))->assertNotFound();
+        $this->get(ActivityResource::getUrl('index', tenant: $team))->assertNotFound();
         $this->get(MemberResource::getUrl('index', tenant: $team))->assertNotFound();
 
         $this->actingAs($manager);
         Filament::setTenant($team);
 
-        Livewire::test(ListTeamActivities::class)
+        Livewire::test(ListActivities::class)
             ->callAction('give', data: [
                 'activity_id' => $activity->getKey(),
             ]);

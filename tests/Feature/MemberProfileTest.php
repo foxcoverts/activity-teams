@@ -2,11 +2,9 @@
 
 namespace Tests\Feature;
 
-use App\Enums\MembershipRole;
+use App\Filament\Admin\Resources\Users\Pages\EditUser;
 use App\Filament\Auth\EditProfile;
-use App\Filament\Manage\Resources\Users\Pages\EditUser;
 use App\Filament\Pages\ChangePassword;
-use App\Models\Team;
 use App\Models\User;
 use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -73,7 +71,7 @@ class MemberProfileTest extends TestCase
 
     public function test_a_team_less_system_admin_can_open_the_profile(): void
     {
-        $admin = User::factory()->create(['is_system_admin' => true]);
+        $admin = User::factory()->systemAdmin()->create();
 
         Filament::setCurrentPanel(Filament::getPanel('member'));
         $this->actingAs($admin);
@@ -91,7 +89,7 @@ class MemberProfileTest extends TestCase
 
     public function test_the_manage_user_menu_links_profile_and_change_password_to_the_member_panel(): void
     {
-        $manager = User::factory()->teamLeader()->create();
+        $manager = User::factory()->teamManager()->create();
         $managePanel = Filament::getPanel('manage');
         $team = $manager->getDefaultTenant($managePanel);
         $profileUrl = EditProfile::getUrl(panel: 'member');
@@ -155,14 +153,11 @@ class MemberProfileTest extends TestCase
 
     public function test_managers_cannot_set_another_persons_password(): void
     {
-        $team = Team::factory()->create();
-        $admin = User::factory()->create(['is_system_admin' => true]);
-        $member = User::factory()->create(['name' => 'Alex Member']);
-        $team->grant($member, MembershipRole::Member);
+        $admin = User::factory()->systemAdmin()->create();
+        $member = User::factory()->teamMember()->create(['name' => 'Alex Member']);
 
         $this->actingAs($admin);
-        Filament::setCurrentPanel(Filament::getPanel('manage'));
-        Filament::setTenant($team);
+        Filament::setCurrentPanel(Filament::getPanel('admin'));
 
         Livewire::test(EditUser::class, ['record' => $member->getKey()])
             ->assertSee('Only the user can change their own password.');

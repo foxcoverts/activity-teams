@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\Activity;
+use App\Models\Team;
 use App\Models\User;
 use App\Models\Venue;
 use Illuminate\Database\Seeder;
@@ -21,13 +22,12 @@ class DatabaseSeeder extends Seeder
             ['name' => 'Fox Coverts Campsite', 'notes' => 'Primary campsite venue.']
         );
 
-        $leader = User::factory()->teamLeader()->create([
+        $team = Team::factory()->create(['name' => 'Climbing', 'slug' => 'climbing']);
+
+        $leader = User::factory()->systemAdmin()->teamManager($team)->create([
             'name' => 'Team Leader',
             'email' => 'leader@example.com',
         ]);
-
-        $team = $leader->managedTeams()->first();
-        $team?->update(['name' => 'Climbing', 'slug' => 'climbing']);
 
         $activity = Activity::query()->where('slug', 'climbing')->firstOrFail();
         $venue = Venue::query()->where('slug', 'fox-coverts-campsite')->firstOrFail();

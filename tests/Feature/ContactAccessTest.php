@@ -126,7 +126,7 @@ class ContactAccessTest extends TestCase
     public function test_people_who_are_not_attending_are_never_shown_or_shown_to(): void
     {
         Carbon::setTestNow('2026-11-10 12:00:00');
-        $admin = User::factory()->create(['is_system_admin' => true]);
+        $admin = User::factory()->systemAdmin()->create();
         $outsider = $this->person('Olive Outsider');
 
         foreach (['viewPhone', 'viewEmergencyContact'] as $ability) {

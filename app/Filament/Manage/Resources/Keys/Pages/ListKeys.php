@@ -3,17 +3,15 @@
 namespace App\Filament\Manage\Resources\Keys\Pages;
 
 use App\Filament\Manage\Resources\Keys\KeyResource;
-use Filament\Actions\CreateAction;
 use Filament\Resources\Pages\ListRecords;
+use Illuminate\Contracts\Support\Htmlable;
 
 class ListKeys extends ListRecords
 {
     protected static string $resource = KeyResource::class;
 
-    protected function getHeaderActions(): array
+    public function getSubheading(): string|Htmlable|null
     {
-        return [
-            CreateAction::make(),
-        ];
+        return __('Keys required for this team\'s activities at its venues, and every ring that holds them.');
     }
 }

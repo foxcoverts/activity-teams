@@ -2,24 +2,22 @@
 
 namespace App\Providers\Filament;
 
+use App\Filament\Admin\PanelNavigationItem as AdminPanelNavigationItem;
 use App\Filament\Auth\EditProfile;
 use App\Filament\Auth\Login;
 use App\Filament\Auth\Register;
+use App\Filament\Manage\PanelNavigationItem as ManagePanelNavigationItem;
 use App\Filament\Pages\ChangePassword;
 use App\Http\Middleware\RequireProfileConfirmation;
 use App\Http\Middleware\ShowPublicBookingSummary;
-use App\Models\User;
-use Filament\Facades\Filament;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
-use Filament\Navigation\NavigationItem;
 use Filament\Pages\Dashboard;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
-use Filament\Support\Icons\Heroicon;
 use Filament\Widgets\AccountWidget;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
@@ -58,27 +56,8 @@ class MemberPanelProvider extends PanelProvider
                 ChangePassword::userMenuItem(),
             ])
             ->navigationItems([
-                NavigationItem::make('Manage')
-                    ->icon(Heroicon::OutlinedArrowsRightLeft)
-                    ->sort(-1)
-                    ->visible(function (): bool {
-                        $user = auth()->user();
-                        $managePanel = Filament::getPanel('manage');
-
-                        return $user instanceof User
-                            && $managePanel instanceof Panel
-                            && $user->canAccessPanel($managePanel);
-                    })
-                    ->url(function (): ?string {
-                        $user = auth()->user();
-                        $managePanel = Filament::getPanel('manage');
-
-                        if (! $user instanceof User || ! $managePanel instanceof Panel) {
-                            return null;
-                        }
-
-                        return $managePanel->getUrl($user->getDefaultTenant($managePanel));
-                    }),
+                ManagePanelNavigationItem::make(),
+                AdminPanelNavigationItem::make(),
             ])
             ->discoverWidgets(in: app_path('Filament/Member/Widgets'), for: 'App\\Filament\\Member\\Widgets')
             ->widgets([

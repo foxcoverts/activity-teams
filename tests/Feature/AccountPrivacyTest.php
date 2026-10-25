@@ -8,15 +8,15 @@ use App\Actions\ExportPersonalDataAction;
 use App\Actions\SendTeamInvitationAction;
 use App\Enums\MembershipRole;
 use App\Enums\Section;
+use App\Filament\Admin\Resources\KeyRings\Pages\CreateKeyRing;
+use App\Filament\Admin\Resources\KeyRings\Pages\EditKeyRing;
+use App\Filament\Admin\Resources\Users\Pages\EditUser;
+use App\Filament\Admin\Resources\Users\Pages\ListUsers;
+use App\Filament\Admin\Resources\Users\Pages\ViewUser;
+use App\Filament\Admin\Resources\Users\RelationManagers\MembershipsRelationManager;
 use App\Filament\Auth\EditProfile;
 use App\Filament\Auth\Register;
-use App\Filament\Manage\Resources\KeyRings\Pages\CreateKeyRing;
-use App\Filament\Manage\Resources\KeyRings\Pages\EditKeyRing;
 use App\Filament\Manage\Resources\Members\Pages\ViewMember;
-use App\Filament\Manage\Resources\Users\Pages\EditUser;
-use App\Filament\Manage\Resources\Users\Pages\ListUsers;
-use App\Filament\Manage\Resources\Users\Pages\ViewUser;
-use App\Filament\Manage\Resources\Users\RelationManagers\MembershipsRelationManager;
 use App\Livewire\AcceptInvitation;
 use App\Models\KeyRing;
 use App\Models\Qualification;
@@ -55,7 +55,7 @@ class AccountPrivacyTest extends TestCase
 
     public function test_self_delete_with_the_password_soft_deletes_and_blocks_sign_in(): void
     {
-        $admin = User::factory()->create(['is_system_admin' => true]);
+        $admin = User::factory()->systemAdmin()->create();
         $user = User::factory()->teamMember()->create(['email' => 'leave@example.com']);
 
         app(DeleteUserAction::class)->delete($user, $user, 'password');
@@ -68,7 +68,7 @@ class AccountPrivacyTest extends TestCase
 
     public function test_the_last_system_admin_cannot_delete_their_account(): void
     {
-        $admin = User::factory()->create(['is_system_admin' => true]);
+        $admin = User::factory()->systemAdmin()->create();
 
         $this->expectException(ValidationException::class);
 
@@ -79,10 +79,8 @@ class AccountPrivacyTest extends TestCase
     {
         Notification::fake();
 
-        User::factory()->create(['is_system_admin' => true, 'email' => 'admin@example.com']);
-        $team = Team::factory()->create(['name' => 'Climbing']);
-        $manager = User::factory()->create(['name' => 'Last Manager']);
-        $team->grant($manager, MembershipRole::Manager);
+        User::factory()->systemAdmin()->create(['email' => 'admin@example.com']);
+        $manager = User::factory()->teamManager()->create(['name' => 'Last Manager']);
 
         app(DeleteUserAction::class)->delete($manager, $manager, 'password');
 
@@ -95,12 +93,10 @@ class AccountPrivacyTest extends TestCase
 
     public function test_a_deleted_person_is_read_only_except_restore(): void
     {
-        $admin = User::factory()->create(['oversight' => true, 'is_system_admin' => true]);
-        $team = Team::factory()->create(['name' => 'Climbing']);
-        $manager = User::factory()->create(['name' => 'Deleted Manager']);
-        $team->grant($manager, MembershipRole::Manager);
+        $admin = User::factory()->systemAdmin()->create();
 
-        app(DeleteUserAction::class)->delete($admin, $manager);
+        $team = Team::factory()->create(['name' => 'Climbing']);
+        $manager = User::factory()->teamManager($team)->deleted()->create(['name' => 'Deleted Manager']);
 
         $manager = User::withTrashed()->findOrFail($manager->getKey());
         $membership = $manager->memberships()->firstOrFail();
@@ -112,7 +108,7 @@ class AccountPrivacyTest extends TestCase
         $this->assertFalse($admin->can('suspend', $manager));
         $this->assertFalse(Qualification::canMaintain($admin, $manager));
 
-        Filament::setCurrentPanel(Filament::getPanel('manage'));
+        Filament::setCurrentPanel(Filament::getPanel('admin'));
         $this->actingAs($admin);
 
         Livewire::test(EditUser::class, ['record' => $manager->getKey()])
@@ -122,6 +118,9 @@ class AccountPrivacyTest extends TestCase
             ->assertOk()
             ->assertActionHidden('edit')
             ->assertActionVisible('restore');
+
+        Filament::setCurrentPanel(Filament::getPanel('manage'));
+        Filament::setTenant($team);
 
         Livewire::test(ViewMember::class, ['record' => $manager->getKey()])
             ->assertOk()
@@ -142,11 +141,8 @@ class AccountPrivacyTest extends TestCase
 
     public function test_a_deleted_person_cannot_be_added_to_a_team(): void
     {
-        $admin = User::factory()->create(['oversight' => true, 'is_system_admin' => true]);
         $team = Team::factory()->create();
-        $member = User::factory()->create();
-
-        app(DeleteUserAction::class)->delete($admin, $member);
+        $member = User::factory()->deleted()->create();
 
         $this->expectException(ValidationException::class);
 
@@ -155,13 +151,10 @@ class AccountPrivacyTest extends TestCase
 
     public function test_a_deleted_person_cannot_be_given_a_key_ring(): void
     {
-        $admin = User::factory()->create(['oversight' => true, 'is_system_admin' => true]);
-        Team::factory()->create();
-        $member = User::factory()->create(['name' => 'Deleted Holder']);
+        $admin = User::factory()->systemAdmin()->create();
+        $member = User::factory()->deleted()->create(['name' => 'Deleted Holder']);
 
-        app(DeleteUserAction::class)->delete($admin, $member);
-
-        Filament::setCurrentPanel(Filament::getPanel('manage'));
+        Filament::setCurrentPanel(Filament::getPanel('admin'));
         $this->actingAs($admin);
 
         Livewire::test(CreateKeyRing::class)
@@ -177,14 +170,12 @@ class AccountPrivacyTest extends TestCase
 
     public function test_a_key_ring_held_by_a_deleted_person_still_shows_their_name(): void
     {
-        $admin = User::factory()->create(['oversight' => true, 'is_system_admin' => true]);
-        Team::factory()->create();
+        $admin = User::factory()->systemAdmin()->create();
         $holder = User::factory()->create(['name' => 'Deleted Holder']);
         $ring = KeyRing::factory()->heldBy($holder)->create(['name' => 'Store keys']);
+        $holder->delete();
 
-        app(DeleteUserAction::class)->delete($admin, $holder);
-
-        Filament::setCurrentPanel(Filament::getPanel('manage'));
+        Filament::setCurrentPanel(Filament::getPanel('admin'));
         $this->actingAs($admin);
 
         Livewire::test(EditKeyRing::class, ['record' => $ring->getKey()])
@@ -206,12 +197,9 @@ class AccountPrivacyTest extends TestCase
     {
         Notification::fake();
 
-        User::factory()->create(['is_system_admin' => true]);
         $team = Team::factory()->create();
-        $manager = User::factory()->create();
-        $holder = User::factory()->create(['name' => 'Key Holder']);
-        $team->grant($manager, MembershipRole::Manager);
-        $team->grant($holder, MembershipRole::Member);
+        $manager = User::factory()->teamManager($team)->create();
+        $holder = User::factory()->teamMember($team)->create(['name' => 'Key Holder']);
         $ring = KeyRing::factory()->heldBy($holder)->create(['name' => 'Store keys']);
 
         app(DeleteUserAction::class)->delete($holder, $holder, 'password');
@@ -223,7 +211,6 @@ class AccountPrivacyTest extends TestCase
 
     public function test_purge_after_thirty_days_clears_contact_and_keeps_the_name_and_qualifications(): void
     {
-        User::factory()->create(['is_system_admin' => true]);
         $user = User::factory()->create(['name' => 'Kept Name', 'email' => 'gone@example.com']);
         $qualification = Qualification::factory()->create(['user_id' => $user->getKey()]);
 
@@ -243,20 +230,14 @@ class AccountPrivacyTest extends TestCase
 
     public function test_a_deleted_placeholder_is_not_treated_as_a_live_placeholder(): void
     {
-        $placeholder = User::factory()->placeholder()->create();
-        $admin = User::factory()->create(['oversight' => true, 'is_system_admin' => true]);
-
-        app(DeleteUserAction::class)->delete($admin, $placeholder);
-
-        $placeholder->refresh();
+        $placeholder = User::factory()->placeholder()->deleted()->create();
+        $oversight = User::factory()->oversight()->create();
 
         $this->assertTrue($placeholder->trashed());
         $this->assertFalse($placeholder->isPlaceholder());
 
-        $team = Team::factory()->create();
-        Filament::setCurrentPanel(Filament::getPanel('manage'));
-        $this->actingAs($admin);
-        Filament::setTenant($team);
+        Filament::setCurrentPanel(Filament::getPanel('admin'));
+        $this->actingAs($oversight);
 
         Livewire::test(ListUsers::class)
             ->assertCanSeeTableRecords([$placeholder])
@@ -265,9 +246,8 @@ class AccountPrivacyTest extends TestCase
 
     public function test_claiming_an_invitation_still_removes_the_placeholder_entirely(): void
     {
-        $team = Team::factory()->create();
-        $manager = User::factory()->create();
-        $team->grant($manager, MembershipRole::Manager);
+        $manager = User::factory()->teamManager()->create();
+        $team = $manager->managedTeams()->first();
         $placeholder = app(SendTeamInvitationAction::class)->add($manager, $team, 'Sam', 'new@example.com', MembershipRole::Member, Section::Adult);
         $account = User::factory()->create();
 
@@ -278,9 +258,8 @@ class AccountPrivacyTest extends TestCase
 
     public function test_creating_an_account_without_privacy_acknowledgement_is_refused(): void
     {
-        $team = Team::factory()->create();
-        $manager = User::factory()->create();
-        $team->grant($manager, MembershipRole::Manager);
+        $manager = User::factory()->teamManager()->create();
+        $team = $manager->managedTeams()->first();
         $placeholder = app(SendTeamInvitationAction::class)->add($manager, $team, 'Sam', 'new@example.com', MembershipRole::Member, Section::Adult);
 
         Livewire::withQueryParams(['token' => $placeholder->invitation->token])
@@ -311,7 +290,6 @@ class AccountPrivacyTest extends TestCase
 
     public function test_self_delete_from_the_profile_signs_the_person_out(): void
     {
-        User::factory()->create(['is_system_admin' => true, 'email' => 'admin@example.com']);
         $user = User::factory()->teamMember()->create();
 
         Filament::setCurrentPanel(Filament::getPanel('member'));

@@ -23,7 +23,7 @@ class GuestListTest extends TestCase
 
     public function test_regular_members_see_only_expected_status_groups_and_guest_badges(): void
     {
-        $manager = User::factory()->teamLeader()->create();
+        $manager = User::factory()->teamManager()->create();
         $team = $manager->managedTeams()->firstOrFail();
         $member = User::factory()->create();
         $team->grant($member, MembershipRole::Member);
@@ -31,7 +31,7 @@ class GuestListTest extends TestCase
         $tentative = User::factory()->create(['name' => 'Tentative attendee']);
         $declined = User::factory()->create(['name' => 'Declined attendee']);
         $awaiting = User::factory()->create(['name' => 'Awaiting attendee']);
-        $suspended = User::factory()->create(['name' => 'Suspended attendee', 'suspended' => true]);
+        $suspended = User::factory()->suspended()->create(['name' => 'Suspended attendee']);
         $team->grant($suspended, MembershipRole::Member);
         $formerMember = User::factory()->guest()->create(['name' => 'Former member']);
         $booking = Booking::factory()->confirmed()->create([
@@ -91,7 +91,7 @@ class GuestListTest extends TestCase
 
     public function test_lead_instructors_see_declined_and_awaiting_attendees(): void
     {
-        $lead = User::factory()->teamLeader()->create();
+        $lead = User::factory()->teamManager()->create();
         $team = $lead->managedTeams()->firstOrFail();
         $declined = User::factory()->create(['name' => 'Cannot attend']);
         $awaiting = User::factory()->create(['name' => 'No response']);
@@ -124,7 +124,7 @@ class GuestListTest extends TestCase
 
     public function test_members_see_the_read_only_relation_manager_guest_list(): void
     {
-        $manager = User::factory()->teamLeader()->create();
+        $manager = User::factory()->teamManager()->create();
         $team = $manager->managedTeams()->firstOrFail();
         $member = User::factory()->create(['name' => 'Current attendee']);
         $team->grant($member, MembershipRole::Member);
@@ -161,7 +161,7 @@ class GuestListTest extends TestCase
 
     public function test_non_members_cannot_mount_the_member_guest_list_relation_manager(): void
     {
-        $manager = User::factory()->teamLeader()->create();
+        $manager = User::factory()->teamManager()->create();
         $booking = Booking::factory()->confirmed()->create();
 
         Filament::setCurrentPanel(Filament::getPanel('member'));
@@ -175,9 +175,9 @@ class GuestListTest extends TestCase
 
     public function test_managers_see_suspended_attendees_and_all_status_groups_in_members(): void
     {
-        $manager = User::factory()->teamLeader()->create();
+        $manager = User::factory()->teamManager()->create();
         $team = $manager->managedTeams()->firstOrFail();
-        $suspended = User::factory()->create(['name' => 'Suspended attendee', 'suspended' => true]);
+        $suspended = User::factory()->suspended()->create(['name' => 'Suspended attendee']);
         $team->grant($suspended, MembershipRole::Member);
         $declined = User::factory()->create(['name' => 'Declined attendee']);
         $team->grant($declined, MembershipRole::Member);
@@ -220,7 +220,7 @@ class GuestListTest extends TestCase
     {
         Filament::setCurrentPanel(Filament::getPanel('manage'));
 
-        $manager = User::factory()->teamLeader()->create();
+        $manager = User::factory()->teamManager()->create();
         $team = $manager->managedTeams()->firstOrFail();
         $member = User::factory()->create(['name' => 'Team attendee']);
         $team->grant($member, MembershipRole::Member);

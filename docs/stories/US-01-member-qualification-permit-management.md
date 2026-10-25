@@ -17,4 +17,4 @@ As an Activity Manager, I want to record and maintain team members' qualificatio
 
 ## Progress
 
-A manager of the current team can add, edit, and remove qualifications for that team's current members. The records stay on the person, so a manager of another current team edits the same rows. Oversight can read them and cannot change them. The member can read their own list from Qualifications in the team menu. Changes are logged.
+A manager of the current team can add, edit, and remove qualifications for that team's current members. The records stay on the person, so a manager of another current team edits the same rows. Oversight can read them on Admin Users and cannot change them. The member can read their own list from Qualifications in the team menu. Changes are logged.

@@ -59,29 +59,32 @@ class UserFactory extends Factory
         });
     }
 
-    public function teamMember(): static
+    /**
+     * Mark the user as deleted.
+     *
+     * This must be called last in the factory chain to ensure the user is deleted after all other states and relationships have been applied.
+     */
+    public function deleted(): static
     {
         return $this->afterCreating(function (User $user): void {
-            $team = Team::query()->orderByDesc('id')->first() ?? Team::factory()->create();
+            $user->delete();
+        });
+    }
+
+    public function teamMember(?Team $team = null): static
+    {
+        return $this->afterCreating(function (User $user) use ($team): void {
+            $team = $team ?? Team::query()->orderByDesc('id')->first() ?? Team::factory()->create();
             $team->grant($user, MembershipRole::Member);
         });
     }
 
-    public function manager(): static
+    public function teamManager(?Team $team = null): static
     {
-        return $this->afterCreating(function (User $user): void {
-            $team = Team::query()->orderByDesc('id')->first() ?? Team::factory()->create();
+        return $this->afterCreating(function (User $user) use ($team): void {
+            $team = $team ?? Team::query()->orderByDesc('id')->first() ?? Team::factory()->create();
             $team->grant($user, MembershipRole::Manager);
         });
-    }
-
-    public function teamLeader(): static
-    {
-        return $this->state(fn () => ['is_system_admin' => true])
-            ->afterCreating(function (User $user): void {
-                $team = Team::factory()->create();
-                $team->grant($user, MembershipRole::Manager);
-            });
     }
 
     public function suspended(): static
@@ -95,6 +98,11 @@ class UserFactory extends Factory
 
     public function oversight(): static
     {
-        return $this->state(fn () => ['oversight' => true])->teamMember();
+        return $this->state(fn () => ['oversight' => true]);
+    }
+
+    public function systemAdmin(): static
+    {
+        return $this->state(fn () => ['is_system_admin' => true]);
     }
 }

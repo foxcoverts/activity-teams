@@ -6,13 +6,13 @@ use App\Enums\BookingAttendeeStatus;
 use App\Enums\MembershipRole;
 use App\Enums\ScoutPermitActivity;
 use App\Enums\ScoutPermitType;
+use App\Filament\Admin\Resources\KeyRings\KeyRingResource as ManageKeyRingResource;
+use App\Filament\Admin\Resources\KeyRings\Pages\CreateKeyRing;
+use App\Filament\Admin\Resources\Keys\KeyResource;
+use App\Filament\Admin\Resources\Keys\Pages\CreateKey;
 use App\Filament\Manage\Resources\Bookings\Pages\ViewBooking as ManageViewBooking;
 use App\Filament\Manage\Resources\Bookings\RelationManagers\AttendeesRelationManager;
-use App\Filament\Manage\Resources\KeyRings\KeyRingResource as ManageKeyRingResource;
-use App\Filament\Manage\Resources\KeyRings\Pages\CreateKeyRing;
-use App\Filament\Manage\Resources\Keys\KeyResource;
-use App\Filament\Manage\Resources\Keys\Pages\CreateKey;
-use App\Filament\Manage\Resources\TeamKeys\TeamKeyResource;
+use App\Filament\Manage\Resources\Keys\KeyResource as TeamKeyResource;
 use App\Filament\Member\Resources\Bookings\BookingResource;
 use App\Filament\Member\Resources\Bookings\Pages\ViewBooking as MemberViewBooking;
 use App\Filament\Member\Resources\Bookings\RelationManagers\AttendeesRelationManager as MemberAttendeesRelationManager;
@@ -119,10 +119,10 @@ class KeyAccessTest extends TestCase
 
     public function test_a_system_admin_configures_keys_and_rings_and_a_manager_cannot(): void
     {
-        Filament::setCurrentPanel(Filament::getPanel('manage'));
+        Filament::setCurrentPanel(Filament::getPanel('admin'));
 
-        $admin = User::factory()->teamLeader()->create();
-        $manager = User::factory()->manager()->create();
+        $admin = User::factory()->systemAdmin()->create();
+        $manager = User::factory()->teamManager()->create();
         $activity = Activity::factory()->create(['name' => 'Scout climbing']);
         $venue = Venue::factory()->create(['name' => 'Campsite']);
         $archery = Key::factory()->create(['name' => 'Archery locker']);
@@ -269,7 +269,7 @@ class KeyAccessTest extends TestCase
 
     public function test_a_booking_shows_its_keys_and_who_holds_a_useful_one(): void
     {
-        $leader = User::factory()->teamLeader()->create();
+        $manager = User::factory()->teamManager()->create();
         $holder = User::factory()->teamMember()->create(['name' => 'Robin Outsider']);
         $other = User::factory()->teamMember()->create(['name' => 'Alex Guest']);
         $booking = Booking::factory()->create();
@@ -296,7 +296,7 @@ class KeyAccessTest extends TestCase
         KeyRing::factory()->heldBy($other)->create(['name' => 'Door ring'])->keys()->attach($door);
 
         Filament::setCurrentPanel(Filament::getPanel('manage'));
-        $this->actingAs($leader);
+        $this->actingAs($manager);
 
         Livewire::test(ManageViewBooking::class, ['record' => $booking->getRouteKey()])
             ->mountAction('keys')
@@ -334,7 +334,7 @@ class KeyAccessTest extends TestCase
 
     public function test_a_lead_sees_qualifications_restrictions_and_session_keys(): void
     {
-        $lead = User::factory()->teamLeader()->create(['name' => 'Lead Instructor', 'phone' => '07000999888']);
+        $lead = User::factory()->teamManager()->create(['name' => 'Lead Instructor', 'phone' => '07000999888']);
         $holder = User::factory()->teamMember()->create(['name' => 'Sam Holder']);
         $member = User::factory()->teamMember()->create(['name' => 'Casey Member']);
         $activity = Activity::factory()->create();

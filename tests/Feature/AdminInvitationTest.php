@@ -7,9 +7,9 @@ use App\Actions\SendTeamInvitationAction;
 use App\Enums\InvitationStatus;
 use App\Enums\MembershipRole;
 use App\Enums\Section;
-use App\Filament\Manage\Resources\Users\Pages\ListUsers;
-use App\Filament\Manage\Resources\Users\Pages\ViewUser;
-use App\Filament\Manage\Resources\Users\UserResource;
+use App\Filament\Admin\Resources\Users\Pages\ListUsers;
+use App\Filament\Admin\Resources\Users\Pages\ViewUser;
+use App\Filament\Admin\Resources\Users\UserResource;
 use App\Livewire\AcceptInvitation;
 use App\Models\Team;
 use App\Models\TeamInvitation;
@@ -47,7 +47,7 @@ class AdminInvitationTest extends TestCase
         Notification::fake();
 
         $this->team = Team::factory()->create();
-        $this->admin = User::factory()->create(['is_system_admin' => true]);
+        $this->admin = User::factory()->systemAdmin()->create();
     }
 
     /**
@@ -96,7 +96,7 @@ class AdminInvitationTest extends TestCase
 
     public function test_oversight_cannot_send_a_site_access_invitation(): void
     {
-        $oversight = User::factory()->create(['oversight' => true]);
+        $oversight = User::factory()->oversight()->create();
 
         $this->expectException(AuthorizationException::class);
 
@@ -115,7 +115,7 @@ class AdminInvitationTest extends TestCase
 
     public function test_a_suspended_email_is_refused_and_named_as_suspended(): void
     {
-        User::factory()->create(['email' => 'gone@example.com', 'suspended' => true]);
+        User::factory()->suspended()->create(['email' => 'gone@example.com']);
 
         try {
             $this->inviteAdmin('gone@example.com');
@@ -144,11 +144,11 @@ class AdminInvitationTest extends TestCase
     public function test_declining_notifies_active_verified_system_admins_only(): void
     {
         $placeholder = $this->inviteAdmin();
-        $anotherAdmin = User::factory()->create(['is_system_admin' => true]);
-        $unverifiedAdmin = User::factory()->unverified()->create(['is_system_admin' => true]);
-        $inactiveAdmin = User::factory()->inactive()->create(['is_system_admin' => true]);
-        $suspendedAdmin = User::factory()->create(['is_system_admin' => true, 'suspended' => true]);
-        $oversight = User::factory()->create(['oversight' => true]);
+        $anotherAdmin = User::factory()->systemAdmin()->create();
+        $unverifiedAdmin = User::factory()->unverified()->systemAdmin()->create();
+        $inactiveAdmin = User::factory()->inactive()->systemAdmin()->create();
+        $suspendedAdmin = User::factory()->systemAdmin()->suspended()->create();
+        $oversight = User::factory()->oversight()->create();
         $manager = User::factory()->create();
         $this->team->grant($manager, MembershipRole::Manager);
 
@@ -264,8 +264,8 @@ class AdminInvitationTest extends TestCase
 
     public function test_oversight_does_not_see_the_users_add_action(): void
     {
-        $oversight = User::factory()->create(['oversight' => true]);
-        Filament::setCurrentPanel(Filament::getPanel('manage'));
+        $oversight = User::factory()->oversight()->create();
+        Filament::setCurrentPanel(Filament::getPanel('admin'));
         $this->actingAs($oversight);
 
         Livewire::test(ListUsers::class)
@@ -285,6 +285,36 @@ class AdminInvitationTest extends TestCase
             ->assertActionHidden(TestAction::make('revokeInvitation')->table($placeholder));
 
         $this->assertSame(InvitationStatus::NotInvited, $placeholder->fresh()->invitationStatus());
+    }
+
+    public function test_a_suspended_placeholder_does_not_offer_invitation_actions(): void
+    {
+        $placeholder = $this->inviteAdmin();
+        $placeholder->forceFill(['suspended' => true])->save();
+        $this->actAsAdmin();
+
+        Livewire::test(ListUsers::class)
+            ->assertActionHidden(TestAction::make('sendInvitation')->table($placeholder))
+            ->assertActionHidden(TestAction::make('revokeInvitation')->table($placeholder));
+
+        Livewire::test(ViewUser::class, ['record' => $placeholder->getRouteKey()])
+            ->assertActionHidden('sendInvitation')
+            ->assertActionHidden('revokeInvitation');
+    }
+
+    public function test_a_suspended_placeholder_cannot_be_sent_another_invitation(): void
+    {
+        $placeholder = $this->inviteAdmin();
+        $placeholder->forceFill(['suspended' => true])->save();
+
+        try {
+            app(SendTeamInvitationAction::class)->sendAdmin($this->admin, $placeholder, 'new@example.com');
+            $this->fail('Expected a validation error.');
+        } catch (ValidationException $exception) {
+            $this->assertStringContainsString('suspended', $exception->errors()['email'][0]);
+        }
+
+        Notification::assertSentTimes(TeamInvitationNotification::class, 1);
     }
 
     public function test_invitation_actions_are_available_on_the_user_view_page(): void
@@ -311,7 +341,7 @@ class AdminInvitationTest extends TestCase
 
     public function test_create_user_and_setup_account_are_gone(): void
     {
-        $oversight = User::factory()->create(['oversight' => true]);
+        $oversight = User::factory()->oversight()->create();
 
         $this->assertFalse($this->admin->can('create', User::class));
         $this->assertFalse($oversight->can('create', User::class));
@@ -364,7 +394,7 @@ class AdminInvitationTest extends TestCase
 
     private function actAsAdmin(): void
     {
-        Filament::setCurrentPanel(Filament::getPanel('manage'));
+        Filament::setCurrentPanel(Filament::getPanel('admin'));
         $this->actingAs($this->admin);
     }
 }

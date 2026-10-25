@@ -3,6 +3,7 @@
 namespace App\Filament\Manage\Resources\Members;
 
 use App\Actions\SendTeamInvitationAction;
+use App\Enums\AccountStatus;
 use App\Enums\InvitationStatus;
 use App\Enums\MembershipRole;
 use App\Enums\PersonalDataSection as PersonalDataSectionEnum;
@@ -11,12 +12,11 @@ use App\Filament\Manage\NavigationGroup;
 use App\Filament\Manage\Resources\Members\Pages\EditMember;
 use App\Filament\Manage\Resources\Members\Pages\ListMembers;
 use App\Filament\Manage\Resources\Members\Pages\ViewMember;
-use App\Filament\Manage\Resources\Members\RelationManagers\QualificationsRelationManager;
-use App\Filament\Manage\Schemas\PersonalDataSection;
+use App\Filament\RelationManagers\QualificationsRelationManager;
 use App\Filament\Schemas\ContactFields;
+use App\Filament\Schemas\PersonalDataSection;
 use App\Models\Team;
 use App\Models\User;
-use App\Support\Palette;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
@@ -50,8 +50,6 @@ class MemberResource extends Resource
 
     protected static string|\UnitEnum|null $navigationGroup = NavigationGroup::Team;
 
-    protected static ?int $navigationSort = 3;
-
     protected static ?string $navigationLabel = 'Members';
 
     protected static ?string $modelLabel = 'member';
@@ -69,7 +67,7 @@ class MemberResource extends Resource
 
         return $user instanceof User
             && $team instanceof Team
-            && ($user->manages($team) || $user->hasOversight() || $user->isSystemAdmin());
+            && ($user->manages($team) || $user->isSystemAdmin());
     }
 
     public static function canCreate(): bool
@@ -142,28 +140,13 @@ class MemberResource extends Resource
                             ->label('Role')
                             ->badge()
                             ->state(fn (User $record): ?MembershipRole => static::roleOnCurrentTeam($record)),
-                        TextEntry::make('invitation_status')
-                            ->label('Invitation')
-                            ->badge()
-                            ->state(fn (User $record): InvitationStatus => $record->invitationStatus())
-                            ->visible(fn (User $record): bool => $record->isPlaceholder()),
                         TextEntry::make('invited_email')
                             ->state(fn (User $record): ?string => $record->invitation?->email)
                             ->visible(fn (User $record): bool => $record->isPlaceholder() && $record->invitation !== null),
-                        TextEntry::make('suspended')
+                        TextEntry::make('status')
                             ->hiddenLabel()
                             ->badge()
-                            ->icon(Heroicon::NoSymbol)
-                            ->color(Palette::destructive())
-                            ->state(__('Suspended'))
-                            ->visible(fn (User $record): bool => $record->isSuspended()),
-                        TextEntry::make('deleted')
-                            ->hiddenLabel()
-                            ->badge()
-                            ->icon('lucide-ghost')
-                            ->color(Palette::neutral())
-                            ->state(__('Deleted'))
-                            ->visible(fn (User $record): bool => $record->trashed()),
+                            ->state(fn (User $record): AccountStatus|string => $record->status()),
                         PersonalDataSection::make(PersonalDataSectionEnum::ContactDetails, [
                             TextEntry::make('email'),
                             ContactFields::phoneEntry('phone'),
@@ -188,13 +171,9 @@ class MemberResource extends Resource
                     ->label('Role')
                     ->badge()
                     ->state(fn (User $record): ?MembershipRole => static::roleOnCurrentTeam($record)),
-                TextColumn::make('invitation_status')
-                    ->label('Status')
-                    ->badge()
-                    ->state(fn (User $record): InvitationStatus|string => $record->trashed() ? 'deleted' : $record->invitationStatus())
-                    ->formatStateUsing(fn (InvitationStatus|string $state): string => $state === 'deleted' ? __('Deleted') : $state->getLabel())
-                    ->icon(fn (InvitationStatus|string $state): Heroicon|string => $state === 'deleted' ? 'lucide-ghost' : $state->getIcon())
-                    ->color(fn (InvitationStatus|string $state): array => $state === 'deleted' ? Palette::neutral() : $state->getColor()),
+                TextColumn::make('status')
+                    ->state(fn (User $record): AccountStatus|string => $record->status())
+                    ->badge(),
             ])
             ->filters([
                 Filter::make('not_accepted')
@@ -241,6 +220,11 @@ class MemberResource extends Resource
         return $user instanceof User && $team instanceof Team && $user->canInviteTo($team);
     }
 
+    public static function canManageInvitation(User $record): bool
+    {
+        return static::canInvite() && $record->isPlaceholder() && ! $record->isSuspended();
+    }
+
     public static function canManage(): bool
     {
         $user = auth()->user();
@@ -269,7 +253,7 @@ class MemberResource extends Resource
             ->label(__('Invitation'))
             ->button()
             ->color('gray')
-            ->visible(fn (User $record): bool => static::canInvite() && $record->isPlaceholder());
+            ->visible(fn (User $record): bool => static::canManageInvitation($record));
     }
 
     public static function sendInvitationAction(?User $record = null): Action
@@ -281,7 +265,7 @@ class MemberResource extends Resource
                 InvitationStatus::Declined => __('Invite again'),
                 default => __('Send invitation'),
             })
-            ->visible(fn (User $record): bool => static::canInvite() && $record->isPlaceholder())
+            ->visible(fn (User $record): bool => static::canManageInvitation($record))
             ->modalDescription(fn (User $record): ?string => $record->invitationStatus() === InvitationStatus::Declined
                 ? __('This person declined the invitation. Check the email address is correct before inviting them again.')
                 : null)
@@ -310,7 +294,7 @@ class MemberResource extends Resource
             ->label(__('Revoke invitation'))
             ->color('danger')
             ->requiresConfirmation()
-            ->visible(fn (User $record): bool => static::canInvite() && $record->invitationStatus() === InvitationStatus::Invited)
+            ->visible(fn (User $record): bool => static::canManageInvitation($record) && $record->invitationStatus() === InvitationStatus::Invited)
             ->action(function (User $record): void {
                 app(SendTeamInvitationAction::class)->revoke(auth()->user(), static::currentTeam(), $record);
 

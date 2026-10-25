@@ -30,10 +30,10 @@ class InviteAttendeesTest extends TestCase
 
     public function test_upcoming_bookings_can_be_invited_to(): void
     {
-        $leader = User::factory()->teamLeader()->create();
+        $manager = User::factory()->teamManager()->create();
         $booking = Booking::factory()->create();
 
-        $this->actingAs($leader);
+        $this->actingAs($manager);
 
         Livewire::test(AttendeesRelationManager::class, [
             'ownerRecord' => $booking,
@@ -45,11 +45,11 @@ class InviteAttendeesTest extends TestCase
     {
         Mail::fake();
 
-        $leader = User::factory()->teamLeader()->create();
+        $manager = User::factory()->teamManager()->create();
         $member = User::factory()->teamMember()->create();
         $booking = Booking::factory()->create();
 
-        app(InviteAttendeesAction::class)($booking, [$member->id], $leader);
+        app(InviteAttendeesAction::class)($booking, [$member->id], $manager);
 
         $token = $booking->attendees()->find($member)?->attendance->token;
 
@@ -63,7 +63,7 @@ class InviteAttendeesTest extends TestCase
 
     public function test_manager_can_remove_an_attendee_from_the_booking(): void
     {
-        $leader = User::factory()->teamLeader()->create();
+        $manager = User::factory()->teamManager()->create();
         $member = User::factory()->teamMember()->create();
         $booking = Booking::factory()->create();
         $booking->attendees()->attach($member->id, [
@@ -71,7 +71,7 @@ class InviteAttendeesTest extends TestCase
             'token' => BookingAttendance::generateToken(),
         ]);
 
-        $this->actingAs($leader);
+        $this->actingAs($manager);
 
         Livewire::test(AttendeesRelationManager::class, [
             'ownerRecord' => $booking,
@@ -95,40 +95,40 @@ class InviteAttendeesTest extends TestCase
 
     public function test_accepted_lead_instructor_cannot_be_removed(): void
     {
-        $leader = User::factory()->teamLeader()->create();
+        $manager = User::factory()->teamManager()->create();
         $booking = Booking::factory()->create([
-            'lead_instructor_id' => $leader->id,
+            'lead_instructor_id' => $manager->id,
         ]);
-        $booking->attendees()->attach($leader->id, [
+        $booking->attendees()->attach($manager->id, [
             'status' => BookingAttendeeStatus::Accepted->value,
             'token' => BookingAttendance::generateToken(),
         ]);
 
-        $this->actingAs($leader);
+        $this->actingAs($manager);
 
         Livewire::test(AttendeesRelationManager::class, [
             'ownerRecord' => $booking,
             'pageClass' => EditBooking::class,
-        ])->assertTableActionHidden('detach', $leader);
+        ])->assertTableActionHidden('detach', $manager);
     }
 
     public function test_past_bookings_cannot_be_invited_to(): void
     {
-        $leader = User::factory()->teamLeader()->create();
+        $manager = User::factory()->teamManager()->create();
         $member = User::factory()->teamMember()->create();
         $booking = Booking::factory()->create([
             'start_at' => now()->subDays(2)->setTime(9, 30),
             'end_at' => now()->subDays(2)->setTime(11, 30),
         ]);
 
-        $this->actingAs($leader);
+        $this->actingAs($manager);
 
         Livewire::test(AttendeesRelationManager::class, [
             'ownerRecord' => $booking,
             'pageClass' => EditBooking::class,
         ])->assertTableActionHidden('invite');
 
-        app(InviteAttendeesAction::class)($booking, [$member->id], $leader);
+        app(InviteAttendeesAction::class)($booking, [$member->id], $manager);
 
         $this->assertDatabaseMissing('booking_user', [
             'booking_id' => $booking->id,
@@ -138,18 +138,18 @@ class InviteAttendeesTest extends TestCase
 
     public function test_cancelled_bookings_cannot_be_invited_to(): void
     {
-        $leader = User::factory()->teamLeader()->create();
+        $manager = User::factory()->teamManager()->create();
         $member = User::factory()->teamMember()->create();
         $booking = Booking::factory()->cancelled()->create();
 
-        $this->actingAs($leader);
+        $this->actingAs($manager);
 
         Livewire::test(AttendeesRelationManager::class, [
             'ownerRecord' => $booking,
             'pageClass' => EditBooking::class,
         ])->assertTableActionHidden('invite');
 
-        app(InviteAttendeesAction::class)($booking, [$member->id], $leader);
+        app(InviteAttendeesAction::class)($booking, [$member->id], $manager);
 
         $this->assertDatabaseMissing('booking_user', [
             'booking_id' => $booking->id,

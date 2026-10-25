@@ -3,16 +3,19 @@
 namespace Tests\Feature;
 
 use App\Actions\AcknowledgePersonalDataAction;
+use App\Enums\AccountRole;
+use App\Enums\AccountStatus;
 use App\Enums\MembershipRole;
 use App\Enums\PersonalDataSection;
 use App\Enums\Section;
+use App\Filament\Admin\Resources\Users\Pages\EditUser;
+use App\Filament\Admin\Resources\Users\Pages\ViewUser;
+use App\Filament\Admin\Resources\Users\UserResource;
 use App\Filament\Manage\Resources\Members\MemberResource;
 use App\Filament\Manage\Resources\Members\Pages\EditMember;
 use App\Filament\Manage\Resources\Members\Pages\ViewMember;
-use App\Filament\Manage\Resources\Users\Pages\EditUser;
-use App\Filament\Manage\Resources\Users\Pages\ViewUser;
-use App\Filament\Manage\Resources\Users\UserResource;
 use App\Models\PersonalDataAcknowledgement;
+use App\Models\Team;
 use App\Models\User;
 use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -24,7 +27,7 @@ class PersonalDataAcknowledgementTest extends TestCase
 {
     use RefreshDatabase;
 
-    private User $leader;
+    private User $manager;
 
     private User $member;
 
@@ -32,9 +35,7 @@ class PersonalDataAcknowledgementTest extends TestCase
     {
         parent::setUp();
 
-        Filament::setCurrentPanel(Filament::getPanel('manage'));
-
-        $this->leader = User::factory()->teamLeader()->create();
+        $this->leader = User::factory()->teamManager()->create();
         $this->member = User::factory()->teamMember()->create([
             'name' => 'Alex Member',
             'email' => 'alex@example.test',
@@ -46,6 +47,7 @@ class PersonalDataAcknowledgementTest extends TestCase
 
     public function test_details_are_not_in_the_page_until_acknowledged(): void
     {
+        Filament::setCurrentPanel(Filament::getPanel('manage'));
         $this->actingAs($this->leader);
 
         $this->get(MemberResource::getUrl('view', ['record' => $this->member]))
@@ -56,6 +58,7 @@ class PersonalDataAcknowledgementTest extends TestCase
             ->assertDontSee('Sam Emergency')
             ->assertDontSee('07000333444');
 
+        Filament::setCurrentPanel(Filament::getPanel('admin'));
         $this->actingAs(User::factory()->oversight()->create());
 
         $this->get(UserResource::getUrl('view', ['record' => $this->member]))
@@ -69,6 +72,7 @@ class PersonalDataAcknowledgementTest extends TestCase
 
     public function test_each_section_is_acknowledged_separately(): void
     {
+        Filament::setCurrentPanel(Filament::getPanel('manage'));
         $this->actingAs($this->leader);
 
         Livewire::test(ViewMember::class, ['record' => $this->member->getKey()])
@@ -95,6 +99,7 @@ class PersonalDataAcknowledgementTest extends TestCase
     {
         $other = User::factory()->teamMember()->create(['email' => 'other@example.test']);
 
+        Filament::setCurrentPanel(Filament::getPanel('admin'));
         $this->actingAs(User::factory()->oversight()->create());
 
         Livewire::test(ViewUser::class, ['record' => $this->member->getKey()])
@@ -106,6 +111,7 @@ class PersonalDataAcknowledgementTest extends TestCase
 
     public function test_an_acknowledgement_lasts_thirty_minutes_then_expires(): void
     {
+        Filament::setCurrentPanel(Filament::getPanel('manage'));
         $this->actingAs($this->leader);
 
         Livewire::test(ViewMember::class, ['record' => $this->member->getKey()])
@@ -124,10 +130,10 @@ class PersonalDataAcknowledgementTest extends TestCase
 
     public function test_an_acknowledgement_by_someone_else_does_not_count(): void
     {
-        $deputy = User::factory()->manager()->create();
-        $leaderTeam = $this->leader->managedTeams()->first();
-        $leaderTeam->grant($deputy, MembershipRole::Manager);
+        $managerTeam = $this->leader->managedTeams()->first();
+        $deputy = User::factory()->teamManager($managerTeam)->create();
 
+        Filament::setCurrentPanel(Filament::getPanel('manage'));
         $this->actingAs($deputy);
         Livewire::test(ViewMember::class, ['record' => $this->member->getKey()])
             ->call('acknowledgePersonalData', PersonalDataSection::ContactDetails->value);
@@ -141,6 +147,7 @@ class PersonalDataAcknowledgementTest extends TestCase
     {
         $this->leader->update(['email' => 'leader@example.test', 'emergency_name' => 'Lee Emergency']);
 
+        Filament::setCurrentPanel(Filament::getPanel('manage'));
         $this->actingAs($this->leader);
 
         Livewire::test(ViewMember::class, ['record' => $this->leader->getKey()])
@@ -153,11 +160,12 @@ class PersonalDataAcknowledgementTest extends TestCase
 
     public function test_acknowledging_does_not_grant_access_to_someone_who_cannot_view(): void
     {
-        $outsider = User::factory()->teamLeader()->create(['is_system_admin' => false]);
-        $outsiderTeam = $outsider->managedTeams()->first();
+        $outsiderTeam = Team::factory()->create();
+        $outsider = User::factory()->teamManager($outsiderTeam)->create();
 
         $this->assertFalse($outsider->can('view', $this->member));
 
+        Filament::setCurrentPanel(Filament::getPanel('manage'));
         $this->actingAs($outsider);
 
         $this->get(MemberResource::getUrl('view', ['record' => $this->member], tenant: $outsiderTeam))
@@ -168,8 +176,9 @@ class PersonalDataAcknowledgementTest extends TestCase
 
     public function test_a_system_admin_can_grant_oversight_but_still_needs_to_acknowledge(): void
     {
-        $admin = User::factory()->create(['is_system_admin' => true]);
+        $admin = User::factory()->systemAdmin()->create();
 
+        Filament::setCurrentPanel(Filament::getPanel('admin'));
         $this->actingAs($admin);
 
         $this->get(UserResource::getUrl('index'))
@@ -192,6 +201,7 @@ class PersonalDataAcknowledgementTest extends TestCase
 
     public function test_the_member_edit_form_hides_details_until_acknowledged(): void
     {
+        Filament::setCurrentPanel(Filament::getPanel('manage'));
         $this->actingAs($this->leader);
         Filament::setTenant($this->leader->teams()->first());
 
@@ -225,6 +235,7 @@ class PersonalDataAcknowledgementTest extends TestCase
 
     public function test_only_system_admins_can_set_access_flags(): void
     {
+        Filament::setCurrentPanel(Filament::getPanel('admin'));
         $this->actingAs(User::factory()->oversight()->create());
 
         Livewire::test(EditUser::class, ['record' => $this->member->getKey()])
@@ -239,7 +250,7 @@ class PersonalDataAcknowledgementTest extends TestCase
         $this->assertFalse($this->member->oversight);
         $this->assertFalse($this->member->is_system_admin);
 
-        $this->actingAs(User::factory()->create(['is_system_admin' => true]));
+        $this->actingAs(User::factory()->systemAdmin()->create());
 
         Livewire::test(EditUser::class, ['record' => $this->member->getKey()])
             ->assertFormFieldVisible('oversight')
@@ -278,32 +289,52 @@ class PersonalDataAcknowledgementTest extends TestCase
             'email_verified_at' => now(),
         ])->save();
 
+        Filament::setCurrentPanel(Filament::getPanel('admin'));
         $this->actingAs(User::factory()->oversight()->create());
 
         Livewire::test(ViewUser::class, ['record' => $this->member->getKey()])
             ->assertSee('Email verified')
-            ->assertSee('Oversight')
-            ->assertSee('System admin')
-            ->assertSee('Suspended')
+            ->assertSchemaStateSet([
+                'status_badges' => [
+                    AccountStatus::Suspended,
+                    MembershipRole::Member,
+                ],
+            ])
             ->assertDontSee('Created at')
             ->assertDontSee('Updated at')
             ->assertDontSee('Email verified at');
 
+        $this->member->forceFill(['suspended' => false])->save();
+
+        Livewire::test(ViewUser::class, ['record' => $this->member->getKey()])
+            ->assertSchemaStateSet([
+                'status_badges' => [
+                    AccountStatus::Active,
+                    MembershipRole::Member,
+                    AccountRole::SystemAdmin,
+                    AccountRole::Oversight,
+                ],
+            ]);
+
         $this->member->forceFill([
             'oversight' => false,
             'is_system_admin' => false,
-            'suspended' => false,
             'email_verified_at' => null,
         ])->save();
 
         Livewire::test(ViewUser::class, ['record' => $this->member->getKey()])
             ->assertSee('Email not verified')
-            ->assertDontSee('Oversight')
-            ->assertDontSee('Suspended');
+            ->assertSchemaStateSet([
+                'status_badges' => [
+                    AccountStatus::Active,
+                    MembershipRole::Member,
+                ],
+            ]);
     }
 
     public function test_the_member_screen_shows_whether_their_email_is_verified(): void
     {
+        Filament::setCurrentPanel(Filament::getPanel('manage'));
         $this->actingAs($this->leader);
 
         Livewire::test(ViewMember::class, ['record' => $this->member->getKey()])
@@ -319,6 +350,7 @@ class PersonalDataAcknowledgementTest extends TestCase
 
     public function test_an_unknown_section_is_rejected(): void
     {
+        Filament::setCurrentPanel(Filament::getPanel('manage'));
         $this->actingAs($this->leader);
 
         Livewire::test(ViewMember::class, ['record' => $this->member->getKey()])

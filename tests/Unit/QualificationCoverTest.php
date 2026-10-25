@@ -35,7 +35,7 @@ class QualificationCoverTest extends TestCase
         $rci = MountainTrainingAward::RockClimbingInstructor;
         $cwdi = MountainTrainingAward::ClimbingWallDevelopmentInstructor;
         $rcdi = MountainTrainingAward::RockClimbingDevelopmentInstructor;
-        $leader = MountainTrainingAward::MountainLeader;
+        $manager = MountainTrainingAward::MountainLeader;
         $mci = MountainTrainingAward::MountaineeringAndClimbingInstructor;
         $wmci = MountainTrainingAward::WinterMountaineeringAndClimbingInstructor;
 
@@ -51,12 +51,12 @@ class QualificationCoverTest extends TestCase
         $this->assertFalse($cwi->covers($abseil));
         $this->assertFalse($cwdi->covers($cwi));
         $this->assertFalse($rcdi->covers($rci));
-        $this->assertFalse($mci->covers($leader));
+        $this->assertFalse($mci->covers($manager));
         $this->assertFalse($wmci->covers($mci));
 
         $this->assertSame([$cwi, $rci], $cwdi->prerequisites());
         $this->assertSame([$rci], $rcdi->prerequisites());
-        $this->assertSame([$leader], $mci->prerequisites());
+        $this->assertSame([$manager], $mci->prerequisites());
         $this->assertSame([$mci], $wmci->prerequisites());
         $this->assertSame([], $rci->prerequisites());
     }

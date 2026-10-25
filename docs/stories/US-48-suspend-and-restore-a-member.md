@@ -29,3 +29,4 @@ As a manager, I want to suspend a member during an investigation, or because req
 - Suspending a manager is allowed. The confirmation warns when a team would have no active manager. The person remains a manager in the database, so restoring them puts the team back as it was. Bookings left without a lead instructor must be handled separately.
 - Suspending someone unassigns them as lead instructor on upcoming bookings that are not cancelled. A confirmed booking returns to tentative, as when a lead resigns (US-10). Past and cancelled bookings keep their lead, and nobody is emailed. The confirmation states how many bookings are affected. The manager alert for a booking left without a lead belongs to US-10 and is not yet built.
 - Restoring a cancelled booking also removes its lead instructor if that person is suspended.
+- Invitation send, resend, and revoke stay hidden for a suspended placeholder, and sending is refused, so they are not emailed.

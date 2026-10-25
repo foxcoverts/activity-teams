@@ -57,7 +57,7 @@ class ViewBookingResponseTest extends TestCase
         $booking = Booking::factory()->confirmed()->create();
         $invited = User::factory()->teamMember()->create();
         $uninvited = User::factory()->teamMember()->create();
-        $manager = User::factory()->manager()->create();
+        $manager = User::factory()->teamManager()->create();
         $booking->attendees()->attach($invited->id, [
             'status' => BookingAttendeeStatus::NeedsAction->value,
         ]);
@@ -78,7 +78,7 @@ class ViewBookingResponseTest extends TestCase
     public function test_responding_without_an_invite_creates_a_token_for_later_emails(): void
     {
         $booking = Booking::factory()->confirmed()->create();
-        $manager = User::factory()->manager()->create();
+        $manager = User::factory()->teamManager()->create();
 
         $this->actingAs($manager);
 

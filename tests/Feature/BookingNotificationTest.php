@@ -382,7 +382,7 @@ class BookingNotificationTest extends TestCase
      */
     private function bookingWithAttendee(BookingAttendeeStatus $status = BookingAttendeeStatus::NeedsAction, array $bookingAttributes = []): array
     {
-        $actor = User::factory()->teamLeader()->create();
+        $actor = User::factory()->teamManager()->create();
         $attendee = User::factory()->teamMember()->create();
         $booking = Booking::factory()->create($bookingAttributes);
         $booking->attendees()->attach($attendee->id, [

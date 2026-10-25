@@ -7,9 +7,9 @@ use App\Enums\MountainTrainingAward;
 use App\Enums\ScoutPermitActivity;
 use App\Enums\ScoutPermitCategory;
 use App\Enums\ScoutPermitType;
-use App\Filament\Manage\Resources\Activities\ActivityResource;
-use App\Filament\Manage\Resources\Activities\Pages\CreateActivity;
-use App\Filament\Manage\Resources\Activities\Pages\EditActivity;
+use App\Filament\Admin\Resources\Activities\ActivityResource;
+use App\Filament\Admin\Resources\Activities\Pages\CreateActivity;
+use App\Filament\Admin\Resources\Activities\Pages\EditActivity;
 use App\Models\Activity;
 use App\Models\GirlguidingQualification;
 use App\Models\MountainTrainingQualification;
@@ -29,7 +29,7 @@ class ActivityQualificationRequirementTest extends TestCase
     {
         parent::setUp();
 
-        Filament::setCurrentPanel(Filament::getPanel('manage'));
+        Filament::setCurrentPanel(Filament::getPanel('admin'));
     }
 
     public function test_an_activity_with_no_rows_accepts_a_member_with_no_qualifications(): void
@@ -126,8 +126,8 @@ class ActivityQualificationRequirementTest extends TestCase
 
     public function test_a_system_admin_can_set_and_clear_alternatives(): void
     {
-        $admin = User::factory()->teamLeader()->create();
-        $manager = User::factory()->manager()->create();
+        $admin = User::factory()->systemAdmin()->create();
+        $manager = User::factory()->teamManager()->create();
 
         $this->actingAs($manager);
         $this->get(ActivityResource::getUrl('create'))->assertForbidden();

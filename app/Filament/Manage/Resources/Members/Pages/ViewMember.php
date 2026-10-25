@@ -2,7 +2,7 @@
 
 namespace App\Filament\Manage\Resources\Members\Pages;
 
-use App\Filament\Manage\Concerns\AcknowledgesPersonalData;
+use App\Filament\Concerns\AcknowledgesPersonalData;
 use App\Filament\Manage\Resources\Members\MemberResource;
 use App\Models\User;
 use Filament\Actions\EditAction;

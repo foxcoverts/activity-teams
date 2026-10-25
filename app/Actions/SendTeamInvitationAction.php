@@ -83,6 +83,8 @@ class SendTeamInvitationAction
             ]);
         }
 
+        $this->guardNotSuspended($placeholder);
+
         $email = $this->normalise($email);
         $this->guardEmail($team, $email);
 
@@ -93,6 +95,7 @@ class SendTeamInvitationAction
     {
         $this->authorizeSite($actor);
         $this->guardSitePlaceholder($placeholder);
+        $this->guardNotSuspended($placeholder);
 
         $email = $this->normalise($email);
         $this->guardSiteEmail($email);
@@ -213,6 +216,15 @@ class SendTeamInvitationAction
         if (! $placeholder->isPlaceholder() || $placeholder->teams()->exists()) {
             throw ValidationException::withMessages([
                 'email' => __('Only people who have not yet created an account can be invited.'),
+            ]);
+        }
+    }
+
+    private function guardNotSuspended(User $placeholder): void
+    {
+        if ($placeholder->isSuspended()) {
+            throw ValidationException::withMessages([
+                'email' => __('This person is suspended, so they cannot be invited.'),
             ]);
         }
     }

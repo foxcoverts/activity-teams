@@ -55,6 +55,7 @@ class ProfileConfirmationTest extends TestCase
 
     public function test_deferring_allows_the_app_and_shows_a_banner_until_the_next_day(): void
     {
+        $this->travelTo('2026-10-23 12:00:00');
         $user = User::factory()->teamMember()->create([
             'created_at' => now()->subYear()->subDay(),
             'timezone' => 'Europe/London',

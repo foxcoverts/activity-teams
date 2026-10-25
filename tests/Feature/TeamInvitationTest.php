@@ -8,6 +8,7 @@ use App\Enums\BookingAttendeeStatus;
 use App\Enums\InvitationStatus;
 use App\Enums\MembershipRole;
 use App\Enums\Section;
+use App\Filament\Admin\Resources\Users\Pages\ListUsers;
 use App\Filament\Manage\Resources\Members\MemberResource;
 use App\Filament\Manage\Resources\Members\Pages\EditMember;
 use App\Filament\Manage\Resources\Members\Pages\ListMembers;
@@ -97,7 +98,7 @@ class TeamInvitationTest extends TestCase
 
     public function test_a_system_admin_can_invite_without_managing_the_team(): void
     {
-        $admin = User::factory()->create(['is_system_admin' => true]);
+        $admin = User::factory()->systemAdmin()->create();
         Filament::setCurrentPanel(Filament::getPanel('manage'));
         $this->actingAs($admin);
         Filament::setTenant($this->team);
@@ -114,15 +115,18 @@ class TeamInvitationTest extends TestCase
 
     public function test_an_oversight_account_cannot_invite(): void
     {
-        $oversight = User::factory()->create(['oversight' => true]);
+        $oversight = User::factory()->oversight()->create();
         Filament::setCurrentPanel(Filament::getPanel('manage'));
         $this->actingAs($oversight);
         Filament::setTenant($this->team);
 
         Livewire::test(ListMembers::class)
-            ->assertActionHidden('add')
-            ->assertActionHidden(TestAction::make('changeRole')->table($this->manager))
-            ->assertActionHidden(TestAction::make('leave')->table($this->manager));
+            ->assertForbidden();
+
+        Filament::setCurrentPanel(Filament::getPanel('admin'));
+
+        Livewire::test(ListUsers::class)
+            ->assertActionHidden('add');
 
         $this->expectException(AuthorizationException::class);
         app(SendTeamInvitationAction::class)->add($oversight, $this->team, 'Sam', 'x@example.com', MembershipRole::Member, Section::Adult);
@@ -130,7 +134,7 @@ class TeamInvitationTest extends TestCase
 
     public function test_an_email_belonging_to_a_suspended_account_is_refused_and_says_why(): void
     {
-        User::factory()->create(['email' => 'gone@example.com', 'suspended' => true]);
+        User::factory()->suspended()->create(['email' => 'gone@example.com']);
 
         try {
             $this->invite('gone@example.com');
@@ -260,7 +264,7 @@ class TeamInvitationTest extends TestCase
 
     public function test_a_signup_email_already_in_use_is_refused(): void
     {
-        User::factory()->create(['email' => 'taken@example.com', 'suspended' => true]);
+        User::factory()->suspended()->create(['email' => 'taken@example.com']);
         $placeholder = $this->invite('invited@example.com');
 
         $this->expectException(ValidationException::class);
@@ -327,7 +331,7 @@ class TeamInvitationTest extends TestCase
     public function test_a_suspended_account_cannot_claim_an_invitation(): void
     {
         $placeholder = $this->invite();
-        $account = User::factory()->create(['suspended' => true]);
+        $account = User::factory()->suspended()->create();
 
         $this->expectException(ValidationException::class);
 
@@ -392,7 +396,7 @@ class TeamInvitationTest extends TestCase
         $anotherManager = User::factory()->create();
         $unverifiedManager = User::factory()->unverified()->create();
         $inactiveManager = User::factory()->inactive()->create();
-        $suspendedManager = User::factory()->create(['suspended' => true]);
+        $suspendedManager = User::factory()->suspended()->create();
         $this->team->grant($anotherManager, MembershipRole::Manager);
         $this->team->grant($unverifiedManager, MembershipRole::Manager);
         $this->team->grant($inactiveManager, MembershipRole::Manager);
@@ -481,7 +485,7 @@ class TeamInvitationTest extends TestCase
 
     public function test_the_members_list_tells_the_manager_when_the_email_belongs_to_a_suspended_account(): void
     {
-        User::factory()->create(['email' => 'gone@example.com', 'suspended' => true]);
+        User::factory()->suspended()->create(['email' => 'gone@example.com']);
         $this->actAsManager();
 
         Livewire::test(ListMembers::class)
@@ -588,6 +592,36 @@ class TeamInvitationTest extends TestCase
             ->assertActionHidden(TestAction::make('revokeInvitation')->table($placeholder));
 
         $this->assertSame(InvitationStatus::NotInvited, $placeholder->fresh()->invitationStatus());
+    }
+
+    public function test_a_suspended_placeholder_does_not_offer_invitation_actions(): void
+    {
+        $placeholder = $this->invite();
+        $placeholder->forceFill(['suspended' => true])->save();
+        $this->actAsManager();
+
+        Livewire::test(ListMembers::class)
+            ->assertActionHidden(TestAction::make('sendInvitation')->table($placeholder))
+            ->assertActionHidden(TestAction::make('revokeInvitation')->table($placeholder));
+
+        Livewire::test(ViewMember::class, ['record' => $placeholder->getRouteKey()])
+            ->assertActionHidden('sendInvitation')
+            ->assertActionHidden('revokeInvitation');
+    }
+
+    public function test_a_suspended_placeholder_cannot_be_sent_another_invitation(): void
+    {
+        $placeholder = $this->invite();
+        $placeholder->forceFill(['suspended' => true])->save();
+
+        try {
+            app(SendTeamInvitationAction::class)->send($this->manager, $this->team, $placeholder, 'new@example.com');
+            $this->fail('Expected a validation error.');
+        } catch (ValidationException $exception) {
+            $this->assertStringContainsString('suspended', $exception->errors()['email'][0]);
+        }
+
+        Notification::assertSentTimes(TeamInvitationNotification::class, 1);
     }
 
     public function test_an_account_created_with_a_changed_email_is_held_at_the_verification_prompt(): void

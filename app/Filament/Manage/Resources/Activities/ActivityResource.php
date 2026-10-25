@@ -2,37 +2,16 @@
 
 namespace App\Filament\Manage\Resources\Activities;
 
-use App\Enums\GirlguidingLevel;
-use App\Enums\GirlguidingScheme;
-use App\Enums\MountainTrainingAward;
-use App\Enums\ScoutPermitActivity;
-use App\Enums\ScoutPermitCategory;
-use App\Enums\ScoutPermitType;
 use App\Filament\Manage\NavigationGroup;
-use App\Filament\Manage\Resources\Activities\Pages\CreateActivity;
-use App\Filament\Manage\Resources\Activities\Pages\EditActivity;
 use App\Filament\Manage\Resources\Activities\Pages\ListActivities;
-use App\Filament\Manage\Resources\Activities\Pages\ViewActivity;
 use App\Models\Activity;
-use App\Models\ActivityQualificationRequirement;
-use App\Models\GirlguidingQualification;
-use App\Models\MountainTrainingQualification;
-use App\Models\ScoutPermit;
+use App\Models\Team;
 use App\Models\User;
+use App\Support\Palette;
 use BackedEnum;
-use Filament\Actions\BulkActionGroup;
-use Filament\Actions\DeleteBulkAction;
-use Filament\Actions\EditAction;
-use Filament\Actions\ViewAction;
-use Filament\Forms\Components\Repeater;
-use Filament\Forms\Components\Select;
-use Filament\Forms\Components\Textarea;
-use Filament\Forms\Components\TextInput;
-use Filament\Infolists\Components\RepeatableEntry;
-use Filament\Infolists\Components\TextEntry;
+use Filament\Actions\Action;
+use Filament\Facades\Filament;
 use Filament\Resources\Resource;
-use Filament\Schemas\Components\Utilities\Get;
-use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
@@ -44,178 +23,99 @@ class ActivityResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
 
-    protected static string|\UnitEnum|null $navigationGroup = NavigationGroup::Site;
+    protected static string|\UnitEnum|null $navigationGroup = NavigationGroup::Team;
 
-    protected static ?int $navigationSort = 3;
+    protected static ?string $navigationLabel = 'Activities';
 
-    protected static ?string $recordTitleAttribute = 'name';
+    protected static ?string $modelLabel = 'activity';
 
     protected static bool $isScopedToTenant = false;
-
-    protected static ?string $navigationLabel = 'Activity catalog';
 
     public static function canViewAny(): bool
     {
         $user = auth()->user();
+        $team = static::currentTeam();
 
-        return $user instanceof User && $user->isSystemAdmin();
+        return $user instanceof User
+            && $team instanceof Team
+            && ($user->manages($team) || $user->isSystemAdmin());
+    }
+
+    public static function canCreate(): bool
+    {
+        return false;
     }
 
     public static function getEloquentQuery(): Builder
     {
-        return parent::getEloquentQuery()->with('qualificationRequirements');
-    }
+        $query = parent::getEloquentQuery();
+        $team = static::currentTeam();
 
-    /**
-     * @return array<int, TextInput|Textarea|Repeater>
-     */
-    public static function getFormComponents(): array
-    {
-        return [
-            TextInput::make('name')
-                ->required(),
-            TextInput::make('slug')
-                ->helperText(__('Leave blank to generate from the name.'))
-                ->alphaDash()
-                ->visible(fn (string $operation): bool => $operation === 'edit'),
-            Textarea::make('description')
-                ->columnSpanFull(),
-            Repeater::make('qualificationRequirements')
-                ->relationship()
-                ->orderColumn('sort')
-                ->label(__('Acceptable qualifications'))
-                ->helperText(__('Each row is one way to qualify. Leave a field blank for any value. A higher category, permit type, level, or award covers a lower one. Permit restrictions are ignored. Leave this empty when the activity needs no qualification.'))
-                ->schema([
-                    Select::make('detail_type')
-                        ->label(__('Type'))
-                        ->options([
-                            ScoutPermit::class => __('Scout permit'),
-                            MountainTrainingQualification::class => __('Mountain Training'),
-                            GirlguidingQualification::class => __('Girlguiding'),
-                        ])
-                        ->live()
-                        ->required(),
-                    Select::make('permit_activity')
-                        ->label(__('Activity'))
-                        ->options(ScoutPermitActivity::class)
-                        ->multiple()
-                        ->visible(fn (Get $get): bool => $get('detail_type') === ScoutPermit::class)
-                        ->dehydrated(fn (Get $get): bool => $get('detail_type') === ScoutPermit::class),
-                    Select::make('category')
-                        ->options(ScoutPermitCategory::class)
-                        ->multiple()
-                        ->visible(fn (Get $get): bool => $get('detail_type') === ScoutPermit::class && ActivityQualificationRequirement::allowsClimbingCategory($get('permit_activity')))
-                        ->dehydrated(fn (Get $get): bool => $get('detail_type') === ScoutPermit::class && ActivityQualificationRequirement::allowsClimbingCategory($get('permit_activity'))),
-                    Select::make('permit_type')
-                        ->label(__('Permit type'))
-                        ->options(ScoutPermitType::class)
-                        ->multiple()
-                        ->visible(fn (Get $get): bool => $get('detail_type') === ScoutPermit::class)
-                        ->dehydrated(fn (Get $get): bool => $get('detail_type') === ScoutPermit::class),
-                    Select::make('award')
-                        ->options(MountainTrainingAward::class)
-                        ->multiple()
-                        ->visible(fn (Get $get): bool => $get('detail_type') === MountainTrainingQualification::class)
-                        ->dehydrated(fn (Get $get): bool => $get('detail_type') === MountainTrainingQualification::class),
-                    Select::make('scheme')
-                        ->options(GirlguidingScheme::class)
-                        ->multiple()
-                        ->visible(fn (Get $get): bool => $get('detail_type') === GirlguidingQualification::class)
-                        ->dehydrated(fn (Get $get): bool => $get('detail_type') === GirlguidingQualification::class),
-                    Select::make('level')
-                        ->options(GirlguidingLevel::class)
-                        ->multiple()
-                        ->visible(fn (Get $get): bool => $get('detail_type') === GirlguidingQualification::class)
-                        ->dehydrated(fn (Get $get): bool => $get('detail_type') === GirlguidingQualification::class),
-                ])
-                ->itemLabel(function (array $state): ?string {
-                    if (blank($state['detail_type'] ?? null)) {
-                        return null;
-                    }
+        if (! $team instanceof Team) {
+            return $query->whereRaw('0 = 1');
+        }
 
-                    return (new ActivityQualificationRequirement($state))->summary;
-                })
-                ->addActionLabel(__('Add alternative'))
-                ->defaultItems(0)
-                ->columnSpanFull(),
-        ];
-    }
-
-    public static function form(Schema $schema): Schema
-    {
-        return $schema
-            ->components(static::getFormComponents());
-    }
-
-    public static function infolist(Schema $schema): Schema
-    {
-        return $schema
-            ->components([
-                TextEntry::make('name'),
-                TextEntry::make('description')
-                    ->placeholder('-')
-                    ->columnSpanFull(),
-                RepeatableEntry::make('qualificationRequirements')
-                    ->label(__('Acceptable qualifications'))
-                    ->placeholder(__('No qualification required.'))
-                    ->schema([
-                        TextEntry::make('summary')
-                            ->hiddenLabel(),
-                    ])
-                    ->columnSpanFull(),
-                TextEntry::make('created_at')
-                    ->dateTime()
-                    ->placeholder('-'),
-                TextEntry::make('updated_at')
-                    ->dateTime()
-                    ->placeholder('-'),
-            ]);
+        return $query->whereHas(
+            'teams',
+            fn (Builder $teams) => $teams->whereKey($team->getKey()),
+        );
     }
 
     public static function table(Table $table): Table
     {
         return $table
-            ->recordTitleAttribute('name')
             ->columns([
                 TextColumn::make('name')
                     ->searchable(),
-                TextColumn::make('created_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-                TextColumn::make('updated_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-            ])
-            ->filters([
-                //
+                TextColumn::make('default_activity')
+                    ->label(__('Default'))
+                    ->state(fn (Activity $record): string => static::currentTeam()?->default_activity_id === $record->getKey()
+                        ? __('Default')
+                        : __('Set as default'))
+                    ->badge(fn (Activity $record): bool => static::currentTeam()?->default_activity_id === $record->getKey())
+                    ->color(fn (Activity $record): string|array => static::currentTeam()?->default_activity_id === $record->getKey()
+                        ? Palette::positive()
+                        : 'primary')
+                    ->extraAttributes(fn (Activity $record): array => static::currentTeam()?->default_activity_id === $record->getKey()
+                        ? []
+                        : ['class' => 'team-default-action'])
+                    ->disabledClick(fn (Activity $record): bool => static::currentTeam()?->default_activity_id === $record->getKey())
+                    ->action(
+                        Action::make('setDefault')
+                            ->label('Set as default')
+                            ->color('primary')
+                            ->authorize(fn (): bool => static::canViewAny())
+                            ->visible(fn (Activity $record): bool => static::currentTeam()?->default_activity_id !== $record->getKey())
+                            ->action(function (Activity $record): void {
+                                $team = static::currentTeam();
+                                abort_unless($team instanceof Team, 404);
+
+                                $team->setDefaultActivity($record);
+                            }),
+                    ),
             ])
             ->recordActions([
-                ViewAction::make(),
-                EditAction::make(),
-            ])
-            ->toolbarActions([
-                BulkActionGroup::make([
-                    DeleteBulkAction::make(),
-                ]),
+                Action::make('remove')
+                    ->label('Remove from team')
+                    ->color(Palette::destructive())
+                    ->requiresConfirmation()
+                    ->action(function (Activity $record): void {
+                        static::currentTeam()?->removeActivity($record);
+                    }),
             ]);
-    }
-
-    public static function getRelations(): array
-    {
-        return [
-            //
-        ];
     }
 
     public static function getPages(): array
     {
         return [
             'index' => ListActivities::route('/'),
-            'create' => CreateActivity::route('/create'),
-            'view' => ViewActivity::route('/{record}'),
-            'edit' => EditActivity::route('/{record}/edit'),
         ];
+    }
+
+    public static function currentTeam(): ?Team
+    {
+        $tenant = Filament::getTenant();
+
+        return $tenant instanceof Team ? $tenant : null;
     }
 }
