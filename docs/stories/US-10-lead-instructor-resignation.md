@@ -1,7 +1,7 @@
 ---
 id: US-10
 title: "Lead Instructor Availability Change & Resignation Workflow"
-status: partial
+status: done
 area: bookings
 scope: required
 ---
@@ -18,4 +18,6 @@ As an Activity Manager, I want the system to automatically handle when a lead in
 
 ## Progress
 
-A lead who answers maybe or no is unassigned. A confirmed booking returns to tentative. A comment alone changes neither. A manager who records maybe or no for that lead on an upcoming booking uses the same rule. On a past booking the lead is cleared and the booking status stays as it is. The manager alert, with `References` for that booking's current revision and a subject of its own, is still open.
+A lead who answers maybe or no is unassigned. A confirmed upcoming booking returns to tentative. A comment alone changes neither. A manager who records maybe or no for that lead on an upcoming booking uses the same rule. On a past booking the lead is cleared and the booking status stays as it is. The same unassign/revert runs when the lead is suspended or a manager removes the lead.
+
+When attendees are already sent an update (for example a manager removes the lead), that update is kept for everyone on the booking, including the person who made the change, so calendar/iMIP updates still go out. Managers on the booking get a “lead instructor needed” panel on that update instead of a second mail. A separate `Lead needed:` mail goes only to other current, active, verified managers who are not getting that update. The person who caused the change is not sent the extra mail. Unverified, inactive, and suspended managers are skipped. Inbound calendar decline still waits on [US-15](US-15-inbound-calendar-response-parsing.md).

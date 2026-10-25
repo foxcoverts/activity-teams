@@ -15,6 +15,7 @@ use App\Mail\BookingCancelledMail;
 use App\Mail\BookingChangedMail;
 use App\Mail\BookingConfirmedMail;
 use App\Mail\BookingInviteMail;
+use App\Mail\LeadNeededMail;
 use App\Models\Activity;
 use App\Models\Booking;
 use App\Models\BookingAttendance;
@@ -69,6 +70,11 @@ class BookingNotificationTest extends TestCase
 
         $this->assertSame($reference, $updated->headers()->referencesString());
         $this->assertSame($reference, $invite->headers()->referencesString());
+
+        $leadNeeded = new LeadNeededMail($booking, $attendee);
+        $leadNeeded->assertHasSubject(BookingMailThread::subject($booking, 'Lead needed'));
+        $this->assertSame($reference, $leadNeeded->headers()->referencesString());
+        $this->assertNotSame($updated->envelope()->subject, $leadNeeded->envelope()->subject);
         $this->assertNull($updated->headers()->messageId);
         $this->assertArrayNotHasKey('In-Reply-To', $updated->headers()->text);
         $this->assertNotSame($booking->uid, BookingMailThread::reference($booking));
@@ -282,6 +288,126 @@ class BookingNotificationTest extends TestCase
         Mail::assertNotSent(BookingChangedMail::class);
     }
 
+    public function test_the_confirmed_lead_is_told_they_hold_responsibility(): void
+    {
+        [$booking, $other, $actor] = $this->bookingWithAttendee(BookingAttendeeStatus::Accepted);
+        $lead = User::factory()->create(['name' => 'Casey Lead']);
+        $booking->attendees()->attach($lead->id, [
+            'status' => BookingAttendeeStatus::Accepted->value,
+            'token' => BookingAttendance::generateToken(),
+        ]);
+        $booking->lead_instructor_notes = 'Bring helmets';
+        $booking->save();
+
+        Queue::fake();
+        Mail::fake();
+
+        app(UpdateBookingStatusAction::class)->confirm($booking->fresh(), $actor, $lead->id, []);
+
+        foreach (Queue::pushed(SendBookingNotification::class) as $job) {
+            $job->handle();
+        }
+
+        Mail::assertSent(BookingConfirmedMail::class, function (BookingConfirmedMail $mail) use ($lead, $booking): bool {
+            $html = $mail->render();
+
+            return $mail->hasTo($lead->email)
+                && $mail->envelope()->subject === BookingMailThread::subject($booking->fresh(), 'Confirmed')
+                && str_contains($html, 'Booking confirmed')
+                && str_contains($html, 'A booking has been confirmed.')
+                && str_contains($html, 'You are the lead instructor')
+                && str_contains($html, 'You have been given lead-instructor responsibility for this booking.')
+                && str_contains($html, 'Bring helmets')
+                && str_contains($html, 'border-left: 4px solid #2563eb')
+                && ! str_contains($html, 'Changes:');
+        });
+        Mail::assertSent(BookingConfirmedMail::class, function (BookingConfirmedMail $mail) use ($other): bool {
+            $html = $mail->render();
+
+            return $mail->hasTo($other->email)
+                && str_contains($html, 'A booking has been confirmed.')
+                && ! str_contains($html, 'You have been given lead-instructor responsibility')
+                && ! str_contains($html, 'Bring helmets')
+                && ! str_contains($html, 'border-left: 4px solid #2563eb');
+        });
+    }
+
+    public function test_changing_the_lead_tells_the_new_lead_they_hold_responsibility(): void
+    {
+        [$booking, $current, $actor] = $this->bookingWithAttendee(BookingAttendeeStatus::Accepted);
+        $next = User::factory()->create(['name' => 'Riley Lead']);
+        $booking->attendees()->attach($next->id, [
+            'status' => BookingAttendeeStatus::Accepted->value,
+            'token' => BookingAttendance::generateToken(),
+        ]);
+        $booking->lead_instructor_id = $current->id;
+        $booking->lead_instructor_notes = 'Keys in the hut';
+        $booking->status = BookingStatus::Confirmed;
+        $booking->save();
+
+        Queue::fake();
+        Mail::fake();
+
+        app(UpdateBookingStatusAction::class)->changeLead($booking->fresh(), $actor, $next->id);
+
+        foreach (Queue::pushed(SendBookingNotification::class) as $job) {
+            $job->handle();
+        }
+
+        Mail::assertSent(BookingChangedMail::class, function (BookingChangedMail $mail) use ($next, $booking): bool {
+            $html = $mail->render();
+
+            return $mail->hasTo($next->email)
+                && $mail->envelope()->subject === BookingMailThread::subject($booking->fresh(), 'Updated')
+                && str_contains($html, 'Booking updated')
+                && str_contains($html, 'A booking you are invited to has changed.')
+                && str_contains($html, 'You are the lead instructor')
+                && str_contains($html, 'You have been given lead-instructor responsibility for this booking.')
+                && str_contains($html, 'Keys in the hut')
+                && str_contains($html, 'border-left: 4px solid #2563eb')
+                && ! str_contains($html, 'This booking has been updated')
+                && ! str_contains($html, 'Changes:');
+        });
+        Mail::assertSent(BookingChangedMail::class, function (BookingChangedMail $mail) use ($current): bool {
+            $html = $mail->render();
+
+            return $mail->hasTo($current->email)
+                && str_contains($html, 'A booking you are invited to has changed.')
+                && ! str_contains($html, 'You have been given lead-instructor responsibility')
+                && ! str_contains($html, 'Keys in the hut');
+        });
+        Mail::assertNotSent(LeadNeededMail::class);
+    }
+
+    public function test_a_later_update_includes_lead_notes_without_repeating_the_responsibility_notice(): void
+    {
+        [$booking, $lead, $actor] = $this->bookingWithAttendee(BookingAttendeeStatus::Accepted);
+        $booking->lead_instructor_id = $lead->id;
+        $booking->lead_instructor_notes = 'Bring helmets';
+        $booking->save();
+
+        $booking->venue_id = Venue::factory()->create()->id;
+        $booking->save();
+
+        Queue::fake();
+        Mail::fake();
+
+        app(UpdateBookingStatusAction::class)($booking->refresh(), $actor);
+
+        foreach (Queue::pushed(SendBookingNotification::class) as $job) {
+            $job->handle();
+        }
+
+        Mail::assertSent(BookingChangedMail::class, function (BookingChangedMail $mail) use ($lead): bool {
+            $html = $mail->render();
+
+            return $mail->hasTo($lead->email)
+                && str_contains($html, 'Bring helmets')
+                && str_contains($html, 'A booking you are invited to has changed.')
+                && ! str_contains($html, 'You have been given lead-instructor responsibility');
+        });
+    }
+
     public function test_changing_the_activity_bumps_sequence_and_sends_an_update(): void
     {
         [$booking, $attendee, $actor] = $this->bookingWithAttendee();
@@ -303,7 +429,9 @@ class BookingNotificationTest extends TestCase
             $html = $mail->render();
 
             return $mail->hasTo($attendee->email)
-                && str_contains($this->mailLine($html, 'Activity'), 'Kayaking (changed)');
+                && str_contains($this->mailLine($html, 'Activity'), 'Kayaking (changed)')
+                && str_contains($html, 'background-color: #fafafa')
+                && str_contains($html, 'border-left: 4px solid #18181b');
         });
     }
 

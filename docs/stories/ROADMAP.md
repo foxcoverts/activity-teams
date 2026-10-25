@@ -109,7 +109,7 @@ US-49 should precede changes that depend on controlled activity or venue catalog
 
 ### Phase 2 — Close booking, roster, and access gaps
 
-1. Finish the remaining behavior in [US-10 Lead Instructor Resignation](US-10-lead-instructor-resignation.md), [US-11 Lead Instructor Assignment Notifications](US-11-lead-instructor-assignment-notifications.md), and [US-28 Booking Cancellation Reasons](US-28-booking-cancellation-reasons.md).
+1. **Done except the US-15→US-28 dependency:** remaining [US-10](US-10-lead-instructor-resignation.md) manager alerts and [US-11](US-11-lead-instructor-assignment-notifications.md) lead-responsibility copy. [US-28](US-28-booking-cancellation-reasons.md) cancellation reason, history, and subject are in place; emailing iMIP declines still waits on item 6.
 2. Complete [US-04 Multi-Venue Management](US-04-multi-venue-location-management.md) and [US-03 Booking Venue Access & Logistics](US-03-booking-venue-access-logistics.md) if confirmed in the cutover inventory. Establish venue and key requirements before building derived access indicators.
 3. Complete [US-07 Qualification Expiry Tracking](US-07-qualification-expiry-tracking.md) if expiry warnings are part of the retained credential workflow.
 4. Implement [US-51 Pass a Key Ring](US-51-pass-a-key-ring.md) if the legacy key-transfer workflow remains in use.

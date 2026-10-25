@@ -38,8 +38,8 @@ When an enum is shown in Filament, give it a label, and a color and icon when th
 
 - [US-08 Smart Booking Invitee Pre-Selection & Management](US-08-smart-booking-invitee-preselection.md) — `done`
 - [US-09 Mandatory Lead Instructor Confirmation Validation](US-09-mandatory-lead-instructor-confirmation.md) — `done`
-- [US-10 Lead Instructor Availability Change & Resignation Workflow](US-10-lead-instructor-resignation.md) — `partial`
-- [US-11 Lead Instructor Assignment Notifications](US-11-lead-instructor-assignment-notifications.md) — `not-started`
+- [US-10 Lead Instructor Availability Change & Resignation Workflow](US-10-lead-instructor-resignation.md) — `done`
+- [US-11 Lead Instructor Assignment Notifications](US-11-lead-instructor-assignment-notifications.md) — `done`
 - [US-52 Lead Instructor Session Roster](US-52-lead-instructor-session-roster.md) — `done`
 - [US-25 Historical Roster & Response Transparency](US-25-historical-roster-transparency.md) — `done`
 - [US-53 Re-invite After Declined Session Changes](US-53-reinvite-after-declined-session-changes.md) — `not-started`

@@ -8,11 +8,13 @@ use App\Actions\RespondToBookingAction;
 use App\Enums\BookingAttendeeResponse;
 use App\Enums\BookingAttendeeStatus;
 use App\Enums\BookingStatus;
+use App\Enums\MembershipRole;
 use App\Filament\Manage\Resources\Bookings\Pages\ViewBooking;
 use App\Filament\Manage\Resources\Bookings\RelationManagers\AttendeesRelationManager;
 use App\Filament\Manage\Resources\Members\MemberResource;
 use App\Mail\AttendanceRecordedMail;
 use App\Mail\BookingInviteMail;
+use App\Mail\LeadNeededMail;
 use App\Models\Booking;
 use App\Models\BookingAttendance;
 use App\Models\User;
@@ -199,6 +201,8 @@ class OverrideAttendanceTest extends TestCase
         Mail::fake();
 
         $manager = User::factory()->teamManager()->create();
+        $otherManager = User::factory()->create();
+        $manager->managedTeams()->first()->grant($otherManager, MembershipRole::Manager);
         $lead = User::factory()->teamMember()->create();
         $booking = Booking::factory()->confirmed()->create([
             'lead_instructor_id' => $lead->id,
@@ -211,7 +215,9 @@ class OverrideAttendanceTest extends TestCase
         $this->assertSame(BookingStatus::Tentative, $booking->status);
         $this->assertNull($booking->lead_instructor_id);
         Mail::assertSent(AttendanceRecordedMail::class, fn (AttendanceRecordedMail $mail): bool => $mail->hasTo($lead->email));
-        Mail::assertSentCount(1);
+        Mail::assertSent(LeadNeededMail::class, fn (LeadNeededMail $mail): bool => $mail->hasTo($otherManager->email));
+        Mail::assertNotSent(LeadNeededMail::class, fn (LeadNeededMail $mail): bool => $mail->hasTo($manager->email));
+        Mail::assertSentCount(2);
     }
 
     public function test_a_cancelled_booking_refuses_an_attendance_edit(): void

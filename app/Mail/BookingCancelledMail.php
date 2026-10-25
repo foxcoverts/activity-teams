@@ -31,4 +31,14 @@ class BookingCancelledMail extends BookingStatusMail
             ? __('This booking has been cancelled: :reason', ['reason' => $this->reason])
             : __('This booking has been cancelled.');
     }
+
+    protected function shouldAnnounceLeadResponsibility(): bool
+    {
+        return false;
+    }
+
+    protected function leadNotesForRecipient(): ?string
+    {
+        return null;
+    }
 }

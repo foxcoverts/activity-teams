@@ -14,6 +14,7 @@ use App\Filament\Manage\Resources\Members\Pages\ViewMember;
 use App\Filament\Member\Resources\Bookings\BookingResource as MemberBookingResource;
 use App\Filament\Member\Resources\Bookings\Pages\ViewBooking as MemberViewBooking;
 use App\Filament\Member\Resources\Bookings\RelationManagers\AttendeesRelationManager as MemberAttendeesRelationManager;
+use App\Mail\LeadNeededMail;
 use App\Models\Booking;
 use App\Models\Team;
 use App\Models\User;
@@ -123,6 +124,8 @@ class SuspensionTest extends TestCase
     public function test_suspending_unassigns_upcoming_leads_and_returns_confirmed_bookings_to_tentative(): void
     {
         Mail::fake();
+        $otherManager = User::factory()->create();
+        $this->team->grant($otherManager, MembershipRole::Manager);
         $upcoming = Booking::factory()->confirmed()->create(['team_id' => $this->team->getKey(), 'lead_instructor_id' => $this->member->getKey()]);
         $past = Booking::factory()->confirmed()->create([
             'team_id' => $this->team->getKey(),
@@ -148,7 +151,9 @@ class SuspensionTest extends TestCase
         $this->assertTrue($past->fresh()->isConfirmed());
         $this->assertSame($this->member->getKey(), $cancelled->fresh()->lead_instructor_id);
         $this->assertSame($this->manager->getKey(), $other->fresh()->lead_instructor_id);
-        Mail::assertNothingSent();
+        Mail::assertSent(LeadNeededMail::class, fn (LeadNeededMail $mail): bool => $mail->hasTo($otherManager->email));
+        Mail::assertNotSent(LeadNeededMail::class, fn (LeadNeededMail $mail): bool => $mail->hasTo($this->manager->email));
+        Mail::assertNotSent(LeadNeededMail::class, fn (LeadNeededMail $mail): bool => $mail->hasTo($this->member->email));
     }
 
     public function test_the_modal_does_not_mention_bookings_when_there_are_none_to_unassign(): void

@@ -3,7 +3,6 @@
 namespace App\Actions;
 
 use App\Enums\BookingAttendeeStatus;
-use App\Enums\BookingStatus;
 use App\Mail\AttendanceRecordedMail;
 use App\Models\Booking;
 use App\Models\User;
@@ -65,7 +64,7 @@ class OverrideAttendanceAction
                 'name' => $attendee->name,
             ]));
 
-        $this->stepLeadAway($booking, $attendee, $status);
+        $this->stepLeadAway($booking, $attendee, $manager, $status);
 
         if ($booking->isPast() || $attendee->isSuspended() || ! $attendee->hasVerifiedEmail()) {
             return;
@@ -74,20 +73,12 @@ class OverrideAttendanceAction
         Mail::to($attendee)->send(new AttendanceRecordedMail($booking, $attendee));
     }
 
-    private function stepLeadAway(Booking $booking, User $attendee, BookingAttendeeStatus $status): void
+    private function stepLeadAway(Booking $booking, User $attendee, User $manager, BookingAttendeeStatus $status): void
     {
         if ($booking->lead_instructor_id !== $attendee->getKey() || $status === BookingAttendeeStatus::Accepted) {
             return;
         }
 
-        $booking->lead_instructor_id = null;
-
-        if (! $booking->isPast() && $booking->isConfirmed()) {
-            $booking->status = BookingStatus::Tentative;
-        }
-
-        if ($booking->isDirty(['lead_instructor_id', 'status'])) {
-            $booking->save();
-        }
+        (new ClearLeadInstructorAction)($booking, $manager);
     }
 }

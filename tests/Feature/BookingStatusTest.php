@@ -6,6 +6,7 @@ use App\Actions\RespondToBookingAction;
 use App\Actions\UpdateBookingStatusAction;
 use App\Enums\BookingAttendeeStatus;
 use App\Enums\BookingStatus;
+use App\Enums\MembershipRole;
 use App\Enums\MountainTrainingAward;
 use App\Filament\Manage\Resources\Bookings\BookingResource;
 use App\Filament\Manage\Resources\Bookings\Pages\CreateBooking;
@@ -18,6 +19,7 @@ use App\Livewire\RespondToBooking;
 use App\Mail\BookingCancelledMail;
 use App\Mail\BookingChangedMail;
 use App\Mail\BookingInviteMail;
+use App\Mail\LeadNeededMail;
 use App\Models\Activity;
 use App\Models\Booking;
 use App\Models\BookingAttendance;
@@ -25,6 +27,7 @@ use App\Models\MountainTrainingQualification;
 use App\Models\Qualification;
 use App\Models\User;
 use App\Models\Venue;
+use App\Support\BookingMailThread;
 use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
 use Filament\Facades\Filament;
@@ -421,6 +424,102 @@ class BookingStatusTest extends TestCase
         $booking->refresh();
         $this->assertSame(BookingStatus::Tentative, $booking->status);
         $this->assertNull($booking->lead_instructor_id);
+    }
+
+    public function test_a_lead_who_steps_away_alerts_team_managers(): void
+    {
+        Mail::fake();
+
+        $manager = User::factory()->teamManager()->create();
+        $unverified = User::factory()->unverified()->create();
+        $inactive = User::factory()->inactive()->create();
+        $suspended = User::factory()->create(['suspended' => true]);
+        $team = $manager->managedTeams()->first();
+        $team->grant($unverified, MembershipRole::Manager);
+        $team->grant($inactive, MembershipRole::Manager);
+        $team->grant($suspended, MembershipRole::Manager);
+
+        $lead = User::factory()->create(['name' => 'Casey Lead']);
+        $attendee = User::factory()->create();
+        $booking = Booking::factory()->confirmed()->create([
+            'team_id' => $team->getKey(),
+            'lead_instructor_id' => $lead->id,
+        ]);
+        $this->attend($booking, $lead, BookingAttendeeStatus::Accepted);
+        $this->attend($booking, $attendee, BookingAttendeeStatus::Accepted);
+
+        (new RespondToBookingAction($booking))($lead, BookingAttendeeStatus::Declined);
+
+        $reference = BookingMailThread::reference($booking->fresh());
+
+        Mail::assertSent(LeadNeededMail::class, function (LeadNeededMail $mail) use ($manager, $reference): bool {
+            return $mail->hasTo($manager->email)
+                && str_contains($mail->envelope()->subject, 'Lead needed:')
+                && str_contains($mail->render(), 'Casey Lead')
+                && str_contains($mail->headers()->referencesString() ?? '', $reference);
+        });
+        Mail::assertNotSent(LeadNeededMail::class, fn (LeadNeededMail $mail): bool => $mail->hasTo($unverified->email));
+        Mail::assertNotSent(LeadNeededMail::class, fn (LeadNeededMail $mail): bool => $mail->hasTo($inactive->email));
+        Mail::assertNotSent(LeadNeededMail::class, fn (LeadNeededMail $mail): bool => $mail->hasTo($suspended->email));
+        Mail::assertNotSent(LeadNeededMail::class, fn (LeadNeededMail $mail): bool => $mail->hasTo($attendee->email));
+        Mail::assertNotSent(LeadNeededMail::class, fn (LeadNeededMail $mail): bool => $mail->hasTo($lead->email));
+    }
+
+    public function test_removing_the_lead_uses_the_update_mail_for_managers_on_the_booking(): void
+    {
+        Queue::fake();
+        Mail::fake();
+
+        $actor = User::factory()->teamManager()->create();
+        $team = $actor->managedTeams()->first();
+        $otherManager = User::factory()->create();
+        $attendeeManager = User::factory()->create();
+        $team->grant($otherManager, MembershipRole::Manager);
+        $team->grant($attendeeManager, MembershipRole::Manager);
+
+        $lead = User::factory()->create();
+        $booking = Booking::factory()->confirmed()->create([
+            'team_id' => $team->getKey(),
+            'lead_instructor_id' => $lead->id,
+        ]);
+        $this->attend($booking, $lead, BookingAttendeeStatus::Accepted);
+        $this->attend($booking, $actor, BookingAttendeeStatus::Accepted);
+        $this->attend($booking, $attendeeManager, BookingAttendeeStatus::Accepted);
+
+        app(UpdateBookingStatusAction::class)->changeLead($booking, $actor, null);
+
+        foreach (Queue::pushed(SendBookingNotification::class) as $job) {
+            $job->handle();
+        }
+
+        Mail::assertSent(LeadNeededMail::class, fn (LeadNeededMail $mail): bool => $mail->hasTo($otherManager->email));
+        Mail::assertNotSent(LeadNeededMail::class, fn (LeadNeededMail $mail): bool => $mail->hasTo($actor->email));
+        Mail::assertNotSent(LeadNeededMail::class, fn (LeadNeededMail $mail): bool => $mail->hasTo($attendeeManager->email));
+
+        Mail::assertSent(BookingChangedMail::class, function (BookingChangedMail $mail) use ($actor): bool {
+            $html = $mail->render();
+
+            return $mail->hasTo($actor->email)
+                && str_contains($html, 'Booking updated')
+                && str_contains($html, 'Lead instructor needed')
+                && str_contains($html, 'This booking has no lead instructor.')
+                && str_contains($html, 'border-left: 4px solid #d97706');
+        });
+        Mail::assertSent(BookingChangedMail::class, function (BookingChangedMail $mail) use ($attendeeManager): bool {
+            return $mail->hasTo($attendeeManager->email)
+                && str_contains($mail->render(), 'Lead instructor needed');
+        });
+        Mail::assertSent(BookingChangedMail::class, function (BookingChangedMail $mail) use ($lead): bool {
+            $html = $mail->render();
+
+            return $mail->hasTo($lead->email)
+                && str_contains($html, 'This booking has been updated')
+                && str_contains($html, 'background-color: #fafafa')
+                && str_contains($html, '>none</em>')
+                && str_contains($html, '(changed)')
+                && ! str_contains($html, 'Lead instructor needed')
+                && ! str_contains($html, 'border-left: 4px solid #d97706');
+        });
     }
 
     public function test_a_comment_from_the_lead_does_not_change_a_confirmed_booking(): void

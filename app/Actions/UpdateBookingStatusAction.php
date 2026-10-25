@@ -146,15 +146,9 @@ class UpdateBookingStatusAction
         }
 
         if ($leadId === null) {
-            $booking->lead_instructor_id = null;
+            $cleared = (new ClearLeadInstructorAction)($booking, $actor, attendeesWillBeUpdated: true);
 
-            if ($booking->isConfirmed()) {
-                $booking->status = BookingStatus::Tentative;
-            }
-
-            $booking->save();
-
-            if ($booking->wasChanged('lead_instructor_id')) {
+            if ($cleared) {
                 event(new BookingChanged($booking, $actor, $booking->getChanges(), $this->previousSchedule($booking)));
             }
 

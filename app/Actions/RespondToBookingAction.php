@@ -3,7 +3,6 @@
 namespace App\Actions;
 
 use App\Enums\BookingAttendeeStatus;
-use App\Enums\BookingStatus;
 use App\Models\Booking;
 use App\Models\User;
 use InvalidArgumentException;
@@ -63,14 +62,6 @@ class RespondToBookingAction
             return;
         }
 
-        $this->booking->lead_instructor_id = null;
-
-        if ($this->booking->isConfirmed()) {
-            $this->booking->status = BookingStatus::Tentative;
-        }
-
-        if ($this->booking->isDirty(['lead_instructor_id', 'status'])) {
-            $this->booking->save();
-        }
+        (new ClearLeadInstructorAction)($this->booking, $author);
     }
 }

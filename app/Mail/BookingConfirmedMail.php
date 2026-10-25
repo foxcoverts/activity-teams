@@ -9,12 +9,17 @@ class BookingConfirmedMail extends BookingStatusMail
         return __('Confirmed');
     }
 
-    protected function heading(): string
+    protected function shouldAnnounceLeadResponsibility(): bool
+    {
+        return true;
+    }
+
+    protected function statusHeading(): string
     {
         return __('Booking confirmed');
     }
 
-    protected function intro(): string
+    protected function statusIntro(): string
     {
         return __('A booking has been confirmed.');
     }

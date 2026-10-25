@@ -63,7 +63,10 @@ class BookingStatusMail extends Mailable
                 'intro' => $this->intro(),
                 'attendance' => $this->attendance,
                 'changeList' => $changes,
-                'changeNotice' => $changes->summary() ? $this->changeNotice() : null,
+                'changeNotice' => $this->usesSpecialPanel() ? null : ($changes->summary() ? $this->changeNotice() : null),
+                'leadResponsibilityNotice' => $this->announcesLeadResponsibility(),
+                'leadNeededNotice' => $this->announcesLeadNeeded(),
+                'leadNotes' => $this->leadNotesForRecipient(),
                 'choiceUrls' => AttendanceResponseLinks::choices($this->booking, $this->attendee, $this->attendance),
                 'respondUrl' => $token
                     ? route('respond', [$this->booking, $this->attendee, 'invite' => $token])
@@ -79,11 +82,57 @@ class BookingStatusMail extends Mailable
 
     protected function heading(): string
     {
-        return __('Booking updated');
+        return $this->statusHeading();
     }
 
     protected function intro(): string
     {
+        return $this->statusIntro();
+    }
+
+    protected function statusHeading(): string
+    {
+        return __('Booking updated');
+    }
+
+    protected function statusIntro(): string
+    {
         return __('A booking you are invited to has changed.');
+    }
+
+    protected function usesSpecialPanel(): bool
+    {
+        return $this->announcesLeadResponsibility() || $this->announcesLeadNeeded();
+    }
+
+    protected function announcesLeadResponsibility(): bool
+    {
+        return $this->isLeadRecipient() && $this->shouldAnnounceLeadResponsibility();
+    }
+
+    protected function announcesLeadNeeded(): bool
+    {
+        return false;
+    }
+
+    protected function shouldAnnounceLeadResponsibility(): bool
+    {
+        return in_array('lead_instructor_id', $this->changes, true);
+    }
+
+    protected function isLeadRecipient(): bool
+    {
+        return $this->booking->lead_instructor_id === $this->attendee->getKey();
+    }
+
+    protected function leadNotesForRecipient(): ?string
+    {
+        if (! $this->isLeadRecipient()) {
+            return null;
+        }
+
+        $notes = $this->booking->lead_instructor_notes;
+
+        return filled($notes) ? $notes : null;
     }
 }

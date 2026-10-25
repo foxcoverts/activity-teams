@@ -2,7 +2,6 @@
 
 namespace App\Actions;
 
-use App\Enums\BookingStatus;
 use App\Models\Booking;
 use App\Models\User;
 use Illuminate\Support\Facades\Gate;
@@ -26,20 +25,14 @@ class SetSuspensionAction
         $member->forceFill(['suspended' => $suspended])->save();
 
         if ($suspended) {
-            $this->unassignUpcomingLeads($member);
+            $this->unassignUpcomingLeads($actor, $member);
         }
     }
 
-    private function unassignUpcomingLeads(User $member): void
+    private function unassignUpcomingLeads(User $actor, User $member): void
     {
-        $member->ledBookings()->notCancelled()->future()->get()->each(function (Booking $booking): void {
-            $booking->lead_instructor_id = null;
-
-            if ($booking->isConfirmed()) {
-                $booking->status = BookingStatus::Tentative;
-            }
-
-            $booking->save();
-        });
+        $member->ledBookings()->notCancelled()->future()->get()->each(
+            fn (Booking $booking): bool => (new ClearLeadInstructorAction)($booking, $actor),
+        );
     }
 }
