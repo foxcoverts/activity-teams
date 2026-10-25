@@ -127,6 +127,8 @@ class AttendeesRelationManager extends RelationManager
                             $response->toStatus(),
                             $data['comment'] ?? null,
                         );
+
+                        $this->attendanceChanged();
                     }),
             ])
             ->recordActions([
@@ -184,6 +186,8 @@ class AttendeesRelationManager extends RelationManager
                             $response->toStatus(),
                             $data['comment'] ?? null,
                         );
+
+                        $this->attendanceChanged();
                     }),
                 DetachAction::make()
                     ->label(__('Remove'))
@@ -195,21 +199,38 @@ class AttendeesRelationManager extends RelationManager
                             ->withProperties(['user_id' => $record->getKey()])
                             ->event('attendee_removed')
                             ->log('Attendee removed');
+
+                        $this->attendanceChanged();
                     }),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
                     DetachBulkAction::make()
-                        ->authorizeIndividualRecords(fn (User $record): bool => $this->canRemoveAttendee($record)),
+                        ->authorizeIndividualRecords(fn (User $record): bool => $this->canRemoveAttendee($record))
+                        ->after(function (): void {
+                            $this->attendanceChanged();
+                        }),
                 ]),
             ]);
     }
 
     #[On('invites-sent')]
+    public function invitesSent(): void
+    {
+        $this->closeInvite();
+        $this->attendanceChanged();
+    }
+
     #[On('close-invite')]
     public function closeInvite(): void
     {
         $this->unmountTableAction();
+    }
+
+    private function attendanceChanged(): void
+    {
+        $this->booking()->unsetRelation('attendees');
+        $this->dispatch('booking-attendance-updated');
     }
 
     /**

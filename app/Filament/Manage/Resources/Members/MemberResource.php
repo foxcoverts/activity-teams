@@ -12,11 +12,14 @@ use App\Filament\Manage\NavigationGroup;
 use App\Filament\Manage\Resources\Members\Pages\EditMember;
 use App\Filament\Manage\Resources\Members\Pages\ListMembers;
 use App\Filament\Manage\Resources\Members\Pages\ViewMember;
+use App\Filament\Manage\Resources\Members\RelationManagers\KeysRelationManager;
 use App\Filament\RelationManagers\QualificationsRelationManager;
 use App\Filament\Schemas\ContactFields;
 use App\Filament\Schemas\PersonalDataSection;
+use App\Models\Key;
 use App\Models\Team;
 use App\Models\User;
+use App\Support\Palette;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
@@ -33,12 +36,16 @@ use Filament\Resources\Resource;
 use Filament\Schemas\Components\Component;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
+use Filament\Support\Enums\Width;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\Filter;
+use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Validation\ValidationException;
 use Livewire\Component as LivewireComponent;
 
@@ -84,7 +91,7 @@ class MemberResource extends Resource
             return $query->whereRaw('0 = 1');
         }
 
-        return $query->with('invitation')->whereHas(
+        return $query->with(['invitation', 'keyRings.keys.covers'])->whereHas(
             'teams',
             fn (Builder $teams) => $teams->whereKey($team->getKey()),
         );
@@ -174,11 +181,41 @@ class MemberResource extends Resource
                 TextColumn::make('status')
                     ->state(fn (User $record): AccountStatus|string => $record->status())
                     ->badge(),
+                TextColumn::make('keys')
+                    ->label(__('Keys'))
+                    ->badge()
+                    ->icon(Heroicon::OutlinedKey)
+                    ->state(fn (User $record): ?string => $record->namesOfOpenedKeys(static::teamKeys()) === []
+                        ? null
+                        : __('Key holder'))
+                    ->color(fn (?string $state): array => filled($state) ? Palette::positive() : Palette::neutral())
+                    ->action(static::heldKeysAction())
+                    ->disabledClick(fn (?string $state): bool => blank($state))
+                    ->visible(fn (): bool => static::teamKeys()->isNotEmpty()),
             ])
             ->filters([
                 Filter::make('not_accepted')
                     ->label('Not yet accepted')
                     ->query(fn (Builder $query): Builder => $query->whereNull('users.email')->whereNull('users.deleted_at')),
+                SelectFilter::make('key')
+                    ->label(__('Keys'))
+                    ->options(fn (): array => static::teamKeys()->pluck('name', 'id')->all())
+                    ->query(function (Builder $query, array $data): Builder {
+                        $keyId = $data['value'] ?? null;
+
+                        if (blank($keyId)) {
+                            return $query;
+                        }
+
+                        $key = Key::query()->find($keyId);
+
+                        if (! $key instanceof Key) {
+                            return $query;
+                        }
+
+                        return $query->holding($key);
+                    })
+                    ->visible(fn (): bool => static::teamKeys()->isNotEmpty()),
             ])
             ->recordActions([
                 static::invitationActions(),
@@ -192,6 +229,7 @@ class MemberResource extends Resource
     public static function getRelations(): array
     {
         return [
+            KeysRelationManager::class,
             QualificationsRelationManager::class,
         ];
     }
@@ -210,6 +248,56 @@ class MemberResource extends Resource
         $tenant = Filament::getTenant();
 
         return $tenant instanceof Team ? $tenant : null;
+    }
+
+    /**
+     * @return EloquentCollection<int, Key>
+     */
+    public static function teamKeys(): EloquentCollection
+    {
+        $team = static::currentTeam();
+
+        if (! $team instanceof Team) {
+            return new EloquentCollection;
+        }
+
+        return once(fn (): EloquentCollection => Key::query()->relevantTo($team)->orderBy('name')->get());
+    }
+
+    /**
+     * @return list<array{name: string, required_for: list<string>}>
+     */
+    public static function openedKeyLines(User $member): array
+    {
+        $team = static::currentTeam();
+
+        if (! $team instanceof Team) {
+            return [];
+        }
+
+        return $member->openedKeysQuery($team)
+            ->with(['requirements.activity', 'requirements.venue'])
+            ->get()
+            ->map(fn (Key $key): array => [
+                'name' => $key->name,
+                'required_for' => $key->requirementSummariesFor($team),
+            ])
+            ->all();
+    }
+
+    public static function heldKeysAction(): Action
+    {
+        return Action::make('heldKeys')
+            ->label(__('Keys'))
+            ->modalHeading(fn (User $record): string => $record->name)
+            ->modalWidth(Width::Large)
+            ->modalSubmitAction(false)
+            ->modalCancelActionLabel(__('Close'))
+            ->visible(fn (?User $record): bool => $record instanceof User
+                && $record->namesOfOpenedKeys(static::teamKeys()) !== [])
+            ->modalContent(fn (User $record): View => view('filament.members.held-keys', [
+                'keys' => static::openedKeyLines($record),
+            ]));
     }
 
     public static function canInvite(): bool

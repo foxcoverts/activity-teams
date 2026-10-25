@@ -1,7 +1,7 @@
 ---
 id: US-04
 title: "Multi-Venue & Location-Based Management"
-status: partial
+status: done
 area: qualifications
 scope: required
 ---
@@ -24,4 +24,4 @@ A key is one lock. It is not one key per activity, and it has no venue of its ow
 
 Travel expectations and warden coordination are manual. They are not screens in this system. The key list and the holder list are what a manager uses while doing that work.
 
-A manager opens Keys on a booking to see the keys that activity needs at that venue, and the rings that open them. The roster and the invite list mark who holds one of those keys, and who holds keys that this booking does not need. The invite list can be narrowed to key holders. The team members screen still cannot filter or mark who holds which key. Address and geo location are not part of these criteria.
+A manager opens Keys on a booking to see the keys that activity needs at that venue, and the rings that open them. The roster and the invite list mark who holds one of those keys, and who holds keys that this booking does not need. The invite list can be narrowed to key holders. The team members list marks who can open a team-relevant key. That badge, and the Keys list on the member, show those keys and what they are required for. The list can be filtered by those keys. Address and geo location are not part of these criteria.

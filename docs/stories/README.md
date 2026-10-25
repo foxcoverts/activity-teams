@@ -25,8 +25,8 @@ When an enum is shown in Filament, give it a label, and a color and icon when th
 
 - [US-01 Member Qualification & Permit Management](US-01-member-qualification-permit-management.md) — `done`
 - [US-02 Activity-Specific Qualification & Staffing Requirements](US-02-activity-specific-qualification-staffing.md) — `done`
-- [US-03 Booking Venue Access & Logistics Planning](US-03-booking-venue-access-logistics.md) — `not-started`
-- [US-04 Multi-Venue & Location-Based Management](US-04-multi-venue-location-management.md) — `partial`
+- [US-03 Booking Venue Access & Logistics Planning](US-03-booking-venue-access-logistics.md) — `done`
+- [US-04 Multi-Venue & Location-Based Management](US-04-multi-venue-location-management.md) — `done`
 - [US-05 Team Document & Resource Repository](US-05-team-document-repository.md) — `not-started`
 - [US-06 User Role & Status Badges](US-06-user-role-status-badges.md) — `done`
 - [US-07 Qualification Expiry Tracking](US-07-qualification-expiry-tracking.md) — `done`

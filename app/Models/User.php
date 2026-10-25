@@ -208,6 +208,78 @@ class User extends Authenticatable implements FilamentUser, HasDefaultTenant, Ha
             ->exists();
     }
 
+    public function scopeHolding(Builder $users, Key $key): void
+    {
+        $users->whereHas(
+            'keyRings',
+            fn (Builder $rings) => $rings->where(function (Builder $rings) use ($key): void {
+                $rings->whereHas('keys', fn (Builder $keys) => $keys->whereKey($key->getKey()))
+                    ->orWhereHas('keys.covers', fn (Builder $covered) => $covered->whereKey($key->getKey()));
+            }),
+        );
+    }
+
+    /**
+     * @param  iterable<int, Key>  $keys
+     * @return list<string>
+     */
+    public function namesOfOpenedKeys(iterable $keys): array
+    {
+        $wanted = collect($keys)->filter(fn (mixed $key): bool => $key instanceof Key)->values();
+
+        if ($wanted->isEmpty()) {
+            return [];
+        }
+
+        $this->loadMissing('keyRings.keys.covers');
+
+        return $wanted
+            ->filter(fn (Key $key): bool => $this->opensLoadedKey($key))
+            ->sortBy(fn (Key $key): string => $key->name)
+            ->values()
+            ->map(fn (Key $key): string => $key->name)
+            ->all();
+    }
+
+    /**
+     * @return Builder<Key>
+     */
+    public function openedKeys(): Builder
+    {
+        return $this->openedKeysQuery();
+    }
+
+    /**
+     * @return Builder<Key>
+     */
+    public function openedKeysQuery(?Team $team = null): Builder
+    {
+        $keys = Key::query()->openedBy($this)->orderBy('name');
+
+        if ($team instanceof Team) {
+            $keys->relevantTo($team);
+        }
+
+        return $keys;
+    }
+
+    private function opensLoadedKey(Key $key): bool
+    {
+        foreach ($this->keyRings as $ring) {
+            foreach ($ring->keys as $held) {
+                if ($held->is($key)) {
+                    return true;
+                }
+
+                if ($held->covers->contains(fn (Key $covered): bool => $covered->is($key))) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
     public function qualifications(): HasMany
     {
         return $this->hasMany(Qualification::class);

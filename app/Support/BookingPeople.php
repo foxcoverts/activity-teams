@@ -2,6 +2,9 @@
 
 namespace App\Support;
 
+use App\Enums\BookingAttendeeStatus;
+use App\Enums\KeyHolderAttendance;
+use App\Enums\KeyRingSituation;
 use App\Models\Activity;
 use App\Models\ActivityQualificationRequirement;
 use App\Models\Booking;
@@ -9,6 +12,7 @@ use App\Models\Key;
 use App\Models\KeyRing;
 use App\Models\Qualification;
 use App\Models\User;
+use Illuminate\Support\Collection;
 
 class BookingPeople
 {
@@ -56,6 +60,94 @@ class BookingPeople
         }
 
         return $badges;
+    }
+
+    public static function holderAttendance(Booking $booking): KeyHolderAttendance
+    {
+        $booking->loadMissing('attendees');
+
+        $accepted = $booking->attendees->filter(
+            fn (User $person): bool => $person->attendance?->status === BookingAttendeeStatus::Accepted,
+        );
+
+        return in_array('holder', self::keyBadges($booking, $accepted), true)
+            ? KeyHolderAttendance::Attending
+            : KeyHolderAttendance::Missing;
+    }
+
+    /**
+     * @return list<array{name: string, groups: list<array{situation: KeyRingSituation, rings: list<array{name: string, holder: ?string, holder_id: ?string}>}>}>
+     */
+    public static function keyAccess(Booking $booking): array
+    {
+        $booking->loadMissing('attendees');
+
+        $statusById = $booking->attendees->mapWithKeys(
+            fn (User $person): array => [(string) $person->getKey() => $person->attendance?->status],
+        );
+
+        return $booking->requiredKeys()
+            ->map(fn (Key $key): array => [
+                'name' => $key->name,
+                'groups' => self::groupsForKey($key, $statusById),
+            ])
+            ->all();
+    }
+
+    /**
+     * @param  Collection<string, BookingAttendeeStatus|null>  $statusById
+     * @return list<array{situation: KeyRingSituation, rings: list<array{name: string, holder: ?string, holder_id: ?string}>}>
+     */
+    private static function groupsForKey(Key $key, Collection $statusById): array
+    {
+        $grouped = [];
+
+        foreach (KeyRingSituation::displayOrder() as $situation) {
+            $grouped[$situation->value] = [];
+        }
+
+        foreach ($key->accessRings()->with('holder')->get() as $ring) {
+            $situation = self::situation($ring, $statusById);
+            $grouped[$situation->value][] = [
+                'name' => $ring->name,
+                'holder' => $ring->holder?->name,
+                'holder_id' => $ring->holder_id === null ? null : (string) $ring->holder_id,
+            ];
+        }
+
+        $groups = [];
+
+        foreach (KeyRingSituation::displayOrder() as $situation) {
+            if ($grouped[$situation->value] === []) {
+                continue;
+            }
+
+            $groups[] = [
+                'situation' => $situation,
+                'rings' => $grouped[$situation->value],
+            ];
+        }
+
+        return $groups;
+    }
+
+    /**
+     * @param  Collection<string, BookingAttendeeStatus|null>  $statusById
+     */
+    private static function situation(KeyRing $ring, Collection $statusById): KeyRingSituation
+    {
+        if ($ring->holder_id === null) {
+            return KeyRingSituation::Cupboard;
+        }
+
+        $status = $statusById->get((string) $ring->holder_id);
+
+        return match ($status) {
+            BookingAttendeeStatus::Accepted => KeyRingSituation::Attending,
+            BookingAttendeeStatus::Declined => KeyRingSituation::CannotMakeIt,
+            BookingAttendeeStatus::Tentative, BookingAttendeeStatus::NeedsAction => KeyRingSituation::Invited,
+            default => KeyRingSituation::NotInvited,
+        };
     }
 
     /**

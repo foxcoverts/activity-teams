@@ -6,6 +6,7 @@ use App\Actions\RespondToBookingAction;
 use App\Enums\BookingAttendeeResponse;
 use App\Enums\BookingAttendeeStatus;
 use App\Filament\Bookings\BookingKeysAction;
+use App\Filament\Bookings\RefreshesWhenAttendanceChanges;
 use App\Filament\Member\Resources\Bookings\BookingResource;
 use App\Filament\Member\Resources\Bookings\BookingTimeline;
 use App\Models\Booking;
@@ -23,6 +24,8 @@ use InvalidArgumentException;
 
 class ViewBooking extends ViewRecord
 {
+    use RefreshesWhenAttendanceChanges;
+
     protected static string $resource = BookingResource::class;
 
     public function content(Schema $schema): Schema
@@ -124,6 +127,9 @@ class ViewBooking extends ViewRecord
                 }
 
                 Notification::make()->success()->title(__('Attendance updated'))->send();
+
+                $this->getRecord()->unsetRelation('attendees');
+                $this->dispatch('booking-attendance-updated');
             });
 
         return $actions;

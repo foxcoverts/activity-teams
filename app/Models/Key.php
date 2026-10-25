@@ -59,6 +59,37 @@ class Key extends Model
         });
     }
 
+    public function scopeOpenedBy(Builder $keys, User $user): void
+    {
+        $id = $user->getKey();
+
+        $keys->where(function (Builder $keys) use ($id): void {
+            $keys->whereHas('rings', fn (Builder $rings) => $rings->where('holder_id', $id))
+                ->orWhereHas('coveredBy.rings', fn (Builder $rings) => $rings->where('holder_id', $id));
+        });
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function requirementSummariesFor(?Team $team = null): array
+    {
+        $this->loadMissing('requirements.activity', 'requirements.venue');
+
+        $requirements = $this->requirements;
+
+        if ($team instanceof Team) {
+            $activityIds = once(fn (): array => $team->activities()->pluck('activities.id')->all());
+            $venueIds = once(fn (): array => $team->venues()->pluck('venues.id')->all());
+            $requirements = $requirements->filter(
+                fn (KeyRequirement $requirement): bool => in_array($requirement->activity_id, $activityIds, true)
+                    && in_array($requirement->venue_id, $venueIds, true),
+            );
+        }
+
+        return $requirements->map->summary()->values()->all();
+    }
+
     public function accessRings(): Builder
     {
         $id = $this->getKey();

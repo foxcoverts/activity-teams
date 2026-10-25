@@ -3,6 +3,7 @@
 namespace App\Filament\Manage\Resources\Bookings\Pages;
 
 use App\Filament\Bookings\BookingKeysAction;
+use App\Filament\Bookings\RefreshesWhenAttendanceChanges;
 use App\Filament\Manage\Resources\Bookings\BookingResource;
 use App\Filament\Manage\Resources\Bookings\BookingStatusActions;
 use App\Filament\Manage\Resources\Bookings\BookingTimeline;
@@ -15,6 +16,8 @@ use Filament\Schemas\Schema;
 
 class ViewBooking extends ViewRecord
 {
+    use RefreshesWhenAttendanceChanges;
+
     protected static string $resource = BookingResource::class;
 
     public function content(Schema $schema): Schema

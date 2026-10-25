@@ -34,9 +34,6 @@ class BookingAttendancePolicy
         if ($attendance->user?->isSuspended()) {
             return false;
         }
-        if ($attendance->isLeadInstructor() && $attendance->isAccepted()) {
-            return false;
-        }
         if ($this->managesBooking($user, $booking)) {
             return true;
         }

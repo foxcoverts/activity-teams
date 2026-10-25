@@ -100,6 +100,36 @@ class ViewBookingResponseTest extends TestCase
         );
     }
 
+    public function test_an_accepted_lead_can_step_down_from_the_booking_page(): void
+    {
+        $lead = User::factory()->teamMember()->create();
+        $booking = Booking::factory()->create([
+            'lead_instructor_id' => $lead->id,
+        ]);
+        $booking->attendees()->attach($lead->id, [
+            'status' => BookingAttendeeStatus::Accepted->value,
+            'token' => BookingAttendance::generateToken(),
+        ]);
+
+        $this->actingAs($lead);
+
+        $this->assertTrue($lead->can('update', $booking->attendees()->find($lead)->attendance));
+
+        Livewire::test(ViewBooking::class, ['record' => $booking->getRouteKey()])
+            ->assertActionVisible('respond')
+            ->callAction('respond', data: [
+                'response' => BookingAttendeeResponse::No->value,
+            ]);
+
+        $booking->refresh();
+
+        $this->assertNull($booking->lead_instructor_id);
+        $this->assertSame(
+            BookingAttendeeStatus::Declined,
+            $booking->attendees()->find($lead)->attendance->status,
+        );
+    }
+
     public function test_changing_a_response_keeps_the_existing_token(): void
     {
         $member = User::factory()->teamMember()->create();
