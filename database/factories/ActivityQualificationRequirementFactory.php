@@ -2,11 +2,8 @@
 
 namespace Database\Factories;
 
-use App\Enums\ScoutPermitActivity;
-use App\Enums\ScoutPermitType;
 use App\Models\Activity;
 use App\Models\ActivityQualificationRequirement;
-use App\Models\ScoutPermit;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -18,13 +15,11 @@ class ActivityQualificationRequirementFactory extends Factory
     {
         return [
             'activity_id' => Activity::factory(),
-            'detail_type' => ScoutPermit::class,
-            'permit_activity' => [ScoutPermitActivity::ClimbingAndAbseiling->value],
-            'category' => null,
-            'permit_type' => [ScoutPermitType::Leadership->value],
-            'award' => null,
-            'scheme' => null,
-            'level' => null,
+            'kind' => 'scout_permit',
+            'criteria' => [
+                'activity' => 'Climbing and Abseiling',
+                'permit_type' => 'leadership',
+            ],
             'sort' => 0,
         ];
     }

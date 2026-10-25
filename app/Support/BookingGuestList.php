@@ -51,7 +51,7 @@ class BookingGuestList
         $showKeys = $includeAccessDetails && $booking->requiredKeys()->isNotEmpty();
 
         $rows = $people
-            ->map(function (User $person) use ($activity, $includeAccessDetails, $keyBadges, $memberIdLookup, $showQualified): ?array {
+            ->map(function (User $person) use ($activity, $booking, $includeAccessDetails, $keyBadges, $memberIdLookup, $showQualified): ?array {
                 $status = $person->attendance?->status;
 
                 if (! $status instanceof BookingAttendeeStatus) {
@@ -66,7 +66,7 @@ class BookingGuestList
                     'qualified' => $includeAccessDetails
                         && $showQualified
                         && $activity instanceof Activity
-                        && $activity->metBy($person),
+                        && $activity->metBy($person, $booking),
                     'key_badge' => $includeAccessDetails
                         ? ($keyBadges[$person->getKey()] ?? null)
                         : null,

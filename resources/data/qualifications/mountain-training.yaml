@@ -1,0 +1,64 @@
+groups:
+  - name: Mountain Training
+    categories:
+      - name: Lowland Leader
+        section: Walking
+      - name: Hill and Moorland Leader
+        section: Walking
+        covers:
+          - Lowland Leader
+      - name: Mountain Leader
+        section: Walking
+        covers:
+          - Hill and Moorland Leader
+      - name: Winter Mountain Leader
+        section: Walking
+        covers:
+          - Mountain Leader
+      - name: International Mountain Leader
+        section: Walking
+        covers:
+          - Mountain Leader
+      - name: Indoor Climbing Assistant
+        section: Climbing
+      - name: Climbing Wall Instructor
+        section: Climbing
+        covers:
+          - Indoor Climbing Assistant
+      - name: Climbing Wall Instructor (Abseil)
+        section: Climbing
+        covers:
+          - Climbing Wall Instructor
+      - name: Climbing Wall Development Instructor
+        section: Climbing
+        covers:
+          - Climbing Wall Instructor
+      - name: Rock Climbing Instructor
+        section: Climbing
+        covers:
+          - Climbing Wall Instructor (Abseil)
+      - name: Rock Climbing Development Instructor
+        section: Climbing
+        covers:
+          - Rock Climbing Instructor
+          - Climbing Wall Development Instructor
+      - name: Mountaineering and Climbing Instructor
+        section: Climbing
+        covers:
+          - Rock Climbing Development Instructor
+          - Mountain Leader
+      - name: Winter Mountaineering and Climbing Instructor
+        section: Climbing
+        covers:
+          - Mountaineering and Climbing Instructor
+          - Winter Mountain Leader
+      - name: Foundation Coach
+        section: Coaching
+      - name: Development Coach
+        section: Coaching
+        covers:
+          - Foundation Coach
+      - name: Performance Coach
+        section: Coaching
+        covers:
+          - Development Coach

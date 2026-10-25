@@ -1,0 +1,45 @@
+families:
+  - id: scout_permit
+    label: Scout permit
+    expires: true
+    restrictions: true
+    unique: false
+    type_dimension: true
+    group_key: activity
+    node_key: category
+    file: scout-permits.yaml
+  - id: mountain_training
+    label: Mountain Training
+    expires: false
+    restrictions: false
+    unique: true
+    type_dimension: false
+    node_key: award
+    file: mountain-training.yaml
+  - id: girlguiding
+    label: Girlguiding
+    expires: true
+    restrictions: false
+    unique: false
+    type_dimension: false
+    group_key: scheme
+    node_key: level
+    file: girlguiding.yaml
+  - id: nsra
+    label: National Small-bore Rifle Association
+    short_label: NSRA
+    expires: true
+    restrictions: false
+    unique: true
+    type_dimension: false
+    node_key: award
+    file: nsra.yaml
+  - id: archery_gb_awards
+    label: Archery GB awards
+    short_label: Archery GB
+    expires: true
+    restrictions: false
+    unique: true
+    type_dimension: false
+    node_key: award
+    file: archery-gb-awards.yaml

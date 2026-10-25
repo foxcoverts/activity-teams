@@ -1,0 +1,25 @@
+groups:
+  - name: Archery GB awards
+    categories:
+      - name: Young Instructor Award
+        section: Instructor
+      - name: Instructor Award
+        section: Instructor
+      - name: Instructor Plus
+        section: Instructor
+        covers:
+          - Instructor Award
+      - name: Session Coach
+        section: Coaching
+      - name: Development Coach
+        section: Coaching
+        covers:
+          - Session Coach
+      - name: County Coach
+        section: Coaching
+        covers:
+          - Development Coach
+      - name: Senior Coach
+        section: Coaching
+        covers:
+          - County Coach

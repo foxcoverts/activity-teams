@@ -4,11 +4,9 @@ namespace App\Filament\Member\Resources\Qualifications;
 
 use App\Filament\Member\Resources\Qualifications\Pages\ListQualifications;
 use App\Filament\Member\Resources\Qualifications\Pages\ViewQualification;
-use App\Models\GirlguidingQualification;
-use App\Models\MountainTrainingQualification;
 use App\Models\Qualification;
-use App\Models\ScoutPermit;
 use App\Models\User;
+use App\Qualifications\PermitType;
 use BackedEnum;
 use Filament\Actions\ViewAction;
 use Filament\Infolists\Components\TextEntry;
@@ -44,8 +42,7 @@ class QualificationResource extends Resource
     public static function getEloquentQuery(): Builder
     {
         return parent::getEloquentQuery()
-            ->whereBelongsTo(auth()->user())
-            ->with('detail');
+            ->whereBelongsTo(auth()->user());
     }
 
     public static function infolist(Schema $schema): Schema
@@ -59,42 +56,30 @@ class QualificationResource extends Resource
                     ->label(__('Expires'))
                     ->date()
                     ->placeholder('—')
-                    ->visible(fn (Qualification $record): bool => ! $record->detail instanceof MountainTrainingQualification),
-                Group::make([
-                    TextEntry::make('detail.activity')
-                        ->label(__('Activity'))
-                        ->icon(fn (mixed $state): ?Heroicon => $state?->getIcon()),
-                    TextEntry::make('detail.category')
-                        ->label(__('Category'))
-                        ->icon(fn (mixed $state): ?Heroicon => $state?->getIcon())
-                        ->visible(fn (Qualification $record): bool => $record->detail instanceof ScoutPermit && $record->detail->category !== null),
-                    TextEntry::make('detail.permit_type')
-                        ->label(__('Permit type'))
-                        ->badge()
-                        ->icon(fn (mixed $state): ?Heroicon => $state?->getIcon()),
-                    TextEntry::make('detail.restrictions')
-                        ->label(__('Restrictions'))
-                        ->placeholder('—')
-                        ->columnSpanFull(),
-                ])
+                    ->color(fn (Qualification $record): ?array => $record->expiryColor())
+                    ->visible(fn (Qualification $record): bool => $record->expires_on !== null),
+                Group::make()
+                    ->schema(fn (Qualification $record): array => collect($record->detailFields())
+                        ->map(function (array $field) use ($record): TextEntry {
+                            $entry = TextEntry::make('field.'.str($field['label'])->slug())
+                                ->label($field['label'])
+                                ->state($field['value']);
+
+                            if ($field['label'] === __('Permit type') && filled($record->payload['permit_type'] ?? null)) {
+                                $entry->badge()
+                                    ->color(PermitType::color((string) $record->payload['permit_type']))
+                                    ->icon(PermitType::icon((string) $record->payload['permit_type']));
+                            }
+
+                            if ($field['label'] === __('Restrictions')) {
+                                $entry->columnSpanFull();
+                            }
+
+                            return $entry;
+                        })
+                        ->all())
                     ->columns(2)
-                    ->columnSpanFull()
-                    ->visible(fn (Qualification $record): bool => $record->detail instanceof ScoutPermit),
-                Group::make([
-                    TextEntry::make('detail.award')
-                        ->label(__('Award')),
-                ])
-                    ->columnSpanFull()
-                    ->visible(fn (Qualification $record): bool => $record->detail instanceof MountainTrainingQualification),
-                Group::make([
-                    TextEntry::make('detail.scheme')
-                        ->label(__('Scheme')),
-                    TextEntry::make('detail.level')
-                        ->label(__('Level')),
-                ])
-                    ->columns(2)
-                    ->columnSpanFull()
-                    ->visible(fn (Qualification $record): bool => $record->detail instanceof GirlguidingQualification),
+                    ->columnSpanFull(),
             ]);
     }
 
@@ -110,6 +95,7 @@ class QualificationResource extends Resource
                     ->label(__('Expires'))
                     ->date()
                     ->placeholder('—')
+                    ->color(fn (Qualification $record): ?array => $record->expiryColor())
                     ->sortable(),
             ])
             ->filters([

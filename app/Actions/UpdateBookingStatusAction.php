@@ -176,7 +176,7 @@ class UpdateBookingStatusAction
 
         $booking->loadMissing('activity');
 
-        if ($booking->activity instanceof Activity && ! $booking->activity->metBy($lead)) {
+        if ($booking->activity instanceof Activity && ! $booking->activity->metBy($lead, $booking)) {
             throw ValidationException::withMessages([
                 'lead_instructor_id' => __('The lead instructor must be qualified for this activity.'),
             ]);

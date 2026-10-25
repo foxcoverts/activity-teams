@@ -4,8 +4,6 @@ namespace Tests\Feature;
 
 use App\Enums\BookingAttendeeStatus;
 use App\Enums\MembershipRole;
-use App\Enums\ScoutPermitActivity;
-use App\Enums\ScoutPermitType;
 use App\Filament\Admin\Resources\KeyRings\KeyRingResource as ManageKeyRingResource;
 use App\Filament\Admin\Resources\KeyRings\Pages\CreateKeyRing;
 use App\Filament\Admin\Resources\Keys\KeyResource;
@@ -24,7 +22,6 @@ use App\Models\BookingAttendance;
 use App\Models\Key;
 use App\Models\KeyRing;
 use App\Models\Qualification;
-use App\Models\ScoutPermit;
 use App\Models\Team;
 use App\Models\User;
 use App\Models\Venue;
@@ -339,9 +336,11 @@ class KeyAccessTest extends TestCase
         $member = User::factory()->teamMember()->create(['name' => 'Casey Member']);
         $activity = Activity::factory()->create();
         $activity->qualificationRequirements()->create([
-            'detail_type' => ScoutPermit::class,
-            'permit_activity' => [ScoutPermitActivity::ClimbingAndAbseiling->value],
-            'permit_type' => [ScoutPermitType::Leadership->value],
+            'kind' => 'scout_permit',
+            'criteria' => [
+                'activity' => 'Climbing and Abseiling',
+                'permit_type' => 'leadership',
+            ],
         ]);
         $booking = Booking::factory()->confirmed()->create([
             'activity_id' => $activity->getKey(),
@@ -352,9 +351,9 @@ class KeyAccessTest extends TestCase
         ])->create(['expires_on' => now()->addYear()->toDateString()]);
         Qualification::factory()->forMember($holder)->mountainTraining()->create();
         Qualification::factory()->forMember($holder)->scoutPermit([
-            'activity' => ScoutPermitActivity::Archery,
-            'category' => null,
-            'permit_type' => ScoutPermitType::Supervisory,
+            'activity' => 'Archery',
+            'category' => 'without Compound Bows',
+            'permit_type' => 'supervisory',
         ])->create(['expires_on' => now()->subDay()->toDateString()]);
 
         $store = Key::factory()->create(['name' => 'Climbing store']);
@@ -401,7 +400,7 @@ class KeyAccessTest extends TestCase
             'pageClass' => MemberViewBooking::class,
         ])
             ->mountTableAction('qualifications', $holder)
-            ->assertMountedActionModalSee('Climbing and abseiling — Artificial top rope — Leadership');
+            ->assertMountedActionModalSee('Climbing and Abseiling — Artificial Top Rope — Leadership');
 
         $this->actingAs($member);
 
@@ -434,6 +433,8 @@ class KeyAccessTest extends TestCase
         $this->assertStringContainsString('Show other qualifications', $qualifications);
         $this->assertStringContainsString('Climbing Wall Instructor', $qualifications);
         $this->assertStringContainsString('No night climbing', $qualifications);
+        $this->assertStringContainsString('text-success-600', $qualifications);
+        $this->assertStringContainsString('text-danger-600', $qualifications);
         $this->assertStringContainsString('x-on:click="showOther = ! showOther"', $qualifications);
         $this->assertStringNotContainsString('toggleOtherQualifications', $qualifications);
 
@@ -446,7 +447,7 @@ class KeyAccessTest extends TestCase
         Livewire::test(SessionRoster::class, ['booking' => $booking])
             ->assertSee('Qualified')
             ->call('openQualifications', $holder->getKey())
-            ->assertSee('Climbing and abseiling — Artificial top rope — Leadership')
+            ->assertSee('Climbing and Abseiling — Artificial Top Rope — Leadership')
             ->assertDontSee('Climbing Wall Instructor')
             ->assertDontSee('Archery')
             ->call('toggleOtherQualifications')
@@ -460,7 +461,7 @@ class KeyAccessTest extends TestCase
             })
             ->call('closeQualification')
             ->assertDontSee('No night climbing')
-            ->assertSee('Climbing and abseiling — Artificial top rope — Leadership');
+            ->assertSee('Climbing and Abseiling — Artificial Top Rope — Leadership');
 
         $this->actingAs($member);
 

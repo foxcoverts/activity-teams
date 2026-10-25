@@ -1,0 +1,636 @@
+groups:
+  -
+    name: Archery
+    categories:
+      -
+        name: 'without Compound Bows'
+        types_allowed:
+          - leadership
+          - supervisory
+      -
+        name: 'with Compound Bows'
+        covers:
+          - 'without Compound Bows'
+        types_allowed:
+          - leadership
+          - supervisory
+  -
+    name: 'Bell Boating'
+    categories:
+      -
+        name: B1
+        types_allowed:
+          - leadership
+          - supervisory
+      -
+        name: B2+
+        covers:
+          - B1
+        types_allowed:
+          - leadership
+          - supervisory
+  -
+    name: 'Canoeing Open Inland'
+    categories:
+      -
+        name: B1
+      -
+        name: B2
+        covers:
+          - B1
+      -
+        name: B3
+        covers:
+          - B2
+      -
+        name: A
+        covers:
+          - B3
+  -
+    name: 'Canoeing River'
+    categories:
+      -
+        name: B1
+      -
+        name: B2
+        covers:
+          - B1
+      -
+        name: B3
+        covers:
+          - B2
+      -
+        name: A
+        covers:
+          - B3
+  -
+    name: 'Canoeing Sea'
+    categories:
+      -
+        name: B1
+      -
+        name: B2
+        covers:
+          - B1
+      -
+        name: B3
+        covers:
+          - B2
+      -
+        name: A
+        covers:
+          - B3
+  -
+    name: Caving
+    categories:
+      -
+        name: 'No Vertical Pitches'
+        types_allowed:
+          - personal
+          - leadership
+      -
+        name: 'with Ladders'
+        covers:
+          - 'No Vertical Pitches'
+        types_allowed:
+          - personal
+          - leadership
+      -
+        name: 'with SRT for the leader'
+        covers:
+          - 'with Ladders'
+        types_allowed:
+          - personal
+          - leadership
+      -
+        name: 'with SRT for the group'
+        covers:
+          - 'with SRT for the leader'
+        types_allowed:
+          - leadership
+  -
+    name: 'Climbing and Abseiling'
+    categories:
+      -
+        name: 'Artificial Top Rope'
+      -
+        name: 'Natural Top Rope'
+        covers:
+          - 'Artificial Top Rope'
+      -
+        name: 'Artificial Lead Climbing'
+        covers:
+          - 'Artificial Top Rope'
+      -
+        name: 'Natural Lead Climbing'
+        covers:
+          - 'Natural Top Rope'
+          - 'Artificial Lead Climbing'
+      -
+        name: 'Multi Pitch'
+        covers:
+          - 'Natural Lead Climbing'
+        types_allowed:
+          - personal
+          - leadership
+  -
+    name: 'Dinghy Sailing'
+    categories:
+      -
+        name: B1
+      -
+        name: B2
+        covers:
+          - B1
+      -
+        name: B3
+        covers:
+          - B2
+      -
+        name: A
+        covers:
+          - B3
+  -
+    name: 'Dragon Boating'
+    categories:
+      -
+        name: B1
+        types_allowed:
+          - leadership
+          - supervisory
+      -
+        name: B2+
+        covers:
+          - B1
+        types_allowed:
+          - leadership
+          - supervisory
+  -
+    name: Hillwalking
+    categories:
+      -
+        name: 'T1 Summer'
+      -
+        name: 'T2 Summer'
+        covers:
+          - 'T1 Summer'
+      -
+        name: 'T1 Winter'
+        covers:
+          - 'T1 Summer'
+      -
+        name: 'T2 Winter'
+        covers:
+          - 'T2 Summer'
+          - 'T1 Winter'
+  -
+    name: 'Hovercrafting (Land)'
+    categories:
+      -
+        name: Land
+  -
+    name: 'Hovercrafting (Water)'
+    categories:
+      -
+        name: C
+      -
+        name: B1
+        covers:
+          - C
+      -
+        name: B2
+        covers:
+          - B1
+  -
+    name: 'Ice Climbing'
+    categories:
+      -
+        name: 'Artificial Top Rope'
+      -
+        name: 'Natural Top Rope'
+        covers:
+          - 'Artificial Top Rope'
+      -
+        name: 'Artificial Lead Climbing'
+        covers:
+          - 'Artificial Top Rope'
+      -
+        name: 'Natural Lead Climbing'
+        covers:
+          - 'Natural Top Rope'
+          - 'Artificial Lead Climbing'
+      -
+        name: 'Multi Pitch'
+        covers:
+          - 'Natural Lead Climbing'
+        types_allowed:
+          - personal
+          - leadership
+  -
+    name: 'Kayaking Open Inland'
+    categories:
+      -
+        name: B1
+      -
+        name: B2
+        covers:
+          - B1
+      -
+        name: B3
+        covers:
+          - B2
+      -
+        name: A
+        covers:
+          - B3
+  -
+    name: 'Kayaking River'
+    categories:
+      -
+        name: B1
+      -
+        name: B2
+        covers:
+          - B1
+      -
+        name: B3
+        covers:
+          - B2
+      -
+        name: A
+        covers:
+          - B3
+  -
+    name: 'Kayaking Sea'
+    categories:
+      -
+        name: B1
+      -
+        name: B2
+        covers:
+          - B1
+      -
+        name: B3
+        covers:
+          - B2
+      -
+        name: A
+        covers:
+          - B3
+  -
+    name: 'Kayaking Surf'
+    categories:
+      -
+        name: B2
+      -
+        name: B3
+        covers:
+          - B2
+      -
+        name: A
+        covers:
+          - B3
+  -
+    name: Keelboating
+    categories:
+      -
+        name: B1
+        types_allowed:
+          - leadership
+      -
+        name: B2
+        covers:
+          - B1
+        types_allowed:
+          - leadership
+      -
+        name: B3
+        covers:
+          - B2
+        types_allowed:
+          - leadership
+      -
+        name: A
+        covers:
+          - B3
+        types_allowed:
+          - leadership
+  -
+    name: 'Kite Surfing'
+    categories:
+      -
+        name: B1
+      -
+        name: B2
+        covers:
+          - B1
+      -
+        name: B3
+        covers:
+          - B2
+      -
+        name: A
+        covers:
+          - B3
+  -
+    name: 'Mine Exploration'
+    categories:
+      -
+        name: 'No Vertical Pitches'
+        types_allowed:
+          - personal
+          - leadership
+      -
+        name: 'with Ladders'
+        covers:
+          - 'No Vertical Pitches'
+        types_allowed:
+          - personal
+          - leadership
+      -
+        name: 'with SRT for the leader'
+        covers:
+          - 'with Ladders'
+        types_allowed:
+          - personal
+          - leadership
+  -
+    name: 'Motor Cruising'
+    categories:
+      -
+        name: B2
+        types_allowed:
+          - leadership
+      -
+        name: B3
+        covers:
+          - B2
+        types_allowed:
+          - leadership
+      -
+        name: A
+        covers:
+          - B3
+        types_allowed:
+          - leadership
+  -
+    name: 'Narrow Boating'
+    categories:
+      -
+        name: C
+        types_allowed:
+          - leadership
+      -
+        name: B1
+        covers:
+          - C
+        types_allowed:
+          - leadership
+      -
+        name: B2+
+        covers:
+          - B1
+        types_allowed:
+          - leadership
+  -
+    name: 'Off-Road Cycling'
+    categories:
+      -
+        name: 'Environment 1'
+      -
+        name: 'Environment 2'
+        covers:
+          - 'Environment 1'
+  -
+    name: 'Personal Watercraft (Jet Ski)'
+    categories:
+      -
+        name: C
+      -
+        name: B1
+        covers:
+          - C
+      -
+        name: B2
+        covers:
+          - B1
+      -
+        name: B3
+        covers:
+          - B2
+      -
+        name: A
+        covers:
+          - B3
+  -
+    name: 'Power Boating'
+    categories:
+      -
+        name: C
+      -
+        name: B1
+        covers:
+          - C
+      -
+        name: B2
+        covers:
+          - B1
+      -
+        name: B3
+        covers:
+          - B2
+      -
+        name: A
+        covers:
+          - B3
+  -
+    name: Pulling
+    categories:
+      -
+        name: B1
+      -
+        name: B2+
+        covers:
+          - B1
+  -
+    name: 'Rafting (Traditional)'
+    categories:
+      -
+        name: B1
+      -
+        name: B2+
+        covers:
+          - B1
+  -
+    name: 'Rowing and Sculling'
+    categories:
+      -
+        name: Standard
+  -
+    name: 'Scuba Diving'
+    categories:
+      -
+        name: 'Sheltered Water'
+        types_allowed:
+          - personal
+          - leadership
+      -
+        name: 'Open Water'
+        covers:
+          - 'Sheltered Water'
+        types_allowed:
+          - personal
+          - leadership
+  -
+    name: 'Skiing On Piste'
+    categories:
+      -
+        name: Downhill
+      -
+        name: 'Cross Country'
+  -
+    name: 'Skiing Off Piste'
+    categories:
+      -
+        name: 'Terrain 1'
+      -
+        name: 'Terrain 2'
+        covers:
+          - 'Terrain 1'
+  -
+    name: Snorkelling
+    categories:
+      -
+        name: Standard
+        types_allowed:
+          - personal
+          - leadership
+  -
+    name: 'Snowboarding On Piste'
+    categories:
+      -
+        name: 'On Piste'
+  -
+    name: 'Snowboarding Off Piste'
+    categories:
+      -
+        name: 'Terrain 1'
+      -
+        name: 'Terrain 2'
+        covers:
+          - 'Terrain 1'
+  -
+    name: 'Stand Up Paddleboarding Open Inland'
+    categories:
+      -
+        name: B1
+      -
+        name: B2
+        covers:
+          - B1
+      -
+        name: B3
+        covers:
+          - B2
+      -
+        name: A
+        covers:
+          - B3
+  -
+    name: 'Stand Up Paddleboarding River'
+    categories:
+      -
+        name: B2
+      -
+        name: B3
+        covers:
+          - B2
+      -
+        name: A
+        covers:
+          - B3
+  -
+    name: 'Stand Up Paddleboarding Sea'
+    categories:
+      -
+        name: B1
+      -
+        name: B2
+        covers:
+          - B1
+      -
+        name: B3
+        covers:
+          - B2
+      -
+        name: A
+        covers:
+          - B3
+  -
+    name: 'Water Skiing'
+    categories:
+      -
+        name: C
+        types_allowed:
+          - leadership
+      -
+        name: B1
+        covers:
+          - C
+        types_allowed:
+          - leadership
+      -
+        name: B2+
+        covers:
+          - B1
+        types_allowed:
+          - leadership
+  -
+    name: 'White Water Rafting'
+    categories:
+      -
+        name: Standard
+        types_allowed:
+          - leadership
+  -
+    name: 'Wind Surfing'
+    categories:
+      -
+        name: B1
+      -
+        name: B2
+        covers:
+          - B1
+      -
+        name: B3
+        covers:
+          - B2
+      -
+        name: A
+        covers:
+          - B3
+  -
+    name: Yachting
+    categories:
+      -
+        name: B1
+        types_allowed:
+          - leadership
+      -
+        name: B2
+        covers:
+          - B1
+        types_allowed:
+          - leadership
+      -
+        name: B3
+        covers:
+          - B2
+        types_allowed:
+          - leadership
+      -
+        name: A
+        covers:
+          - B3
+        types_allowed:
+          - leadership

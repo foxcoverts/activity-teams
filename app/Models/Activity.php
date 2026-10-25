@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Carbon\CarbonInterface;
 use Database\Factories\ActivityFactory;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -64,19 +65,24 @@ class Activity extends Model
         return $this->qualificationRequirements()->exists();
     }
 
-    public function metBy(User $user): bool
+    public function metBy(User $user, Booking|CarbonInterface|null $asOf = null): bool
     {
-        $requirements = $this->qualificationRequirements()->get();
+        $requirements = $this->relationLoaded('qualificationRequirements')
+            ? $this->qualificationRequirements
+            : $this->qualificationRequirements()->get();
 
         if ($requirements->isEmpty()) {
             return true;
         }
 
-        $qualifications = $user->qualifications()->with('detail')->get();
+        $date = $asOf instanceof Booking ? $asOf->qualificationAsOf() : $asOf;
+        $qualifications = $user->relationLoaded('qualifications')
+            ? $user->qualifications
+            : $user->qualifications()->get();
 
         foreach ($requirements as $requirement) {
             foreach ($qualifications as $qualification) {
-                if ($requirement->matches($qualification)) {
+                if ($requirement->matches($qualification, $date)) {
                     return true;
                 }
             }

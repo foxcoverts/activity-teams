@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Qualifications\CatalogueCompiler;
+use App\Qualifications\QualificationCatalogue;
 use Filament\Support\Facades\FilamentView;
 use Filament\View\PanelsRenderHook;
 use Illuminate\Contracts\View\View;
@@ -12,12 +14,19 @@ class AppServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        //
+        $this->app->singleton(CatalogueCompiler::class);
+        $this->app->singleton(QualificationCatalogue::class);
     }
 
     public function boot(): void
     {
         Model::shouldBeStrict(! $this->app->isProduction());
+
+        $this->optimizes(
+            optimize: 'qualifications:cache',
+            clear: 'qualifications:clear',
+            key: 'qualifications',
+        );
 
         FilamentView::registerRenderHook(
             PanelsRenderHook::TOPBAR_AFTER,

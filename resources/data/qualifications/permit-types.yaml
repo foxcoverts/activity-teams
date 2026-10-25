@@ -1,0 +1,6 @@
+permit_types:
+  - id: personal
+  - id: leadership
+  - id: supervisory
+    covers:
+      - leadership

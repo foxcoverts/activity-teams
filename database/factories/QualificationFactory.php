@@ -2,16 +2,9 @@
 
 namespace Database\Factories;
 
-use App\Enums\GirlguidingLevel;
-use App\Enums\MountainTrainingAward;
-use App\Enums\ScoutPermitActivity;
-use App\Models\GirlguidingQualification;
-use App\Models\MountainTrainingQualification;
 use App\Models\Qualification;
-use App\Models\ScoutPermit;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
-use Illuminate\Database\Eloquent\Model;
 
 /**
  * @extends Factory<Qualification>
@@ -22,50 +15,79 @@ class QualificationFactory extends Factory
     {
         return [
             'user_id' => User::factory(),
+            'kind' => 'scout_permit',
+            'payload' => [
+                'activity' => 'Climbing and Abseiling',
+                'category' => 'Artificial Top Rope',
+                'permit_type' => 'leadership',
+            ],
             'expires_on' => now()->addYear()->toDateString(),
         ];
     }
 
-    public function configure(): static
-    {
-        return $this->afterMaking(function (Qualification $qualification): void {
-            if (filled($qualification->detail_id)) {
-                return;
-            }
-
-            $qualification->detail()->associate(ScoutPermit::factory()->create());
-        });
-    }
-
     /**
-     * @param  array<string, mixed>  $attributes
+     * @param  array<string, mixed>  $payload
      */
-    public function scoutPermit(array $attributes = []): static
+    public function scoutPermit(array $payload = []): static
     {
-        return $this->withDetail(fn (): Model => ScoutPermit::factory()->create($attributes));
+        return $this->state(fn (): array => [
+            'kind' => 'scout_permit',
+            'payload' => [
+                'activity' => 'Climbing and Abseiling',
+                'category' => 'Artificial Top Rope',
+                'permit_type' => 'leadership',
+                ...$payload,
+            ],
+            'expires_on' => now()->addYear()->toDateString(),
+        ]);
     }
 
     public function archery(): static
     {
         return $this->scoutPermit([
-            'activity' => ScoutPermitActivity::Archery,
-            'category' => null,
+            'activity' => 'Archery',
+            'category' => 'without Compound Bows',
+            'permit_type' => 'leadership',
         ]);
     }
 
-    public function mountainTraining(MountainTrainingAward $award = MountainTrainingAward::ClimbingWallInstructor): static
+    public function mountainTraining(string $award = 'Climbing Wall Instructor'): static
     {
-        return $this->withDetail(
-            fn (): Model => MountainTrainingQualification::factory()->create(['award' => $award]),
-            expiresOn: null,
-        );
+        return $this->state(fn (): array => [
+            'kind' => 'mountain_training',
+            'payload' => ['award' => $award],
+            'expires_on' => null,
+        ]);
     }
 
-    public function girlguiding(GirlguidingLevel $level = GirlguidingLevel::One): static
+    public function girlguiding(string $level = '1', string $scheme = 'Climbing'): static
     {
-        return $this->withDetail(
-            fn (): Model => GirlguidingQualification::factory()->create(['level' => $level]),
-        );
+        return $this->state(fn (): array => [
+            'kind' => 'girlguiding',
+            'payload' => [
+                'scheme' => $scheme,
+                'level' => $level,
+            ],
+            'expires_on' => now()->addYear()->toDateString(),
+        ]);
+    }
+
+    public function nsra(string $award = 'Club Instructor'): static
+    {
+        return $this->state(fn (): array => [
+            'kind' => 'nsra',
+            'payload' => ['award' => $award],
+            'expires_on' => now()->addYear()->toDateString(),
+        ]);
+    }
+
+    public function archeryGb(string $award = 'Instructor Award'): static
+    {
+        return $this->state(fn (): array => [
+            'kind' => 'archery_gb_awards',
+            'payload' => ['award' => $award],
+            'expires_on' => now()->addYear()->toDateString(),
+        ]);
     }
 
     public function forMember(User $user): static
@@ -73,26 +95,5 @@ class QualificationFactory extends Factory
         return $this->state(fn (): array => [
             'user_id' => $user->getKey(),
         ]);
-    }
-
-    /**
-     * @param  callable(): Model  $makeDetail
-     */
-    protected function withDetail(callable $makeDetail, mixed $expiresOn = 'keep'): static
-    {
-        return $this->state(function () use ($makeDetail, $expiresOn): array {
-            $detail = $makeDetail();
-
-            $attributes = [
-                'detail_type' => $detail->getMorphClass(),
-                'detail_id' => $detail->getKey(),
-            ];
-
-            if ($expiresOn !== 'keep') {
-                $attributes['expires_on'] = $expiresOn;
-            }
-
-            return $attributes;
-        });
     }
 }

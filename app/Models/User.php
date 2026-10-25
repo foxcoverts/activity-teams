@@ -99,7 +99,7 @@ class User extends Authenticatable implements FilamentUser, HasDefaultTenant, Ha
                 return;
             }
 
-            $user->qualifications()->with('detail')->get()->each->delete();
+            $user->qualifications()->get()->each->delete();
         });
     }
 

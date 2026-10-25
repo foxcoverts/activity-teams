@@ -1,0 +1,25 @@
+groups:
+  - name: NSRA
+    categories:
+      - name: YPS Tutor
+        section: Coaching and Instructing
+      - name: Club Instructor
+        section: Coaching and Instructing
+      - name: Club Coach
+        section: Coaching and Instructing
+        covers:
+          - Club Instructor
+      - name: County Coach
+        section: Coaching and Instructing
+        covers:
+          - Club Coach
+      - name: Regional Coach
+        section: Coaching and Instructing
+        covers:
+          - County Coach
+      - name: National Coach
+        section: Coaching and Instructing
+        covers:
+          - Regional Coach
+      - name: Range Conducting Officer
+        section: Range Management

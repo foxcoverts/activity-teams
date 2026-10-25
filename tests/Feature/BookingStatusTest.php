@@ -7,7 +7,6 @@ use App\Actions\UpdateBookingStatusAction;
 use App\Enums\BookingAttendeeStatus;
 use App\Enums\BookingStatus;
 use App\Enums\MembershipRole;
-use App\Enums\MountainTrainingAward;
 use App\Filament\Manage\Resources\Bookings\BookingResource;
 use App\Filament\Manage\Resources\Bookings\Pages\CreateBooking;
 use App\Filament\Manage\Resources\Bookings\Pages\EditBooking;
@@ -23,7 +22,6 @@ use App\Mail\LeadNeededMail;
 use App\Models\Activity;
 use App\Models\Booking;
 use App\Models\BookingAttendance;
-use App\Models\MountainTrainingQualification;
 use App\Models\Qualification;
 use App\Models\User;
 use App\Models\Venue;
@@ -154,8 +152,8 @@ class BookingStatusTest extends TestCase
         $other = User::factory()->teamMember()->create(['name' => 'Alex Guest']);
         $activity = Activity::factory()->create();
         $activity->qualificationRequirements()->create([
-            'detail_type' => MountainTrainingQualification::class,
-            'award' => [MountainTrainingAward::ClimbingWallInstructor->value],
+            'kind' => 'mountain_training',
+            'criteria' => ['award' => 'Climbing Wall Instructor'],
         ]);
         $booking = Booking::factory()->create(['activity_id' => $activity->getKey()]);
         Qualification::factory()->forMember($qualified)->mountainTraining()->create();
@@ -191,8 +189,8 @@ class BookingStatusTest extends TestCase
         $attending = User::factory()->create(['name' => 'Attending Only']);
         $activity = Activity::factory()->create();
         $activity->qualificationRequirements()->create([
-            'detail_type' => MountainTrainingQualification::class,
-            'award' => [MountainTrainingAward::ClimbingWallInstructor->value],
+            'kind' => 'mountain_training',
+            'criteria' => ['award' => 'Climbing Wall Instructor'],
         ]);
         $booking = Booking::factory()->create(['activity_id' => $activity->getKey()]);
         Qualification::factory()->forMember($qualified)->mountainTraining()->create();

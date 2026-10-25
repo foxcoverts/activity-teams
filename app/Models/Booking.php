@@ -7,6 +7,7 @@ use App\Casts\AsTimezone;
 use App\Enums\BookingAttendeeStatus;
 use App\Enums\BookingStatus;
 use Carbon\Carbon;
+use Carbon\CarbonInterface;
 use Database\Factories\BookingFactory;
 use Filament\Facades\Filament;
 use Illuminate\Database\Eloquent\Builder;
@@ -170,9 +171,14 @@ class Booking extends Model
         $activity = $this->activity;
 
         return $this->acceptedAttendees()
-            ->filter(fn (User $user): bool => ! $activity instanceof Activity || $activity->metBy($user))
+            ->filter(fn (User $user): bool => ! $activity instanceof Activity || $activity->metBy($user, $this))
             ->mapWithKeys(fn (User $user): array => [$user->getKey() => $user->name])
             ->all();
+    }
+
+    public function qualificationAsOf(): CarbonInterface
+    {
+        return $this->end_at->copy()->timezone($this->timezone)->startOfDay();
     }
 
     public function activity(): BelongsTo

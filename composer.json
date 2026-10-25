@@ -21,6 +21,7 @@
         "propaganistas/laravel-phone": "^6.1",
         "ralphjsmit/laravel-filament-activitylog": "^3.0.0-beta2",
         "spatie/laravel-activitylog": "^5.1",
+        "symfony/yaml": "^7.4|^8.0",
         "ysfkaya/filament-phone-input": "^4.2"
     },
     "require-dev": {

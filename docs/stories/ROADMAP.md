@@ -111,7 +111,7 @@ US-49 should precede changes that depend on controlled activity or venue catalog
 
 1. **Done except the US-15→US-28 dependency:** remaining [US-10](US-10-lead-instructor-resignation.md) manager alerts and [US-11](US-11-lead-instructor-assignment-notifications.md) lead-responsibility copy. [US-28](US-28-booking-cancellation-reasons.md) cancellation reason, history, and subject are in place; emailing iMIP declines still waits on item 6.
 2. Complete [US-04 Multi-Venue Management](US-04-multi-venue-location-management.md) and [US-03 Booking Venue Access & Logistics](US-03-booking-venue-access-logistics.md) if confirmed in the cutover inventory. Establish venue and key requirements before building derived access indicators.
-3. Complete [US-07 Qualification Expiry Tracking](US-07-qualification-expiry-tracking.md) if expiry warnings are part of the retained credential workflow.
+3. **Done: [US-07 Qualification Expiry Tracking](US-07-qualification-expiry-tracking.md).** Current qualifications are green, those expiring within three months are amber, and expired ones are red on member qualification screens. Mountain Training stays uncoloured.
 4. Implement [US-51 Pass a Key Ring](US-51-pass-a-key-ring.md) if the legacy key-transfer workflow remains in use.
 5. Finish [US-37 Related Bookings](US-37-related-bookings-multi-day.md) before implementing related-event export in US-13.
 6. Implement required [US-15](US-15-inbound-calendar-response-parsing.md) inbound calendar handling and US-55's broader inbound capture/routing and operator alerts. Ensure the US-15 iMIP decline provenance is in place before applying its special declined-attendee rule to US-28.

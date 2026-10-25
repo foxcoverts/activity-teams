@@ -234,11 +234,12 @@ class InviteAttendees extends Component
      */
     private function roster(): Collection
     {
-        $this->booking->loadMissing(['team', 'activity.qualificationRequirements', 'attendees']);
+        $this->booking->loadMissing(['team', 'activity.qualificationRequirements', 'attendees.qualifications']);
 
         $members = $this->booking->team?->members()
             ->where('suspended', false)
             ->whereNotNull('email_verified_at')
+            ->with('qualifications')
             ->ordered()
             ->get()
             ->keyBy(fn (User $user): string => $user->getKey())
@@ -265,7 +266,7 @@ class InviteAttendees extends Component
                 return [
                     'id' => $id,
                     'name' => $user->name,
-                    'qualified' => $showQualified && $activity->metBy($user),
+                    'qualified' => $showQualified && $activity->metBy($user, $this->booking),
                     'key_badge' => $badges[$id] ?? null,
                     'status' => $onBooking ? $attendee->attendance?->status : null,
                     'can_add' => $member instanceof User && ! $onBooking,

@@ -2,22 +2,14 @@
 
 namespace App\Filament\Admin\Resources\Activities;
 
-use App\Enums\GirlguidingLevel;
-use App\Enums\GirlguidingScheme;
-use App\Enums\MountainTrainingAward;
-use App\Enums\ScoutPermitActivity;
-use App\Enums\ScoutPermitCategory;
-use App\Enums\ScoutPermitType;
 use App\Filament\Admin\NavigationGroup;
 use App\Filament\Admin\Resources\Activities\Pages\CreateActivity;
 use App\Filament\Admin\Resources\Activities\Pages\EditActivity;
 use App\Filament\Admin\Resources\Activities\Pages\ListActivities;
 use App\Filament\Admin\Resources\Activities\Pages\ViewActivity;
+use App\Filament\Qualifications\QualificationSchema;
 use App\Models\Activity;
 use App\Models\ActivityQualificationRequirement;
-use App\Models\GirlguidingQualification;
-use App\Models\MountainTrainingQualification;
-use App\Models\ScoutPermit;
 use App\Models\User;
 use BackedEnum;
 use Filament\Actions\BulkActionGroup;
@@ -25,13 +17,11 @@ use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
 use Filament\Forms\Components\Repeater;
-use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Infolists\Components\RepeatableEntry;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Resources\Resource;
-use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
@@ -79,55 +69,16 @@ class ActivityResource extends Resource
                 ->orderColumn('sort')
                 ->label(__('Acceptable qualifications'))
                 ->helperText(__('Each row is one way to qualify. Leave a field blank for any value. A higher category, permit type, level, or award covers a lower one. Permit restrictions are ignored. Leave this empty when the activity needs no qualification.'))
-                ->schema([
-                    Select::make('detail_type')
-                        ->label(__('Type'))
-                        ->options([
-                            ScoutPermit::class => __('Scout permit'),
-                            MountainTrainingQualification::class => __('Mountain Training'),
-                            GirlguidingQualification::class => __('Girlguiding'),
-                        ])
-                        ->live()
-                        ->required(),
-                    Select::make('permit_activity')
-                        ->label(__('Activity'))
-                        ->options(ScoutPermitActivity::class)
-                        ->multiple()
-                        ->visible(fn (Get $get): bool => $get('detail_type') === ScoutPermit::class)
-                        ->dehydrated(fn (Get $get): bool => $get('detail_type') === ScoutPermit::class),
-                    Select::make('category')
-                        ->options(ScoutPermitCategory::class)
-                        ->multiple()
-                        ->visible(fn (Get $get): bool => $get('detail_type') === ScoutPermit::class && ActivityQualificationRequirement::allowsClimbingCategory($get('permit_activity')))
-                        ->dehydrated(fn (Get $get): bool => $get('detail_type') === ScoutPermit::class && ActivityQualificationRequirement::allowsClimbingCategory($get('permit_activity'))),
-                    Select::make('permit_type')
-                        ->label(__('Permit type'))
-                        ->options(ScoutPermitType::class)
-                        ->multiple()
-                        ->visible(fn (Get $get): bool => $get('detail_type') === ScoutPermit::class)
-                        ->dehydrated(fn (Get $get): bool => $get('detail_type') === ScoutPermit::class),
-                    Select::make('award')
-                        ->options(MountainTrainingAward::class)
-                        ->multiple()
-                        ->visible(fn (Get $get): bool => $get('detail_type') === MountainTrainingQualification::class)
-                        ->dehydrated(fn (Get $get): bool => $get('detail_type') === MountainTrainingQualification::class),
-                    Select::make('scheme')
-                        ->options(GirlguidingScheme::class)
-                        ->multiple()
-                        ->visible(fn (Get $get): bool => $get('detail_type') === GirlguidingQualification::class)
-                        ->dehydrated(fn (Get $get): bool => $get('detail_type') === GirlguidingQualification::class),
-                    Select::make('level')
-                        ->options(GirlguidingLevel::class)
-                        ->multiple()
-                        ->visible(fn (Get $get): bool => $get('detail_type') === GirlguidingQualification::class)
-                        ->dehydrated(fn (Get $get): bool => $get('detail_type') === GirlguidingQualification::class),
-                ])
+                ->schema(QualificationSchema::requirementFields())
+                ->mutateRelationshipDataBeforeCreateUsing(fn (array $data): array => QualificationSchema::packRequirement($data))
+                ->mutateRelationshipDataBeforeSaveUsing(fn (array $data): array => QualificationSchema::packRequirement($data))
+                ->mutateRelationshipDataBeforeFillUsing(fn (array $data): array => QualificationSchema::unpackRequirement($data))
                 ->itemLabel(function (array $state): ?string {
-                    if (blank($state['detail_type'] ?? null)) {
+                    if (blank($state['kind'] ?? null)) {
                         return null;
                     }
 
-                    return (new ActivityQualificationRequirement($state))->summary;
+                    return (new ActivityQualificationRequirement(QualificationSchema::packRequirement($state)))->summary;
                 })
                 ->addActionLabel(__('Add alternative'))
                 ->defaultItems(0)

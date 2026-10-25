@@ -5,12 +5,9 @@ namespace App\Support;
 use App\Models\Activity;
 use App\Models\ActivityQualificationRequirement;
 use App\Models\Booking;
-use App\Models\GirlguidingQualification;
 use App\Models\Key;
 use App\Models\KeyRing;
-use App\Models\MountainTrainingQualification;
 use App\Models\Qualification;
-use App\Models\ScoutPermit;
 use App\Models\User;
 
 class BookingPeople
@@ -82,7 +79,7 @@ class BookingPeople
     public static function panel(Booking $booking, User $person, string $panel): array
     {
         $booking->loadMissing('activity.qualificationRequirements');
-        $groups = self::qualifications($person, $booking->activity);
+        $groups = self::qualifications($person, $booking->activity, $booking);
 
         return [
             'panel' => $panel,
@@ -95,25 +92,28 @@ class BookingPeople
     /**
      * @return array{relevant: list<array<string, mixed>>, other: list<array<string, mixed>>}
      */
-    public static function qualifications(User $person, ?Activity $activity): array
+    public static function qualifications(User $person, ?Activity $activity, ?Booking $booking = null): array
     {
         $requirements = $activity?->relationLoaded('qualificationRequirements')
             ? $activity->qualificationRequirements
             : ($activity?->qualificationRequirements()->get() ?? collect());
 
+        $asOf = $booking?->qualificationAsOf();
         $relevant = [];
         $inDate = [];
         $expired = [];
 
-        foreach ($person->qualifications()->with('detail')->get() as $qualification) {
+        $person->loadMissing('qualifications');
+
+        foreach ($person->qualifications as $qualification) {
             $line = self::qualificationLine($qualification);
             $matches = $requirements->contains(
-                fn (ActivityQualificationRequirement $requirement): bool => $requirement->matches($qualification),
+                fn (ActivityQualificationRequirement $requirement): bool => $requirement->matches($qualification, $asOf),
             );
 
             if ($matches) {
                 $relevant[] = $line;
-            } elseif ($qualification->isExpired()) {
+            } elseif ($qualification->isExpired($asOf)) {
                 $expired[] = $line;
             } else {
                 $inDate[] = $line;
@@ -141,19 +141,23 @@ class BookingPeople
     }
 
     /**
-     * @return array{id: string, type: string, summary: string, expires: ?string, fields: list<array{label: string, value: string}>}
+     * @return array{id: string, type: string, summary: string, expires: ?string, expires_class: string, fields: list<array{label: string, value: string}>}
      */
     private static function qualificationLine(Qualification $qualification): array
     {
-        $expires = $qualification->detail instanceof MountainTrainingQualification
-            ? null
-            : $qualification->expires_on?->toFormattedDateString();
+        $expires = $qualification->expires_on?->toFormattedDateString();
 
         return [
             'id' => $qualification->getKey(),
             'type' => $qualification->type_label,
             'summary' => $qualification->summary,
             'expires' => $expires,
+            'expires_class' => match ($qualification->expiryColor()) {
+                Palette::positive() => 'text-success-600 dark:text-success-400',
+                Palette::uncertain() => 'text-warning-600 dark:text-warning-400',
+                Palette::destructive() => 'text-danger-600 dark:text-danger-400',
+                default => 'text-gray-500 dark:text-gray-400',
+            },
             'fields' => self::fields($qualification),
         ];
     }
@@ -163,36 +167,6 @@ class BookingPeople
      */
     private static function fields(Qualification $qualification): array
     {
-        $detail = $qualification->detail;
-
-        if ($detail instanceof ScoutPermit) {
-            $fields = [
-                ['label' => __('Activity'), 'value' => (string) $detail->activity?->getLabel()],
-            ];
-
-            if ($detail->category !== null) {
-                $fields[] = ['label' => __('Category'), 'value' => (string) $detail->category->getLabel()];
-            }
-
-            $fields[] = ['label' => __('Permit type'), 'value' => (string) $detail->permit_type?->getLabel()];
-            $fields[] = ['label' => __('Restrictions'), 'value' => filled($detail->restrictions) ? $detail->restrictions : '—'];
-
-            return $fields;
-        }
-
-        if ($detail instanceof MountainTrainingQualification) {
-            return [
-                ['label' => __('Award'), 'value' => (string) $detail->award?->getLabel()],
-            ];
-        }
-
-        if ($detail instanceof GirlguidingQualification) {
-            return [
-                ['label' => __('Scheme'), 'value' => (string) $detail->scheme?->getLabel()],
-                ['label' => __('Level'), 'value' => (string) $detail->level?->getLabel()],
-            ];
-        }
-
-        return [];
+        return $qualification->detailFields();
     }
 }

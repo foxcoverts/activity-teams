@@ -1,0 +1,7 @@
+groups:
+  - name: Climbing
+    categories:
+      - name: '1'
+      - name: '2'
+        covers:
+          - '1'

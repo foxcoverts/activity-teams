@@ -3,7 +3,6 @@
 namespace Tests\Feature;
 
 use App\Enums\BookingAttendeeStatus;
-use App\Enums\MountainTrainingAward;
 use App\Filament\Manage\Resources\Bookings\Pages\EditBooking;
 use App\Filament\Manage\Resources\Bookings\RelationManagers\AttendeesRelationManager;
 use App\Livewire\InviteAttendees;
@@ -12,7 +11,6 @@ use App\Models\Booking;
 use App\Models\BookingAttendance;
 use App\Models\Key;
 use App\Models\KeyRing;
-use App\Models\MountainTrainingQualification;
 use App\Models\Qualification;
 use App\Models\User;
 use Filament\Facades\Filament;
@@ -102,8 +100,8 @@ class InvitePickerTest extends TestCase
         $member = User::factory()->teamMember()->create(['name' => 'Casey Member']);
         $activity = Activity::factory()->create();
         $activity->qualificationRequirements()->create([
-            'detail_type' => MountainTrainingQualification::class,
-            'award' => [MountainTrainingAward::ClimbingWallInstructor->value],
+            'kind' => 'mountain_training',
+            'criteria' => ['award' => 'Climbing Wall Instructor'],
         ]);
         $booking = Booking::factory()->create(['activity_id' => $activity->getKey()]);
         $booking->attendees()->attach($member->id, [
@@ -215,8 +213,8 @@ class InvitePickerTest extends TestCase
         $other = User::factory()->teamMember()->create(['name' => 'Alex Guest']);
         $activity = Activity::factory()->create();
         $activity->qualificationRequirements()->create([
-            'detail_type' => MountainTrainingQualification::class,
-            'award' => [MountainTrainingAward::ClimbingWallInstructor->value],
+            'kind' => 'mountain_training',
+            'criteria' => ['award' => 'Climbing Wall Instructor'],
         ]);
         $booking = Booking::factory()->create(['activity_id' => $activity->getKey()]);
         Qualification::factory()->forMember($qualified)->mountainTraining()->create();

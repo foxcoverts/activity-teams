@@ -6,9 +6,6 @@ use App\Actions\AddAttendeeAction;
 use App\Actions\InviteAttendeesAction;
 use App\Enums\BookingAttendeeStatus;
 use App\Enums\MembershipRole;
-use App\Enums\ScoutPermitActivity;
-use App\Enums\ScoutPermitCategory;
-use App\Enums\ScoutPermitType;
 use App\Filament\Admin\Resources\Activities\Pages\CreateActivity;
 use App\Filament\Admin\Resources\Teams\Pages\CreateTeam;
 use App\Filament\Admin\Resources\Teams\Pages\EditTeam;
@@ -31,7 +28,6 @@ use App\Models\Booking;
 use App\Models\BookingAttendance;
 use App\Models\Key;
 use App\Models\Qualification;
-use App\Models\ScoutPermit;
 use App\Models\Team;
 use App\Models\User;
 use App\Models\Venue;
@@ -573,10 +569,10 @@ class ActivityTeamsTest extends TestCase
             'ownerRecord' => $member,
             'pageClass' => ViewMember::class,
         ])->callTableAction('create', data: [
-            'detail_type' => ScoutPermit::class,
-            'activity' => ScoutPermitActivity::ClimbingAndAbseiling->value,
-            'category' => ScoutPermitCategory::NaturalTopRope->value,
-            'permit_type' => ScoutPermitType::Leadership->value,
+            'kind' => 'scout_permit',
+            'group' => 'Climbing and Abseiling',
+            'node' => 'Natural Top Rope',
+            'permit_type' => 'leadership',
             'expires_on' => '2030-06-15',
         ])->assertHasNoActionErrors();
 

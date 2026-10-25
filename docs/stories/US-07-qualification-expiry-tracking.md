@@ -1,7 +1,7 @@
 ---
 id: US-07
 title: "Qualification Expiry Tracking"
-status: not-started
+status: done
 area: qualifications
 scope: required
 ---
@@ -17,4 +17,4 @@ As an Activity Manager, I want the system to track permit and qualification expi
 
 ## Progress
 
-The expiry date is stored for every type except Mountain Training, which does not expire. Warnings are not built. When they are, a current qualification is green, one that expires within three months is amber, and an expired one is red.
+The expiry date is stored for every type except Mountain Training, which does not expire. Member and manager qualification lists, and the qualification view, colour the date: green when more than three months away, amber within three months, red after the end of that day. Mountain Training shows no date and no colour. Booking staffing uses the session end date separately; profile colours stay as of today.

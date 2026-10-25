@@ -17,7 +17,7 @@ class ExportPersonalDataAction
     {
         $user->load([
             'memberships.team',
-            'qualifications.detail',
+            'qualifications',
             'bookings.activity',
             'ledBookings.activity',
             'keyRings.keys',
@@ -37,7 +37,8 @@ class ExportPersonalDataAction
                 'left_at' => $membership->left_at?->toDateString(),
             ])->all(),
             'qualifications' => $user->qualifications->map(fn (Qualification $qualification): array => [
-                'type' => $qualification->detail_type,
+                'kind' => $qualification->kind,
+                'payload' => $qualification->payload,
                 'expires_on' => $qualification->expires_on?->toDateString(),
             ])->all(),
             'bookings' => $user->bookings->map(fn (Booking $booking): array => [

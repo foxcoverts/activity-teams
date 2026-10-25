@@ -62,7 +62,7 @@ class AttendeesRelationManager extends RelationManager
                     ->state(function (User $record): ?string {
                         $activity = $this->activity();
 
-                        if (! $activity instanceof Activity || ! $activity->metBy($record)) {
+                        if (! $activity instanceof Activity || ! $activity->metBy($record, $this->booking())) {
                             return null;
                         }
 
@@ -321,7 +321,7 @@ class AttendeesRelationManager extends RelationManager
 
         return $activity instanceof Activity
             && $activity->requiresQualification()
-            && $activity->metBy($record);
+            && $activity->metBy($record, $this->booking());
     }
 
     protected function canRemoveAttendee(User $attendee): bool

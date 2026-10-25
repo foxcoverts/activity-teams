@@ -49,7 +49,7 @@
                         <span class="flex flex-col items-start gap-0.5 text-start">
                             <span>{{ $qualification['type'] }} — {{ $qualification['summary'] }}</span>
                             @if ($qualification['expires'])
-                                <span class="text-xs font-normal text-gray-500 dark:text-gray-400">{{ __('Expires') }} {{ $qualification['expires'] }}</span>
+                                <span class="text-xs font-normal {{ $qualification['expires_class'] }}">{{ __('Expires') }} {{ $qualification['expires'] }}</span>
                             @endif
                         </span>
                     </x-filament::button>
@@ -77,7 +77,7 @@
                                 <span class="flex flex-col items-start gap-0.5 text-start">
                                     <span>{{ $qualification['type'] }} — {{ $qualification['summary'] }}</span>
                                     @if ($qualification['expires'])
-                                        <span class="text-xs font-normal text-gray-500 dark:text-gray-400">{{ __('Expires') }} {{ $qualification['expires'] }}</span>
+                                        <span class="text-xs font-normal {{ $qualification['expires_class'] }}">{{ __('Expires') }} {{ $qualification['expires'] }}</span>
                                     @endif
                                 </span>
                             </x-filament::button>
@@ -103,7 +103,7 @@
                         @endforeach
                         @if ($qualification['expires'])
                             <dt class="text-gray-500 dark:text-gray-400">{{ __('Expires') }}</dt>
-                            <dd class="text-gray-950 dark:text-white">{{ $qualification['expires'] }}</dd>
+                            <dd class="{{ $qualification['expires_class'] }}">{{ $qualification['expires'] }}</dd>
                         @endif
                     </dl>
                 </div>
@@ -120,7 +120,7 @@
                     @endforeach
                     @if ($access['detail']['expires'])
                         <dt class="text-gray-500 dark:text-gray-400">{{ __('Expires') }}</dt>
-                        <dd class="text-gray-950 dark:text-white">{{ $access['detail']['expires'] }}</dd>
+                        <dd class="{{ $access['detail']['expires_class'] }}">{{ $access['detail']['expires'] }}</dd>
                     @endif
                 </dl>
             </div>
@@ -136,7 +136,7 @@
                         <span class="flex flex-col items-start gap-0.5 text-start">
                             <span>{{ $qualification['type'] }} — {{ $qualification['summary'] }}</span>
                             @if ($qualification['expires'])
-                                <span class="text-xs font-normal text-gray-500 dark:text-gray-400">{{ __('Expires') }} {{ $qualification['expires'] }}</span>
+                                <span class="text-xs font-normal {{ $qualification['expires_class'] }}">{{ __('Expires') }} {{ $qualification['expires'] }}</span>
                             @endif
                         </span>
                     </x-filament::button>
@@ -165,7 +165,7 @@
                             <span class="flex flex-col items-start gap-0.5 text-start">
                                 <span>{{ $qualification['type'] }} — {{ $qualification['summary'] }}</span>
                                 @if ($qualification['expires'])
-                                    <span class="text-xs font-normal text-gray-500 dark:text-gray-400">{{ __('Expires') }} {{ $qualification['expires'] }}</span>
+                                    <span class="text-xs font-normal {{ $qualification['expires_class'] }}">{{ __('Expires') }} {{ $qualification['expires'] }}</span>
                                 @endif
                             </span>
                         </x-filament::button>
