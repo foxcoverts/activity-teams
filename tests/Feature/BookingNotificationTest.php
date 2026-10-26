@@ -376,7 +376,7 @@ class BookingNotificationTest extends TestCase
                 && ! str_contains($html, 'You have been given lead-instructor responsibility')
                 && ! str_contains($html, 'Keys in the hut');
         });
-        Mail::assertNotSent(LeadNeededMail::class);
+        Mail::assertNotQueued(LeadNeededMail::class);
     }
 
     public function test_a_later_update_includes_lead_notes_without_repeating_the_responsibility_notice(): void

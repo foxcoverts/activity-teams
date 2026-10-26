@@ -81,6 +81,7 @@ class SuspensionTest extends TestCase
             $booking->attendees()->find($this->member)->attendance->status->value,
         );
         Mail::assertNothingSent();
+        Mail::assertNothingQueued();
         Notification::assertNothingSent();
 
         Livewire::test(EditMember::class, ['record' => $this->member->getKey()])
@@ -91,6 +92,7 @@ class SuspensionTest extends TestCase
 
         $this->assertFalse($this->member->fresh()->isSuspended());
         Mail::assertNothingSent();
+        Mail::assertNothingQueued();
         Notification::assertNothingSent();
     }
 
@@ -151,9 +153,9 @@ class SuspensionTest extends TestCase
         $this->assertTrue($past->fresh()->isConfirmed());
         $this->assertSame($this->member->getKey(), $cancelled->fresh()->lead_instructor_id);
         $this->assertSame($this->manager->getKey(), $other->fresh()->lead_instructor_id);
-        Mail::assertSent(LeadNeededMail::class, fn (LeadNeededMail $mail): bool => $mail->hasTo($otherManager->email));
-        Mail::assertNotSent(LeadNeededMail::class, fn (LeadNeededMail $mail): bool => $mail->hasTo($this->manager->email));
-        Mail::assertNotSent(LeadNeededMail::class, fn (LeadNeededMail $mail): bool => $mail->hasTo($this->member->email));
+        Mail::assertQueued(LeadNeededMail::class, fn (LeadNeededMail $mail): bool => $mail->hasTo($otherManager->email));
+        Mail::assertNotQueued(LeadNeededMail::class, fn (LeadNeededMail $mail): bool => $mail->hasTo($this->manager->email));
+        Mail::assertNotQueued(LeadNeededMail::class, fn (LeadNeededMail $mail): bool => $mail->hasTo($this->member->email));
     }
 
     public function test_the_modal_does_not_mention_bookings_when_there_are_none_to_unassign(): void
@@ -317,6 +319,7 @@ class SuspensionTest extends TestCase
         $this->assertFalse($booking->attendees()->whereKey($this->member->getKey())->exists());
         $this->assertNotNull($this->member->memberships()->first()->left_at);
         Mail::assertNothingSent();
+        Mail::assertNothingQueued();
         Notification::assertNothingSent();
     }
 

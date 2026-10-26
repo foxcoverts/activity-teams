@@ -103,7 +103,7 @@ class OverrideAttendanceTest extends TestCase
             ->assertSeeHtml(MemberResource::getUrl('view', ['record' => $manager], panel: 'manage', tenant: $team))
             ->assertSeeHtml(MemberResource::getUrl('view', ['record' => $member], panel: 'manage', tenant: $team));
 
-        Mail::assertSent(AttendanceRecordedMail::class, function (AttendanceRecordedMail $mail) use ($booking, $member): bool {
+        Mail::assertQueued(AttendanceRecordedMail::class, function (AttendanceRecordedMail $mail) use ($booking, $member): bool {
             $html = $mail->render();
             $recorded = strpos($html, 'A manager recorded your attendance as Can help.');
 
@@ -114,8 +114,8 @@ class OverrideAttendanceTest extends TestCase
                 && strpos($html, $booking->activity->name) < $recorded
                 && $recorded < strpos($html, 'View response');
         });
-        Mail::assertNotSent(AttendanceRecordedMail::class, fn (AttendanceRecordedMail $mail): bool => $mail->hasTo($other->email));
-        Mail::assertSentCount(1);
+        Mail::assertNotQueued(AttendanceRecordedMail::class, fn (AttendanceRecordedMail $mail): bool => $mail->hasTo($other->email));
+        Mail::assertQueuedCount(1);
     }
 
     public function test_a_member_cannot_edit_attendance_from_the_roster_and_their_own_answer_is_not_emailed(): void
@@ -139,6 +139,7 @@ class OverrideAttendanceTest extends TestCase
         (new RespondToBookingAction($booking))($member, BookingAttendeeStatus::Accepted);
 
         Mail::assertNothingSent();
+        Mail::assertNothingQueued();
     }
 
     public function test_a_maybe_recorded_by_a_manager_asks_for_a_definite_answer(): void
@@ -152,7 +153,7 @@ class OverrideAttendanceTest extends TestCase
 
         app(OverrideAttendanceAction::class)($booking, $member, $manager, BookingAttendeeStatus::Tentative);
 
-        Mail::assertSent(AttendanceRecordedMail::class, function (AttendanceRecordedMail $mail) use ($booking, $member): bool {
+        Mail::assertQueued(AttendanceRecordedMail::class, function (AttendanceRecordedMail $mail) use ($booking, $member): bool {
             $html = $mail->render();
             $token = $booking->attendees()->find($member)->attendance->token;
 
@@ -194,6 +195,7 @@ class OverrideAttendanceTest extends TestCase
         $this->assertNull($booking->lead_instructor_id);
         $this->assertSame(BookingAttendeeStatus::Declined, $booking->attendees()->find($lead)->attendance->status);
         Mail::assertNothingSent();
+        Mail::assertNothingQueued();
     }
 
     public function test_recording_that_an_upcoming_lead_cannot_attend_returns_the_booking_to_tentative(): void
@@ -214,10 +216,10 @@ class OverrideAttendanceTest extends TestCase
         $booking->refresh();
         $this->assertSame(BookingStatus::Tentative, $booking->status);
         $this->assertNull($booking->lead_instructor_id);
-        Mail::assertSent(AttendanceRecordedMail::class, fn (AttendanceRecordedMail $mail): bool => $mail->hasTo($lead->email));
-        Mail::assertSent(LeadNeededMail::class, fn (LeadNeededMail $mail): bool => $mail->hasTo($otherManager->email));
-        Mail::assertNotSent(LeadNeededMail::class, fn (LeadNeededMail $mail): bool => $mail->hasTo($manager->email));
-        Mail::assertSentCount(2);
+        Mail::assertQueued(AttendanceRecordedMail::class, fn (AttendanceRecordedMail $mail): bool => $mail->hasTo($lead->email));
+        Mail::assertQueued(LeadNeededMail::class, fn (LeadNeededMail $mail): bool => $mail->hasTo($otherManager->email));
+        Mail::assertNotQueued(LeadNeededMail::class, fn (LeadNeededMail $mail): bool => $mail->hasTo($manager->email));
+        Mail::assertQueuedCount(2);
     }
 
     public function test_a_cancelled_booking_refuses_an_attendance_edit(): void
@@ -288,9 +290,9 @@ class OverrideAttendanceTest extends TestCase
         $this->assertSame('Recorded Can help for Casey.', $activity->description);
         $this->assertSame('manager', $activity->properties['via']);
 
-        Mail::assertSent(AttendanceRecordedMail::class, fn (AttendanceRecordedMail $mail): bool => $mail->hasTo($member->email));
+        Mail::assertQueued(AttendanceRecordedMail::class, fn (AttendanceRecordedMail $mail): bool => $mail->hasTo($member->email));
         Mail::assertNotSent(BookingInviteMail::class);
-        Mail::assertSentCount(1);
+        Mail::assertQueuedCount(1);
     }
 
     public function test_a_past_booking_can_gain_an_attendee_without_email(): void
@@ -320,6 +322,7 @@ class OverrideAttendanceTest extends TestCase
 
         $this->assertSame(BookingAttendeeStatus::Declined, $booking->attendees()->find($member)->attendance->status);
         Mail::assertNothingSent();
+        Mail::assertNothingQueued();
     }
 
     public function test_a_cancelled_booking_refuses_adding_an_attendee(): void

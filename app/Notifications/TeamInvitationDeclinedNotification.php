@@ -4,14 +4,20 @@ namespace App\Notifications;
 
 use App\Models\TeamInvitation;
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
-class TeamInvitationDeclinedNotification extends Notification
+class TeamInvitationDeclinedNotification extends Notification implements ShouldQueue
 {
     use Queueable;
 
-    public function __construct(public TeamInvitation $invitation) {}
+    public bool $deleteWhenMissingModels = true;
+
+    public function __construct(public TeamInvitation $invitation)
+    {
+        $this->afterCommit();
+    }
 
     /**
      * @return array<int, string>

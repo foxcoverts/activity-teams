@@ -8,15 +8,18 @@ use App\Models\User;
 use App\Support\AttendanceResponseLinks;
 use App\Support\BookingMailThread;
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Mail\Mailables\Headers;
 use Illuminate\Queue\SerializesModels;
 
-class AttendanceRecordedMail extends Mailable
+class AttendanceRecordedMail extends Mailable implements ShouldQueue
 {
     use Queueable, SerializesModels;
+
+    public bool $deleteWhenMissingModels = true;
 
     public ?BookingAttendance $attendance = null;
 
@@ -24,6 +27,7 @@ class AttendanceRecordedMail extends Mailable
         public Booking $booking,
         public User $attendee,
     ) {
+        $this->afterCommit();
         $this->booking->loadMissing(['activity', 'venue']);
         $this->attendance = $booking->attendees()->whereKey($attendee->getKey())->first()?->attendance;
     }

@@ -182,6 +182,14 @@ This project has domain-specific skills available in `**/skills/**`. You MUST ac
 - Rerun a test after each change to it.
 - Run `vendor/bin/sail bin phpunit` to call the test runner directly. It accepts the same file path and `--filter=testName` arguments.
 
+## Queued Mail
+
+Outbound email must leave the request on the queue. New mailables and mail notifications implement `ShouldQueue`, call `$this->afterCommit()` in the constructor, and set `$deleteWhenMissingModels = true`. `use Queueable` alone does not queue delivery.
+
+Booking invite, update, confirm, and cancel mail already leaves the request through `SendBookingNotification`. Do not add `ShouldQueue` to those mailables, or the debounce job will enqueue a second hop. Keep `Mail::send()` inside that job.
+
+Use `Mail::assertQueued()` for queued mailables and `Mail::assertSent()` for mail sent inside `SendBookingNotification`.
+
 ## Application Palette
 
 Use `App\Support\Palette` for semantic colors in Filament components and status enums instead of hard-coded Filament color names or `Color` constants:

@@ -8,20 +8,24 @@ use App\Models\Team;
 use App\Models\User;
 use App\Support\BookingMailThread;
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Mail\Mailables\Headers;
 use Illuminate\Queue\SerializesModels;
 
-class LeadNeededMail extends Mailable
+class LeadNeededMail extends Mailable implements ShouldQueue
 {
     use Queueable, SerializesModels;
+
+    public bool $deleteWhenMissingModels = true;
 
     public function __construct(
         public Booking $booking,
         public ?User $previousLead,
     ) {
+        $this->afterCommit();
         $this->booking->loadMissing(['activity', 'venue', 'team']);
     }
 

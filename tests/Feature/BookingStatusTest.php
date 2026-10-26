@@ -450,17 +450,17 @@ class BookingStatusTest extends TestCase
 
         $reference = BookingMailThread::reference($booking->fresh());
 
-        Mail::assertSent(LeadNeededMail::class, function (LeadNeededMail $mail) use ($manager, $reference): bool {
+        Mail::assertQueued(LeadNeededMail::class, function (LeadNeededMail $mail) use ($manager, $reference): bool {
             return $mail->hasTo($manager->email)
                 && str_contains($mail->envelope()->subject, 'Lead needed:')
                 && str_contains($mail->render(), 'Casey Lead')
                 && str_contains($mail->headers()->referencesString() ?? '', $reference);
         });
-        Mail::assertNotSent(LeadNeededMail::class, fn (LeadNeededMail $mail): bool => $mail->hasTo($unverified->email));
-        Mail::assertNotSent(LeadNeededMail::class, fn (LeadNeededMail $mail): bool => $mail->hasTo($inactive->email));
-        Mail::assertNotSent(LeadNeededMail::class, fn (LeadNeededMail $mail): bool => $mail->hasTo($suspended->email));
-        Mail::assertNotSent(LeadNeededMail::class, fn (LeadNeededMail $mail): bool => $mail->hasTo($attendee->email));
-        Mail::assertNotSent(LeadNeededMail::class, fn (LeadNeededMail $mail): bool => $mail->hasTo($lead->email));
+        Mail::assertNotQueued(LeadNeededMail::class, fn (LeadNeededMail $mail): bool => $mail->hasTo($unverified->email));
+        Mail::assertNotQueued(LeadNeededMail::class, fn (LeadNeededMail $mail): bool => $mail->hasTo($inactive->email));
+        Mail::assertNotQueued(LeadNeededMail::class, fn (LeadNeededMail $mail): bool => $mail->hasTo($suspended->email));
+        Mail::assertNotQueued(LeadNeededMail::class, fn (LeadNeededMail $mail): bool => $mail->hasTo($attendee->email));
+        Mail::assertNotQueued(LeadNeededMail::class, fn (LeadNeededMail $mail): bool => $mail->hasTo($lead->email));
     }
 
     public function test_removing_the_lead_uses_the_update_mail_for_managers_on_the_booking(): void
@@ -490,9 +490,9 @@ class BookingStatusTest extends TestCase
             $job->handle();
         }
 
-        Mail::assertSent(LeadNeededMail::class, fn (LeadNeededMail $mail): bool => $mail->hasTo($otherManager->email));
-        Mail::assertNotSent(LeadNeededMail::class, fn (LeadNeededMail $mail): bool => $mail->hasTo($actor->email));
-        Mail::assertNotSent(LeadNeededMail::class, fn (LeadNeededMail $mail): bool => $mail->hasTo($attendeeManager->email));
+        Mail::assertQueued(LeadNeededMail::class, fn (LeadNeededMail $mail): bool => $mail->hasTo($otherManager->email));
+        Mail::assertNotQueued(LeadNeededMail::class, fn (LeadNeededMail $mail): bool => $mail->hasTo($actor->email));
+        Mail::assertNotQueued(LeadNeededMail::class, fn (LeadNeededMail $mail): bool => $mail->hasTo($attendeeManager->email));
 
         Mail::assertSent(BookingChangedMail::class, function (BookingChangedMail $mail) use ($actor): bool {
             $html = $mail->render();
@@ -684,6 +684,7 @@ class BookingStatusTest extends TestCase
 
         $this->assertCount(0, Queue::pushed(SendBookingNotification::class));
         Mail::assertNothingSent();
+        Mail::assertNothingQueued();
     }
 
     public function test_restoring_sends_one_email_that_includes_changes_made_then(): void
