@@ -1,0 +1,186 @@
+<?php
+
+namespace App\Livewire;
+
+use App\Filament\Manage\Resources\Bookings\BookingResource as ManageBookingResource;
+use App\Filament\Member\Resources\Bookings\BookingResource as MemberBookingResource;
+use App\Models\Booking;
+use App\Models\Team;
+use App\Models\User;
+use Filament\Actions\Action;
+use Filament\Actions\Concerns\InteractsWithActions;
+use Filament\Actions\Contracts\HasActions;
+use Filament\Forms\Components\Select;
+use Filament\Notifications\Notification;
+use Filament\Schemas\Concerns\InteractsWithSchemas;
+use Filament\Schemas\Contracts\HasSchemas;
+use Illuminate\Contracts\View\View;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Collection;
+use Livewire\Attributes\Locked;
+use Livewire\Component;
+
+class RelatedBookings extends Component implements HasActions, HasSchemas
+{
+    use InteractsWithActions;
+    use InteractsWithSchemas;
+
+    public ?Booking $record = null;
+
+    #[Locked]
+    public string $panel = 'member';
+
+    public function mount(?Booking $record = null, string $panel = 'member'): void
+    {
+        abort_unless($record instanceof Booking, 404);
+
+        $this->record = $this->booking($record->getKey());
+        $this->panel = $panel;
+
+        abort_unless($this->viewer()?->can('view', $this->record) ?? false, 403);
+    }
+
+    public function add(string $relatedId): void
+    {
+        abort_unless($this->record instanceof Booking, 404);
+
+        $booking = $this->booking($this->record->getKey());
+        abort_unless($this->canManage($booking), 403);
+
+        $related = $this->candidateQuery($booking)->whereKey($relatedId)->first();
+        abort_if($related === null, 404);
+        abort_unless($this->viewer()?->can('relate', [$booking, $related]) ?? false, 403);
+
+        $booking->relate($related);
+        $this->record = $booking->unsetRelation('related');
+
+        Notification::make()->success()->title(__('Added related booking.'))->send();
+    }
+
+    public function remove(string $relatedId): void
+    {
+        abort_unless($this->record instanceof Booking, 404);
+
+        $booking = $this->booking($this->record->getKey());
+        abort_unless($this->canManage($booking), 403);
+
+        $related = $booking->related()->whereKey($relatedId)->first();
+        abort_if($related === null, 404);
+        abort_unless($this->viewer()?->can('relate', [$booking, $related]) ?? false, 403);
+
+        $booking->unrelate($related);
+        $this->record = $booking->unsetRelation('related');
+
+        Notification::make()->success()->title(__('Related booking removed.'))->send();
+    }
+
+    public function addAction(): Action
+    {
+        return Action::make('add')
+            ->label(__('Add'))
+            ->button()
+            ->modalHeading(__('Add related booking'))
+            ->modalSubmitActionLabel(__('Add'))
+            ->visible(fn (): bool => $this->record instanceof Booking
+                && $this->canManage($this->booking($this->record->getKey()))
+                && $this->candidates($this->booking($this->record->getKey()))->isNotEmpty())
+            ->schema([
+                Select::make('related_id')
+                    ->label(__('Booking'))
+                    ->options(fn (): array => $this->candidates($this->booking($this->record->getKey()))
+                        ->mapWithKeys(fn (Booking $booking): array => [
+                            $booking->getKey() => $booking->relatedLabel(),
+                        ])
+                        ->all())
+                    ->searchable()
+                    ->required(),
+            ])
+            ->action(function (array $data): void {
+                $this->add((string) $data['related_id']);
+            });
+    }
+
+    public function render(): View
+    {
+        abort_unless($this->record instanceof Booking, 404);
+
+        $booking = $this->booking($this->record->getKey());
+        abort_unless($this->viewer()?->can('view', $booking) ?? false, 403);
+
+        $items = $booking->related
+            ->filter(fn (Booking $related): bool => $this->viewer()?->can('view', $related) ?? false)
+            ->values()
+            ->map(fn (Booking $related): array => [
+                'id' => $related->getKey(),
+                'label' => $related->relatedLabel(),
+                'url' => $this->urlFor($related, $booking),
+            ]);
+
+        $canManage = $this->canManage($booking);
+
+        return view('filament.bookings.related-bookings', [
+            'items' => $items,
+            'canManage' => $canManage,
+            'showPanel' => $canManage || $items->isNotEmpty(),
+        ]);
+    }
+
+    private function canManage(Booking $booking): bool
+    {
+        return $this->panel === 'manage'
+            && ($this->viewer()?->can('update', $booking) ?? false);
+    }
+
+    private function viewer(): ?User
+    {
+        $user = auth()->user();
+
+        return $user instanceof User ? $user : null;
+    }
+
+    private function booking(string $id): Booking
+    {
+        return Booking::query()->findOrFail($id);
+    }
+
+    /**
+     * @return Collection<int, Booking>
+     */
+    private function candidates(Booking $booking): Collection
+    {
+        return $this->candidateQuery($booking)
+            ->with('activity')
+            ->ordered()
+            ->get();
+    }
+
+    /**
+     * @return Builder<Booking>
+     */
+    private function candidateQuery(Booking $booking): Builder
+    {
+        return Booking::query()
+            ->where('team_id', $booking->team_id)
+            ->whereKeyNot($booking->getKey())
+            ->whereKeyNot($booking->related()->allRelatedIds())
+            ->future()
+            ->notCancelled();
+    }
+
+    private function urlFor(Booking $related, Booking $current): string
+    {
+        if ($this->panel === 'manage') {
+            $related->loadMissing('team');
+            $team = $related->team ?? $current->team;
+
+            if (! $team instanceof Team) {
+                $current->loadMissing('team');
+                $team = $current->team;
+            }
+
+            return ManageBookingResource::getUrl('view', ['record' => $related], panel: 'manage', tenant: $team);
+        }
+
+        return MemberBookingResource::getUrl('view', ['record' => $related], panel: 'member');
+    }
+}

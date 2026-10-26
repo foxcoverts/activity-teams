@@ -101,6 +101,18 @@
     @apply px-3 py-3 text-sm text-gray-500 dark:text-gray-400;
 }
 
+.related-booking-label {
+    @apply min-w-0 truncate text-sm font-medium text-gray-950 hover:underline dark:text-white;
+}
+
+.related-bookings-panel.fi-section:not(.fi-section-not-contained) > .fi-section-header {
+    @apply p-4 sm:px-6;
+}
+
+.related-bookings-panel.fi-section:not(.fi-section-not-contained):not(.fi-divided) > .fi-section-content-ctn > .fi-section-content {
+    @apply p-0;
+}
+
 .invite-footer {
     @apply flex justify-end gap-2;
 }

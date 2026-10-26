@@ -3,7 +3,11 @@
 namespace App\Filament\Member\Pages;
 
 use App\Models\User;
+use App\Support\Palette;
+use Filament\Actions\Action;
+use Filament\Notifications\Notification;
 use Filament\Pages\Page;
+use Filament\Support\Icons\Heroicon;
 use Illuminate\Contracts\Support\Htmlable;
 
 class CalendarLinks extends Page
@@ -41,6 +45,29 @@ class CalendarLinks extends Page
         return [
             'bookingsUrl' => route('booking.ics', $user),
             'rotaUrl' => route('booking.rota.ics', $user),
+        ];
+    }
+
+    protected function getHeaderActions(): array
+    {
+        return [
+            Action::make('regenerate')
+                ->label(__('Regenerate links'))
+                ->icon(Heroicon::OutlinedArrowPath)
+                ->color(Palette::destructive())
+                ->requiresConfirmation()
+                ->modalHeading(__('Regenerate calendar links'))
+                ->modalDescription(__('Existing calendar subscriptions will stop working until you add the new links.'))
+                ->action(function (): void {
+                    /** @var User $user */
+                    $user = auth()->user();
+                    $user->forceFill(['ical_token' => User::generateToken()])->save();
+
+                    Notification::make()
+                        ->success()
+                        ->title(__('Calendar links updated'))
+                        ->send();
+                }),
         ];
     }
 }

@@ -1,7 +1,7 @@
 ---
 id: US-13
 title: "Subscription ICS Export Feeds"
-status: partial
+status: done
 area: communications
 scope: required
 ---
@@ -15,5 +15,5 @@ As a Team Member, I want a secure, token-based .ics calendar feed link so I can 
 - Generates unique secure tokens per user for calendar feeds.
 - A member can revoke or regenerate their calendar-feed token; a revoked token immediately stops granting access to the feed.
 - Exports comprehensive event metadata including structured locations, booking descriptions, and correct privacy classifications (CLASS:PRIVATE).
-- Incorporates RELATED-TO fields into exported VEVENT components where bookings are linked as part of a multi-day camp or series, allowing external calendar apps to recognise parent and child event groupings.
+- Incorporates RELATED-TO fields into exported VEVENT components where bookings are linked as a multi-day camp or series, using RELTYPE=SIBLING because linked sessions are peers.
 - The event UID stays `booking+{id}@{host}` when the booking sequence changes. That UID is not the email `References` value, which includes the sequence.

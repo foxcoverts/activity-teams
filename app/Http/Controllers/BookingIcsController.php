@@ -16,7 +16,7 @@ class BookingIcsController extends Controller
     {
         Gate::authorize('viewAny', Booking::class);
 
-        $bookings = Booking::query()->forUser($request->user())->with(['activity', 'venue'])->get();
+        $bookings = Booking::query()->forUser($request->user())->with(['activity', 'venue', 'related'])->get();
 
         return $this->download(
             $bookings,
@@ -34,7 +34,7 @@ class BookingIcsController extends Controller
                 BookingAttendeeStatus::Accepted,
                 BookingAttendeeStatus::Tentative,
             ])
-            ->with(['activity', 'venue'])
+            ->with(['activity', 'venue', 'related'])
             ->get();
 
         return $this->download(
@@ -49,7 +49,7 @@ class BookingIcsController extends Controller
         Gate::authorize('view', $booking);
 
         return $this->download(
-            collect([$booking->load(['activity', 'venue'])]),
+            collect([$booking->load(['activity', 'venue', 'related'])]),
             __(':Name Bookings', ['name' => config('app.name')]),
             'booking-'.$booking->id.'.ics',
         );

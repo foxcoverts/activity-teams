@@ -46,13 +46,13 @@ When an enum is shown in Filament, give it a label, and a color and icon when th
 - [US-26 Filterable Roster Additions & Batch Management](US-26-filterable-roster-additions.md) — `done`
 - [US-27 Manager-Overridden Attendance Updates](US-27-manager-overridden-attendance.md) — `done`
 - [US-28 Booking Cancellation Reasons & Participant Notification](US-28-booking-cancellation-reasons.md) — `partial`
-- [US-37 Related Bookings & Multi-Day Event Linking](US-37-related-bookings-multi-day.md) — `not-started`
+- [US-37 Related Bookings & Multi-Day Event Linking](US-37-related-bookings-multi-day.md) — `done`
 - [US-50 Invite Someone Who Is Not on the Team](US-50-invite-non-members.md) — `not-started`
 
 ## Communications, ICS & Calendar Integration
 
 - [US-12 Public Booking Summary View](US-12-public-booking-summary.md) — `done`
-- [US-13 Subscription ICS Export Feeds](US-13-subscription-ics-feeds.md) — `partial`
+- [US-13 Subscription ICS Export Feeds](US-13-subscription-ics-feeds.md) — `done`
 - [US-14 Interactive Email RSVP Action Buttons](US-14-email-rsvp-action-buttons.md) — `done`
 - [US-15 Inbound Calendar Response & Webhook Parsing](US-15-inbound-calendar-response-parsing.md) — `not-started`
 - [US-16 Escalating Invitation Nudges & Booking Reminders](US-16-invitation-nudges-reminders.md) — `not-started`

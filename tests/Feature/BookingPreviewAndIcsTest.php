@@ -3,12 +3,15 @@
 namespace Tests\Feature;
 
 use App\Enums\BookingAttendeeStatus;
+use App\Filament\Member\Pages\CalendarLinks;
 use App\Filament\Member\Resources\Bookings\BookingResource;
 use App\Models\Activity;
 use App\Models\Booking;
 use App\Models\User;
 use App\Models\Venue;
+use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Livewire\Livewire;
 use Tests\TestCase;
 
 class BookingPreviewAndIcsTest extends TestCase
@@ -122,7 +125,60 @@ class BookingPreviewAndIcsTest extends TestCase
         $this->get(route('booking.ics', $user))
             ->assertOk()
             ->assertHeader('Content-Type', 'text/calendar; charset=utf-8')
-            ->assertSee('BEGIN:VCALENDAR', false);
+            ->assertSee('BEGIN:VCALENDAR', false)
+            ->assertSee('CLASS:PRIVATE', false);
+    }
+
+    public function test_ics_feed_marks_linked_bookings_as_siblings(): void
+    {
+        $user = User::factory()->teamMember()->create([
+            'ical_token' => User::generateToken(),
+        ]);
+        $saturday = Booking::factory()->confirmed()->create([
+            'start_at' => '2026-12-12 09:00:00',
+            'end_at' => '2026-12-12 11:00:00',
+            'timezone' => 'Europe/London',
+        ]);
+        $sunday = Booking::factory()->confirmed()->create([
+            'team_id' => $saturday->team_id,
+            'start_at' => '2026-12-13 09:00:00',
+            'end_at' => '2026-12-13 11:00:00',
+            'timezone' => 'Europe/London',
+        ]);
+        $saturday->attendees()->attach($user->id, [
+            'status' => BookingAttendeeStatus::Accepted->value,
+        ]);
+        $saturday->relate($sunday);
+
+        $ics = str_replace("\r\n ", '', $this->get(route('booking.ics', $user))
+            ->assertOk()
+            ->assertSee('CLASS:PRIVATE', false)
+            ->getContent());
+
+        $this->assertStringContainsString('RELATED-TO;RELTYPE=SIBLING:'.$sunday->uid, $ics);
+        $this->assertStringContainsString('UID:'.$saturday->uid, $ics);
+    }
+
+    public function test_regenerating_calendar_links_stops_the_old_token(): void
+    {
+        $user = User::factory()->teamMember()->create([
+            'ical_token' => User::generateToken(),
+        ]);
+        $oldUrl = route('booking.ics', $user);
+
+        Filament::setCurrentPanel(Filament::getPanel('member'));
+        $this->actingAs($user);
+
+        $this->get($oldUrl)->assertOk();
+
+        Livewire::test(CalendarLinks::class)
+            ->callAction('regenerate');
+
+        $user->refresh();
+
+        $this->get($oldUrl)->assertNotFound();
+        $this->get(route('booking.ics', $user))->assertOk();
+        $this->assertNotSame($oldUrl, route('booking.ics', $user));
     }
 
     private function sharedBooking(): Booking

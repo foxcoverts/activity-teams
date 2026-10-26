@@ -221,6 +221,50 @@ class Booking extends Model
             ->using(BookingAttendance::class);
     }
 
+    /**
+     * @return BelongsToMany<Booking, $this>
+     */
+    public function related(): BelongsToMany
+    {
+        return $this->belongsToMany(self::class, 'booking_related', 'booking_id', 'related_id')
+            ->with('activity')
+            ->orderBy('bookings.start_at')
+            ->orderBy('bookings.end_at');
+    }
+
+    public function relate(Booking $other): void
+    {
+        if ((string) $this->getKey() === (string) $other->getKey()) {
+            return;
+        }
+
+        if ((string) $this->team_id !== (string) $other->team_id) {
+            throw ValidationException::withMessages([
+                'related_id' => __('Choose a booking from this team.'),
+            ]);
+        }
+
+        $this->related()->syncWithoutDetaching([$other->getKey()]);
+        $other->related()->syncWithoutDetaching([$this->getKey()]);
+    }
+
+    public function unrelate(Booking $other): void
+    {
+        $this->related()->detach($other->getKey());
+        $other->related()->detach($this->getKey());
+    }
+
+    public function relatedLabel(): string
+    {
+        $this->loadMissing('activity');
+
+        $start = $this->start_at->copy()
+            ->timezone($this->timezone)
+            ->locale(config('app.locale'));
+
+        return $start->isoFormat('ddd D MMM YYYY HH:mm').' · '.$this->activity->name.' · '.$this->group_name;
+    }
+
     public function leadInstructor(): BelongsTo
     {
         return $this->belongsTo(User::class, 'lead_instructor_id');

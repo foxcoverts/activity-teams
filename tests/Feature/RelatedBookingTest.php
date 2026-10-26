@@ -1,0 +1,312 @@
+<?php
+
+namespace Tests\Feature;
+
+use App\Enums\MembershipRole;
+use App\Filament\Manage\Resources\Bookings\BookingResource;
+use App\Filament\Manage\Resources\Bookings\Pages\EditBooking as ManageEditBooking;
+use App\Filament\Manage\Resources\Bookings\Pages\ViewBooking as ManageViewBooking;
+use App\Filament\Member\Resources\Bookings\Pages\ViewBooking as MemberViewBooking;
+use App\Livewire\RelatedBookings;
+use App\Mail\BookingChangedMail;
+use App\Mail\BookingInviteMail;
+use App\Models\Activity;
+use App\Models\Booking;
+use App\Models\BookingAttendance;
+use App\Models\Team;
+use App\Models\User;
+use App\Support\BookingMailThread;
+use Filament\Facades\Filament;
+use Filament\Forms\Components\Select;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Livewire\Livewire;
+use Tests\TestCase;
+
+class RelatedBookingTest extends TestCase
+{
+    use RefreshDatabase;
+
+    public function test_a_manager_links_another_booking_of_the_same_team_on_both_sides(): void
+    {
+        [$manager, $saturday, $sunday] = $this->weekend();
+
+        Filament::setCurrentPanel(Filament::getPanel('manage'));
+        $this->actingAs($manager);
+
+        Livewire::test(RelatedBookings::class, [
+            'record' => $saturday,
+            'panel' => 'manage',
+        ])
+            ->callAction('add', data: [
+                'related_id' => $sunday->getKey(),
+            ])
+            ->assertSee('Sun 13 Dec 2026 09:00 · Climbing · Cubs');
+
+        $this->assertTrue($saturday->fresh()->related->contains($sunday));
+        $this->assertTrue($sunday->fresh()->related->contains($saturday));
+    }
+
+    public function test_removing_a_related_booking_unlinks_both_sides(): void
+    {
+        [$manager, $saturday, $sunday] = $this->weekend();
+        $saturday->relate($sunday);
+
+        Filament::setCurrentPanel(Filament::getPanel('manage'));
+        $this->actingAs($manager);
+
+        Livewire::test(RelatedBookings::class, [
+            'record' => $saturday,
+            'panel' => 'manage',
+        ])
+            ->call('remove', $sunday->getKey())
+            ->assertSee('No related bookings.');
+
+        $this->assertTrue($saturday->fresh()->related->isEmpty());
+        $this->assertTrue($sunday->fresh()->related->isEmpty());
+    }
+
+    public function test_the_picker_excludes_self_cancelled_past_and_already_linked_bookings(): void
+    {
+        [$manager, $saturday, $sunday] = $this->weekend();
+        $team = $manager->managedTeams()->firstOrFail();
+        $cancelled = Booking::factory()->cancelled()->create([
+            'team_id' => $team->getKey(),
+            'start_at' => '2026-12-14 09:00:00',
+            'end_at' => '2026-12-14 11:00:00',
+            'timezone' => 'Europe/London',
+        ]);
+        $past = Booking::factory()->confirmed()->create([
+            'team_id' => $team->getKey(),
+            'start_at' => '2026-10-01 09:00:00',
+            'end_at' => '2026-10-01 11:00:00',
+            'timezone' => 'Europe/London',
+        ]);
+
+        Filament::setCurrentPanel(Filament::getPanel('manage'));
+        $this->actingAs($manager);
+
+        Livewire::test(RelatedBookings::class, [
+            'record' => $saturday,
+            'panel' => 'manage',
+        ])
+            ->mountAction('add')
+            ->assertSchemaComponentExists('related_id', checkComponentUsing: function (Select $select) use ($saturday, $sunday, $cancelled, $past): bool {
+                $options = $select->getOptions();
+
+                return isset($options[$sunday->getKey()])
+                    && ! isset($options[$saturday->getKey()])
+                    && ! isset($options[$cancelled->getKey()])
+                    && ! isset($options[$past->getKey()]);
+            });
+    }
+
+    public function test_a_manager_cannot_link_or_see_another_team_booking_as_related(): void
+    {
+        [$manager, $saturday] = $this->weekend();
+        $otherTeam = Team::factory()->create();
+        $otherManager = User::factory()->teamManager($otherTeam)->create();
+        $foreign = Booking::factory()->confirmed()->create([
+            'team_id' => $otherTeam->getKey(),
+            'start_at' => '2026-12-13 09:00:00',
+            'end_at' => '2026-12-13 11:00:00',
+            'timezone' => 'Europe/London',
+            'group_name' => 'Archery camp',
+        ]);
+
+        Filament::setCurrentPanel(Filament::getPanel('manage'));
+        $this->actingAs($manager);
+
+        $this->assertFalse($manager->can('relate', [$saturday, $foreign]));
+
+        Livewire::test(RelatedBookings::class, [
+            'record' => $saturday,
+            'panel' => 'manage',
+        ])
+            ->mountAction('add')
+            ->assertSchemaComponentExists('related_id', checkComponentUsing: function (Select $select) use ($foreign): bool {
+                return ! isset($select->getOptions()[$foreign->getKey()]);
+            });
+
+        Livewire::test(RelatedBookings::class, [
+            'record' => $saturday,
+            'panel' => 'manage',
+        ])
+            ->call('add', $foreign->getKey())
+            ->assertNotFound();
+
+        $this->assertTrue($saturday->fresh()->related->isEmpty());
+    }
+
+    public function test_members_can_view_related_bookings_but_cannot_add_or_remove_them(): void
+    {
+        [$manager, $saturday, $sunday] = $this->weekend();
+        $team = $manager->managedTeams()->firstOrFail();
+        $member = User::factory()->create();
+        $team->grant($member, MembershipRole::Member);
+        $saturday->relate($sunday);
+
+        $this->assertFalse($member->can('relate', [$saturday, $sunday]));
+
+        Filament::setCurrentPanel(Filament::getPanel('member'));
+        $this->actingAs($member);
+
+        Livewire::test(RelatedBookings::class, [
+            'record' => $saturday,
+            'panel' => 'member',
+        ])
+            ->assertSee('Related bookings')
+            ->assertSee('Sun 13 Dec 2026 09:00 · Climbing · Cubs')
+            ->assertActionHidden('add')
+            ->assertDontSee('Remove');
+
+        Livewire::test(RelatedBookings::class, [
+            'record' => $saturday,
+            'panel' => 'member',
+        ])
+            ->call('add', $sunday->getKey())
+            ->assertForbidden();
+    }
+
+    public function test_members_only_see_related_bookings_they_can_already_view(): void
+    {
+        [$manager, $saturday] = $this->weekend();
+        $team = $manager->managedTeams()->firstOrFail();
+        $member = User::factory()->create();
+        $team->grant($member, MembershipRole::Member);
+        $hidden = Booking::factory()->create([
+            'team_id' => $team->getKey(),
+            'activity_id' => $saturday->activity_id,
+            'start_at' => '2026-12-13 09:00:00',
+            'end_at' => '2026-12-13 11:00:00',
+            'timezone' => 'Europe/London',
+            'group_name' => 'Leaders only',
+        ]);
+        $saturday->relate($hidden);
+
+        Filament::setCurrentPanel(Filament::getPanel('member'));
+        $this->actingAs($member);
+
+        Livewire::test(RelatedBookings::class, [
+            'record' => $saturday,
+            'panel' => 'member',
+        ])
+            ->assertDontSee('Related bookings')
+            ->assertDontSee('Leaders only')
+            ->assertDontSee('No related bookings.');
+
+        Livewire::test(MemberViewBooking::class, ['record' => $saturday->getRouteKey()])
+            ->assertDontSee('Related bookings')
+            ->assertDontSee('Leaders only');
+    }
+
+    public function test_manage_and_member_view_pages_stack_the_related_row_under_the_guest_list(): void
+    {
+        [$manager, $saturday, $sunday] = $this->weekend();
+        $team = $manager->managedTeams()->firstOrFail();
+        $member = User::factory()->create();
+        $team->grant($member, MembershipRole::Member);
+        $saturday->relate($sunday);
+
+        Filament::setCurrentPanel(Filament::getPanel('manage'));
+        $this->actingAs($manager);
+
+        $manageUrl = BookingResource::getUrl(
+            'view',
+            ['record' => $sunday],
+            panel: 'manage',
+            tenant: $team,
+        );
+
+        Livewire::test(ManageViewBooking::class, ['record' => $saturday->getRouteKey()])
+            ->assertSee('Related bookings')
+            ->assertSee('Sun 13 Dec 2026 09:00 · Climbing · Cubs')
+            ->assertSeeHtml($manageUrl)
+            ->assertSeeHtml('class="invite-panel"')
+            ->assertDontSeeHtml('wire:name="App\\Filament\\Manage\\Resources\\Bookings\\RelationManagers\\Related');
+
+        Livewire::test(ManageEditBooking::class, ['record' => $saturday->getRouteKey()])
+            ->assertDontSee('Related bookings');
+
+        Filament::setCurrentPanel(Filament::getPanel('member'));
+        $this->actingAs($member);
+
+        $memberUrl = \App\Filament\Member\Resources\Bookings\BookingResource::getUrl(
+            'view',
+            ['record' => $sunday],
+            panel: 'member',
+        );
+
+        Livewire::test(MemberViewBooking::class, ['record' => $saturday->getRouteKey()])
+            ->assertSee('Related bookings')
+            ->assertSee('Sun 13 Dec 2026 09:00 · Climbing · Cubs')
+            ->assertSeeHtml($memberUrl)
+            ->assertSeeHtml('class="invite-panel"');
+    }
+
+    public function test_the_member_view_hides_related_bookings_when_there_are_none(): void
+    {
+        [$manager, $saturday] = $this->weekend();
+        $team = $manager->managedTeams()->firstOrFail();
+        $member = User::factory()->create();
+        $team->grant($member, MembershipRole::Member);
+
+        Filament::setCurrentPanel(Filament::getPanel('member'));
+        $this->actingAs($member);
+
+        Livewire::test(MemberViewBooking::class, ['record' => $saturday->getRouteKey()])
+            ->assertDontSee('Related bookings');
+    }
+
+    public function test_related_bookings_do_not_change_mail_threads_or_uids(): void
+    {
+        [$manager, $saturday, $sunday] = $this->weekend();
+        $attendee = User::factory()->create();
+        $saturday->attendees()->attach($attendee->getKey(), [
+            'status' => 'accepted',
+            'token' => BookingAttendance::generateToken(),
+        ]);
+        $uid = $saturday->uid;
+        $reference = '<'.BookingMailThread::reference($saturday).'>';
+        $saturday->relate($sunday);
+
+        $invite = new BookingInviteMail($saturday, $attendee);
+        $updated = new BookingChangedMail($saturday, $attendee);
+
+        $this->assertSame($uid, $saturday->uid);
+        $this->assertNotSame($saturday->uid, $sunday->uid);
+        $this->assertSame($reference, $invite->headers()->referencesString());
+        $this->assertSame($reference, $updated->headers()->referencesString());
+        $this->assertStringNotContainsString($sunday->getKey(), $invite->headers()->referencesString());
+        $this->assertStringStartsWith('booking+'.$saturday->getKey().'@', $saturday->uid);
+    }
+
+    /**
+     * @return array{0: User, 1: Booking, 2: Booking}
+     */
+    private function weekend(): array
+    {
+        $manager = User::factory()->teamManager()->create();
+        $team = $manager->managedTeams()->firstOrFail();
+        $activity = Activity::factory()->create(['name' => 'Climbing']);
+        $team->addActivity($activity);
+
+        $saturday = Booking::factory()->confirmed()->create([
+            'team_id' => $team->getKey(),
+            'activity_id' => $activity->getKey(),
+            'start_at' => '2026-12-12 09:00:00',
+            'end_at' => '2026-12-12 11:00:00',
+            'timezone' => 'Europe/London',
+            'group_name' => 'Foxes',
+        ]);
+        $sunday = Booking::factory()->confirmed()->create([
+            'team_id' => $team->getKey(),
+            'activity_id' => $activity->getKey(),
+            'start_at' => '2026-12-13 09:00:00',
+            'end_at' => '2026-12-13 11:00:00',
+            'timezone' => 'Europe/London',
+            'group_name' => 'Cubs',
+        ]);
+
+        return [$manager, $saturday, $sunday];
+    }
+}

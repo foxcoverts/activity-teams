@@ -9,6 +9,7 @@ use App\Filament\Bookings\BookingKeysAction;
 use App\Filament\Bookings\RefreshesWhenAttendanceChanges;
 use App\Filament\Member\Resources\Bookings\BookingResource;
 use App\Filament\Member\Resources\Bookings\BookingTimeline;
+use App\Livewire\RelatedBookings;
 use App\Models\Booking;
 use App\Models\User;
 use App\Support\LeadAttendanceWarning;
@@ -18,6 +19,8 @@ use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ViewRecord;
 use Filament\Schemas\Components\EmbeddedSchema;
 use Filament\Schemas\Components\Grid;
+use Filament\Schemas\Components\Group;
+use Filament\Schemas\Components\Livewire;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use InvalidArgumentException;
@@ -30,32 +33,40 @@ class ViewBooking extends ViewRecord
 
     public function content(Schema $schema): Schema
     {
-        $components = [];
-
         $record = $this->getRecord();
         $user = auth()->user();
+        $sidebar = [];
 
         if ($record instanceof Booking && $user instanceof User) {
             $record->loadMissing('team');
 
             if ($record->team !== null && $user->isCurrentMemberOf($record->team)) {
-                $components[] = $this->getRelationManagersContentComponent()
-                    ->columnSpan(['default' => 1, 'lg' => 2]);
+                $sidebar[] = $this->getRelationManagersContentComponent();
+            }
+
+            $visibleRelated = $record->related()
+                ->get()
+                ->filter(fn (Booking $related): bool => $user->can('view', $related));
+
+            if ($visibleRelated->isNotEmpty()) {
+                $sidebar[] = Livewire::make(RelatedBookings::class, [
+                    'record' => $record,
+                    'panel' => 'member',
+                ]);
             }
         }
 
-        array_unshift(
-            $components,
-            $this->getInfolistContentComponent()
-                ->columnSpan(['default' => 1, 'lg' => 3]),
-        );
-
-        $components[] = EmbeddedSchema::make('timeline')
-            ->columnSpan(['default' => 1, 'lg' => 3]);
-
         return $schema->components([
             Grid::make(['default' => 1, 'lg' => 5])
-                ->schema($components),
+                ->schema([
+                    $this->getInfolistContentComponent()
+                        ->columnSpan(['default' => 1, 'lg' => 3]),
+                    Group::make($sidebar)
+                        ->extraAttributes(['class' => 'invite-panel'])
+                        ->columnSpan(['default' => 1, 'lg' => 2]),
+                    EmbeddedSchema::make('timeline')
+                        ->columnSpan(['default' => 1, 'lg' => 3]),
+                ]),
         ]);
     }
 

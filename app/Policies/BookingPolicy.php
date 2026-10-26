@@ -74,6 +74,14 @@ class BookingPolicy
         return $booking->team !== null && $user->manages($booking->team);
     }
 
+    public function relate(User $user, Booking $booking, Booking $related): bool
+    {
+        return $this->update($user, $booking)
+            && $this->update($user, $related)
+            && (string) $booking->team_id === (string) $related->team_id
+            && (string) $booking->getKey() !== (string) $related->getKey();
+    }
+
     public function delete(User $user, Booking $booking): bool
     {
         return $booking->isCancelled() && $this->update($user, $booking);
