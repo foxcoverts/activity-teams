@@ -22,6 +22,6 @@ A system admin maintains the controlled venue list ([US-49](US-49-system-adminis
 
 A key is one lock. It is not one key per activity, and it has no venue of its own. A key ring lists the keys on it. A booking requires the keys marked for its activity at its venue. Holding one of those keys, or a key that covers one, gives a person that access. A manager can see every holder of the keys that team needs, including someone who is not a current member, and only that person's name.
 
-Travel expectations and warden coordination are manual. They are not screens in this system. The key list and the holder list are what a manager uses while doing that work.
+Travel expectations and warden coordination are manual. They are not screens in this system. The Key rings list is what a manager uses while doing that work. A lock with no ring stays on the admin key catalog.
 
 A manager opens Keys on a booking to see the keys that activity needs at that venue, and the rings that open them. The roster and the invite list mark who holds one of those keys, and who holds keys that this booking does not need. The invite list can be narrowed to key holders. The team members list marks who can open a team-relevant key. That badge, and the Keys list on the member, show those keys and what they are required for. The list can be filtered by those keys. Address and geo location are not part of these criteria.

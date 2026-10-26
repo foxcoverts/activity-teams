@@ -101,36 +101,4 @@ class Key extends Model
             })
             ->orderBy('name');
     }
-
-    /**
-     * @return list<string>
-     */
-    public function ringDescriptions(): array
-    {
-        $this->loadMissing('rings.holder');
-
-        if ($this->rings->isEmpty()) {
-            return [__('Not on a key ring yet.')];
-        }
-
-        return $this->rings
-            ->map(fn (KeyRing $ring): string => $ring->name.': '.($ring->holder?->name ?? __('In the cupboard')))
-            ->all();
-    }
-
-    /**
-     * @return list<string>
-     */
-    public function accessRingDescriptions(): array
-    {
-        $rings = $this->accessRings()->with('holder')->get();
-
-        if ($rings->isEmpty()) {
-            return [__('No key rings')];
-        }
-
-        return $rings
-            ->map(fn (KeyRing $ring): string => $ring->name.': '.($ring->holder?->name ?? __('In the cupboard')))
-            ->all();
-    }
 }

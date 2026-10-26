@@ -7,6 +7,8 @@ use App\Filament\Admin\Resources\Keys\Pages\CreateKey;
 use App\Filament\Admin\Resources\Keys\Pages\EditKey;
 use App\Filament\Admin\Resources\Keys\Pages\ListKeys;
 use App\Filament\Admin\Resources\Keys\Pages\ViewKey;
+use App\Filament\Admin\Resources\Keys\RelationManagers\CoversRelationManager;
+use App\Filament\Admin\Resources\Keys\RelationManagers\RingsRelationManager;
 use App\Models\Key;
 use App\Models\User;
 use BackedEnum;
@@ -20,12 +22,12 @@ use Filament\Forms\Components\TextInput;
 use Filament\Infolists\Components\RepeatableEntry;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Resources\Resource;
+use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Model;
 
 class KeyResource extends Resource
 {
@@ -44,56 +46,70 @@ class KeyResource extends Resource
         return $user instanceof User && $user->isSystemAdmin();
     }
 
+    public static function getEloquentQuery(): Builder
+    {
+        return parent::getEloquentQuery()->with([
+            'requirements.activity',
+            'requirements.venue',
+        ]);
+    }
+
     public static function form(Schema $schema): Schema
     {
         return $schema
             ->components([
-                TextInput::make('name')
-                    ->required(),
-                Repeater::make('requirements')
-                    ->relationship()
-                    ->label(__('Required for'))
-                    ->helperText(__('Each row is an activity at a session venue. The lock can be somewhere else.'))
+                Section::make(__('Key'))
+                    ->icon(Heroicon::OutlinedKey)
+                    ->columns(1)
+                    ->columnSpanFull()
                     ->schema([
-                        Select::make('activity_id')
-                            ->label(__('Activity'))
-                            ->relationship('activity', 'name')
-                            ->searchable()
-                            ->preload()
+                        TextInput::make('name')
                             ->required(),
-                        Select::make('venue_id')
-                            ->label(__('Session venue'))
-                            ->relationship('venue', 'name')
-                            ->searchable()
+                    ]),
+                Section::make(__('Required for'))
+                    ->icon(Heroicon::OutlinedClipboardDocumentList)
+                    ->columns(1)
+                    ->columnSpanFull()
+                    ->schema([
+                        Repeater::make('requirements')
+                            ->relationship()
+                            ->hiddenLabel()
+                            ->helperText(__('Each row is an activity at a session venue. The lock can be somewhere else.'))
+                            ->schema([
+                                Select::make('activity_id')
+                                    ->label(__('Activity'))
+                                    ->relationship('activity', 'name')
+                                    ->searchable()
+                                    ->preload()
+                                    ->required(),
+                                Select::make('venue_id')
+                                    ->label(__('Session venue'))
+                                    ->relationship('venue', 'name')
+                                    ->searchable()
+                                    ->preload()
+                                    ->required(),
+                            ])
+                            ->columns(1)
+                            ->columnSpanFull(),
+                    ]),
+                Section::make(__('Covers'))
+                    ->icon(Heroicon::OutlinedLink)
+                    ->columns(1)
+                    ->columnSpanFull()
+                    ->schema([
+                        Select::make('covers')
+                            ->hiddenLabel()
+                            ->helperText(__('Holding this key counts as holding each of these. A key cannot cover itself.'))
+                            ->relationship(
+                                name: 'covers',
+                                titleAttribute: 'name',
+                                modifyQueryUsing: fn (Builder $query): Builder => $query->orderBy('name'),
+                                ignoreRecord: true,
+                            )
+                            ->multiple()
                             ->preload()
-                            ->required(),
-                    ])
-                    ->columnSpanFull(),
-                Select::make('covers')
-                    ->label(__('Covers'))
-                    ->helperText(__('Holding this key counts as holding each of these. A key cannot cover itself.'))
-                    ->relationship(
-                        name: 'covers',
-                        titleAttribute: 'name',
-                        modifyQueryUsing: fn (Builder $query): Builder => $query->orderBy('name'),
-                        ignoreRecord: true,
-                    )
-                    ->multiple()
-                    ->preload()
-                    ->columnSpanFull(),
-                TextEntry::make('ring_list')
-                    ->label(__('Key rings'))
-                    ->visible(fn (?Model $record): bool => $record instanceof Key)
-                    ->state(function (?Model $record): string {
-                        if (! $record instanceof Key) {
-                            return '';
-                        }
-
-                        $lines = $record->ringDescriptions();
-
-                        return implode(', ', $lines);
-                    })
-                    ->columnSpanFull(),
+                            ->columnSpanFull(),
+                    ]),
             ]);
     }
 
@@ -101,24 +117,29 @@ class KeyResource extends Resource
     {
         return $schema
             ->components([
-                TextEntry::make('name'),
-                RepeatableEntry::make('requirements')
-                    ->label(__('Required for'))
-                    ->placeholder(__('Not required for a session yet.'))
+                Section::make(__('Key'))
+                    ->icon(Heroicon::OutlinedKey)
+                    ->columns(1)
+                    ->columnSpanFull()
                     ->schema([
-                        TextEntry::make('activity.name')
-                            ->label(__('Activity')),
-                        TextEntry::make('venue.name')
-                            ->label(__('Session venue')),
+                        TextEntry::make('name'),
                     ]),
-                TextEntry::make('covers.name')
-                    ->label(__('Covers'))
-                    ->placeholder(__('Covers no other key.'))
-                    ->listWithLineBreaks(),
-                TextEntry::make('ring_list')
-                    ->label(__('Key rings'))
-                    ->state(fn (Key $record): array => $record->ringDescriptions())
-                    ->listWithLineBreaks(),
+                Section::make(__('Required for'))
+                    ->icon(Heroicon::OutlinedClipboardDocumentList)
+                    ->columns(1)
+                    ->columnSpanFull()
+                    ->schema([
+                        RepeatableEntry::make('requirements')
+                            ->hiddenLabel()
+                            ->placeholder(__('Not required for a session yet.'))
+                            ->schema([
+                                TextEntry::make('activity.name')
+                                    ->label(__('Activity')),
+                                TextEntry::make('venue.name')
+                                    ->label(__('Session venue')),
+                            ])
+                            ->columns(1),
+                    ]),
             ]);
     }
 
@@ -142,6 +163,14 @@ class KeyResource extends Resource
                     DeleteBulkAction::make(),
                 ]),
             ]);
+    }
+
+    public static function getRelations(): array
+    {
+        return [
+            CoversRelationManager::class,
+            RingsRelationManager::class,
+        ];
     }
 
     public static function getPages(): array

@@ -12,6 +12,6 @@ class ListKeyRings extends ListRecords
 
     public function getSubheading(): string|Htmlable|null
     {
-        return __('These are the key rings you hold. A system admin records them.');
+        return __('These are the key rings you hold. You can pass one to another member, or back to the cupboard.');
     }
 }

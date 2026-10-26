@@ -2,6 +2,7 @@
 
 namespace App\Filament\Member\Resources\KeyRings;
 
+use App\Filament\KeyRings\PassKeyRingAction;
 use App\Filament\Member\Resources\KeyRings\Pages\ListKeyRings;
 use App\Filament\Member\Resources\KeyRings\Pages\ViewKeyRing;
 use App\Models\KeyRing;
@@ -10,6 +11,7 @@ use BackedEnum;
 use Filament\Actions\ViewAction;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Resources\Resource;
+use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
@@ -21,8 +23,6 @@ class KeyRingResource extends Resource
     protected static ?string $model = KeyRing::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
-
-    protected static ?string $navigationLabel = 'Key rings';
 
     protected static ?string $recordTitleAttribute = 'name';
 
@@ -54,11 +54,24 @@ class KeyRingResource extends Resource
     {
         return $schema
             ->components([
-                TextEntry::make('name'),
-                TextEntry::make('key_descriptions')
-                    ->label(__('Keys'))
-                    ->state(fn (KeyRing $record): array => $record->keyDescriptions() ?: [__('No keys on this ring.')])
-                    ->listWithLineBreaks(),
+                Section::make(__('Key ring'))
+                    ->icon(Heroicon::OutlinedKey)
+                    ->columns(1)
+                    ->columnSpanFull()
+                    ->schema([
+                        TextEntry::make('name'),
+                    ]),
+                Section::make(__('Keys'))
+                    ->icon(Heroicon::OutlinedLockClosed)
+                    ->columns(1)
+                    ->columnSpanFull()
+                    ->schema([
+                        TextEntry::make('key_descriptions')
+                            ->label(__('Keys'))
+                            ->state(fn (KeyRing $record): array => $record->keyDescriptions() ?: [__('No keys on this ring.')])
+                            ->listWithLineBreaks()
+                            ->placeholder('-'),
+                    ]),
             ]);
     }
 
@@ -75,6 +88,7 @@ class KeyRingResource extends Resource
             ->emptyStateHeading(__('No key rings recorded.'))
             ->recordActions([
                 ViewAction::make(),
+                PassKeyRingAction::make(),
             ])
             ->toolbarActions([]);
     }

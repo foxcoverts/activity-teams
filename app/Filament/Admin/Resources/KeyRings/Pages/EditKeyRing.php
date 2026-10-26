@@ -18,4 +18,9 @@ class EditKeyRing extends EditRecord
             DeleteAction::make(),
         ];
     }
+
+    public function getRelationManagers(): array
+    {
+        return [];
+    }
 }

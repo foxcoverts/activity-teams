@@ -7,6 +7,7 @@ use App\Filament\Admin\Resources\KeyRings\Pages\CreateKeyRing;
 use App\Filament\Admin\Resources\KeyRings\Pages\EditKeyRing;
 use App\Filament\Admin\Resources\KeyRings\Pages\ListKeyRings;
 use App\Filament\Admin\Resources\KeyRings\Pages\ViewKeyRing;
+use App\Filament\Admin\Resources\KeyRings\RelationManagers\KeysRelationManager;
 use App\Models\KeyRing;
 use App\Models\User;
 use BackedEnum;
@@ -19,6 +20,7 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Resources\Resource;
+use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
@@ -32,8 +34,6 @@ class KeyRingResource extends Resource
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
 
     protected static string|\UnitEnum|null $navigationGroup = NavigationGroup::Site;
-
-    protected static ?string $navigationLabel = 'Key rings';
 
     protected static ?string $recordTitleAttribute = 'name';
 
@@ -50,48 +50,67 @@ class KeyRingResource extends Resource
     {
         return $schema
             ->components([
-                TextInput::make('name')
-                    ->required(),
-                Select::make('holder_id')
-                    ->label(__('Holder'))
-                    ->relationship(
-                        'holder',
-                        'name',
-                        function (Builder $query, ?KeyRing $record): Builder {
-                            return $query
-                                ->withTrashed()
-                                ->where(function (Builder $holders) use ($record): void {
-                                    $holders->whereNull($holders->getModel()->getQualifiedDeletedAtColumn());
+                Section::make(__('Key ring'))
+                    ->icon(Heroicon::OutlinedKey)
+                    ->columns(1)
+                    ->columnSpanFull()
+                    ->schema([
+                        TextInput::make('name')
+                            ->required(),
+                    ]),
+                Section::make(__('Holder'))
+                    ->icon(Heroicon::User)
+                    ->columns(1)
+                    ->columnSpanFull()
+                    ->schema([
+                        Select::make('holder_id')
+                            ->hiddenLabel()
+                            ->relationship(
+                                'holder',
+                                'name',
+                                function (Builder $query, ?KeyRing $record): Builder {
+                                    return $query
+                                        ->withTrashed()
+                                        ->where(function (Builder $holders) use ($record): void {
+                                            $holders->whereNull($holders->getModel()->getQualifiedDeletedAtColumn());
 
-                                    if ($record instanceof KeyRing && filled($record->holder_id)) {
-                                        $holders->orWhereKey($record->holder_id);
-                                    }
-                                });
-                        },
-                    )
-                    ->searchable()
-                    ->preload()
-                    ->placeholder(__('In the cupboard'))
-                    ->nullable()
-                    ->rule(fn (?KeyRing $record): Closure => function (string $attribute, mixed $value, Closure $fail) use ($record): void {
-                        if (blank($value)) {
-                            return;
-                        }
+                                            if ($record instanceof KeyRing && filled($record->holder_id)) {
+                                                $holders->orWhereKey($record->holder_id);
+                                            }
+                                        });
+                                },
+                            )
+                            ->searchable()
+                            ->preload()
+                            ->placeholder(__('In the cupboard'))
+                            ->nullable()
+                            ->rule(fn (?KeyRing $record): Closure => function (string $attribute, mixed $value, Closure $fail) use ($record): void {
+                                if (blank($value)) {
+                                    return;
+                                }
 
-                        if ($record instanceof KeyRing && (string) $record->holder_id === (string) $value) {
-                            return;
-                        }
+                                if ($record instanceof KeyRing && (string) $record->holder_id === (string) $value) {
+                                    return;
+                                }
 
-                        if (User::query()->whereKey($value)->doesntExist()) {
-                            $fail(User::leftRecordMessage());
-                        }
-                    }),
-                Select::make('keys')
-                    ->relationship('keys', 'name')
-                    ->multiple()
-                    ->preload()
-                    ->searchable()
-                    ->columnSpanFull(),
+                                if (User::query()->whereKey($value)->doesntExist()) {
+                                    $fail(User::leftRecordMessage());
+                                }
+                            }),
+                    ]),
+                Section::make(__('Keys'))
+                    ->icon(Heroicon::OutlinedLockClosed)
+                    ->columns(1)
+                    ->columnSpanFull()
+                    ->schema([
+                        Select::make('keys')
+                            ->hiddenLabel()
+                            ->relationship('keys', 'name')
+                            ->multiple()
+                            ->preload()
+                            ->searchable()
+                            ->columnSpanFull(),
+                    ]),
             ]);
     }
 
@@ -99,14 +118,22 @@ class KeyRingResource extends Resource
     {
         return $schema
             ->components([
-                TextEntry::make('name'),
-                TextEntry::make('holder_name')
-                    ->label(__('Holder'))
-                    ->state(fn (KeyRing $record): string => $record->holderName()),
-                TextEntry::make('key_descriptions')
-                    ->label(__('Keys'))
-                    ->state(fn (KeyRing $record): array => $record->keyDescriptions() ?: [__('No keys on this ring.')])
-                    ->listWithLineBreaks(),
+                Section::make(__('Key ring'))
+                    ->icon(Heroicon::OutlinedKey)
+                    ->columns(1)
+                    ->columnSpanFull()
+                    ->schema([
+                        TextEntry::make('name'),
+                    ]),
+                Section::make(__('Holder'))
+                    ->icon(Heroicon::User)
+                    ->columns(1)
+                    ->columnSpanFull()
+                    ->schema([
+                        TextEntry::make('holder_name')
+                            ->hiddenLabel()
+                            ->state(fn (KeyRing $record): string => $record->holderName()),
+                    ]),
             ]);
     }
 
@@ -129,6 +156,13 @@ class KeyRingResource extends Resource
                     DeleteBulkAction::make(),
                 ]),
             ]);
+    }
+
+    public static function getRelations(): array
+    {
+        return [
+            KeysRelationManager::class,
+        ];
     }
 
     public static function getPages(): array

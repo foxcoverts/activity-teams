@@ -218,6 +218,12 @@ Prefer icons in this order:
 - Do not display record IDs in user-facing screens.
 - Show slugs only on edit forms, never in lists, view screens, or create forms.
 - Do not show another person's email address, phone number, or emergency-contact details in multi-person lists or tables. Keep those details on individual-person screens where US-58 acknowledgement and existing authorization can be enforced. Only make an exception when a user story explicitly requires it, and preserve its access and time limits.
+- **Forms and infolists:** every field lives in a `Section` with `->icon(…)->columns(1)->columnSpanFull()`. Do not leave fields on Filament’s default multi-column schema. **More than one root section is allowed** when the groups are distinct; do not collapse everything into a single wrap. Pattern: Member (one section), User (**User** and **Access** as siblings), and the booking **form and infolist** (`BookingResource`; the member booking view uses the same infolist section). Booking sections also set `iconColor` from the status enum.
+- **Repeaters / grouped fields:** stack inner fields unless a true side-by-side pair is required. The booking form’s fused start/end schedule groups are the example of that exception; Keys and Key rings have no such pair.
+- **Empty values:** use `->placeholder('-')` on infolist entries that may be blank.
+- **Member-facing copy:** do not mention system admin, or other internal roles the member does not use.
+- **Selects that mix a special destination with people:** keep the special option visually separate (ungrouped or its own group) and wrap the people in an optgroup, as Pass does for cupboard vs Members.
+- **Boy scout:** when a Filament form or infolist is already being changed, bring it up to this layout. Do not open unrelated resources only to restyle them.
 
 ## User Story Progress
 

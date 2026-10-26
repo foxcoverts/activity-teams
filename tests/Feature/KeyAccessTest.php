@@ -7,12 +7,17 @@ use App\Enums\BookingAttendeeStatus;
 use App\Enums\MembershipRole;
 use App\Filament\Admin\Resources\KeyRings\KeyRingResource as ManageKeyRingResource;
 use App\Filament\Admin\Resources\KeyRings\Pages\CreateKeyRing;
+use App\Filament\Admin\Resources\KeyRings\Pages\ViewKeyRing;
+use App\Filament\Admin\Resources\KeyRings\RelationManagers\KeysRelationManager as KeyRingKeysRelationManager;
 use App\Filament\Admin\Resources\Keys\KeyResource;
 use App\Filament\Admin\Resources\Keys\Pages\CreateKey;
+use App\Filament\Admin\Resources\Keys\Pages\ViewKey;
+use App\Filament\Admin\Resources\Keys\RelationManagers\CoversRelationManager;
+use App\Filament\Admin\Resources\Keys\RelationManagers\RingsRelationManager;
 use App\Filament\Bookings\BookingKeysAction;
 use App\Filament\Manage\Resources\Bookings\Pages\ViewBooking as ManageViewBooking;
 use App\Filament\Manage\Resources\Bookings\RelationManagers\AttendeesRelationManager;
-use App\Filament\Manage\Resources\Keys\KeyResource as TeamKeyResource;
+use App\Filament\Manage\Resources\KeyRings\KeyRingResource as TeamKeyRingResource;
 use App\Filament\Manage\Resources\Members\MemberResource;
 use App\Filament\Manage\Resources\Members\Pages\ListMembers;
 use App\Filament\Manage\Resources\Members\Pages\ViewMember;
@@ -173,12 +178,38 @@ class KeyAccessTest extends TestCase
         $this->assertSame($holder->getKey(), $ring->holder_id);
         $this->assertTrue($ring->keys()->whereKey($store->getKey())->exists());
 
-        $this->get(KeyResource::getUrl('view', ['record' => $store]))
+        $this->get(KeyResource::getUrl('view', ['record' => $store]))->assertOk();
+        $this->get(ManageKeyRingResource::getUrl('view', ['record' => $ring]))->assertOk();
+
+        Livewire::test(ViewKey::class, ['record' => $store->getKey()])
+            ->assertOk()
+            ->assertSee('Scout climbing')
+            ->assertSee('Campsite')
+            ->assertSee('Covers')
+            ->assertSee('Key Rings');
+
+        Livewire::test(CoversRelationManager::class, [
+            'ownerRecord' => $store,
+            'pageClass' => ViewKey::class,
+        ])->assertCanSeeTableRecords([$archery]);
+
+        Livewire::test(RingsRelationManager::class, [
+            'ownerRecord' => $store,
+            'pageClass' => ViewKey::class,
+        ])
+            ->assertCanSeeTableRecords([$ring])
+            ->assertSee('Pat Smith');
+
+        Livewire::test(ViewKeyRing::class, ['record' => $ring->getKey()])
             ->assertOk()
             ->assertSee('Shared climbing')
             ->assertSee('Pat Smith')
-            ->assertSee('Scout climbing')
-            ->assertSee('Archery locker');
+            ->assertSee('Keys');
+
+        Livewire::test(KeyRingKeysRelationManager::class, [
+            'ownerRecord' => $ring,
+            'pageClass' => ViewKeyRing::class,
+        ])->assertCanSeeTableRecords([$store]);
     }
 
     public function test_a_manager_sees_every_holder_of_the_keys_their_team_needs(): void
@@ -226,17 +257,21 @@ class KeyAccessTest extends TestCase
 
         $this->actingAs($manager);
 
-        $this->get(TeamKeyResource::getUrl('index'))
+        $this->get(TeamKeyRingResource::getUrl('index'))
             ->assertOk()
+            ->assertSee('Shared climbing')
+            ->assertSee('Robin Outsider')
+            ->assertSee('Spare climbing')
+            ->assertSee('In the cupboard')
+            ->assertSee('Warden ring')
+            ->assertSee('Sam Warden')
             ->assertSee('Climbing store')
-            ->assertSee('Scout climbing at Campsite')
-            ->assertSee('Shared climbing: Robin Outsider')
-            ->assertSee('Spare climbing: In the cupboard')
-            ->assertSee('Warden ring: Sam Warden')
+            ->assertSee('Warden key')
+            ->assertDontSee('Shooting ring')
             ->assertDontSee('Britannia shooting store')
             ->assertDontSee('07000999888')
             ->assertDontSee('07000111222')
-            ->assertDontSee('New key');
+            ->assertDontSee('New key ring');
     }
 
     public function test_a_member_sees_only_the_key_rings_they_hold(): void
@@ -257,7 +292,7 @@ class KeyAccessTest extends TestCase
 
         $this->get(MemberKeyRingResource::getUrl('index'))
             ->assertOk()
-            ->assertSee('Key rings')
+            ->assertSee('Key Rings')
             ->assertSee('My warden ring')
             ->assertSee('Warden key')
             ->assertSee('These are the key rings you hold.')

@@ -17,7 +17,7 @@ use App\Filament\Admin\Resources\Users\UserResource;
 use App\Filament\Manage\Resources\Activities\ActivityResource;
 use App\Filament\Manage\Resources\Activities\Pages\ListActivities;
 use App\Filament\Manage\Resources\Bookings\BookingResource;
-use App\Filament\Manage\Resources\Keys\KeyResource;
+use App\Filament\Manage\Resources\KeyRings\KeyRingResource;
 use App\Filament\Manage\Resources\Members\MemberResource;
 use App\Filament\Manage\Resources\Members\Pages\ListMembers;
 use App\Filament\Manage\Resources\Members\Pages\ViewMember;
@@ -27,6 +27,7 @@ use App\Models\Activity;
 use App\Models\Booking;
 use App\Models\BookingAttendance;
 use App\Models\Key;
+use App\Models\KeyRing;
 use App\Models\Qualification;
 use App\Models\Team;
 use App\Models\User;
@@ -523,15 +524,18 @@ class ActivityTeamsTest extends TestCase
         $this->assertTrue($team->activities()->whereKey($activity->getKey())->exists());
         $this->assertTrue($team->venues()->whereKey($venue->getKey())->exists());
 
-        $key = Key::factory()->create(['name' => 'Climbing store']);
+        $key = Key::factory()->create();
         $key->requirements()->create([
             'activity_id' => $activity->getKey(),
             'venue_id' => $venue->getKey(),
         ]);
 
-        $this->get(KeyResource::getUrl('index'))
+        $keyRing = KeyRing::factory()->create(['name' => 'Climbing keys']);
+        $keyRing->keys()->attach($key);
+
+        $this->get(KeyRingResource::getUrl('index'))
             ->assertOk()
-            ->assertSee('Climbing store');
+            ->assertSee('Climbing keys');
 
         Livewire::test(ListActivities::class)
             ->callTableAction('remove', $activity);
