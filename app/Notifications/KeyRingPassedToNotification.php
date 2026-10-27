@@ -2,9 +2,11 @@
 
 namespace App\Notifications;
 
+use App\Enums\MailGroup;
 use App\Filament\Member\Resources\KeyRings\KeyRingResource;
 use App\Models\KeyRing;
 use App\Models\User;
+use App\Support\MailPreference;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -35,14 +37,20 @@ class KeyRingPassedToNotification extends Notification implements ShouldQueue
             ? $this->from->name
             : __('the cupboard');
 
-        return (new MailMessage)
-            ->subject(__('You now hold :ring', ['ring' => $this->ring->name]))
-            ->greeting(__('Hello :name,', ['name' => $notifiable->name]))
-            ->line(__('You now hold **:ring**. It has been passed to you from **:from**.', [
-                'ring' => $this->ring->name,
-                'from' => $from,
-            ]))
-            ->line(__('Please look after the key ring. If you pass it on to someone else please update the website or let a team manager know as soon as possible.'))
-            ->action(__('View key rings'), KeyRingResource::getUrl('index', panel: 'member'));
+        assert($notifiable instanceof User);
+
+        return MailPreference::withFooter(
+            (new MailMessage)
+                ->subject(__('You now hold :ring', ['ring' => $this->ring->name]))
+                ->greeting(__('Hello :name,', ['name' => $notifiable->name]))
+                ->line(__('You now hold **:ring**. It has been passed to you from **:from**.', [
+                    'ring' => $this->ring->name,
+                    'from' => $from,
+                ]))
+                ->line(__('Please look after the key ring. If you pass it on to someone else please update the website or let a team manager know as soon as possible.'))
+                ->action(__('View key rings'), KeyRingResource::getUrl('index', panel: 'member')),
+            $notifiable,
+            MailGroup::Keys,
+        );
     }
 }

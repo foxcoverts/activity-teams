@@ -3,9 +3,11 @@
 namespace App\Actions;
 
 use App\Enums\BookingAttendeeStatus;
+use App\Enums\MailChannel;
 use App\Mail\AttendanceRecordedMail;
 use App\Models\Booking;
 use App\Models\User;
+use App\Support\MailPreference;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\ValidationException;
 
@@ -67,6 +69,10 @@ class OverrideAttendanceAction
         $this->stepLeadAway($booking, $attendee, $manager, $status);
 
         if ($booking->isPast() || $attendee->isSuspended() || ! $attendee->hasVerifiedEmail()) {
+            return;
+        }
+
+        if (! MailPreference::allows($attendee, MailChannel::BookingsMail, $booking)) {
             return;
         }
 

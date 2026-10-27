@@ -50,6 +50,7 @@ class User extends Authenticatable implements FilamentUser, HasDefaultTenant, Ha
         'oversight',
         'is_system_admin',
         'ical_token',
+        'mail_preferences',
         'privacy_notice_accepted_at',
         'profile_confirmed_at',
     ];
@@ -57,6 +58,7 @@ class User extends Authenticatable implements FilamentUser, HasDefaultTenant, Ha
     protected $hidden = [
         'password',
         'remember_token',
+        'mail_preference_token',
     ];
 
     protected $attributes = [
@@ -81,6 +83,7 @@ class User extends Authenticatable implements FilamentUser, HasDefaultTenant, Ha
             'oversight' => 'boolean',
             'is_system_admin' => 'boolean',
             'timezone' => AsTimezone::class,
+            'mail_preferences' => 'array',
         ];
     }
 
@@ -120,10 +123,10 @@ class User extends Authenticatable implements FilamentUser, HasDefaultTenant, Ha
     {
         return LogOptions::defaults()
             ->logFillable()
-            ->logExcept(['password', ...PersonalDataSection::protectedAttributes()])
+            ->logExcept(['password', 'mail_preference_token', ...PersonalDataSection::protectedAttributes()])
             ->logOnlyDirty()
             ->dontLogEmptyChanges()
-            ->dontLogIfAttributesChangedOnly(['remember_token', 'password', ...PersonalDataSection::protectedAttributes()]);
+            ->dontLogIfAttributesChangedOnly(['remember_token', 'password', 'mail_preference_token', ...PersonalDataSection::protectedAttributes()]);
     }
 
     public function canAccessPanel(Panel $panel): bool
@@ -196,6 +199,14 @@ class User extends Authenticatable implements FilamentUser, HasDefaultTenant, Ha
     public function keyRings(): HasMany
     {
         return $this->hasMany(KeyRing::class, 'holder_id')->orderBy('name');
+    }
+
+    /**
+     * @return HasMany<NotificationSetting, $this>
+     */
+    public function notificationSettings(): HasMany
+    {
+        return $this->hasMany(NotificationSetting::class);
     }
 
     public function holdsKey(Key $key): bool

@@ -2,8 +2,10 @@
 
 namespace App\Notifications;
 
+use App\Enums\MailGroup;
 use App\Models\KeyRing;
 use App\Models\User;
+use App\Support\MailPreference;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -39,10 +41,16 @@ class KeyRingPassedFromNotification extends Notification implements ShouldQueue
                 'ring' => $this->ring->name,
             ]);
 
-        return (new MailMessage)
-            ->subject(__('You no longer hold :ring', ['ring' => $this->ring->name]))
-            ->greeting(__('Hello :name,', ['name' => $notifiable->name]))
-            ->line($line)
-            ->line(__('If you still have this key ring please contact a team manager as soon as possible.'));
+        assert($notifiable instanceof User);
+
+        return MailPreference::withFooter(
+            (new MailMessage)
+                ->subject(__('You no longer hold :ring', ['ring' => $this->ring->name]))
+                ->greeting(__('Hello :name,', ['name' => $notifiable->name]))
+                ->line($line)
+                ->line(__('If you still have this key ring please contact a team manager as soon as possible.')),
+            $notifiable,
+            MailGroup::Keys,
+        );
     }
 }

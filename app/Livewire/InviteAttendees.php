@@ -4,12 +4,15 @@ namespace App\Livewire;
 
 use App\Actions\InviteAttendeesAction;
 use App\Enums\BookingAttendeeStatus;
+use App\Enums\MailChannel;
 use App\Livewire\Concerns\InteractsWithPersonAccess;
 use App\Models\Activity;
 use App\Models\Booking;
 use App\Models\User;
 use App\Support\BookingPeople;
+use App\Support\MailPreference;
 use Illuminate\Contracts\View\View;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 use Livewire\Component;
@@ -123,7 +126,7 @@ class InviteAttendees extends Component
     }
 
     /**
-     * @return list<array{id: string, name: string, qualified: bool, key_badge: ?string, status: ?BookingAttendeeStatus, can_add: bool}>
+     * @return list<array{id: string, name: string, qualified: bool, key_badge: ?string, mail_off: bool, status: ?BookingAttendeeStatus, can_add: bool}>
      */
     public function queuedPeople(): array
     {
@@ -137,7 +140,7 @@ class InviteAttendees extends Component
     }
 
     /**
-     * @return list<array{id: string, name: string, qualified: bool, key_badge: ?string, status: ?BookingAttendeeStatus, can_add: bool}>
+     * @return list<array{id: string, name: string, qualified: bool, key_badge: ?string, mail_off: bool, status: ?BookingAttendeeStatus, can_add: bool}>
      */
     public function pickerPeople(): array
     {
@@ -230,16 +233,31 @@ class InviteAttendees extends Component
     }
 
     /**
-     * @return Collection<int, array{id: string, name: string, qualified: bool, key_badge: ?string, status: ?BookingAttendeeStatus, can_add: bool}>
+     * @return Collection<int, array{id: string, name: string, qualified: bool, key_badge: ?string, mail_off: bool, status: ?BookingAttendeeStatus, can_add: bool}>
      */
     private function roster(): Collection
     {
-        $this->booking->loadMissing(['team', 'activity.qualificationRequirements', 'attendees.qualifications']);
+        $booking = $this->booking;
+        $settingsForBooking = function (HasMany $query) use ($booking): void {
+            $query
+                ->where('subject_type', $booking->getMorphClass())
+                ->where('subject_id', $booking->getKey());
+        };
+
+        $this->booking->loadMissing([
+            'team',
+            'activity.qualificationRequirements',
+            'attendees.qualifications',
+            'attendees.notificationSettings' => $settingsForBooking,
+        ]);
 
         $members = $this->booking->team?->members()
             ->where('suspended', false)
             ->whereNotNull('email_verified_at')
-            ->with('qualifications')
+            ->with([
+                'qualifications',
+                'notificationSettings' => $settingsForBooking,
+            ])
             ->ordered()
             ->get()
             ->keyBy(fn (User $user): string => $user->getKey())
@@ -268,6 +286,7 @@ class InviteAttendees extends Component
                     'name' => $user->name,
                     'qualified' => $showQualified && $activity->metBy($user, $this->booking),
                     'key_badge' => $badges[$id] ?? null,
+                    'mail_off' => ! MailPreference::allows($user, MailChannel::BookingsMail, $this->booking),
                     'status' => $onBooking ? $attendee->attendance?->status : null,
                     'can_add' => $member instanceof User && ! $onBooking,
                 ];

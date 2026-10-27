@@ -6,6 +6,7 @@ use App\Filament\Admin\PanelNavigationItem as AdminPanelNavigationItem;
 use App\Filament\Auth\EditProfile;
 use App\Filament\Manage\NavigationGroup;
 use App\Filament\Manage\PanelNavigationItem as ManagePanelNavigationItem;
+use App\Filament\Member\Pages\NotificationSettings;
 use App\Filament\Member\PanelNavigationItem as MemberPanelNavigationItem;
 use App\Filament\Pages\ChangePassword;
 use App\Http\Middleware\RememberManageTeam;
@@ -59,6 +60,7 @@ class ManagePanelProvider extends PanelProvider
             ])
             ->userMenuItems([
                 EditProfile::userMenuItem(),
+                NotificationSettings::userMenuItem(),
                 ChangePassword::userMenuItem(),
             ])
             ->navigationItems([

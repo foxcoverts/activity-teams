@@ -7,6 +7,7 @@ use App\Filament\Auth\EditProfile;
 use App\Filament\Auth\Login;
 use App\Filament\Auth\Register;
 use App\Filament\Manage\PanelNavigationItem as ManagePanelNavigationItem;
+use App\Filament\Member\Pages\NotificationSettings;
 use App\Filament\Pages\ChangePassword;
 use App\Http\Middleware\RequireProfileConfirmation;
 use App\Http\Middleware\ShowPublicBookingSummary;
@@ -53,6 +54,7 @@ class MemberPanelProvider extends PanelProvider
                 ChangePassword::class,
             ])
             ->userMenuItems([
+                NotificationSettings::userMenuItem(),
                 ChangePassword::userMenuItem(),
             ])
             ->navigationItems([

@@ -24,4 +24,8 @@
 
 {{ __('Thanks') }},<br>
 {{ config('app.name') }}
+
+<x-mail::preferences :url="$manageNotificationsUrl ?? null">
+{{ $manageNotificationsLabel ?? '' }}
+</x-mail::preferences>
 </x-mail::message>

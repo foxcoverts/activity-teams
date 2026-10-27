@@ -18,4 +18,4 @@ As an Activity Manager, I want to create, prioritise, assign, and track operatio
 
 ## Progress
 
-An activity team is a team in this app. Not built yet.
+An activity team is a team in this app. Not built yet. When task mail exists, add a `tasks` group to the [US-61](US-61-notification-settings.md) catalog and gate sends with `MailPreference::allows`.

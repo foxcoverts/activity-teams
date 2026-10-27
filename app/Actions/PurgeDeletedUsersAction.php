@@ -21,6 +21,8 @@ class PurgeDeletedUsersAction
         'password',
         'remember_token',
         'ical_token',
+        'mail_preference_token',
+        'mail_preferences',
         'timezone',
         'oversight',
         'is_system_admin',

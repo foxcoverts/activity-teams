@@ -65,47 +65,43 @@
 
                 <label class="block text-sm font-medium">
                     {{ __('Name') }}
-                    <input type="text" wire:model="name" class="mt-1 w-full rounded border px-3 py-2">
+                    <x-form.input type="text" wire:model="name" />
                     @error('name') <span class="text-red-600">{{ $message }}</span> @enderror
                 </label>
 
                 <label class="block text-sm font-medium">
                     {{ __('Email address') }}
-                    <input type="email" wire:model="email" class="mt-1 w-full rounded border px-3 py-2">
+                    <x-form.input type="email" wire:model="email" />
                     <span class="block text-xs font-normal">{{ __('You can use a different address from the one invited. If you do, you will need to verify it.') }}</span>
                     @error('email') <span class="text-red-600">{{ $message }}</span> @enderror
                 </label>
 
                 <label class="block text-sm font-medium">
                     {{ __('Password') }}
-                    <input type="password" wire:model="password" class="mt-1 w-full rounded border px-3 py-2">
+                    <x-form.input type="password" wire:model="password" />
                     @error('password') <span class="text-red-600">{{ $message }}</span> @enderror
                 </label>
 
                 <label class="block text-sm font-medium">
                     {{ __('Confirm password') }}
-                    <input type="password" wire:model="password_confirmation" class="mt-1 w-full rounded border px-3 py-2">
+                    <x-form.input type="password" wire:model="password_confirmation" />
                 </label>
 
                 <label class="block text-sm font-medium">
                     {{ __('Timezone') }}
-                    <div class="relative mt-1">
-                        <select wire:model="timezone"
-                                x-init="const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-                                    if (tz && $el.querySelector(`option[value='${tz}']`)) { $wire.timezone = tz }"
-                                class="w-full appearance-none rounded border py-2 pl-3 pr-10">
-                            @foreach ($this->timezoneGroups() as $region => $zones)
-                                <optgroup label="{{ $region }}">
-                                    @foreach ($zones as $value => $label)
-                                        <option value="{{ $value }}">{{ $label }}</option>
-                                    @endforeach
-                                </optgroup>
-                            @endforeach
-                        </select>
-                        <svg class="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                            <path fill-rule="evenodd" d="M5.22 8.22a.75.75 0 0 1 1.06 0L10 11.94l3.72-3.72a.75.75 0 1 1 1.06 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0L5.22 9.28a.75.75 0 0 1 0-1.06Z" clip-rule="evenodd" />
-                        </svg>
-                    </div>
+                    <x-form.select
+                        wire:model="timezone"
+                        x-init="const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+                            if (tz && $el.querySelector(`option[value='${tz}']`)) { $wire.timezone = tz }"
+                    >
+                        @foreach ($this->timezoneGroups() as $region => $zones)
+                            <optgroup label="{{ $region }}">
+                                @foreach ($zones as $value => $label)
+                                    <option value="{{ $value }}">{{ $label }}</option>
+                                @endforeach
+                            </optgroup>
+                        @endforeach
+                    </x-form.select>
                     @error('timezone') <span class="text-red-600">{{ $message }}</span> @enderror
                 </label>
 

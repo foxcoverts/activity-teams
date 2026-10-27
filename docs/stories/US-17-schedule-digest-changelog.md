@@ -19,3 +19,7 @@ As a team member, I want to receive an automated periodic digest email summarisi
 - The digest covers many bookings, so it does not set `References` to one booking's revision id.
 
 A member who changes their own attendance does not get a per-booking mail; this digest is that notice. [US-27](US-27-manager-overridden-attendance.md) sends the per-booking confirmation when a manager makes the change. [US-16](US-16-invitation-nudges-reminders.md) reminds people who have not answered. There is no US-32.
+
+## Progress
+
+[US-61](US-61-notification-settings.md) reserves `bookings.digest`. Decide `hasSubject` vs `listUnsubscribe` here; gate with `MailPreference::allows`. Show the digest control on the Notifications page when this ships.

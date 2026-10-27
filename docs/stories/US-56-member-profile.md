@@ -21,7 +21,7 @@ As a signed-in person, I want to maintain my own name, contact details, emergenc
 
 ## Refinement
 
-Fields already exist on `User`. The member panel hosts the custom profile (name, email, phone, emergency contact, and timezone); the manage user menu opens that same page. Booking-mail preferences moved to [US-61](US-61-booking-notification-settings.md). Annual confirmation of contact details is [US-20](US-20-annual-profile-confirmation.md).
+Fields already exist on `User`. The member panel hosts the custom profile (name, email, phone, emergency contact, and timezone); the manage user menu opens that same page. Notification preferences live on the Notifications page from [US-61](US-61-notification-settings.md). Annual confirmation of contact details is [US-20](US-20-annual-profile-confirmation.md).
 
 ## Progress
 

@@ -225,6 +225,17 @@ Prefer icons in this order:
 - **Selects that mix a special destination with people:** keep the special option visually separate (ungrouped or its own group) and wrap the people in an optgroup, as Pass does for cupboard vs Members.
 - **Boy scout:** when a Filament form or infolist is already being changed, bring it up to this layout. Do not open unrelated resources only to restyle them.
 
+## Public form pages
+
+Pages that use `layouts.filament-form` (mail-preference links from email, invitation create-account, and similar token or signed-out forms) are not Filament panel schemas. That layout loads CDN Tailwind without `@tailwindcss/forms`, so a class like `border-slate-300` with no `border` or padding renders as a naked native control.
+
+Style those controls with the shared Blade components, not ad-hoc input classes:
+
+- `x-form.input` for text, email, and password fields (`rounded border`, `px-3 py-2`)
+- `x-form.select` for selects (`appearance-none`, `pl-3 pr-10`, chevron)
+
+Labels are `block text-sm font-medium`. Helper copy is `text-sm` or `text-xs font-normal` and does not replace a visible field border. When adding a public form on this layout, reuse the components. Do not invent a third set of input classes. Filament panel pages keep using Filament fields.
+
 ## User Story Progress
 
 When a code change meets, partly meets, or stops meeting a user story's acceptance criteria, update that story in the same change. Stories are in `docs/stories/`; keep each file's frontmatter status in sync with its entry in `docs/stories/README.md`.

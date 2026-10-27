@@ -24,9 +24,9 @@ As a member, I want to pass a key ring I hold to another member so that the keys
 - **Who can receive:** current, unsuspended members of those interested teams, or the cupboard (`holder_id` null). Placeholders are included regardless of invitation status, matching booking attendance. Exclude self, deleted people, and suspended people. Cupboard is omitted when the ring is already there.
 - **Placeholders cannot pass for themselves.** A manager of an interested team moves rings to or from them until someone adopts the placeholder. Adopting reassigns `holder_id` without pass mail.
 - **What moves:** `key_rings.holder_id` only. Keys on `key_ring_key` stay put.
-- **Mail skips the actor.** Holder to member: only the new holder. Manager to member: previous and new holder (not the manager, unless they are one of those people). Anyone to cupboard: previous holder if they are not the actor, and interested-team managers except the actor and except someone who already received the previous-holder mail. No mail on a no-op. No opt-out (US-61 is booking mail only).
+- **Mail skips the actor.** Holder to member: only the new holder. Manager to member: previous and new holder (not the manager, unless they are one of those people). Anyone to cupboard: previous holder if they are not the actor, and interested-team managers except the actor and except someone who already received the previous-holder mail. No mail on a no-op. Holder to/from mail respects [US-61](US-61-notification-settings.md) `keys.mail`. Cupboard/manager mail stays always-on.
 - **Not in this slice:** pass from the booking Keys modal, ring timeline UI.
 
 ## Progress
 
-A holder or an interested team's manager can pass a ring from the member Key rings list and view, and from the manage Key rings list. The manage Keys page is replaced by that Key rings list. Pass mail is queued after commit and skips the actor.
+A holder or an interested team's manager can pass a ring from the member Key rings list and view, and from the manage Key rings list. The manage Keys page is replaced by that Key rings list. Pass mail is queued after commit and skips the actor. Holder to/from mail honours `keys.mail`; cupboard-return mail to managers does not.

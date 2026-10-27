@@ -2,12 +2,14 @@
 
 namespace App\Mail;
 
+use App\Enums\MailGroup;
 use App\Models\Booking;
 use App\Models\BookingAttendance;
 use App\Models\User;
 use App\Support\AttendanceResponseLinks;
 use App\Support\BookingChangeSummary;
 use App\Support\BookingMailThread;
+use App\Support\MailPreference;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
@@ -71,6 +73,7 @@ class BookingStatusMail extends Mailable
                 'respondUrl' => $token
                     ? route('respond', [$this->booking, $this->attendee, 'invite' => $token])
                     : null,
+                ...MailPreference::footerViewData($this->attendee, MailGroup::Bookings, $this->booking),
             ],
         );
     }

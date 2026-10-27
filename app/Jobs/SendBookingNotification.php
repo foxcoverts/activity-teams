@@ -3,6 +3,7 @@
 namespace App\Jobs;
 
 use App\Enums\BookingAttendeeStatus;
+use App\Enums\MailChannel;
 use App\Mail\BookingCancelledMail;
 use App\Mail\BookingChangedMail;
 use App\Mail\BookingConfirmedMail;
@@ -10,6 +11,7 @@ use App\Mail\BookingInviteMail;
 use App\Models\Booking;
 use App\Models\User;
 use App\Support\BookingNotificationWindow;
+use App\Support\MailPreference;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Queue\SerializesModels;
@@ -96,6 +98,10 @@ class SendBookingNotification implements ShouldQueue
                 continue;
             }
 
+            if (! MailPreference::allows($attendee, MailChannel::BookingsUpdates, $booking)) {
+                continue;
+            }
+
             Mail::to($attendee)->send($message($attendee));
         }
     }
@@ -113,6 +119,10 @@ class SendBookingNotification implements ShouldQueue
             $attendee = $booking->attendees->find($userId);
 
             if (! $attendee || $attendee->isSuspended() || ! $attendee->hasVerifiedEmail()) {
+                continue;
+            }
+
+            if (! MailPreference::allows($attendee, MailChannel::BookingsMail, $booking)) {
                 continue;
             }
 

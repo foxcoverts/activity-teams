@@ -2,11 +2,13 @@
 
 namespace App\Mail;
 
+use App\Enums\MailGroup;
 use App\Models\Booking;
 use App\Models\BookingAttendance;
 use App\Models\User;
 use App\Support\AttendanceResponseLinks;
 use App\Support\BookingMailThread;
+use App\Support\MailPreference;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
@@ -45,6 +47,7 @@ class BookingInviteMail extends Mailable
                 'booking' => $this->booking,
                 'attendee' => $this->attendee,
                 'choiceUrls' => AttendanceResponseLinks::choices($this->booking, $this->attendee, $this->attendance),
+                ...MailPreference::footerViewData($this->attendee, MailGroup::Bookings, $this->booking),
             ],
         );
     }

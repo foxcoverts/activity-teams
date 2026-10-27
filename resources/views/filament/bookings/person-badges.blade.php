@@ -1,5 +1,15 @@
 @php($panel = $panel ?? 'invite')
 
+@if ($panel === 'invite' && ($person['mail_off'] ?? false))
+    <x-filament::badge
+        :color="\App\Support\Palette::uncertain()"
+        :icon="\Filament\Support\Icons\Heroicon::OutlinedBellSlash"
+        :tooltip="__('Booking emails are turned off')"
+    >
+        {{ __('No email') }}
+    </x-filament::badge>
+@endif
+
 @if ($showQualified && $person['qualified'])
     <button
         type="button"

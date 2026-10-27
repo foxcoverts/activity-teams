@@ -3,6 +3,8 @@
 namespace Tests\Feature;
 
 use App\Enums\BookingAttendeeStatus;
+use App\Enums\MailChannel;
+use App\Enums\MailGroup;
 use App\Filament\Manage\Resources\Bookings\Pages\EditBooking;
 use App\Filament\Manage\Resources\Bookings\RelationManagers\AttendeesRelationManager;
 use App\Livewire\InviteAttendees;
@@ -13,6 +15,7 @@ use App\Models\Key;
 use App\Models\KeyRing;
 use App\Models\Qualification;
 use App\Models\User;
+use App\Support\MailPreference;
 use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
@@ -84,6 +87,7 @@ class InvitePickerTest extends TestCase
             ->assertSet('queued', [])
             ->assertSee('No one is queued.')
             ->assertSee('Alex Guest')
+            ->assertDontSee('No email')
             ->assertDontSee('Qualified only')
             ->assertDontSee('Key holders only')
             ->call('send');
@@ -201,6 +205,24 @@ class InvitePickerTest extends TestCase
             ->call('openQualifications', $qualified->getKey())
             ->assertSee('Climbing Wall Instructor')
             ->assertDontSee('Show other qualifications');
+    }
+
+    public function test_people_with_booking_mail_off_show_a_no_email_badge(): void
+    {
+        $manager = User::factory()->teamManager()->create();
+        $optedOut = User::factory()->teamMember()->create(['name' => 'Riley Quiet']);
+        $booking = Booking::factory()->create();
+
+        MailPreference::save($optedOut, MailGroup::Bookings, [
+            MailChannel::BookingsMail->value => '0',
+        ]);
+
+        $this->actingAs($manager);
+
+        Livewire::test(InviteAttendees::class, ['booking' => $booking])
+            ->assertSee('Riley Quiet')
+            ->assertSee('No email')
+            ->assertSee('Booking emails are turned off');
     }
 
     /**
