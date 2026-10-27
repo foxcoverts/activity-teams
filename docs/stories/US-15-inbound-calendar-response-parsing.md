@@ -8,11 +8,11 @@ scope: required
 
 ## Story
 
-As an Activity Manager, I want the system to reliably parse incoming calendar email responses (including complex verbs, unknown users, and signature comments) so that attendance records update automatically.
+As an Activity Manager, I want the system to reliably parse incoming calendar email responses (including complex verbs and signature comments) so that attendance records update automatically.
 
 ## Acceptance criteria
 
-- Gracefully handles replies from unmapped email addresses.
+- Applies an inbound iMIP `REPLY` only when the attendee maps to a known person. Unmapped addresses are retained by [US-55](US-55-inbound-email-routing-and-alerts.md); identity linking is [US-62](US-62-unmapped-calendar-reply-identity.md).
 - Parses advanced calendar verbs like COUNTER and REFRESH.
 - Strips extraneous mail-server signature COMMENT blocks.
 - Identifies the booking from the calendar UID, `booking+{id}@{host}`. That UID does not include the sequence. The email `References` value, `booking-{id}-sequence-{n}@{host}`, is a different identifier and does not select the booking.

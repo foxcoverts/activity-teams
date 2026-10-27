@@ -12,9 +12,10 @@ Story `status` describes implementation in Activity Teams. Story `scope` describ
 
 - **Essential:** [US-47 Multiple Activity Teams](US-47-multiple-activity-teams.md). It is the central reason for this rewrite.
 - **Operationally required:** [US-18 Time-Bound Event Contact Access](US-18-lead-instructor-contact-access.md), [US-19 On-The-Day Emergency & Contact Access](US-19-participant-lead-contact-access.md), [US-20 Annual Profile & Emergency Contact Data Confirmation](US-20-annual-profile-confirmation.md), [US-30 Standard URL Sharing](US-30-standard-url-sharing.md), [US-31 Open Graph Link Previews](US-31-open-graph-link-previews.md), [US-48 Suspend and Restore a Member](US-48-suspend-and-restore-a-member.md), [US-49 System Administration](US-49-system-administration.md), [US-54 Team News Posts & Distribution](US-54-team-news-posts.md), [US-55 Inbound Email Routing & Failure Alerts](US-55-inbound-email-routing-and-alerts.md), [US-56 Member Profile](US-56-member-profile.md), [US-57 Member Account & Privacy Controls](US-57-member-account-privacy-controls.md), [US-58 Personal Data Viewing Acknowledgement](US-58-personal-data-viewing-acknowledgement.md), and [US-61 Notification Settings](US-61-notification-settings.md).
-- **Extra:** US-16, US-17, US-24, US-29, US-34, US-35, US-36, US-41, US-42, US-43, US-44, and US-53.
+- **Extra:** US-16, US-17, US-24, US-29, US-34, US-35, US-36, US-41, US-42, US-43, US-44, US-53, and US-62.
   - US-29 exists in the legacy application, but is not a relaunch priority.
   - US-45 is extra. Revisit it while outgoing mail is being implemented; include it if the chosen mail provider makes reliable delivery/bounce handling cheap or free.
+  - US-62 is extra and is not a Phase 0 parity gap. It depends on US-15 applying known-person iMIP replies and US-55 retaining unmapped ones.
 - **Deferred:** [US-06 User Role & Status Badges](US-06-user-role-status-badges.md), [US-22 Task Management](US-22-task-management.md), and [US-50 Invite Someone Who Is Not on the Team](US-50-invite-non-members.md). US-22's legacy task and VTODO workflow is not needed for relaunch.
 - **Deferred:** [US-23 Instructor Kit Compliance](US-23-instructor-kit-compliance.md) and [US-33 Kit Checker Inspection](US-33-kit-checker-inspection-workflow.md). Kit checks are not needed for relaunch.
 
@@ -159,6 +160,7 @@ The following are explicitly extra. Recommend selecting them only after Phase 0 
 - **Opportunistic UI:** US-29 is a small-looking share action, but is deliberately low priority.
 - **Mail-provider dependent:** US-45 should be evaluated during outgoing-mail implementation. Do not add it if provider support requires a separate paid service or disproportionate operational work.
 - **Related implementation batches:** US-16 and US-44 both involve reminders; US-17 adds stateful rota-digest behavior. Assess shared scheduling and notification infrastructure before splitting effort across them.
+- **Unmapped calendar replies:** [US-62](US-62-unmapped-calendar-reply-identity.md) depends on US-15 and US-55. It was never live in climbing-team; identity confirmation and a no-account contact path remain refinement.
 - **Kit extensions:** US-34 and US-35 build on the retained US-23/33 kit-check capability.
 - **Session follow-on:** US-43 depends on the debrief/history behavior in US-42.
 - **Other extras:** US-24, US-36, US-41, and US-53 should be ranked against user value and effort, not treated as implicit February commitments.

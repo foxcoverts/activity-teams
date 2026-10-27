@@ -15,6 +15,7 @@ As the person responsible for the system, I want email replies sent to the syste
 - Replies sent to addresses monitored by the system are not silently discarded. They are routed to a defined destination or retained for review when automatic routing is not known or available.
 - Unrouted or unprocessable messages are retained in a restricted in-app review queue, and the system owner is alerted.
 - Recognized message types are routed according to agreed behavior. Inbound calendar replies are handled by [US-15](US-15-inbound-calendar-response-parsing.md); other reply destinations are decided during refinement.
+- An iMIP `REPLY` from an unmapped address is a recognized-but-unassociated case: keep it in the review queue until [US-62](US-62-unmapped-calendar-reply-identity.md) associates it.
 - A reply to a booking update could become a comment on that booking, and a reply to a news post could be forwarded to that team's managers. These are examples to evaluate, not behavior assumed by this story.
 - When an inbound email fails to process or cannot be routed, the issue is surfaced to the designated system operator rather than being silently lost.
 - The operator receives enough safe diagnostic context to identify and investigate the issue without requiring a general-purpose mail-log interface.
