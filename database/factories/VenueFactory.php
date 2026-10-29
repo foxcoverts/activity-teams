@@ -18,9 +18,21 @@ class VenueFactory extends Factory
 
         return [
             'name' => Str::title($name),
+            'country' => 'GB',
             'slug' => Str::slug($name),
             'notes' => fake()->optional()->sentence(),
         ];
+    }
+
+    public function located(): static
+    {
+        return $this->state(function (array $attributes): array {
+            return [
+                'street' => fake()->streetAddress(),
+                'latitude' => fake()->latitude(),
+                'longitude' => fake()->longitude(),
+            ];
+        });
     }
 
     public function configure(): static

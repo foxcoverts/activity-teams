@@ -17,3 +17,7 @@ As a Team Member, I want a secure, token-based .ics calendar feed link so I can 
 - Exports comprehensive event metadata including structured locations, booking descriptions, and correct privacy classifications (CLASS:PRIVATE).
 - Incorporates RELATED-TO fields into exported VEVENT components where bookings are linked as a multi-day camp or series, using RELTYPE=SIBLING because linked sessions are peers.
 - The event UID stays `booking+{id}@{host}` when the booking sequence changes. That UID is not the email `References` value, which includes the sequence.
+
+## Progress
+
+Feeds, per-user tokens (including revoke/regenerate), CLASS:PRIVATE, and sibling RELATED-TO are in place. LOCATION is still the venue name. Structured postal address and GEO are [US-65](US-65-ics-precise-location.md); do not treat that leftover wording as reopening this story.

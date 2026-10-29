@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "3c308dcc0ece4a0dd77454df6914141f",
+    "content-hash": "b51d0b6a6c58334fb49c7aabb88aac20",
     "packages": [
         {
             "name": "anourvalar/eloquent-serialize",
@@ -766,6 +766,74 @@
                 }
             ],
             "time": "2026-09-18T07:38:01+00:00"
+        },
+        {
+            "name": "darkclow4/filament-map-picker",
+            "version": "v5.2.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/darkclow4/filament-map-picker.git",
+                "reference": "8facf2a408f1c24ed50c722e321905d9f00f012b"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/darkclow4/filament-map-picker/zipball/8facf2a408f1c24ed50c722e321905d9f00f012b",
+                "reference": "8facf2a408f1c24ed50c722e321905d9f00f012b",
+                "shasum": ""
+            },
+            "require": {
+                "filament/filament": "^5.0",
+                "illuminate/contracts": "^13.0",
+                "php": "^8.3",
+                "spatie/laravel-package-tools": "^1.92"
+            },
+            "suggest": {
+                "ext-json": "Required for working with JSON state and custom tile configuration."
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "Darkclow4\\FilamentMapPicker\\FilamentMapPickerServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Darkclow4\\FilamentMapPicker\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Darkclow4",
+                    "role": "Developer"
+                }
+            ],
+            "description": "Leaflet map picker and GeoJSON draw field for Filament 5.",
+            "homepage": "https://github.com/darkclow4/filament-map-picker",
+            "keywords": [
+                "filament",
+                "filament-form-field",
+                "filament-infolist",
+                "filament-plugin",
+                "filament-widget",
+                "geojson",
+                "laravel",
+                "leaflet",
+                "leaflet-draw",
+                "map-picker",
+                "maps"
+            ],
+            "support": {
+                "docs": "https://github.com/darkclow4/filament-map-picker#readme",
+                "issues": "https://github.com/darkclow4/filament-map-picker/issues",
+                "source": "https://github.com/darkclow4/filament-map-picker"
+            },
+            "time": "2026-07-29T08:10:55+00:00"
         },
         {
             "name": "dflydev/dot-access-data",
@@ -6912,6 +6980,95 @@
                 }
             ],
             "time": "2026-10-14T06:47:03+00:00"
+        },
+        {
+            "name": "symfony/intl",
+            "version": "v8.1.5",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/symfony/intl.git",
+                "reference": "9a8ba3a0af4db32bf228ca841c319d5dc97f7d02"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/symfony/intl/zipball/9a8ba3a0af4db32bf228ca841c319d5dc97f7d02",
+                "reference": "9a8ba3a0af4db32bf228ca841c319d5dc97f7d02",
+                "shasum": ""
+            },
+            "require": {
+                "php": ">=8.4.1"
+            },
+            "conflict": {
+                "symfony/string": "<7.4"
+            },
+            "require-dev": {
+                "symfony/filesystem": "^7.4|^8.0",
+                "symfony/var-exporter": "^7.4|^8.0"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "Symfony\\Component\\Intl\\": ""
+                },
+                "exclude-from-classmap": [
+                    "/Tests/",
+                    "/Resources/data/"
+                ]
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Bernhard Schussek",
+                    "email": "bschussek@gmail.com"
+                },
+                {
+                    "name": "Eriksen Costa",
+                    "email": "eriksen.costa@infranology.com.br"
+                },
+                {
+                    "name": "Igor Wiedler",
+                    "email": "igor@wiedler.ch"
+                },
+                {
+                    "name": "Symfony Community",
+                    "homepage": "https://symfony.com/contributors"
+                }
+            ],
+            "description": "Provides access to the localization data of the ICU library",
+            "homepage": "https://symfony.com",
+            "keywords": [
+                "i18n",
+                "icu",
+                "internationalization",
+                "intl",
+                "l10n",
+                "localization"
+            ],
+            "support": {
+                "source": "https://github.com/symfony/intl/tree/v8.1.5"
+            },
+            "funding": [
+                {
+                    "url": "https://symfony.com/sponsor",
+                    "type": "custom"
+                },
+                {
+                    "url": "https://github.com/fabpot",
+                    "type": "github"
+                },
+                {
+                    "url": "https://github.com/nicolas-grekas",
+                    "type": "github"
+                },
+                {
+                    "url": "https://tidelift.com/funding/github/packagist/symfony/symfony",
+                    "type": "tidelift"
+                }
+            ],
+            "time": "2026-08-21T17:47:34+00:00"
         },
         {
             "name": "symfony/mailer",

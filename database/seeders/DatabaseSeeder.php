@@ -19,7 +19,14 @@ class DatabaseSeeder extends Seeder
 
         Venue::query()->firstOrCreate(
             ['slug' => 'fox-coverts-campsite'],
-            ['name' => 'Fox Coverts Campsite', 'notes' => 'Primary campsite venue.']
+            [
+                'name' => 'Fox Coverts Campsite',
+                'street' => 'Newbold Road',
+                'city' => 'Kirkby Mallory',
+                'postcode' => 'LE9 7QG',
+                'country' => 'GB',
+                'notes' => 'Primary campsite venue.',
+            ]
         );
 
         $team = Team::factory()->create(['name' => 'Climbing', 'slug' => 'climbing']);

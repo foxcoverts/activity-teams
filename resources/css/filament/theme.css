@@ -13,11 +13,11 @@
     text-decoration-line: underline;
 }
 
-.booking-end-schedule > .fi-sc:has(> .fi-hidden:last-child) {
+.booking-end-schedule>.fi-sc:has(> .fi-hidden:last-child) {
     @apply divide-y-0 sm:divide-x-0;
 }
 
-.booking-end-schedule > .fi-sc:has(> .fi-hidden:last-child) > :first-child .fi-input-wrp {
+.booking-end-schedule>.fi-sc:has(> .fi-hidden:last-child)> :first-child .fi-input-wrp {
     @apply rounded-lg;
 }
 
@@ -69,7 +69,7 @@
     @apply flex w-full items-center justify-between gap-3 bg-gray-50 px-3 py-2.5 text-start text-sm font-medium text-gray-950 dark:bg-white/5 dark:text-white;
 }
 
-.invite-row + .invite-row {
+.invite-row+.invite-row {
     @apply border-t border-gray-200 dark:border-white/10;
 }
 
@@ -105,12 +105,43 @@
     @apply min-w-0 truncate text-sm font-medium text-gray-950 hover:underline dark:text-white;
 }
 
-.related-bookings-panel.fi-section:not(.fi-section-not-contained) > .fi-section-header {
+.related-bookings-panel.fi-section:not(.fi-section-not-contained)>.fi-section-header {
     @apply p-4 sm:px-6;
 }
 
-.related-bookings-panel.fi-section:not(.fi-section-not-contained):not(.fi-divided) > .fi-section-content-ctn > .fi-section-content {
+.related-bookings-panel.fi-section:not(.fi-section-not-contained):not(.fi-divided)>.fi-section-content-ctn>.fi-section-content {
     @apply p-0;
+}
+
+.venue-map-panel.fi-sc-section .fi-section:not(.fi-section-not-contained) {
+    @apply overflow-hidden;
+}
+
+.fi-modal:not(.fi-align-start)>.fi-modal-window-ctn>.venue-map-panel.fi-modal-window .fi-modal-content {
+    @apply overflow-hidden;
+    padding-inline: 0;
+    padding-block: 0;
+    padding-top: calc(var(--spacing) * 6);
+}
+
+.venue-map-panel.fi-sc-section .fi-section:not(.fi-section-not-contained):not(.fi-divided)>.fi-section-content-ctn>.fi-section-content {
+    @apply p-0;
+}
+
+.venue-map-panel .fi-in-entry {
+    @apply gap-0;
+}
+
+.venue-map-panel .fi-in-entry-label-col {
+    @apply hidden;
+}
+
+.venue-map-panel .fi-map-picker {
+    @apply gap-0;
+}
+
+.venue-map-panel .fi-map-picker-map-shell {
+    @apply rounded-none border-0 shadow-none;
 }
 
 .invite-footer {

@@ -27,6 +27,7 @@ When an enum is shown in Filament, give it a label, and a color and icon when th
 - [US-02 Activity-Specific Qualification & Staffing Requirements](US-02-activity-specific-qualification-staffing.md) — `done`
 - [US-03 Booking Venue Access & Logistics Planning](US-03-booking-venue-access-logistics.md) — `done`
 - [US-04 Multi-Venue & Location-Based Management](US-04-multi-venue-location-management.md) — `done`
+- [US-63 Venue Address and Coordinates](US-63-venue-address-and-coordinates.md) — `done`
 - [US-05 Team Document & Resource Repository](US-05-team-document-repository.md) — `not-started`
 - [US-06 User Role & Status Badges](US-06-user-role-status-badges.md) — `done`
 - [US-07 Qualification Expiry Tracking](US-07-qualification-expiry-tracking.md) — `done`
@@ -48,11 +49,13 @@ When an enum is shown in Filament, give it a label, and a color and icon when th
 - [US-28 Booking Cancellation Reasons & Participant Notification](US-28-booking-cancellation-reasons.md) — `partial`
 - [US-37 Related Bookings & Multi-Day Event Linking](US-37-related-bookings-multi-day.md) — `done`
 - [US-50 Invite Someone Who Is Not on the Team](US-50-invite-non-members.md) — `not-started`
+- [US-64 Booking Other Venue](US-64-booking-other-venue.md) — `not-started`
 
 ## Communications, ICS & Calendar Integration
 
 - [US-12 Public Booking Summary View](US-12-public-booking-summary.md) — `done`
 - [US-13 Subscription ICS Export Feeds](US-13-subscription-ics-feeds.md) — `done`
+- [US-65 ICS Precise Location](US-65-ics-precise-location.md) — `not-started`
 - [US-14 Interactive Email RSVP Action Buttons](US-14-email-rsvp-action-buttons.md) — `done`
 - [US-15 Inbound Calendar Response & Webhook Parsing](US-15-inbound-calendar-response-parsing.md) — `not-started`
 - [US-16 Escalating Invitation Nudges & Booking Reminders](US-16-invitation-nudges-reminders.md) — `not-started`
@@ -103,9 +106,10 @@ When an enum is shown in Filament, give it a label, and a color and icon when th
 
 - **Essential:** [US-47 Multiple Activity Teams](US-47-multiple-activity-teams.md) is the primary reason for the rewrite.
 - **Operationally required:** [US-18 Lead Instructor Contact Access](US-18-lead-instructor-contact-access.md), [US-19 Participant Lead Contact Access](US-19-participant-lead-contact-access.md), [US-20 Annual Profile & Emergency Contact Data Confirmation](US-20-annual-profile-confirmation.md), [US-30 Standard URL Sharing](US-30-standard-url-sharing.md), [US-31 Open Graph Link Previews](US-31-open-graph-link-previews.md), [US-48 Suspend and Restore a Member](US-48-suspend-and-restore-a-member.md), [US-49 System Administration](US-49-system-administration.md), [US-54 Team News Posts & Distribution](US-54-team-news-posts.md), [US-55 Inbound Email Routing & Failure Alerts](US-55-inbound-email-routing-and-alerts.md), [US-56 Member Profile](US-56-member-profile.md), [US-57 Member Account & Privacy Controls](US-57-member-account-privacy-controls.md), [US-58 Personal Data Viewing Acknowledgement](US-58-personal-data-viewing-acknowledgement.md), and [US-61 Notification Settings](US-61-notification-settings.md). US-30/31 are already done. News must be published by managers, available in a combined member feed, and distributed directly to members, with an opt-out for direct delivery.
-- **Extra:** US-16, US-17, US-24, US-29, US-34, US-35, US-36, US-41, US-42, US-43, US-44, US-53, and US-62.
+- **Extra:** US-16, US-17, US-24, US-29, US-34, US-35, US-36, US-41, US-42, US-43, US-44, US-53, US-62, US-63, US-64, and US-65.
   - US-29 has a UI action in the legacy climbing-team app, but not in Activity Teams; it is not a release priority.
   - US-45 is extra and should be reconsidered during outgoing-mail reimplementation; include delivery/bounce tracking if the mail provider makes it cheap or free.
+  - US-63 is extra and done: catalog postal address and map pin. US-64 Other booking venue and US-65 ICS precise location depend on it; US-13 stays done with LOCATION still the venue name until US-65.
 - **Deferred:** [US-06 User Role & Status Badges](US-06-user-role-status-badges.md), [US-22 Team & Multi-Activity Task Management](US-22-task-management.md), [US-50 Invite Someone Who Is Not on the Team](US-50-invite-non-members.md), [US-23 Instructor Kit Compliance](US-23-instructor-kit-compliance.md), and [US-33 Kit Checker Inspection](US-33-kit-checker-inspection-workflow.md). These are deliberately held back from relaunch.
 
 ## Delivery approach

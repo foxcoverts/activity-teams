@@ -6,6 +6,8 @@ use App\Casts\AsSequence;
 use App\Casts\AsTimezone;
 use App\Enums\BookingAttendeeStatus;
 use App\Enums\BookingStatus;
+use App\Support\Coords;
+use App\Support\Location;
 use Carbon\Carbon;
 use Carbon\CarbonInterface;
 use Database\Factories\BookingFactory;
@@ -334,6 +336,23 @@ class Booking extends Model
     {
         return Attribute::make(
             get: fn () => $this->activity->name.' - '.$this->start_at->timezone($this->timezone)->toFormattedDayDateString()
+        );
+    }
+
+    /**
+     * Get the name of the booking location.
+     */
+    public function location(): Attribute
+    {
+        return Attribute::make(
+            get: fn (): ?Location => $this->venue?->location
+        );
+    }
+
+    public function coords(): Attribute
+    {
+        return Attribute::make(
+            get: fn (): ?Coords => $this->venue?->coords
         );
     }
 

@@ -4,14 +4,19 @@ namespace App\Filament\Manage\Resources\Venues;
 
 use App\Filament\Manage\NavigationGroup;
 use App\Filament\Manage\Resources\Venues\Pages\ListVenues;
+use App\Filament\Manage\Resources\Venues\Pages\ViewVenue;
 use App\Models\Team;
 use App\Models\User;
 use App\Models\Venue;
 use App\Support\Palette;
 use BackedEnum;
+use Darkclow4\FilamentMapPicker\Infolists\Components\MapEntry;
 use Filament\Actions\Action;
 use Filament\Facades\Filament;
+use Filament\Infolists\Components\TextEntry;
 use Filament\Resources\Resource;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
@@ -59,6 +64,45 @@ class VenueResource extends Resource
             'teams',
             fn (Builder $teams) => $teams->whereKey($team->getKey()),
         );
+    }
+
+    public static function infolist(Schema $schema): Schema
+    {
+        return $schema
+            ->components([
+                Section::make(__('Venue Details'))
+                    ->icon(Heroicon::BuildingOffice)
+                    ->columns(1)
+                    ->columnSpanFull()
+                    ->schema([
+                        TextEntry::make('name'),
+                        TextEntry::make('address')
+                            ->label(__('Address'))
+                            ->state(fn (Venue $record): array => $record->location->addressArray())
+                            ->listWithLineBreaks()
+                            ->placeholder('-'),
+                        TextEntry::make('notes')
+                            ->placeholder('-')
+                            ->columnSpanFull(),
+                    ]),
+                Section::make(__('Location'))
+                    ->icon(Heroicon::Map)
+                    ->columns(1)
+                    ->columnSpanFull()
+                    ->extraAttributes(['class' => 'venue-map-panel'])
+                    ->schema([
+                        MapEntry::make('location')
+                            ->hiddenLabel()
+                            ->state(fn (Venue $record): array => [
+                                'lat' => (float) $record->latitude,
+                                'lng' => (float) $record->longitude,
+                            ])
+                            ->interactive()
+                            ->height(360)
+                            ->zoom(15),
+                    ])
+                    ->visible(fn (Venue $record): bool => is_numeric($record->latitude) && is_numeric($record->longitude)),
+            ]);
     }
 
     public static function table(Table $table): Table
@@ -109,6 +153,7 @@ class VenueResource extends Resource
     {
         return [
             'index' => ListVenues::route('/'),
+            'view' => ViewVenue::route('/{record}'),
         ];
     }
 

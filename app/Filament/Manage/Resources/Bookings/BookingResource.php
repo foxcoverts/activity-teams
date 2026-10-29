@@ -3,6 +3,7 @@
 namespace App\Filament\Manage\Resources\Bookings;
 
 use App\Enums\BookingStatus;
+use App\Filament\Bookings\LocationMapAction;
 use App\Filament\Forms\Components\TimezoneSelect;
 use App\Filament\Manage\NavigationGroup;
 use App\Filament\Manage\Resources\Bookings\Pages\CreateBooking;
@@ -208,7 +209,16 @@ class BookingResource extends Resource
                         TextEntry::make('when')
                             ->label(__('When'))
                             ->state(fn (Booking $record): string => BookingWhen::format($record)),
-                        TextEntry::make('venue.name')->label(__('Location')),
+                        TextEntry::make('location')
+                            ->label(__('Location'))
+                            ->state(fn (Booking $record): array => array_filter([
+                                $record->location->name,
+                                ...$record->location->addressArray(),
+                            ]))
+                            ->listWithLineBreaks()->limitList(1)->expandableLimitedList()
+                            ->afterLabel([
+                                LocationMapAction::make(),
+                            ]),
                         TextEntry::make('activity.name')->label(__('Activity')),
                         TextEntry::make('group_name')
                             ->label(__('Group'))
