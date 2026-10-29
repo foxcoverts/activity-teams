@@ -175,6 +175,10 @@ final class MailPreference
 
     public static function tokenFor(User $user): string
     {
+        if ($user->exists && ! array_key_exists('mail_preference_token', $user->getAttributes())) {
+            $user->refresh();
+        }
+
         if (filled($user->mail_preference_token)) {
             return $user->mail_preference_token;
         }
