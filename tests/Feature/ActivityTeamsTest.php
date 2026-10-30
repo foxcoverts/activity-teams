@@ -32,7 +32,9 @@ use App\Models\Qualification;
 use App\Models\Team;
 use App\Models\User;
 use App\Models\Venue;
+use Filament\Actions\Testing\TestAction;
 use Filament\Facades\Filament;
+use Filament\Pages\Dashboard;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Validation\ValidationException;
 use Livewire\Livewire;
@@ -435,19 +437,19 @@ class ActivityTeamsTest extends TestCase
         ]);
     }
 
-    public function test_a_new_team_requires_a_first_manager(): void
+    public function test_team_catalog_links_to_team_manage_panel(): void
     {
         $admin = User::factory()->systemAdmin()->create();
+        $team = Team::factory()->create();
 
         Filament::setCurrentPanel(Filament::getPanel('admin'));
         $this->actingAs($admin);
 
-        Livewire::test(CreateTeam::class)
-            ->fillForm([
-                'name' => 'Archery',
-            ])
-            ->call('create')
-            ->assertHasFormErrors(['manager_id' => 'required']);
+        Livewire::test(ListTeams::class)
+            ->assertActionHasUrl(
+                TestAction::make('manage')->table($team),
+                Dashboard::getUrl(panel: 'manage', tenant: $team)
+            );
     }
 
     public function test_system_admin_maintains_the_catalogs_and_reaches_the_user_directory(): void
