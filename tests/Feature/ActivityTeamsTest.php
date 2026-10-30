@@ -379,7 +379,7 @@ class ActivityTeamsTest extends TestCase
         Filament::setCurrentPanel(Filament::getPanel('admin'));
         $this->actingAs($admin);
 
-        Livewire::test(EditTeam::class, ['record' => $team->getKey()])
+        Livewire::test(EditTeam::class, ['record' => $team->slug])
             ->fillForm([
                 'slug' => 'indoor-climbing',
             ])
@@ -401,7 +401,7 @@ class ActivityTeamsTest extends TestCase
         Filament::setCurrentPanel(Filament::getPanel('admin'));
         $this->actingAs($admin);
 
-        Livewire::test(EditTeam::class, ['record' => $team->getKey()])
+        Livewire::test(EditTeam::class, ['record' => $team->slug])
             ->fillForm([
                 'slug' => 'taken-slug',
             ])
@@ -422,7 +422,7 @@ class ActivityTeamsTest extends TestCase
         Filament::setCurrentPanel(Filament::getPanel('admin'));
         $this->actingAs($admin);
 
-        Livewire::test(EditTeam::class, ['record' => $team->getKey()])
+        Livewire::test(EditTeam::class, ['record' => $team->slug])
             ->fillForm([
                 'slug' => 'not/a slug',
             ])

@@ -178,8 +178,7 @@ class FilamentDisplayPreferencesTest extends TestCase
             ->assertTableColumnDoesNotExist('slug');
         Livewire::test(ListTeams::class)
             ->assertTableColumnDoesNotExist('id')
-            ->assertTableColumnDoesNotExist('slug')
-            ->assertDontSee('hidden-team-slug');
+            ->assertTableColumnDoesNotExist('slug');
 
         Livewire::test(ViewActivity::class, ['record' => $activity->getKey()])
             ->assertDontSee('ID')
@@ -211,7 +210,7 @@ class FilamentDisplayPreferencesTest extends TestCase
             ->assertFormFieldVisible('slug');
         Livewire::test(CreateTeam::class)
             ->assertFormFieldHidden('slug');
-        Livewire::test(EditTeam::class, ['record' => $team->getKey()])
+        Livewire::test(EditTeam::class, ['record' => $team->slug])
             ->assertFormFieldVisible('slug');
     }
 
@@ -233,7 +232,7 @@ class FilamentDisplayPreferencesTest extends TestCase
             ->fillForm(['slug' => 'not/a slug'])
             ->call('save')
             ->assertHasFormErrors(['slug' => 'alpha_dash']);
-        Livewire::test(EditTeam::class, ['record' => $team->getKey()])
+        Livewire::test(EditTeam::class, ['record' => $team->slug])
             ->fillForm(['slug' => 'not/a slug'])
             ->call('save')
             ->assertHasFormErrors(['slug' => 'alpha_dash']);

@@ -33,6 +33,11 @@ class Team extends Model
         });
     }
 
+    public function getRouteKeyName(): string
+    {
+        return 'slug';
+    }
+
     public function memberships(): HasMany
     {
         return $this->hasMany(TeamMembership::class);
