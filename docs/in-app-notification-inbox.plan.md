@@ -138,7 +138,7 @@ Scheduled daily job per user (or chunked query):
      2. **Rota digest second** (only if `R`) — US-17 changelog / roster content.
 5. After a successful send:
    - **Summary path:** set `digest_notified_at` on **all new items that were counted in that send’s NewTotal** (preference-suppressed included). Do **not** set `read_at`.
-   - **Single-message (direct) path:** set `digest_notified_at` **and** `read_at` on that one item; store `outbound_message_id` for bounce correlation.
+   - **Single-message (direct) path:** same shared “direct send ⇒ read” helper as immediate dual-write — set `digest_notified_at` **and** `read_at` on that one item; store `outbound_message_id` for bounce correlation.
 6. Show `bookings.digest` on the Notifications page. **`bookings.digest` off = no rota content** (delta treated as 0). Inbox email still follows the `E` / `R` send gate and the `NewTotal` / `UnreadTotal` copy rules. Document on US-17 / US-61.
 
 Examples: digest off + one emailable key-pass → that key-pass mail alone (**and** that inbox item is marked read). Digest on + rota + one lead-needed → “you have 1 new notification” (+ unread reminder if applicable), **then** the changelog (item stays unread until opened in-app). Three emailable new, no rota → “you have 3 new notifications” (notified, not read). Two emailable new + three preference-blocked new, no rota → still send (E>1) with “you have 5 new notifications”. Bounce on a direct-sent key-pass → that item unread (and new) again.
