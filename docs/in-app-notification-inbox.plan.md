@@ -6,7 +6,7 @@ todos:
     content: Add member_notifications (or equivalent) + Member Inbox page with read/unread
     status: pending
   - id: delivery-router
-    content: Add NotificationDelivery tiers by urgency; immediate for calendar/auth/break-glass; inbox for deferrable
+    content: Add NotificationDelivery tiers by urgency; immediate for calendar/auth only; inbox for deferrable ops too
     status: pending
   - id: preference-sink
     content: When optional/immediate preference blocks SMTP, still write an inbox item (no ICS)
@@ -29,8 +29,8 @@ isProject: false
 
 Classify by **how soon someone must act or see it**, not by how often it fires or how many recipients it has. SMTP quota is a benefit of deferring low-urgency mail, not the primary taxonomy.
 
-- **Immediate (needs email now):** calendar correctness (iMIP), account access, and break-glass ops that leave the team unsafe or unstewarded if ignored until tomorrow.
-- **Deferrable (inbox + daily flush):** informational or same-day-is-fine manager/member notices. Land in the app Inbox immediately; SMTP only via the daily combined job rules below.
+- **Immediate (needs email now):** calendar correctness (iMIP) and account access only — things that break if they wait for the next digest cycle.
+- **Deferrable (inbox + daily flush):** important-but-not-this-hour notices (including stewardship/ops alerts such as last manager leaving or a key-ring holder being deleted), plus informational member/manager mail. Land in the app Inbox immediately; SMTP only via the daily combined job rules below.
 - **When convenient (admin queue):** unhandled inbound — review in Admin when able; batched “something to review” nudge only, never per-message SMTP.
 - **Preference sink:** when [US-61](stories/US-61-notification-settings.md) would block an optional/immediate booking send, still write an in-app inbox item (no ICS) so nothing is lost.
 - **Manager “always-on”** means the channel cannot be muted for recording / digest eligibility — not that every manager alert must send SMTP immediately.
@@ -72,14 +72,13 @@ Must reach the person (or their calendar) before the next digest cycle.
 
 - **Calendar sync:** `BookingInviteMail`, `BookingChangedMail` / `BookingConfirmedMail`, `BookingCancelledMail`, `BookingIcsRefreshMail` (when preference allows). If preference blocks these, write a lightweight inbox item instead (no ICS).
 - **Account access:** password reset, verify-email, team/site invitation mail.
-- **Break-glass ops:** `LastManagerLeavingNotification` (team left without an active manager); `KeyRingHolderLeavingNotification` (someone deleted while still holding rings — stewardship gap now).
 
 ### `inbox` — deferrable (same day / next digest is fine)
 
-Useful to see soon in-app; email can wait for the daily combined job.
+Need to be known about; do not need dealing with this hour. Useful to see soon in-app; email can wait for the daily combined job.
 
 - **Member:** `AttendanceRecordedMail`; `KeyRingPassedToNotification` / `KeyRingPassedFromNotification`; future comments / news / US-16 nudges; `TeamInvitationDeclinedNotification` (nice-to-know, not time-critical).
-- **Manager:** `LeadNeededMail` (assign a lead before the session — visible in-app; daily ping enough unless we later add a “booking within 48h” escalate); `KeyRingReturnedToCupboardNotification` (inventory awareness, not emergency).
+- **Manager / ops:** `LeadNeededMail` (assign a lead before the session — visible in-app; daily ping enough unless we later add a “booking within 48h” escalate); `KeyRingReturnedToCupboardNotification` (inventory awareness); `LastManagerLeavingNotification` (team left without an active manager — important, not this-hour); `KeyRingHolderLeavingNotification` (account deleted while still holding rings — stewardship gap to clear on the next check-in, not an emergency SMTP).
 
 ### `admin_queue` — when convenient
 
@@ -147,10 +146,10 @@ No per-booking `References` on this mail (US-17).
 ## Implementation order
 
 1. Model + migration + member Inbox page (read/mark read) with factory.
-2. `NotificationDelivery` router keyed by urgency; migrate deferrable senders to `inbox` (incl. invitation declined); stop per-message `UnhandledInboundMail`; coalesced system-admin inbound nudge; keep calendar/auth/break-glass on `immediate`.
+2. `NotificationDelivery` router keyed by urgency; migrate deferrable senders to `inbox` (incl. invitation declined, last-manager leaving, key-ring holder leaving); stop per-message `UnhandledInboundMail`; coalesced system-admin inbound nudge; keep only calendar/auth on `immediate`.
 3. Preference-off path: write inbox item when optional (and when immediate booking update/invite is suppressed).
 4. Daily combined digest job + mailable (incl. admin inbound count for system admins); enable `bookings.digest` on Notifications; update stories.
-5. Focused tests: urgency tier routing, no per-message unhandled-inbound SMTP, coalesced admin nudge, preference-off still creates inbox, digest send/skip/single/many, iMIP/auth/break-glass still immediate.
+5. Focused tests: urgency tier routing, no per-message unhandled-inbound SMTP, coalesced admin nudge, preference-off still creates inbox, digest send/skip/single/many, iMIP/auth still immediate, stewardship ops deferred to inbox.
 
 ## Out of scope this slice
 
