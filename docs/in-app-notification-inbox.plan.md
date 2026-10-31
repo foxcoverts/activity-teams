@@ -93,15 +93,22 @@ Managers use the same member Inbox UI for deferrable manager items. US-61 manage
 - Prefer table name `member_notifications` or `inbox_messages` (avoid clashing with Laravel’s database `notifications` channel).
   - `user_id`, `type`, `title`, `body` (or markdown), optional `subject_type` / `subject_id`, `mail_channel`, `data` JSON
   - `read_at`, `digest_notified_at`, timestamps
+  - Optional `outbound_message_id` (or equivalent) when a direct SMTP send of that item’s content went out — enough to correlate a later bounce.
 - Factory + policy: member can only see own rows.
 - Unread count for nav badge.
 
 When writing from a suppressed preference path, still store the same content that would have been emailed (subject + body), without ICS attachments.
 
+### Read vs notified
+
+- **Direct email ⇒ read.** If we successfully send someone the **full content** of a specific inbox item (the single-item flush path: `E = 1` and no rota), set `read_at` as well as `digest_notified_at`. They already got the message in email; the inbox should not keep nagging it as unread.
+- **Summary email ⇒ notified only.** The “you have :NewTotal new notifications” mail is a pointer, not the content. Stamp `digest_notified_at` only; leave `read_at` null until they open the item in the app (or until a later direct send of that item’s content).
+- **Bounce ⇒ unread again.** If we get a bounce for a correlated outbound message, clear `read_at` (and keep or clear `digest_notified_at` so it can resurface on the next digest — prefer clearing both so it counts as new/unread again). Wire this into whatever bounce/DSN path exists or is added; do not invent a full bounce product in this slice beyond that correlation.
+
 ## Member UI
 
 - Member panel page **Inbox** (user menu), list unread/read, mark read, open related booking/key ring when morph is set.
-- Unread badge on the nav item.
+- Unread badge on the nav item (excludes items marked read via direct email, unless bounced).
 - Preference footers stay on immediate optional mail only. US-61 copy should note that turning a channel off keeps messages in the inbox and may still surface them in the daily digest summary.
 
 ## Combined digest (US-17 + inbox)
@@ -111,19 +118,21 @@ Scheduled daily job per user (or chunked query):
 1. If `MailPreference::allows(..., BookingsDigest)`: compute US-17 rota delta (additions / removals / remaining future “Can help” rota) and persist the last-digest snapshot as US-17 requires. If `bookings.digest` is **off**, **treat the rota delta as empty** (do not include a changelog section; still advance the snapshot when off so turning digest back on does not dump a huge backlog — document on US-17).
 2. Load inbox items. Define:
    - **New** = `digest_notified_at` null (awaiting a digest/inbox email mention).
-   - **Unread** = `read_at` null (not yet opened in the app Inbox).
+   - **Unread** = `read_at` null (not opened in the app Inbox, and not marked read by a successful direct email of that item).
    - **Emailable new** = new items whose `mail_channel` passes `MailPreference::allows` (always-on manager/admin nudges always emailable). Preference-suppressed new items stay in the app Inbox and count toward “new” / “unread” copy, but do **not** alone trigger a send.
 3. Let `R` = rota delta non-empty, `E` = emailable new count (include coalesced admin inbound-review nudge as one emailable item for system admins when due), `NewTotal` = all new items (emailable + in-app-only), `UnreadTotal` = all unread items.
 4. **Send decision** (gated by emailable / rota only):
    - `E = 0` and not `R` → **send nothing**
-   - `E = 1` and not `R` → **send that one emailable message** as the email (full title/body / deep link; no “you have X” wrapper)
+   - `E = 1` and not `R` → **send that one emailable message** as the email (full title/body / deep link; no “you have X” wrapper) — this is a **direct** send of that item’s content
    - `E > 1`, or `E >= 1` and `R` → **combined/summary mail**, section order:
      1. **Inbox first** — uses **total new**, not only emailable — e.g. “You have :NewTotal new notifications” + inbox URL. Do **not** embed the single item when a rota section will also appear. **Only on this summary section**, also remind of unread when useful, e.g. “(:UnreadTotal unread in your inbox)” — omit the unread clause if `UnreadTotal` is 0 or equals `NewTotal` and would read redundantly (pick one clear line in implementation).
      2. **Rota digest second** (only if `R`) — US-17 changelog / roster content.
-5. After a successful send: set `digest_notified_at` on **all new items that were counted in that send’s NewTotal** (so preference-suppressed new items included in the “you have X new” figure are also marked notified and do not inflate X forever). The single-message path stamps only that one item.
+5. After a successful send:
+   - **Summary path:** set `digest_notified_at` on **all new items that were counted in that send’s NewTotal** (preference-suppressed included). Do **not** set `read_at`.
+   - **Single-message (direct) path:** set `digest_notified_at` **and** `read_at` on that one item; store `outbound_message_id` for bounce correlation.
 6. Show `bookings.digest` on the Notifications page. **`bookings.digest` off = no rota content** (delta treated as 0). Inbox email still follows the `E` / `R` send gate and the `NewTotal` / `UnreadTotal` copy rules. Document on US-17 / US-61.
 
-Examples: digest off + one emailable key-pass → that key-pass mail alone. Digest on + rota + one lead-needed → “you have 1 new notification” (+ unread reminder if applicable), **then** the changelog. Three emailable new, no rota → “you have 3 new notifications”. Two emailable new + three preference-blocked new, no rota → still send (E>1) with “you have 5 new notifications”.
+Examples: digest off + one emailable key-pass → that key-pass mail alone (**and** that inbox item is marked read). Digest on + rota + one lead-needed → “you have 1 new notification” (+ unread reminder if applicable), **then** the changelog (item stays unread until opened in-app). Three emailable new, no rota → “you have 3 new notifications” (notified, not read). Two emailable new + three preference-blocked new, no rota → still send (E>1) with “you have 5 new notifications”. Bounce on a direct-sent key-pass → that item unread (and new) again.
 
 No per-booking `References` on this mail (US-17).
 
@@ -135,7 +144,7 @@ No per-booking `References` on this mail (US-17).
 
 ## Stories / docs
 
-- New story **US-66 Member notification inbox** for inbox UI, urgency tiers, preference-suppressed capture, and digest coupling.
+- New story **US-66 Member notification inbox** for inbox UI, urgency tiers, preference-suppressed capture, digest coupling, direct-email-as-read, and bounce → unread again.
 - Update [US-17](stories/US-17-schedule-digest-changelog.md): same daily job also carries outstanding inbox notice **above** the rota section; single vs many wording; `bookings.digest` off suppresses rota content only (delta treated as empty), not inbox flush.
 - Update [US-61](stories/US-61-notification-settings.md): inbox destination when optional mail is off; manager “always-on” = always recorded / digestable, not always immediate SMTP; show `bookings.digest`; clarify digest vs master `bookings.mail` (neither must be on for inbox pings).
 - Update [US-27](stories/US-27-manager-overridden-attendance.md): attendance-recorded goes to inbox (+ digest), not immediate SMTP.
@@ -149,7 +158,7 @@ No per-booking `References` on this mail (US-17).
 2. `NotificationDelivery` router keyed by urgency; migrate deferrable senders to `inbox` (incl. invitation declined, last-manager leaving, key-ring holder leaving); stop per-message `UnhandledInboundMail`; coalesced system-admin inbound nudge; keep only calendar/auth on `immediate`.
 3. Preference-off path: write inbox item when optional (and when immediate booking update/invite is suppressed).
 4. Daily combined digest job + mailable (incl. admin inbound count for system admins); enable `bookings.digest` on Notifications; update stories.
-5. Focused tests: urgency tier routing, no per-message unhandled-inbound SMTP, coalesced admin nudge, preference-off still creates inbox, digest send/skip/single/many, iMIP/auth still immediate, stewardship ops deferred to inbox.
+5. Focused tests: urgency tier routing, no per-message unhandled-inbound SMTP, coalesced admin nudge, preference-off still creates inbox, digest send/skip/single/many, single direct send marks read, summary does not mark read, bounce clears read, iMIP/auth still immediate, stewardship ops deferred to inbox.
 
 ## Out of scope this slice
 
@@ -157,3 +166,4 @@ No per-booking `References` on this mail (US-17).
 - Changing iMIP attach behaviour on invites/updates/cancels.
 - Time-based escalation (e.g. lead-needed becomes immediate if the booking is within 48 hours) — note as a later refinement if daily deferral proves too slow.
 - Full US-16 nudges / US-40 comments / US-54 news content (reserve as `inbox` / deferrable when those stories land).
+- Building a complete bounce/DSN product beyond correlating a bounce to clear read/notified on the matching inbox item.
