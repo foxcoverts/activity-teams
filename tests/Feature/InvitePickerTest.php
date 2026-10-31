@@ -9,6 +9,7 @@ use App\Filament\Manage\Resources\Bookings\Pages\EditBooking;
 use App\Filament\Manage\Resources\Bookings\RelationManagers\AttendeesRelationManager;
 use App\Livewire\InviteAttendees;
 use App\Models\Activity;
+use App\Models\ActivityAudience;
 use App\Models\Booking;
 use App\Models\BookingAttendance;
 use App\Models\Key;
@@ -103,7 +104,7 @@ class InvitePickerTest extends TestCase
         $manager = User::factory()->teamManager()->create(['name' => 'Alex Leader']);
         $member = User::factory()->teamMember()->create(['name' => 'Casey Member']);
         $activity = Activity::factory()->create();
-        $activity->qualificationRequirements()->create([
+        ActivityAudience::factory()->for($activity)->create()->qualificationRequirements()->create([
             'kind' => 'mountain_training',
             'criteria' => ['award' => 'Climbing Wall Instructor'],
         ]);
@@ -234,7 +235,7 @@ class InvitePickerTest extends TestCase
         $qualified = User::factory()->teamMember()->create(['name' => 'Sam Holder']);
         $other = User::factory()->teamMember()->create(['name' => 'Alex Guest']);
         $activity = Activity::factory()->create();
-        $activity->qualificationRequirements()->create([
+        ActivityAudience::factory()->for($activity)->create()->qualificationRequirements()->create([
             'kind' => 'mountain_training',
             'criteria' => ['award' => 'Climbing Wall Instructor'],
         ]);

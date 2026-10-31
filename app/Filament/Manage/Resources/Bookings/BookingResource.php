@@ -11,6 +11,8 @@ use App\Filament\Manage\Resources\Bookings\Pages\EditBooking;
 use App\Filament\Manage\Resources\Bookings\Pages\ListBookings;
 use App\Filament\Manage\Resources\Bookings\Pages\ViewBooking;
 use App\Filament\Manage\Resources\Bookings\RelationManagers\AttendeesRelationManager;
+use App\Models\Activity;
+use App\Models\Audience;
 use App\Models\Booking;
 use App\Models\Team;
 use App\Models\User;
@@ -58,6 +60,23 @@ class BookingResource extends Resource
 
     protected static ?string $recordTitleAttribute = 'summary';
 
+    public static function getCreateAuthorizationResponse(): Response
+    {
+        $response = parent::getCreateAuthorizationResponse();
+
+        if ($response->denied()) {
+            return $response;
+        }
+
+        $reason = static::missingCatalogReason();
+
+        if ($reason !== null) {
+            return Response::deny($reason);
+        }
+
+        return $response;
+    }
+
     public static function getEditAuthorizationResponse(Model $record): Response
     {
         if ($record instanceof Booking && $record->isCancelled()) {
@@ -70,6 +89,8 @@ class BookingResource extends Resource
     public static function getEloquentQuery(): Builder
     {
         return parent::getEloquentQuery()->with([
+            'activity',
+            'audience',
             'attendees',
             'leadInstructor',
         ]);
@@ -86,9 +107,24 @@ class BookingResource extends Resource
                 ->options(fn (): array => static::teamOptions('activities'))
                 ->default(fn (): ?string => static::teamDefault('activities'))
                 ->selectablePlaceholder(false)
+                ->live()
+                ->afterStateUpdated(function (mixed $state, Set $set, Get $get): void {
+                    $offered = static::audienceOptions(is_string($state) ? $state : null);
+                    $current = $get('audience_id');
+
+                    if (is_string($current) && array_key_exists($current, $offered)) {
+                        return;
+                    }
+
+                    $set('audience_id', static::defaultAudienceId(is_string($state) ? $state : null));
+                })
+                ->required(),
+            Select::make('audience_id')
+                ->label(__('Audience'))
+                ->options(fn (Get $get): array => static::audienceOptions(is_string($get('activity_id')) ? $get('activity_id') : null))
+                ->default(fn (): ?string => static::defaultAudienceId(static::teamDefault('activities')))
                 ->required(),
             TextInput::make('group_name')
-                ->required()
                 ->maxLength(255),
             Grid::make(['default' => 1, 'sm' => 6])
                 ->key('schedule_groups')
@@ -220,8 +256,10 @@ class BookingResource extends Resource
                                 LocationMapAction::make(),
                             ]),
                         TextEntry::make('activity.name')->label(__('Activity')),
+                        TextEntry::make('audience.name')->label(__('Audience')),
                         TextEntry::make('group_name')
                             ->label(__('Group'))
+                            ->placeholder('-')
                             ->columnSpanFull(),
                         TextEntry::make('notes')
                             ->label(__('Notes'))
@@ -246,9 +284,12 @@ class BookingResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
-            ->recordTitleAttribute('group_name')
+            ->recordTitleAttribute('display_name')
             ->columns([
                 TextColumn::make('activity.name')
+                    ->searchable(),
+                TextColumn::make('audience.name')
+                    ->label(__('Audience'))
                     ->searchable(),
                 TextColumn::make('venue.name')
                     ->searchable(),
@@ -263,6 +304,7 @@ class BookingResource extends Resource
                     ->icon(fn (BookingStatus $state): Heroicon => $state->getIcon())
                     ->searchable(),
                 TextColumn::make('group_name')
+                    ->placeholder('-')
                     ->searchable(),
                 TextColumn::make('leadInstructor.name')
                     ->searchable(),
@@ -327,6 +369,25 @@ class BookingResource extends Resource
             ->all();
     }
 
+    private static function missingCatalogReason(): ?string
+    {
+        $team = Filament::getTenant();
+
+        if (! $team instanceof Team) {
+            return null;
+        }
+
+        $missingActivity = ! $team->activities()->exists();
+        $missingVenue = ! $team->venues()->exists();
+
+        return match (true) {
+            $missingActivity && $missingVenue => __('Add an activity and a venue before creating a booking.'),
+            $missingActivity => __('Add an activity before creating a booking.'),
+            $missingVenue => __('Add a venue before creating a booking.'),
+            default => null,
+        };
+    }
+
     private static function teamDefault(string $relation): ?string
     {
         $team = Filament::getTenant();
@@ -337,6 +398,44 @@ class BookingResource extends Resource
         };
 
         return $defaultId === null ? null : (string) $defaultId;
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public static function audienceOptions(?string $activityId): array
+    {
+        if (blank($activityId)) {
+            return [];
+        }
+
+        return Audience::query()
+            ->whereHas(
+                'activityAudiences',
+                fn ($query) => $query->where('activity_id', $activityId),
+            )
+            ->orderBy('name')
+            ->pluck('name', 'id')
+            ->all();
+    }
+
+    public static function defaultAudienceId(?string $activityId): ?string
+    {
+        $team = Filament::getTenant();
+
+        if (! $team instanceof Team || blank($activityId)) {
+            return null;
+        }
+
+        $activity = Activity::query()->find($activityId);
+
+        if (! $activity instanceof Activity) {
+            return null;
+        }
+
+        $audienceId = $team->defaultAudienceFor($activity)?->getKey();
+
+        return $audienceId === null ? null : (string) $audienceId;
     }
 
     public static function defaultTimezone(): string
@@ -353,6 +452,7 @@ class BookingResource extends Resource
     public static function createAction(): CreateAction
     {
         return CreateAction::make()
+            ->authorizationTooltip()
             ->mutateDataUsing(fn (array $data): array => static::mergeScheduleData($data));
     }
 

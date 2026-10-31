@@ -5,7 +5,6 @@ namespace App\Support;
 use App\Enums\BookingAttendeeStatus;
 use App\Enums\KeyHolderAttendance;
 use App\Enums\KeyRingSituation;
-use App\Models\Activity;
 use App\Models\ActivityQualificationRequirement;
 use App\Models\Booking;
 use App\Models\Key;
@@ -170,8 +169,8 @@ class BookingPeople
      */
     public static function panel(Booking $booking, User $person, string $panel): array
     {
-        $booking->loadMissing('activity.qualificationRequirements');
-        $groups = self::qualifications($person, $booking->activity, $booking);
+        $booking->loadMissing('activity.activityAudiences.qualificationRequirements');
+        $groups = self::qualifications($person, $booking);
 
         return [
             'panel' => $panel,
@@ -184,13 +183,12 @@ class BookingPeople
     /**
      * @return array{relevant: list<array<string, mixed>>, other: list<array<string, mixed>>}
      */
-    public static function qualifications(User $person, ?Activity $activity, ?Booking $booking = null): array
+    public static function qualifications(User $person, Booking $booking): array
     {
-        $requirements = $activity?->relationLoaded('qualificationRequirements')
-            ? $activity->qualificationRequirements
-            : ($activity?->qualificationRequirements()->get() ?? collect());
+        $booking->loadMissing('activity.activityAudiences.qualificationRequirements');
+        $requirements = $booking->activityAudience()?->qualificationRequirements ?? collect();
 
-        $asOf = $booking?->qualificationAsOf();
+        $asOf = $booking->qualificationAsOf();
         $relevant = [];
         $inDate = [];
         $expired = [];

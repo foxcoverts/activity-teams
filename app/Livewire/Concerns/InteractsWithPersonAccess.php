@@ -116,12 +116,12 @@ trait InteractsWithPersonAccess
     {
         $person = User::query()->find($this->accessPersonId);
         $booking = $this->accessBooking();
-        $booking->loadMissing('activity.qualificationRequirements');
+        $booking->loadMissing('activity.activityAudiences.qualificationRequirements');
 
         if (! $person instanceof User) {
             return ['relevant' => [], 'other' => []];
         }
 
-        return BookingPeople::qualifications($person, $booking->activity);
+        return BookingPeople::qualifications($person, $booking);
     }
 }

@@ -64,7 +64,9 @@ class Team extends Model
 
     public function activities(): BelongsToMany
     {
-        return $this->belongsToMany(Activity::class)->withTimestamps();
+        return $this->belongsToMany(Activity::class)
+            ->withPivot('default_audience_id')
+            ->withTimestamps();
     }
 
     public function defaultActivity(): BelongsTo
@@ -110,6 +112,53 @@ class Team extends Model
     public function setDefaultVenue(Venue $venue): void
     {
         $this->setDefaultableRecord($venue, 'venues', 'default_venue_id');
+    }
+
+    public function defaultAudienceFor(Activity $activity): ?Audience
+    {
+        $link = $this->activities()->whereKey($activity->getKey())->first();
+        $audienceId = $link?->pivot?->default_audience_id;
+
+        if ($audienceId === null) {
+            return null;
+        }
+
+        $offered = ActivityAudience::query()
+            ->where('activity_id', $activity->getKey())
+            ->where('audience_id', $audienceId)
+            ->exists();
+
+        if (! $offered) {
+            $this->activities()->updateExistingPivot($activity->getKey(), [
+                'default_audience_id' => null,
+            ]);
+
+            return null;
+        }
+
+        return Audience::query()->find($audienceId);
+    }
+
+    public function setDefaultAudience(Activity $activity, ?Audience $audience): void
+    {
+        $this->activities()->whereKey($activity->getKey())->firstOrFail();
+
+        if ($audience instanceof Audience) {
+            $offered = ActivityAudience::query()
+                ->where('activity_id', $activity->getKey())
+                ->where('audience_id', $audience->getKey())
+                ->exists();
+
+            if (! $offered) {
+                throw ValidationException::withMessages([
+                    'default_audience_id' => __('Choose an audience this activity offers.'),
+                ]);
+            }
+        }
+
+        $this->activities()->updateExistingPivot($activity->getKey(), [
+            'default_audience_id' => $audience?->getKey(),
+        ]);
     }
 
     public function bookings(): HasMany

@@ -25,6 +25,7 @@ When an enum is shown in Filament, give it a label, and a color and icon when th
 
 - [US-01 Member Qualification & Permit Management](US-01-member-qualification-permit-management.md) — `done`
 - [US-02 Activity-Specific Qualification & Staffing Requirements](US-02-activity-specific-qualification-staffing.md) — `done`
+- [US-66 Audience-Specific Qualification Requirements](US-66-audience-qualification-requirements.md) — `done`
 - [US-03 Booking Venue Access & Logistics Planning](US-03-booking-venue-access-logistics.md) — `done`
 - [US-04 Multi-Venue & Location-Based Management](US-04-multi-venue-location-management.md) — `done`
 - [US-63 Venue Address and Coordinates](US-63-venue-address-and-coordinates.md) — `done`

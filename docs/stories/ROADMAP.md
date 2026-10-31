@@ -147,7 +147,7 @@ If a retained workflow is large, ship it as a vertical slice: authorization and 
 
 Reserve time before cutover for integrated verification rather than adding features until the target date:
 
-- Once the application is workable and its data model is stable, compare migrating the existing target database with importing legacy data into a fresh database. Choose the safer workable option, then rehearse it with representative data and verify team memberships, booking history, attendance, qualifications, keys, and contact/privacy fields.
+- Once the application is workable and its data model is stable, compare migrating the existing target database with importing legacy data into a fresh database. [US-66](US-66-audience-qualification-requirements.md) lands before that comparison: qualification rows belong to an activity–audience pairing, and keys stay on the activity. Choose the safer workable option, then rehearse it with representative data and verify team memberships, booking history, attendance, qualifications, keys, and contact/privacy fields.
 - Run feature tests for critical member/manager paths, cross-team isolation, suspended accounts, consent and time-window enforcement, and booking email/calendar behavior.
 - Manually test the responsive Livewire/Filament flows on the devices and browsers the team uses. Include keyboard and accessible disclosure behavior where relevant.
 - Verify outgoing email delivery, scheduled jobs, calendar feeds, monitoring, backups, and rollback in the target environment.

@@ -194,6 +194,7 @@ class BookingStatusActions
 
         return BookingResource::hydrateScheduleData([
             'activity_id' => $record->activity_id,
+            'audience_id' => $record->audience_id,
             'venue_id' => $record->venue_id,
             'start_at' => $record->start_at?->timezone(config('app.timezone'))->format('Y-m-d H:i:s'),
             'end_at' => $record->end_at?->timezone(config('app.timezone'))->format('Y-m-d H:i:s'),

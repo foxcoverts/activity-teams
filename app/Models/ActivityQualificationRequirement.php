@@ -21,7 +21,7 @@ class ActivityQualificationRequirement extends Model
 
     protected $fillable = [
         'id',
-        'activity_id',
+        'activity_audience_id',
         'created_at',
         'updated_at',
         'kind',
@@ -48,9 +48,9 @@ class ActivityQualificationRequirement extends Model
         return LogOptions::defaults()->logFillable()->logOnlyDirty();
     }
 
-    public function activity(): BelongsTo
+    public function activityAudience(): BelongsTo
     {
-        return $this->belongsTo(Activity::class);
+        return $this->belongsTo(ActivityAudience::class);
     }
 
     public function matches(Qualification $qualification, ?CarbonInterface $asOf = null): bool

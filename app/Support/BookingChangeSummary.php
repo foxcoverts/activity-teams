@@ -41,6 +41,7 @@ class BookingChangeSummary
 
         foreach ([
             'activity_id' => __('Activity'),
+            'audience_id' => __('Audience'),
             'venue_id' => __('Venue'),
             'group_name' => __('Group'),
         ] as $attribute => $label) {

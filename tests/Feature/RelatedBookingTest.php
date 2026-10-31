@@ -40,7 +40,7 @@ class RelatedBookingTest extends TestCase
             ->callAction('add', data: [
                 'related_id' => $sunday->getKey(),
             ])
-            ->assertSee('Sun 13 Dec 2026 09:00 · Climbing · Cubs');
+            ->assertSee($sunday->relatedLabel());
 
         $this->assertTrue($saturday->fresh()->related->contains($sunday));
         $this->assertTrue($sunday->fresh()->related->contains($saturday));
@@ -155,7 +155,7 @@ class RelatedBookingTest extends TestCase
             'panel' => 'member',
         ])
             ->assertSee('Related bookings')
-            ->assertSee('Sun 13 Dec 2026 09:00 · Climbing · Cubs')
+            ->assertSee($sunday->relatedLabel())
             ->assertActionHidden('add')
             ->assertDontSee('Remove');
 
@@ -219,7 +219,7 @@ class RelatedBookingTest extends TestCase
 
         Livewire::test(ManageViewBooking::class, ['record' => $saturday->getRouteKey()])
             ->assertSee('Related bookings')
-            ->assertSee('Sun 13 Dec 2026 09:00 · Climbing · Cubs')
+            ->assertSee($sunday->relatedLabel())
             ->assertSeeHtml($manageUrl)
             ->assertSeeHtml('class="invite-panel"')
             ->assertDontSeeHtml('wire:name="App\\Filament\\Manage\\Resources\\Bookings\\RelationManagers\\Related');
@@ -238,7 +238,7 @@ class RelatedBookingTest extends TestCase
 
         Livewire::test(MemberViewBooking::class, ['record' => $saturday->getRouteKey()])
             ->assertSee('Related bookings')
-            ->assertSee('Sun 13 Dec 2026 09:00 · Climbing · Cubs')
+            ->assertSee($sunday->relatedLabel())
             ->assertSeeHtml($memberUrl)
             ->assertSeeHtml('class="invite-panel"');
     }

@@ -2,7 +2,7 @@
 
 namespace Database\Factories;
 
-use App\Models\Activity;
+use App\Models\ActivityAudience;
 use App\Models\ActivityQualificationRequirement;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
@@ -14,7 +14,7 @@ class ActivityQualificationRequirementFactory extends Factory
     public function definition(): array
     {
         return [
-            'activity_id' => Activity::factory(),
+            'activity_audience_id' => ActivityAudience::factory(),
             'kind' => 'scout_permit',
             'criteria' => [
                 'activity' => 'Climbing and Abseiling',

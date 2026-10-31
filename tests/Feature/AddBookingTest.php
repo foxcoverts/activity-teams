@@ -5,14 +5,17 @@ namespace Tests\Feature;
 use App\Enums\BookingStatus;
 use App\Enums\MembershipRole;
 use App\Filament\Forms\Components\TimezoneSelect;
+use App\Filament\Manage\Resources\Bookings\BookingResource;
 use App\Filament\Manage\Resources\Bookings\Pages\CreateBooking;
 use App\Filament\Manage\Resources\Bookings\Pages\EditBooking;
 use App\Filament\Manage\Resources\Bookings\Pages\ListBookings;
 use App\Models\Activity;
+use App\Models\ActivityAudience;
 use App\Models\Booking;
 use App\Models\Team;
 use App\Models\User;
 use App\Models\Venue;
+use Filament\Actions\Action;
 use Filament\Actions\Testing\TestAction;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\DatePicker;
@@ -40,12 +43,14 @@ class AddBookingTest extends TestCase
         $user = User::factory()->teamManager()->create();
         $activity = Activity::factory()->create(['name' => 'Climbing']);
         $venue = Venue::factory()->create(['name' => 'Fox Coverts Campsite']);
+        $audienceId = $this->offerAudience($activity);
 
         $this->actingAs($user);
 
         Livewire::test(CreateBooking::class)
             ->fillForm([
                 'activity_id' => $activity->id,
+                'audience_id' => $audienceId,
                 'venue_id' => $venue->id,
                 'start_date' => '2026-10-24',
                 'start_time' => '09:30',
@@ -72,12 +77,14 @@ class AddBookingTest extends TestCase
         $user = User::factory()->teamManager()->create();
         $activity = Activity::factory()->create();
         $venue = Venue::factory()->create();
+        $audienceId = $this->offerAudience($activity);
 
         $this->actingAs($user);
 
         Livewire::test(CreateBooking::class)
             ->assertFormSet([
                 'activity_id' => $activity->getKey(),
+                'audience_id' => $audienceId,
                 'venue_id' => $venue->getKey(),
             ])
             ->assertFormFieldExists('activity_id', fn (Select $field): bool => ! $field->canSelectPlaceholder())
@@ -131,24 +138,63 @@ class AddBookingTest extends TestCase
     public function test_create_booking_does_not_use_choices_from_another_team(): void
     {
         $user = User::factory()->teamManager()->create();
-        Activity::factory()->create();
-        Venue::factory()->create();
+        Activity::factory()->create(['name' => 'Climbing']);
+        Venue::factory()->create(['name' => 'Campsite']);
         $otherTeam = Team::factory()->create();
         $otherTeam->grant($user, MembershipRole::Manager);
+        $otherActivity = Activity::factory()->create(['name' => 'Archery']);
+        $otherVenue = Venue::factory()->create(['name' => 'Headquarters']);
 
         $this->actingAs($user);
-        Filament::setTenant($otherTeam);
+        Filament::setTenant($otherTeam->refresh());
 
         Livewire::test(CreateBooking::class)
             ->assertFormSet([
-                'activity_id' => null,
-                'venue_id' => null,
+                'activity_id' => $otherActivity->getKey(),
+                'venue_id' => $otherVenue->getKey(),
             ]);
+    }
+
+    public function test_new_booking_stays_disabled_until_the_team_has_an_activity_and_a_venue(): void
+    {
+        $user = User::factory()->teamManager()->create();
+        $team = $user->managedTeams()->firstOrFail();
+
+        $this->actingAs($user);
+
+        Livewire::test(ListBookings::class)
+            ->assertActionDisabled('create')
+            ->assertActionExists('create', fn (Action $action): bool => $action->getTooltip() === 'Add an activity and a venue before creating a booking.')
+            ->callAction('create');
+
+        $this->assertSame(0, Booking::query()->count());
+        $this->get(BookingResource::getUrl('create', panel: 'manage', tenant: $team))->assertForbidden();
+
+        $activity = Activity::factory()->create();
+
+        Livewire::test(ListBookings::class)
+            ->assertActionDisabled('create')
+            ->assertActionExists('create', fn (Action $action): bool => $action->getTooltip() === 'Add a venue before creating a booking.');
+
+        $team->removeActivity($activity);
+        Venue::factory()->create();
+
+        Livewire::test(ListBookings::class)
+            ->assertActionDisabled('create')
+            ->assertActionExists('create', fn (Action $action): bool => $action->getTooltip() === 'Add an activity before creating a booking.');
+
+        $team->addActivity($activity);
+
+        Livewire::test(ListBookings::class)
+            ->assertActionEnabled('create')
+            ->assertActionExists('create', fn (Action $action): bool => $action->getTooltip() === null);
     }
 
     public function test_the_booking_form_cannot_create_an_activity_or_venue(): void
     {
         $user = User::factory()->teamManager()->create();
+        Activity::factory()->create();
+        Venue::factory()->create();
 
         $this->actingAs($user);
 
@@ -160,6 +206,8 @@ class AddBookingTest extends TestCase
     public function test_booking_form_places_a_searchable_timezone_select_with_grouped_utc_offsets(): void
     {
         $user = User::factory()->teamManager()->create();
+        Activity::factory()->create();
+        Venue::factory()->create();
 
         $this->actingAs($user);
 
@@ -195,6 +243,7 @@ class AddBookingTest extends TestCase
         ]);
         $activity = Activity::factory()->create();
         $venue = Venue::factory()->create();
+        $audienceId = $this->offerAudience($activity);
 
         $this->actingAs($user);
 
@@ -208,6 +257,7 @@ class AddBookingTest extends TestCase
             ])
             ->fillForm([
                 'activity_id' => $activity->id,
+                'audience_id' => $audienceId,
                 'venue_id' => $venue->id,
                 'group_name' => '1st Anytown Scouts',
             ])
@@ -228,6 +278,8 @@ class AddBookingTest extends TestCase
         $user = User::factory()->teamManager()->create([
             'timezone' => 'America/New_York',
         ]);
+        Activity::factory()->create();
+        Venue::factory()->create();
 
         $this->actingAs($user);
 
@@ -282,12 +334,14 @@ class AddBookingTest extends TestCase
         ]);
         $activity = Activity::factory()->create();
         $venue = Venue::factory()->create();
+        $audienceId = $this->offerAudience($activity);
 
         $this->actingAs($user);
 
         Livewire::test(CreateBooking::class)
             ->fillForm([
                 'activity_id' => $activity->id,
+                'audience_id' => $audienceId,
                 'venue_id' => $venue->id,
                 'group_name' => '1st Anytown Scouts',
                 'start_date' => '2026-10-17',
@@ -313,6 +367,8 @@ class AddBookingTest extends TestCase
         $user = User::factory()->teamManager()->create([
             'timezone' => 'America/New_York',
         ]);
+        Activity::factory()->create();
+        Venue::factory()->create();
 
         $this->actingAs($user);
 
@@ -333,12 +389,14 @@ class AddBookingTest extends TestCase
         ]);
         $activity = Activity::factory()->create();
         $venue = Venue::factory()->create();
+        $audienceId = $this->offerAudience($activity);
 
         $this->actingAs($user);
 
         Livewire::test(CreateBooking::class)
             ->fillForm([
                 'activity_id' => $activity->id,
+                'audience_id' => $audienceId,
                 'venue_id' => $venue->id,
                 'group_name' => '1st Anytown Scouts',
                 'start_date' => '2026-10-31',
@@ -381,12 +439,14 @@ class AddBookingTest extends TestCase
         $user = User::factory()->teamManager()->create();
         $activity = Activity::factory()->create();
         $venue = Venue::factory()->create();
+        $audienceId = $this->offerAudience($activity);
 
         $this->actingAs($user);
 
         Livewire::test(ListBookings::class)
             ->callAction('create', data: [
                 'activity_id' => $activity->id,
+                'audience_id' => $audienceId,
                 'venue_id' => $venue->id,
                 'group_name' => '1st Anytown Scouts',
                 'start_date' => '2026-10-24',
@@ -441,6 +501,14 @@ class AddBookingTest extends TestCase
         $this->actingAs($user)
             ->get('/manage/'.$user->teams()->first()->slug.'/bookings/create')
             ->assertForbidden();
+    }
+
+    private function offerAudience(Activity $activity): string
+    {
+        $pairing = ActivityAudience::factory()->for($activity)->create();
+        Team::query()->orderByDesc('id')->firstOrFail()->setDefaultAudience($activity, $pairing->audience);
+
+        return (string) $pairing->audience_id;
     }
 
     private function isEndDateVisible(FusedGroup $group): bool

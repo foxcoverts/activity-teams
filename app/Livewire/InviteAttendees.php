@@ -6,7 +6,6 @@ use App\Actions\InviteAttendeesAction;
 use App\Enums\BookingAttendeeStatus;
 use App\Enums\MailChannel;
 use App\Livewire\Concerns\InteractsWithPersonAccess;
-use App\Models\Activity;
 use App\Models\Booking;
 use App\Models\User;
 use App\Support\BookingPeople;
@@ -188,16 +187,7 @@ class InviteAttendees extends Component
 
     private function requiresQualification(): bool
     {
-        return $this->activity() instanceof Activity && $this->activity()->requiresQualification();
-    }
-
-    private function activity(): ?Activity
-    {
-        $this->booking->loadMissing('activity');
-
-        $activity = $this->booking->activity;
-
-        return $activity instanceof Activity ? $activity : null;
+        return $this->booking->requiresQualification();
     }
 
     private function allowed(): bool
@@ -246,7 +236,7 @@ class InviteAttendees extends Component
 
         $this->booking->loadMissing([
             'team',
-            'activity.qualificationRequirements',
+            'activity.activityAudiences.qualificationRequirements',
             'attendees.qualifications',
             'attendees.notificationSettings' => $settingsForBooking,
         ]);
@@ -265,8 +255,7 @@ class InviteAttendees extends Component
 
         $attendees = $this->booking->attendees->keyBy(fn (User $user): string => $user->getKey());
 
-        $activity = $this->activity();
-        $showQualified = $activity instanceof Activity && $activity->requiresQualification();
+        $showQualified = $this->booking->requiresQualification();
         $badges = BookingPeople::keyBadges(
             $this->booking,
             $members->values()->merge($attendees->values())->unique(fn (User $user): string => $user->getKey()),
@@ -275,7 +264,7 @@ class InviteAttendees extends Component
         return $members->keys()
             ->merge($attendees->keys())
             ->unique()
-            ->map(function (string $id) use ($members, $attendees, $activity, $showQualified, $badges): array {
+            ->map(function (string $id) use ($members, $attendees, $showQualified, $badges): array {
                 $member = $members->get($id);
                 $attendee = $attendees->get($id);
                 $user = $member ?? $attendee;
@@ -284,7 +273,7 @@ class InviteAttendees extends Component
                 return [
                     'id' => $id,
                     'name' => $user->name,
-                    'qualified' => $showQualified && $activity->metBy($user, $this->booking),
+                    'qualified' => $showQualified && $this->booking->metBy($user),
                     'key_badge' => $badges[$id] ?? null,
                     'mail_off' => ! MailPreference::allows($user, MailChannel::BookingsMail, $this->booking),
                     'status' => $onBooking ? $attendee->attendance?->status : null,

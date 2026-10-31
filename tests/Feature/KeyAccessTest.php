@@ -28,6 +28,7 @@ use App\Filament\Member\Resources\Bookings\RelationManagers\AttendeesRelationMan
 use App\Filament\Member\Resources\KeyRings\KeyRingResource as MemberKeyRingResource;
 use App\Livewire\SessionRoster;
 use App\Models\Activity;
+use App\Models\ActivityAudience;
 use App\Models\Booking;
 use App\Models\BookingAttendance;
 use App\Models\Key;
@@ -384,12 +385,15 @@ class KeyAccessTest extends TestCase
         $holder = User::factory()->teamMember()->create(['name' => 'Sam Holder']);
         $member = User::factory()->teamMember()->create(['name' => 'Casey Member']);
         $activity = Activity::factory()->create();
-        $activity->qualificationRequirements()->create([
+        ActivityAudience::factory()->for($activity)->create()->qualificationRequirements()->create([
             'kind' => 'scout_permit',
             'criteria' => [
                 'activity' => 'Climbing and Abseiling',
                 'permit_type' => 'leadership',
             ],
+        ]);
+        Qualification::factory()->forMember($lead)->scoutPermit()->create([
+            'expires_on' => now()->addYear()->toDateString(),
         ]);
         $booking = Booking::factory()->confirmed()->create([
             'activity_id' => $activity->getKey(),

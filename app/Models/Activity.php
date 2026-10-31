@@ -2,13 +2,13 @@
 
 namespace App\Models;
 
-use Carbon\CarbonInterface;
 use Database\Factories\ActivityFactory;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Spatie\Activitylog\Models\Concerns\LogsActivity;
 use Spatie\Activitylog\Support\LogOptions;
 
@@ -39,7 +39,9 @@ class Activity extends Model
 
     public function teams(): BelongsToMany
     {
-        return $this->belongsToMany(Team::class)->withTimestamps();
+        return $this->belongsToMany(Team::class)
+            ->withPivot('default_audience_id')
+            ->withTimestamps();
     }
 
     public function bookings(): HasMany
@@ -47,39 +49,20 @@ class Activity extends Model
         return $this->hasMany(Booking::class);
     }
 
-    public function qualificationRequirements(): HasMany
+    public function activityAudiences(): HasMany
     {
-        return $this->hasMany(ActivityQualificationRequirement::class)->orderBy('sort');
+        return $this->hasMany(ActivityAudience::class);
     }
 
-    public function requiresQualification(): bool
+    public function audiences(): HasManyThrough
     {
-        return $this->qualificationRequirements()->exists();
-    }
-
-    public function metBy(User $user, Booking|CarbonInterface|null $asOf = null): bool
-    {
-        $requirements = $this->relationLoaded('qualificationRequirements')
-            ? $this->qualificationRequirements
-            : $this->qualificationRequirements()->get();
-
-        if ($requirements->isEmpty()) {
-            return true;
-        }
-
-        $date = $asOf instanceof Booking ? $asOf->qualificationAsOf() : $asOf;
-        $qualifications = $user->relationLoaded('qualifications')
-            ? $user->qualifications
-            : $user->qualifications()->get();
-
-        foreach ($requirements as $requirement) {
-            foreach ($qualifications as $qualification) {
-                if ($requirement->matches($qualification, $date)) {
-                    return true;
-                }
-            }
-        }
-
-        return false;
+        return $this->hasManyThrough(
+            Audience::class,
+            ActivityAudience::class,
+            'activity_id', // Foreign key on the activity_audiences table...
+            'id', // Foreign key on the audiences table...
+            'id', // Local key on the activities table...
+            'audience_id' // Local key on the activity_audiences table...
+        );
     }
 }

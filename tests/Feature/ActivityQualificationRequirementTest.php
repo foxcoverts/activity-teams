@@ -6,7 +6,11 @@ use App\Enums\BookingAttendeeStatus;
 use App\Filament\Admin\Resources\Activities\ActivityResource;
 use App\Filament\Admin\Resources\Activities\Pages\CreateActivity;
 use App\Filament\Admin\Resources\Activities\Pages\EditActivity;
+use App\Filament\Admin\Resources\Activities\Pages\ViewActivity;
+use App\Filament\Admin\Resources\Activities\RelationManagers\ActivityAudiencesRelationManager;
 use App\Models\Activity;
+use App\Models\ActivityAudience;
+use App\Models\Audience;
 use App\Models\Booking;
 use App\Models\BookingAttendance;
 use App\Models\Qualification;
@@ -30,46 +34,47 @@ class ActivityQualificationRequirementTest extends TestCase
     public function test_an_activity_with_no_rows_accepts_a_member_with_no_qualifications(): void
     {
         $activity = Activity::factory()->create();
+        $pairing = ActivityAudience::factory()->for($activity)->create();
         $member = User::factory()->teamMember()->create();
 
-        $this->assertFalse($activity->requiresQualification());
+        $this->assertFalse($pairing->requiresQualification());
         $this->assertSame(0, $member->qualifications()->count());
-        $this->assertTrue($activity->metBy($member));
+        $this->assertTrue($pairing->metBy($member));
     }
 
     public function test_any_current_qualification_that_covers_a_row_is_enough(): void
     {
         $activity = Activity::factory()->create();
-        $activity->qualificationRequirements()->create([
+        $this->pairing($activity)->qualificationRequirements()->create([
             'kind' => 'mountain_training',
             'criteria' => ['award' => 'Climbing Wall Instructor'],
         ]);
-        $activity->qualificationRequirements()->create([
+        $this->pairing($activity)->qualificationRequirements()->create([
             'kind' => 'girlguiding',
         ]);
 
         $member = User::factory()->teamMember()->create();
-        $this->assertFalse($activity->fresh()->metBy($member));
+        $this->assertFalse($this->pairing($activity)->metBy($member));
 
         Qualification::factory()->forMember($member)->mountainTraining('Rock Climbing Instructor')->create();
 
-        $this->assertTrue($activity->fresh()->metBy($member->fresh()));
+        $this->assertTrue($this->pairing($activity)->metBy($member->fresh()));
 
         $other = User::factory()->teamMember()->create();
         Qualification::factory()->forMember($other)->mountainTraining('Lowland Leader')->create();
 
-        $this->assertFalse($activity->fresh()->metBy($other));
+        $this->assertFalse($this->pairing($activity)->metBy($other));
 
         $guide = User::factory()->teamMember()->create();
         Qualification::factory()->forMember($guide)->girlguiding('2')->create();
 
-        $this->assertTrue($activity->fresh()->metBy($guide));
+        $this->assertTrue($this->pairing($activity)->metBy($guide));
     }
 
     public function test_a_scout_permit_matches_on_activity_category_and_type_and_ignores_restrictions(): void
     {
         $activity = Activity::factory()->create();
-        $activity->qualificationRequirements()->create([
+        $this->pairing($activity)->qualificationRequirements()->create([
             'kind' => 'scout_permit',
             'criteria' => [
                 'activity' => 'Climbing and Abseiling',
@@ -85,7 +90,7 @@ class ActivityQualificationRequirementTest extends TestCase
             'restrictions' => 'No night climbing',
         ])->create();
 
-        $this->assertTrue($activity->fresh()->metBy($member));
+        $this->assertTrue($this->pairing($activity)->metBy($member));
 
         $personal = User::factory()->teamMember()->create();
         Qualification::factory()->forMember($personal)->scoutPermit([
@@ -93,10 +98,10 @@ class ActivityQualificationRequirementTest extends TestCase
             'restrictions' => 'Unrestricted',
         ])->create();
 
-        $this->assertFalse($activity->fresh()->metBy($personal));
+        $this->assertFalse($this->pairing($activity)->metBy($personal));
 
         $rock = Activity::factory()->create();
-        $rock->qualificationRequirements()->create([
+        $this->pairing($rock)->qualificationRequirements()->create([
             'kind' => 'scout_permit',
             'criteria' => [
                 'activity' => 'Climbing and Abseiling',
@@ -111,7 +116,7 @@ class ActivityQualificationRequirementTest extends TestCase
             'permit_type' => 'leadership',
         ])->create();
 
-        $this->assertFalse($rock->fresh()->metBy($tower));
+        $this->assertFalse($this->pairing($rock)->metBy($tower));
 
         $expired = User::factory()->teamMember()->create();
         Qualification::factory()->forMember($expired)->scoutPermit([
@@ -120,13 +125,13 @@ class ActivityQualificationRequirementTest extends TestCase
             'expires_on' => now()->subDay()->toDateString(),
         ]);
 
-        $this->assertFalse($activity->fresh()->metBy($expired));
+        $this->assertFalse($this->pairing($activity)->metBy($expired));
     }
 
     public function test_a_river_permit_does_not_meet_an_open_inland_requirement(): void
     {
         $activity = Activity::factory()->create();
-        $activity->qualificationRequirements()->create([
+        $this->pairing($activity)->qualificationRequirements()->create([
             'kind' => 'scout_permit',
             'criteria' => [
                 'activity' => 'Canoeing Open Inland',
@@ -141,7 +146,7 @@ class ActivityQualificationRequirementTest extends TestCase
             'permit_type' => 'leadership',
         ])->create();
 
-        $this->assertFalse($activity->fresh()->metBy($river));
+        $this->assertFalse($this->pairing($activity)->metBy($river));
 
         $inland = User::factory()->teamMember()->create();
         Qualification::factory()->forMember($inland)->scoutPermit([
@@ -150,10 +155,10 @@ class ActivityQualificationRequirementTest extends TestCase
             'permit_type' => 'leadership',
         ])->create();
 
-        $this->assertTrue($activity->fresh()->metBy($inland));
+        $this->assertTrue($this->pairing($activity)->metBy($inland));
 
         $sameRiver = Activity::factory()->create();
-        $sameRiver->qualificationRequirements()->create([
+        $this->pairing($sameRiver)->qualificationRequirements()->create([
             'kind' => 'scout_permit',
             'criteria' => [
                 'activity' => 'Canoeing River',
@@ -161,7 +166,7 @@ class ActivityQualificationRequirementTest extends TestCase
             ],
         ]);
 
-        $this->assertTrue($sameRiver->fresh()->metBy($river));
+        $this->assertTrue($this->pairing($sameRiver)->metBy($river));
     }
 
     public function test_a_permit_must_still_be_valid_on_the_booking_end_date(): void
@@ -169,7 +174,7 @@ class ActivityQualificationRequirementTest extends TestCase
         $this->travelTo('2026-10-25 12:00:00');
 
         $activity = Activity::factory()->create();
-        $activity->qualificationRequirements()->create([
+        $this->pairing($activity)->qualificationRequirements()->create([
             'kind' => 'scout_permit',
             'criteria' => [
                 'activity' => 'Climbing and Abseiling',
@@ -182,7 +187,7 @@ class ActivityQualificationRequirementTest extends TestCase
             'expires_on' => '2026-11-01',
         ]);
 
-        $this->assertTrue($activity->fresh()->metBy($member));
+        $this->assertTrue($this->pairing($activity)->metBy($member));
 
         $booking = Booking::factory()->create([
             'activity_id' => $activity->getKey(),
@@ -191,7 +196,7 @@ class ActivityQualificationRequirementTest extends TestCase
             'timezone' => 'Europe/London',
         ]);
 
-        $this->assertFalse($activity->fresh()->metBy($member, $booking));
+        $this->assertFalse($this->pairing($activity)->metBy($member, $booking));
 
         $lastDay = Booking::factory()->create([
             'activity_id' => $activity->getKey(),
@@ -200,7 +205,7 @@ class ActivityQualificationRequirementTest extends TestCase
             'timezone' => 'Europe/London',
         ]);
 
-        $this->assertTrue($activity->fresh()->metBy($member, $lastDay));
+        $this->assertTrue($this->pairing($activity)->metBy($member, $lastDay));
 
         $booking->attendees()->attach($member->id, [
             'status' => BookingAttendeeStatus::Accepted->value,
@@ -221,68 +226,69 @@ class ActivityQualificationRequirementTest extends TestCase
     public function test_an_nsra_requirement_uses_the_short_name_and_covers_lower_awards(): void
     {
         $activity = Activity::factory()->create();
-        $activity->qualificationRequirements()->create([
+        $this->pairing($activity)->qualificationRequirements()->create([
             'kind' => 'nsra',
             'criteria' => ['award' => 'Club Instructor'],
         ]);
 
         $this->assertSame(
             'NSRA — Club Instructor',
-            $activity->qualificationRequirements()->first()?->summary,
+            $this->pairing($activity)->qualificationRequirements()->first()?->summary,
         );
 
         $coach = User::factory()->teamMember()->create();
         Qualification::factory()->forMember($coach)->nsra('Club Coach')->create();
 
-        $this->assertTrue($activity->fresh()->metBy($coach));
+        $this->assertTrue($this->pairing($activity)->metBy($coach));
 
         $tutor = User::factory()->teamMember()->create();
         Qualification::factory()->forMember($tutor)->nsra('YPS Tutor')->create();
 
-        $this->assertFalse($activity->fresh()->metBy($tutor));
+        $this->assertFalse($this->pairing($activity)->metBy($tutor));
     }
 
     public function test_an_archery_gb_requirement_does_not_treat_a_coach_as_an_instructor(): void
     {
         $activity = Activity::factory()->create();
-        $activity->qualificationRequirements()->create([
+        $this->pairing($activity)->qualificationRequirements()->create([
             'kind' => 'archery_gb_awards',
             'criteria' => ['award' => 'Instructor Award'],
         ]);
 
         $this->assertSame(
             'Archery GB — Instructor Award',
-            $activity->qualificationRequirements()->first()?->summary,
+            $this->pairing($activity)->qualificationRequirements()->first()?->summary,
         );
 
         $plus = User::factory()->teamMember()->create();
         Qualification::factory()->forMember($plus)->archeryGb('Instructor Plus')->create();
 
-        $this->assertTrue($activity->fresh()->metBy($plus));
+        $this->assertTrue($this->pairing($activity)->metBy($plus));
 
         $coach = User::factory()->teamMember()->create();
         Qualification::factory()->forMember($coach)->archeryGb('Session Coach')->create();
 
-        $this->assertFalse($activity->fresh()->metBy($coach));
+        $this->assertFalse($this->pairing($activity)->metBy($coach));
     }
 
     public function test_a_requirement_does_not_keep_a_category_without_a_group(): void
     {
         $activity = Activity::factory()->create();
-        $activity->qualificationRequirements()->create([
+        $this->pairing($activity)->qualificationRequirements()->create([
             'kind' => 'scout_permit',
             'criteria' => [
                 'category' => 'B1',
             ],
         ]);
 
-        $this->assertSame([], $activity->qualificationRequirements()->first()?->criteria);
+        $this->assertSame([], $this->pairing($activity)->qualificationRequirements()->first()?->criteria);
     }
 
     public function test_a_system_admin_can_set_and_clear_alternatives(): void
     {
         $admin = User::factory()->systemAdmin()->create();
         $manager = User::factory()->teamManager()->create();
+        $audience = Audience::factory()->create(['name' => 'Scouts']);
 
         $this->actingAs($manager);
         $this->get(ActivityResource::getUrl('create'))->assertForbidden();
@@ -292,85 +298,131 @@ class ActivityQualificationRequirementTest extends TestCase
         Livewire::test(CreateActivity::class)
             ->fillForm([
                 'name' => 'Scout climbing',
-                'qualificationRequirements' => [
-                    [
-                        'kind' => 'scout_permit',
-                        'group' => 'Climbing and Abseiling',
-                        'permit_type' => 'leadership',
-                    ],
-                ],
             ])
             ->call('create')
             ->assertHasNoFormErrors();
 
         $activity = Activity::query()->where('name', 'Scout climbing')->first();
         $this->assertNotNull($activity);
-        $this->assertTrue($activity->requiresQualification());
+
+        Livewire::test(ActivityAudiencesRelationManager::class, [
+            'ownerRecord' => $activity,
+            'pageClass' => EditActivity::class,
+        ])->callTableAction('create', data: [
+            'audience_id' => $audience->getKey(),
+            'qualificationRequirements' => [
+                [
+                    'kind' => 'scout_permit',
+                    'group' => 'Climbing and Abseiling',
+                    'permit_type' => 'leadership',
+                ],
+            ],
+        ])->assertHasNoFormErrors();
+
+        $pairing = $activity->activityAudiences()->first();
+        $this->assertInstanceOf(ActivityAudience::class, $pairing);
+        $this->assertTrue($pairing->requiresQualification());
         $this->assertSame(
             'Scout permit — Climbing and Abseiling — Leadership',
-            $activity->qualificationRequirements()->first()?->summary,
+            $pairing->qualificationRequirements()->first()?->summary,
         );
 
         $this->get(ActivityResource::getUrl('view', ['record' => $activity]))
-            ->assertOk()
-            ->assertSee('Scout permit — Climbing and Abseiling — Leadership');
+            ->assertOk();
 
-        Livewire::test(EditActivity::class, ['record' => $activity->getKey()])
-            ->fillForm([
-                'qualificationRequirements' => [],
-            ])
-            ->call('save')
-            ->assertHasNoFormErrors();
+        Livewire::test(ActivityAudiencesRelationManager::class, [
+            'ownerRecord' => $activity,
+            'pageClass' => ViewActivity::class,
+        ])->assertSee('Scout permit — Climbing and Abseiling — Leadership');
 
-        $activity->refresh();
-        $this->assertFalse($activity->requiresQualification());
+        Livewire::test(ActivityAudiencesRelationManager::class, [
+            'ownerRecord' => $activity,
+            'pageClass' => EditActivity::class,
+        ])->callTableAction('edit', $pairing, data: [
+            'qualificationRequirements' => [],
+        ])->assertHasNoFormErrors();
 
-        $this->get(ActivityResource::getUrl('view', ['record' => $activity]))
-            ->assertOk()
-            ->assertSee('No qualification required.');
+        $this->assertFalse($pairing->fresh()->requiresQualification());
+
+        Livewire::test(ActivityAudiencesRelationManager::class, [
+            'ownerRecord' => $activity,
+            'pageClass' => ViewActivity::class,
+        ])->assertSee('No qualification required.');
     }
 
     public function test_a_requirement_row_stores_one_scout_group(): void
     {
         $admin = User::factory()->systemAdmin()->create();
+        $audience = Audience::factory()->create();
         $this->actingAs($admin);
 
         Livewire::test(CreateActivity::class)
-            ->fillForm([
-                'name' => 'Canoeing',
-                'qualificationRequirements' => [
-                    [
-                        'kind' => 'scout_permit',
-                        'group' => 'Canoeing Open Inland',
-                        'node' => 'B2',
-                    ],
-                    [
-                        'kind' => 'scout_permit',
-                        'group' => 'Canoeing River',
-                        'node' => 'B2',
-                    ],
-                ],
-            ])
+            ->fillForm(['name' => 'Canoeing'])
             ->call('create')
             ->assertHasNoFormErrors();
 
         $activity = Activity::query()->where('name', 'Canoeing')->first();
         $this->assertNotNull($activity);
-        $this->assertSame(2, $activity->qualificationRequirements()->count());
+
+        Livewire::test(ActivityAudiencesRelationManager::class, [
+            'ownerRecord' => $activity,
+            'pageClass' => EditActivity::class,
+        ])->callTableAction('create', data: [
+            'audience_id' => $audience->getKey(),
+            'qualificationRequirements' => [
+                [
+                    'kind' => 'scout_permit',
+                    'group' => 'Canoeing Open Inland',
+                    'node' => 'B2',
+                ],
+                [
+                    'kind' => 'scout_permit',
+                    'group' => 'Canoeing River',
+                    'node' => 'B2',
+                ],
+            ],
+        ])->assertHasNoFormErrors();
+
+        $this->assertSame(2, $activity->activityAudiences()->first()?->qualificationRequirements()->count());
         $this->assertSame(
             ['Canoeing Open Inland', 'Canoeing River'],
-            $activity->qualificationRequirements()->orderBy('sort')->get()->map(fn ($row) => $row->criteria['activity'])->all(),
+            $activity->activityAudiences()->first()?->qualificationRequirements()->orderBy('sort')->get()->map(fn ($row) => $row->criteria['activity'])->all(),
         );
+    }
+
+    public function test_adding_qualifications_preselects_the_only_audience(): void
+    {
+        $admin = User::factory()->systemAdmin()->create();
+        $activity = Activity::factory()->create();
+        $audience = Audience::factory()->create(['name' => 'Scouts']);
+        $this->actingAs($admin);
+
+        Livewire::test(ActivityAudiencesRelationManager::class, [
+            'ownerRecord' => $activity,
+            'pageClass' => EditActivity::class,
+        ])->mountTableAction('create')
+            ->assertSet('mountedActions.0.data.audience_id', $audience->getKey());
+
+        Audience::factory()->create(['name' => 'Guides']);
+
+        Livewire::test(ActivityAudiencesRelationManager::class, [
+            'ownerRecord' => $activity,
+            'pageClass' => EditActivity::class,
+        ])->mountTableAction('create')
+            ->assertSet('mountedActions.0.data.audience_id', null);
     }
 
     public function test_a_requirement_category_stays_hidden_until_a_group_is_chosen(): void
     {
         $admin = User::factory()->systemAdmin()->create();
+        $activity = Activity::factory()->create();
         $this->actingAs($admin);
 
-        Livewire::test(CreateActivity::class)
+        Livewire::test(ActivityAudiencesRelationManager::class, [
+            'ownerRecord' => $activity,
+            'pageClass' => EditActivity::class,
+        ])->mountTableAction('create')
             ->fillForm([
-                'name' => 'Canoeing',
                 'qualificationRequirements' => [
                     ['kind' => 'scout_permit'],
                 ],
@@ -386,5 +438,16 @@ class ActivityQualificationRequirementTest extends TestCase
             ])
             ->assertFormFieldIsVisible('qualificationRequirements.0.node')
             ->assertFormFieldIsVisible('qualificationRequirements.0.permit_type');
+    }
+
+    private function pairing(Activity $activity): ActivityAudience
+    {
+        $existing = $activity->activityAudiences()->first();
+
+        if ($existing instanceof ActivityAudience) {
+            return $existing;
+        }
+
+        return ActivityAudience::factory()->for($activity)->create();
     }
 }

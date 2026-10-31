@@ -20,6 +20,7 @@ use App\Mail\BookingChangedMail;
 use App\Mail\BookingInviteMail;
 use App\Mail\LeadNeededMail;
 use App\Models\Activity;
+use App\Models\ActivityAudience;
 use App\Models\Booking;
 use App\Models\BookingAttendance;
 use App\Models\Qualification;
@@ -54,12 +55,14 @@ class BookingStatusTest extends TestCase
         $manager = User::factory()->teamManager()->create();
         $activity = Activity::factory()->create();
         $venue = Venue::factory()->create();
+        $audienceId = ActivityAudience::factory()->for($activity)->create()->audience_id;
 
         $this->actingAs($manager);
 
         Livewire::test(CreateBooking::class)
             ->fillForm([
                 'activity_id' => $activity->id,
+                'audience_id' => $audienceId,
                 'venue_id' => $venue->id,
                 'start_date' => '2026-10-24',
                 'start_time' => '09:30',
@@ -75,6 +78,7 @@ class BookingStatusTest extends TestCase
         Livewire::test(CreateBooking::class)
             ->fillForm([
                 'activity_id' => $activity->id,
+                'audience_id' => $audienceId,
                 'venue_id' => $venue->id,
                 'start_date' => '2026-10-25',
                 'start_time' => '09:30',
@@ -151,7 +155,7 @@ class BookingStatusTest extends TestCase
         $qualified = User::factory()->teamMember()->create(['name' => 'Sam Holder']);
         $other = User::factory()->teamMember()->create(['name' => 'Alex Guest']);
         $activity = Activity::factory()->create();
-        $activity->qualificationRequirements()->create([
+        ActivityAudience::factory()->for($activity)->create()->qualificationRequirements()->create([
             'kind' => 'mountain_training',
             'criteria' => ['award' => 'Climbing Wall Instructor'],
         ]);
@@ -188,7 +192,7 @@ class BookingStatusTest extends TestCase
         $qualified = User::factory()->create(['name' => 'Qualified Lead']);
         $attending = User::factory()->create(['name' => 'Attending Only']);
         $activity = Activity::factory()->create();
-        $activity->qualificationRequirements()->create([
+        ActivityAudience::factory()->for($activity)->create()->qualificationRequirements()->create([
             'kind' => 'mountain_training',
             'criteria' => ['award' => 'Climbing Wall Instructor'],
         ]);
@@ -705,6 +709,7 @@ class BookingStatusTest extends TestCase
         Livewire::test(ViewBooking::class, ['record' => $booking->getRouteKey()])
             ->callAction('restoreBooking', data: [
                 'activity_id' => $booking->activity_id,
+                'audience_id' => $booking->audience_id,
                 'venue_id' => $booking->venue_id,
                 'start_date' => $booking->start_at->timezone($timezone)->toDateString(),
                 'start_time' => $booking->start_at->timezone($timezone)->format('H:i'),

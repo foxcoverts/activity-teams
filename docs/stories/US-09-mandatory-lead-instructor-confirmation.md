@@ -17,4 +17,4 @@ As an Activity Manager, I want the system to prevent a booking from being marked
 
 ## Progress
 
-Confirm stays closed until someone has accepted, and saving a lead who has not accepted is refused. When the activity lists qualifications, the lead must meet them as well. An activity with no rows accepts any attending lead.
+Confirm stays closed until someone has accepted, and saving a lead who has not accepted is refused. When the activity–audience pairing lists qualifications, the lead must meet them as well. A pairing with no rows accepts any attending lead. Saving a booking whose lead no longer meets the pairing is refused. See [US-66](US-66-audience-qualification-requirements.md).

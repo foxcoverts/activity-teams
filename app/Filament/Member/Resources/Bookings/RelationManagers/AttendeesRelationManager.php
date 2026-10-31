@@ -193,7 +193,7 @@ class AttendeesRelationManager extends RelationManager
             return false;
         }
 
-        $booking->loadMissing(['attendees', 'team', 'activity.qualificationRequirements']);
+        $booking->loadMissing(['attendees', 'team', 'activity.activityAudiences.qualificationRequirements']);
         $roster = BookingGuestList::forBooking(
             $booking,
             $booking->attendees,

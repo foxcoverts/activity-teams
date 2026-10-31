@@ -35,6 +35,7 @@ class Booking extends Model
     protected $fillable = [
         'team_id',
         'activity_id',
+        'audience_id',
         'venue_id',
         'start_at',
         'end_at',
@@ -90,6 +91,29 @@ class Booking extends Model
                 ]);
             }
 
+            if (blank($booking->group_name)) {
+                $booking->group_name = null;
+            }
+
+            if (blank($booking->audience_id) || blank($booking->activity_id) || ! $booking->hasOfferedAudience()) {
+                throw ValidationException::withMessages([
+                    'audience_id' => __('Choose an audience this activity offers.'),
+                ]);
+            }
+
+            if (
+                filled($booking->lead_instructor_id)
+                && (! $booking->exists || $booking->isDirty(['activity_id', 'audience_id', 'lead_instructor_id']))
+            ) {
+                $lead = User::query()->find($booking->lead_instructor_id);
+
+                if (! $lead instanceof User || ! $booking->metBy($lead)) {
+                    throw ValidationException::withMessages([
+                        'audience_id' => __('The lead instructor must be qualified for this activity.'),
+                    ]);
+                }
+            }
+
             if (filled($booking->venue_id) && ! $team->venues()->whereKey($booking->venue_id)->exists()) {
                 throw ValidationException::withMessages([
                     'venue_id' => __('Choose a venue this team has been given.'),
@@ -100,12 +124,13 @@ class Booking extends Model
 
     /**
      * iCalendar SEQUENCE revisions (RFC 5545): start, end, and status must
-     * increment it. A location or activity change counts as one too.
+     * increment it. A location, activity, or audience change counts as one too.
      */
     protected function sequenced(): array
     {
         return [
             'activity_id',
+            'audience_id',
             'start_at',
             'end_at',
             'venue_id',
@@ -169,13 +194,43 @@ class Booking extends Model
      */
     public function leadOptions(): array
     {
-        $this->loadMissing('activity');
-        $activity = $this->activity;
-
         return $this->acceptedAttendees()
-            ->filter(fn (User $user): bool => ! $activity instanceof Activity || $activity->metBy($user, $this))
+            ->filter(fn (User $user): bool => $this->metBy($user))
             ->mapWithKeys(fn (User $user): array => [$user->getKey() => $user->name])
             ->all();
+    }
+
+    public function metBy(User $user): bool
+    {
+        return $this->activityAudience()?->metBy($user, $this) ?? false;
+    }
+
+    public function requiresQualification(): bool
+    {
+        return $this->activityAudience()?->requiresQualification() ?? false;
+    }
+
+    public function hasOfferedAudience(): bool
+    {
+        return $this->activityAudience() instanceof ActivityAudience;
+    }
+
+    public function activityAudience(): ?ActivityAudience
+    {
+        if (blank($this->activity_id) || blank($this->audience_id)) {
+            return null;
+        }
+
+        if ($this->relationLoaded('activity') && $this->activity?->relationLoaded('activityAudiences')) {
+            return $this->activity->activityAudiences->first(
+                fn (ActivityAudience $pairing): bool => (string) $pairing->audience_id === (string) $this->audience_id,
+            );
+        }
+
+        return ActivityAudience::query()
+            ->where('activity_id', $this->activity_id)
+            ->where('audience_id', $this->audience_id)
+            ->first();
     }
 
     public function qualificationAsOf(): CarbonInterface
@@ -186,6 +241,11 @@ class Booking extends Model
     public function activity(): BelongsTo
     {
         return $this->belongsTo(Activity::class);
+    }
+
+    public function audience(): BelongsTo
+    {
+        return $this->belongsTo(Audience::class);
     }
 
     public function venue(): BelongsTo
@@ -258,13 +318,54 @@ class Booking extends Model
 
     public function relatedLabel(): string
     {
-        $this->loadMissing('activity');
+        $this->loadMissing('activity', 'audience');
 
         $start = $this->start_at->copy()
             ->timezone($this->timezone)
             ->locale(config('app.locale'));
 
-        return $start->isoFormat('ddd D MMM YYYY HH:mm').' · '.$this->activity->name.' · '.$this->group_name;
+        $parts = [
+            $start->isoFormat('ddd D MMM YYYY HH:mm'),
+            $this->activity->name,
+            $this->audience?->name,
+        ];
+
+        if (filled($this->group_name)) {
+            $parts[] = $this->group_name;
+        }
+
+        return implode(' · ', array_filter($parts));
+    }
+
+    public function icsSummary(): string
+    {
+        $this->loadMissing('activity', 'audience');
+
+        $parts = [
+            $this->activity?->name,
+            $this->audience?->name,
+        ];
+
+        if (filled($this->group_name)) {
+            $parts[] = $this->group_name;
+        }
+
+        return implode(' — ', array_filter($parts));
+    }
+
+    public function displayName(): Attribute
+    {
+        return Attribute::get(function (): string {
+            if (filled($this->group_name)) {
+                return (string) $this->group_name;
+            }
+
+            $this->loadMissing('activity', 'audience');
+
+            return collect([$this->activity?->name, $this->audience?->name])
+                ->filter(fn (?string $part): bool => filled($part))
+                ->implode(' · ');
+        });
     }
 
     public function leadInstructor(): BelongsTo

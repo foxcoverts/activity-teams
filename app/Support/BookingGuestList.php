@@ -3,7 +3,6 @@
 namespace App\Support;
 
 use App\Enums\BookingAttendeeStatus;
-use App\Models\Activity;
 use App\Models\Booking;
 use App\Models\User;
 
@@ -28,7 +27,7 @@ class BookingGuestList
         $booking->loadMissing('team');
 
         if ($includeAccessDetails) {
-            $booking->loadMissing('activity.qualificationRequirements');
+            $booking->loadMissing('activity.activityAudiences.qualificationRequirements');
         }
 
         $people = collect($attendees)
@@ -46,12 +45,11 @@ class BookingGuestList
 
         $memberIdLookup = array_fill_keys($currentMemberIds, true);
         $keyBadges = $includeAccessDetails ? BookingPeople::keyBadges($booking, $people) : [];
-        $activity = $includeAccessDetails ? $booking->activity : null;
-        $showQualified = $activity instanceof Activity && $activity->requiresQualification();
+        $showQualified = $includeAccessDetails && $booking->requiresQualification();
         $showKeys = $includeAccessDetails && $booking->requiredKeys()->isNotEmpty();
 
         $rows = $people
-            ->map(function (User $person) use ($activity, $booking, $includeAccessDetails, $keyBadges, $memberIdLookup, $showQualified): ?array {
+            ->map(function (User $person) use ($booking, $includeAccessDetails, $keyBadges, $memberIdLookup, $showQualified): ?array {
                 $status = $person->attendance?->status;
 
                 if (! $status instanceof BookingAttendeeStatus) {
@@ -65,8 +63,7 @@ class BookingGuestList
                     'guest' => ! isset($memberIdLookup[(string) $person->getKey()]),
                     'qualified' => $includeAccessDetails
                         && $showQualified
-                        && $activity instanceof Activity
-                        && $activity->metBy($person, $booking),
+                        && $booking->metBy($person),
                     'key_badge' => $includeAccessDetails
                         ? ($keyBadges[$person->getKey()] ?? null)
                         : null,

@@ -8,7 +8,6 @@ use App\Events\BookingCancelled;
 use App\Events\BookingChanged;
 use App\Events\BookingConfirmed;
 use App\Events\BookingRestored;
-use App\Models\Activity;
 use App\Models\Booking;
 use App\Models\User;
 use Illuminate\Validation\ValidationException;
@@ -174,9 +173,7 @@ class UpdateBookingStatusAction
             ]);
         }
 
-        $booking->loadMissing('activity');
-
-        if ($booking->activity instanceof Activity && ! $booking->activity->metBy($lead, $booking)) {
+        if (! $booking->metBy($lead)) {
             throw ValidationException::withMessages([
                 'lead_instructor_id' => __('The lead instructor must be qualified for this activity.'),
             ]);

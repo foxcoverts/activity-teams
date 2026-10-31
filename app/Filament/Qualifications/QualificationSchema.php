@@ -2,11 +2,13 @@
 
 namespace App\Filament\Qualifications;
 
+use App\Models\ActivityQualificationRequirement;
 use App\Models\Qualification;
 use App\Models\User;
 use App\Qualifications\PermitType;
 use App\Qualifications\QualificationCatalogue;
 use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Schemas\Components\Grid;
@@ -103,6 +105,29 @@ class QualificationSchema
             ...$data,
             ...static::unpackDimensions($data['kind'] ?? null, $data['criteria'] ?? []),
         ];
+    }
+
+    public static function requirementRepeater(): Repeater
+    {
+        return Repeater::make('qualificationRequirements')
+            ->relationship()
+            ->orderColumn('sort')
+            ->label(__('Acceptable qualifications'))
+            ->helperText(__('Each row is one way to qualify. Leave a field blank for any value. A higher category, permit type, level, or award covers a lower one. Permit restrictions are ignored. Leave this empty when the activity needs no qualification.'))
+            ->schema(static::requirementFields())
+            ->mutateRelationshipDataBeforeCreateUsing(fn (array $data): array => static::packRequirement($data))
+            ->mutateRelationshipDataBeforeSaveUsing(fn (array $data): array => static::packRequirement($data))
+            ->mutateRelationshipDataBeforeFillUsing(fn (array $data): array => static::unpackRequirement($data))
+            ->itemLabel(function (array $state): ?string {
+                if (blank($state['kind'] ?? null)) {
+                    return null;
+                }
+
+                return (new ActivityQualificationRequirement(static::packRequirement($state)))->summary;
+            })
+            ->addActionLabel(__('Add alternative'))
+            ->defaultItems(0)
+            ->columnSpanFull();
     }
 
     private static function kindSelect(bool $editable): Select

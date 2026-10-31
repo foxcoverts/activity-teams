@@ -4,6 +4,8 @@ namespace Database\Factories;
 
 use App\Enums\BookingStatus;
 use App\Models\Activity;
+use App\Models\ActivityAudience;
+use App\Models\Audience;
 use App\Models\Booking;
 use App\Models\Team;
 use App\Models\Venue;
@@ -69,6 +71,14 @@ class BookingFactory extends Factory
             if (filled($booking->activity_id)) {
                 $activity = Activity::query()->findOrFail($booking->activity_id);
                 $team->addActivity($activity);
+                $booking->audience_id = filled($booking->audience_id)
+                    ? $booking->audience_id
+                    : static::audienceFor($activity);
+
+                ActivityAudience::query()->firstOrCreate([
+                    'activity_id' => $activity->getKey(),
+                    'audience_id' => $booking->audience_id,
+                ]);
             }
 
             if (filled($booking->venue_id)) {
@@ -76,5 +86,24 @@ class BookingFactory extends Factory
                 $team->addVenue($venue);
             }
         });
+    }
+
+    private static function audienceFor(Activity $activity): string
+    {
+        $existing = ActivityAudience::query()
+            ->where('activity_id', $activity->getKey())
+            ->value('audience_id');
+
+        if (is_string($existing) && $existing !== '') {
+            return $existing;
+        }
+
+        $audience = Audience::factory()->create();
+        ActivityAudience::factory()->create([
+            'activity_id' => $activity->getKey(),
+            'audience_id' => $audience->getKey(),
+        ]);
+
+        return (string) $audience->getKey();
     }
 }

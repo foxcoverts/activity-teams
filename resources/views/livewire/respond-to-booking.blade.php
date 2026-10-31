@@ -18,8 +18,11 @@
 
     <dl class="space-y-2 text-sm">
         <div><dt class="font-medium">{{ __('Activity') }}</dt><dd>{{ $booking->activity->name }}</dd></div>
+        <div><dt class="font-medium">{{ __('Audience') }}</dt><dd>{{ $booking->audience?->name }}</dd></div>
         <div><dt class="font-medium">{{ __('Venue') }}</dt><dd>{{ $booking->venue->name }}</dd></div>
-        <div><dt class="font-medium">{{ __('Group') }}</dt><dd>{{ $booking->group_name }}</dd></div>
+        @if (filled($booking->group_name))
+            <div><dt class="font-medium">{{ __('Group') }}</dt><dd>{{ $booking->group_name }}</dd></div>
+        @endif
         <x-booking.schedule :booking="$booking" />
     </dl>
 

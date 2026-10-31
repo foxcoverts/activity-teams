@@ -6,7 +6,6 @@ use App\Actions\AddAttendeeAction;
 use App\Actions\OverrideAttendanceAction;
 use App\Enums\BookingAttendeeResponse;
 use App\Enums\BookingAttendeeStatus;
-use App\Models\Activity;
 use App\Models\Booking;
 use App\Models\BookingAttendance;
 use App\Models\User;
@@ -60,18 +59,14 @@ class AttendeesRelationManager extends RelationManager
                     ->color(Palette::positive())
                     ->placeholder('')
                     ->state(function (User $record): ?string {
-                        $activity = $this->activity();
-
-                        if (! $activity instanceof Activity || ! $activity->metBy($record, $this->booking())) {
+                        if (! $this->booking()->metBy($record)) {
                             return null;
                         }
 
                         return __('Qualified');
                     })
                     ->visible(function (): bool {
-                        $activity = $this->activity();
-
-                        return $activity instanceof Activity && $activity->requiresQualification();
+                        return $this->booking()->requiresQualification();
                     })
                     ->disabledClick(fn (?string $state): bool => blank($state)),
                 TextColumn::make('key_badge')
@@ -327,22 +322,11 @@ class AttendeesRelationManager extends RelationManager
         return $this->booking()->requiredKeys()->isNotEmpty();
     }
 
-    protected function activity(): ?Activity
-    {
-        $this->booking()->loadMissing('activity');
-
-        $activity = $this->booking()->activity;
-
-        return $activity instanceof Activity ? $activity : null;
-    }
-
     protected function isQualified(User $record): bool
     {
-        $activity = $this->activity();
+        $booking = $this->booking();
 
-        return $activity instanceof Activity
-            && $activity->requiresQualification()
-            && $activity->metBy($record, $this->booking());
+        return $booking->requiresQualification() && $booking->metBy($record);
     }
 
     protected function canRemoveAttendee(User $attendee): bool
@@ -356,7 +340,7 @@ class AttendeesRelationManager extends RelationManager
     protected function guestListContent(): View
     {
         $booking = $this->booking();
-        $booking->loadMissing(['attendees', 'team', 'activity.qualificationRequirements']);
+        $booking->loadMissing(['attendees', 'team', 'activity.activityAudiences.qualificationRequirements']);
         $actor = auth()->user();
         $canManageBooking = $actor instanceof User
             && $booking->team !== null

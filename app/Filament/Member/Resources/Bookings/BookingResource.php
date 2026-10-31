@@ -29,7 +29,7 @@ class BookingResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedCalendarDays;
 
-    protected static ?string $recordTitleAttribute = 'group_name';
+    protected static ?string $recordTitleAttribute = 'display_name';
 
     public static function canCreate(): bool
     {
@@ -49,7 +49,7 @@ class BookingResource extends Resource
     public static function getEloquentQuery(): Builder
     {
         return parent::getEloquentQuery()
-            ->with(['activity', 'venue', 'attendees'])
+            ->with(['activity', 'audience', 'venue', 'attendees'])
             ->forUser(auth()->user())
             ->ordered();
     }
@@ -80,8 +80,10 @@ class BookingResource extends Resource
                                 LocationMapAction::make(),
                             ]),
                         TextEntry::make('activity.name')->label(__('Activity')),
+                        TextEntry::make('audience.name')->label(__('Audience')),
                         TextEntry::make('group_name')
                             ->label(__('Group'))
+                            ->placeholder('-')
                             ->columnSpanFull(),
                         TextEntry::make('notes')
                             ->label(__('Notes'))
@@ -106,12 +108,13 @@ class BookingResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
-            ->recordTitleAttribute('group_name')
+            ->recordTitleAttribute('display_name')
             ->columns([
                 TextColumn::make('start_at')->dateTime('M j, Y H:i')->sortable(),
                 TextColumn::make('activity.name')->searchable(),
+                TextColumn::make('audience.name')->label(__('Audience'))->searchable(),
                 TextColumn::make('venue.name')->searchable(),
-                TextColumn::make('group_name')->searchable(),
+                TextColumn::make('group_name')->placeholder('-')->searchable(),
                 TextColumn::make('status')
                     ->badge()
                     ->icon(fn (BookingStatus $state): Heroicon => $state->getIcon()),

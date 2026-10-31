@@ -8,7 +8,11 @@
 @endif
 
 **{{ __('Activity') }}:** {{ $booking->activity->name }}  
+**{{ __('Audience') }}:** {{ $booking->audience?->name }}  
 **{{ __('Venue') }}:** {{ $booking->venue->name }}  
+@if (filled($booking->group_name))
+**{{ __('Group') }}:** {{ $booking->group_name }}  
+@endif  
 <x-booking.schedule :booking="$booking" variant="mail" />
 
 @if ($bookingUrl)

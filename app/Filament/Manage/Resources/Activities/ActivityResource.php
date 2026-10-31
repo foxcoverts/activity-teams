@@ -5,17 +5,20 @@ namespace App\Filament\Manage\Resources\Activities;
 use App\Filament\Manage\NavigationGroup;
 use App\Filament\Manage\Resources\Activities\Pages\ListActivities;
 use App\Models\Activity;
+use App\Models\Audience;
 use App\Models\Team;
 use App\Models\User;
 use App\Support\Palette;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Facades\Filament;
+use Filament\Forms\Components\Select;
 use Filament\Resources\Resource;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class ActivityResource extends Resource
 {
@@ -55,10 +58,15 @@ class ActivityResource extends Resource
             return $query->whereRaw('0 = 1');
         }
 
-        return $query->whereHas(
-            'teams',
-            fn (Builder $teams) => $teams->whereKey($team->getKey()),
-        );
+        return $query
+            ->whereHas(
+                'teams',
+                fn (Builder $teams) => $teams->whereKey($team->getKey()),
+            )
+            ->with([
+                'teams' => fn (BelongsToMany $teams) => $teams->whereKey($team->getKey()),
+                'activityAudiences.audience',
+            ]);
     }
 
     public static function table(Table $table): Table
@@ -93,6 +101,39 @@ class ActivityResource extends Resource
                                 $team->setDefaultActivity($record);
                             }),
                     ),
+                TextColumn::make('default_audience')
+                    ->label(__('Default audience'))
+                    ->state(fn (Activity $record): string => static::defaultAudience($record)?->name ?? __('Set default audience'))
+                    ->action(
+                        Action::make('setDefaultAudience')
+                            ->label(__('Default audience'))
+                            ->authorize(fn (): bool => static::canViewAny())
+                            ->fillForm(fn (Activity $record): array => [
+                                'default_audience_id' => static::defaultAudience($record)?->getKey(),
+                            ])
+                            ->schema([
+                                Select::make('default_audience_id')
+                                    ->label(__('Default audience'))
+                                    ->options(fn (Activity $record): array => $record->activityAudiences
+                                        ->sortBy(fn ($pairing) => $pairing->audience?->name)
+                                        ->mapWithKeys(fn ($pairing): array => [
+                                            (string) $pairing->audience_id => (string) $pairing->audience?->name,
+                                        ])
+                                        ->all())
+                                    ->placeholder(__('None')),
+                            ])
+                            ->action(function (Activity $record, array $data): void {
+                                $team = static::currentTeam();
+                                abort_unless($team instanceof Team, 404);
+
+                                $audienceId = $data['default_audience_id'] ?? null;
+                                $audience = filled($audienceId)
+                                    ? Audience::query()->find($audienceId)
+                                    : null;
+
+                                $team->setDefaultAudience($record, $audience instanceof Audience ? $audience : null);
+                            }),
+                    ),
             ])
             ->recordActions([
                 Action::make('remove')
@@ -117,5 +158,12 @@ class ActivityResource extends Resource
         $tenant = Filament::getTenant();
 
         return $tenant instanceof Team ? $tenant : null;
+    }
+
+    private static function defaultAudience(Activity $activity): ?Audience
+    {
+        $team = static::currentTeam();
+
+        return $team instanceof Team ? $team->defaultAudienceFor($activity) : null;
     }
 }

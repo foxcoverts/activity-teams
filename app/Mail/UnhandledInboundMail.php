@@ -54,7 +54,11 @@ class UnhandledInboundMail extends Mailable implements ShouldQueue
         $resource = $this->inboundMail->resource;
 
         return match (true) {
-            $resource instanceof Booking => $resource->activity?->name.' · '.$resource->group_name,
+            $resource instanceof Booking => collect([
+                $resource->activity?->name,
+                $resource->audience?->name,
+                filled($resource->group_name) ? $resource->group_name : null,
+            ])->filter()->implode(' · '),
             $resource instanceof KeyRing => $resource->name,
             $resource instanceof Team => $resource->name,
             default => null,

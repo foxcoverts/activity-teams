@@ -53,13 +53,13 @@ class BookingIcsFactory
                 continue;
             }
 
-            $booking->loadMissing(['activity', 'venue', 'related', 'attendees']);
+            $booking->loadMissing(['activity', 'audience', 'venue', 'related', 'attendees']);
 
             $start = new DateTime(new DateTimeImmutable($booking->start_at->toIso8601String()), true);
             $end = new DateTime(new DateTimeImmutable($booking->end_at->toIso8601String()), true);
 
             $event = (new Event(new UniqueIdentifier($booking->uid)))
-                ->setSummary($booking->activity->name.' — '.$booking->group_name)
+                ->setSummary($booking->icsSummary())
                 ->setDescription($booking->notes ?? '')
                 ->setOccurrence(new TimeSpan($start, $end));
 

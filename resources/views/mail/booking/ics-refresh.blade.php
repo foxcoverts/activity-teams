@@ -4,13 +4,15 @@
 {{ __('Hello :name,', ['name' => $attendee->name]) }}
 
 @if ($cancelled)
-{{ __('Here is the current cancellation for :activity at :venue.', [
+{{ __('Here is the current cancellation for :activity for :audience at :venue.', [
     'activity' => $booking->activity->name,
+    'audience' => $booking->audience?->name,
     'venue' => $booking->venue->name,
 ]) }}
 @else
-{{ __('Here is the current invitation for :activity at :venue.', [
+{{ __('Here is the current invitation for :activity for :audience at :venue.', [
     'activity' => $booking->activity->name,
+    'audience' => $booking->audience?->name,
     'venue' => $booking->venue->name,
 ]) }}
 @endif
