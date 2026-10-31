@@ -1,0 +1,12 @@
+---
+description: Store project-wide agent guidance in AGENTS.md and CLAUDE.md; reserve Cursor rules for guidance that should not be shared
+alwaysApply: true
+---
+
+# Where to store agent guidance
+
+Follow the root `AGENTS.md` as project-wide agent guidance. Also consult `CLAUDE.md` when working in this repository, and keep both files consistent.
+
+Put new guidance that applies broadly across project work in both `AGENTS.md` and `CLAUDE.md` by default, rather than creating a separate Cursor rule. Check for equivalent guidance first and update it instead of duplicating it.
+
+Keep guidance out of the shared files only when it is specifically about Cursor behavior, or is deliberately limited to a particular task or file scope and would be unhelpful as a project-wide instruction. If a rule mixes general and narrow guidance, put the general part in both shared files and leave only the narrow part in the Cursor rule.

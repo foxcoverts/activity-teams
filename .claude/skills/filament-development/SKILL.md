@@ -13,8 +13,10 @@ description:
 
 ## Artisan
 
-- Always use Filament-specific Artisan commands to create files. Find available commands with the `list-artisan-commands` tool, or run `php artisan list`.
-- Inspect required options before running, and always pass `--no-interaction`.
+- Before creating a Filament resource, page, relation manager, widget, or other generated component, check the installed Filament version in `composer.json`, discover the available `make:filament-*` commands with `php artisan list`, and inspect the chosen command's `--help`.
+- Run the most specific suitable generator with the required options and `--no-interaction`. Follow the repository's Laravel/Sail command-context instructions in `AGENTS.md` (`php artisan` inside the app container; `vendor/bin/sail artisan` outside it).
+- Treat generated files as the version-matched scaffold, not as finished application code. Read every generated file, preserve the current Filament API and lifecycle, then adapt it to this app's explicit architecture, authorization, UX, naming, and testing conventions. Do not replace the generator's scaffold by copying a nearby resource wholesale, especially when that example conflicts with current docs or project rules.
+- If no suitable generator exists, or its output cannot sensibly serve the requested component, create the files manually using the installed-version docs and the closest relevant project patterns. Keep the implementation focused and explain any necessary deviation.
 
 ## Patterns
 
@@ -142,19 +144,35 @@ Action::make('updateEmail')
     ->action(fn (array $data, User $record) => $record->update($data)),
 ```
 
+## Boy scout rule
+
+When modifying an existing Filament resource, page, widget, form, infolist, table, or action, bring the surface being changed into line with the applicable project conventions in `AGENTS.md` where it is safe and reasonably within scope. For example, when a form or infolist is already being changed, apply the required section layout; use the semantic palette and icon guidance for components in scope.
+
+Keep this cleanup bounded to the component or screen being touched. Do not restyle unrelated resources or expand a focused change into a broad UI redesign. If conformity would require unrelated behavior changes or substantial scope, leave that work alone and call it out.
+
 ## Testing
 
-Testing setup (requires `pestphp/pest-plugin-livewire` in `composer.json`):
+Use the installed Filament major version's testing APIs. Check `composer.json` and consult the matching official docs before relying on an assertion or helper:
 
-- Always call `$this->actingAs(User::factory()->create())` before testing panel functionality.
-- For edit pages, pass `['record' => $user->id]` and use `->call('save')` (not `->call('create')`). Edit pages do not redirect after saving by default, so only assert a redirect when one is configured or `getRedirectUrl()` is overridden.
+- [Testing resources](https://filamentphp.com/docs/5.x/testing/testing-resources)
+- [Testing schemas](https://filamentphp.com/docs/5.x/testing/testing-schemas)
+- [Testing tables](https://filamentphp.com/docs/5.x/testing/testing-tables)
+- [Testing actions](https://filamentphp.com/docs/5.x/testing/testing-actions)
+
+This project uses PHPUnit and `Livewire::test(...)`. Follow the surrounding tests rather than introducing Pest syntax or a Pest plugin.
+
+- Authenticate as a user authorized for the panel. Set the current Filament panel and tenant when the page requires them.
+- Test the application's contract, not Filament internals. Prefer assertions for the Filament surface being tested: table assertions for columns and records, form assertions for fields and validation, schema assertions for infolist entries and layout components, and action assertions for actions.
+- Use component keys, not display labels, for schema assertions. Resource view pages use the `infolist` schema; pass that name explicitly when needed, for example `assertSchemaComponentDoesNotExist('id', 'infolist')`.
+- For visible copy, use `assertSeeText()` or `assertDontSeeText()` with distinctive text. Avoid broad raw-HTML checks such as `assertDontSee('ID')`, which can match markup or generated identifiers that aren't visible to the user.
+- For writes, assert the relevant persisted state and observable side effects as well as the Livewire result. Edit pages use `['record' => $record->getKey()]` and `->call('save')`; assert redirects only when the page configures one.
 
 ### Table test
 
 ```php
-use function Pest\Livewire\livewire;
+use Livewire\Livewire;
 
-livewire(ListUsers::class)
+Livewire::test(ListUsers::class)
     ->assertCanSeeTableRecords($users)
     ->searchTable($users->first()->name)
     ->assertCanSeeTableRecords($users->take(1))
@@ -164,19 +182,16 @@ livewire(ListUsers::class)
 ### Create resource test
 
 ```php
-use function Pest\Laravel\assertDatabaseHas;
-
-livewire(CreateUser::class)
+Livewire::test(CreateUser::class)
     ->fillForm([
         'name' => 'Test',
         'email' => 'test@example.com',
     ])
     ->call('create')
     ->assertNotified()
-    ->assertHasNoFormErrors()
-    ->assertRedirect();
+    ->assertHasNoFormErrors();
 
-assertDatabaseHas(User::class, [
+$this->assertDatabaseHas('users', [
     'name' => 'Test',
     'email' => 'test@example.com',
 ]);
@@ -185,14 +200,14 @@ assertDatabaseHas(User::class, [
 ### Edit resource test
 
 ```php
-livewire(EditUser::class, ['record' => $user->id])
+Livewire::test(EditUser::class, ['record' => $user->getKey()])
     ->fillForm(['name' => 'Updated'])
     ->call('save')
     ->assertNotified()
     ->assertHasNoFormErrors();
 
-assertDatabaseHas(User::class, [
-    'id' => $user->id,
+$this->assertDatabaseHas('users', [
+    'id' => $user->getKey(),
     'name' => 'Updated',
 ]);
 ```
@@ -200,7 +215,7 @@ assertDatabaseHas(User::class, [
 ### Testing validation
 
 ```php
-livewire(CreateUser::class)
+Livewire::test(CreateUser::class)
     ->fillForm([
         'name' => null,
         'email' => 'invalid-email',
@@ -220,12 +235,23 @@ Use `->callAction(DeleteAction::class)` for page actions, or `->callAction(TestA
 ```php
 use Filament\Actions\Testing\TestAction;
 
-livewire(ListUsers::class)
+Livewire::test(ListUsers::class)
     ->callAction(TestAction::make('promote')->table($user), [
         'role' => 'admin',
     ])
     ->assertNotified();
 ```
+
+### Testing schema components
+
+Use schema assertions to check that a form field or infolist entry exists, is absent, or is configured as intended. For example:
+
+```php
+Livewire::test(ViewUser::class, ['record' => $user->getKey()])
+    ->assertSchemaComponentDoesNotExist('id', 'infolist');
+```
+
+Use `assertFormFieldExists()` / `assertFormFieldDoesNotExist()` for form fields, and `assertSchemaComponentExists()` / `assertSchemaComponentDoesNotExist()` for other schema components. For table columns, use table assertions such as `assertTableColumnDoesNotExist()` instead of checking rendered markup.
 
 ## Correct namespaces
 
