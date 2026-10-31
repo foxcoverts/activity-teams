@@ -35,6 +35,7 @@ Classify by **how soon someone must act or see it**, not by how often it fires o
 - **Preference sink:** when [US-61](stories/US-61-notification-settings.md) would block an optional/immediate booking send, still write an in-app inbox item (no ICS) so nothing is lost.
 - **Manager “always-on”** means the channel cannot be muted for recording / digest eligibility — not that every manager alert must send SMTP immediately.
 - **Daily combined email** (extends [US-17](stories/US-17-schedule-digest-changelog.md)): one message per member (including managers). **Inbox / “you have N new notifications” before the rota digest.**
+- **Direct email counts as read** for that inbox item (unless a bounce comes back). A summary “you have N new” mail does not.
 
 ```mermaid
 flowchart TD
