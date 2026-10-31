@@ -4,27 +4,17 @@ namespace Tests\Feature;
 
 use App\Enums\BookingStatus;
 use App\Enums\MembershipRole;
-use App\Filament\Admin\Resources\Activities\Pages\CreateActivity;
-use App\Filament\Admin\Resources\Activities\Pages\EditActivity;
-use App\Filament\Admin\Resources\Activities\Pages\ListActivities;
-use App\Filament\Admin\Resources\Activities\Pages\ViewActivity;
 use App\Filament\Admin\Resources\Teams\Pages\CreateTeam;
 use App\Filament\Admin\Resources\Teams\Pages\EditTeam;
 use App\Filament\Admin\Resources\Teams\Pages\ListTeams;
 use App\Filament\Admin\Resources\Users\Pages\ViewUser;
-use App\Filament\Admin\Resources\Venues\Pages\CreateVenue;
-use App\Filament\Admin\Resources\Venues\Pages\EditVenue;
-use App\Filament\Admin\Resources\Venues\Pages\ListVenues;
-use App\Filament\Admin\Resources\Venues\Pages\ViewVenue;
 use App\Filament\Manage\Resources\Bookings\Pages\ListBookings as ManageListBookings;
 use App\Filament\Manage\Resources\Bookings\Pages\ViewBooking as ManageViewBooking;
 use App\Filament\Member\Resources\Bookings\Pages\ListBookings as MemberListBookings;
 use App\Filament\Member\Resources\Bookings\Pages\ViewBooking as MemberViewBooking;
-use App\Models\Activity;
 use App\Models\Booking;
 use App\Models\Team;
 use App\Models\User;
-use App\Models\Venue;
 use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
@@ -156,12 +146,6 @@ class FilamentDisplayPreferencesTest extends TestCase
     public function test_catalog_lists_and_view_screens_hide_record_ids_and_slugs(): void
     {
         $admin = User::factory()->systemAdmin()->create();
-        $activity = Activity::factory()->create([
-            'slug' => 'hidden-activity-slug',
-        ]);
-        $venue = Venue::factory()->create([
-            'slug' => 'hidden-venue-slug',
-        ]);
         Team::factory()->create([
             'name' => 'Hidden Team',
             'slug' => 'hidden-team-slug',
@@ -170,44 +154,22 @@ class FilamentDisplayPreferencesTest extends TestCase
         $this->actingAs($admin);
         Filament::setCurrentPanel(Filament::getPanel('admin'));
 
-        Livewire::test(ListActivities::class)
-            ->assertTableColumnDoesNotExist('id')
-            ->assertTableColumnDoesNotExist('slug');
-        Livewire::test(ListVenues::class)
-            ->assertTableColumnDoesNotExist('id')
-            ->assertTableColumnDoesNotExist('slug');
         Livewire::test(ListTeams::class)
             ->assertTableColumnDoesNotExist('id')
             ->assertTableColumnDoesNotExist('slug');
 
-        Livewire::test(ViewActivity::class, ['record' => $activity->getKey()])
-            ->assertDontSee('ID')
-            ->assertDontSee('hidden-activity-slug');
-        Livewire::test(ViewVenue::class, ['record' => $venue->getKey()])
-            ->assertDontSee('ID')
-            ->assertDontSee('hidden-venue-slug');
         Livewire::test(ViewUser::class, ['record' => $admin->getKey()])
-            ->assertDontSee('ID');
+            ->assertSchemaComponentDoesNotExist('id', 'infolist');
     }
 
     public function test_slugs_are_hidden_on_create_forms_and_visible_on_edit_forms(): void
     {
         $admin = User::factory()->systemAdmin()->create();
-        $activity = Activity::factory()->create();
-        $venue = Venue::factory()->create();
         $team = Team::factory()->create();
 
         $this->actingAs($admin);
         Filament::setCurrentPanel(Filament::getPanel('admin'));
 
-        Livewire::test(CreateActivity::class)
-            ->assertFormFieldHidden('slug');
-        Livewire::test(EditActivity::class, ['record' => $activity->getKey()])
-            ->assertFormFieldVisible('slug');
-        Livewire::test(CreateVenue::class)
-            ->assertFormFieldHidden('slug');
-        Livewire::test(EditVenue::class, ['record' => $venue->getKey()])
-            ->assertFormFieldVisible('slug');
         Livewire::test(CreateTeam::class)
             ->assertFormFieldHidden('slug');
         Livewire::test(EditTeam::class, ['record' => $team->slug])
@@ -217,34 +179,16 @@ class FilamentDisplayPreferencesTest extends TestCase
     public function test_slugs_must_be_url_safe(): void
     {
         $admin = User::factory()->systemAdmin()->create();
-        $activity = Activity::factory()->create(['slug' => 'kept-activity']);
-        $venue = Venue::factory()->create(['slug' => 'kept-venue']);
         $team = Team::factory()->create(['slug' => 'kept-team']);
 
         $this->actingAs($admin);
         Filament::setCurrentPanel(Filament::getPanel('admin'));
 
-        Livewire::test(EditActivity::class, ['record' => $activity->getKey()])
-            ->fillForm(['slug' => 'not/a slug'])
-            ->call('save')
-            ->assertHasFormErrors(['slug' => 'alpha_dash']);
-        Livewire::test(EditVenue::class, ['record' => $venue->getKey()])
-            ->fillForm(['slug' => 'not/a slug'])
-            ->call('save')
-            ->assertHasFormErrors(['slug' => 'alpha_dash']);
         Livewire::test(EditTeam::class, ['record' => $team->slug])
             ->fillForm(['slug' => 'not/a slug'])
             ->call('save')
             ->assertHasFormErrors(['slug' => 'alpha_dash']);
 
-        $this->assertDatabaseHas(Activity::class, [
-            'id' => $activity->getKey(),
-            'slug' => 'kept-activity',
-        ]);
-        $this->assertDatabaseHas(Venue::class, [
-            'id' => $venue->getKey(),
-            'slug' => 'kept-venue',
-        ]);
         $this->assertDatabaseHas(Team::class, [
             'id' => $team->getKey(),
             'slug' => 'kept-team',

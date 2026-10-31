@@ -9,7 +9,6 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Support\Str;
 use Spatie\Activitylog\Models\Concerns\LogsActivity;
 use Spatie\Activitylog\Support\LogOptions;
 
@@ -20,18 +19,11 @@ class Activity extends Model
 
     protected $fillable = [
         'name',
-        'slug',
         'description',
     ];
 
     protected static function booted(): void
     {
-        static::saving(function (Activity $activity): void {
-            if (blank($activity->slug) && filled($activity->name)) {
-                $activity->slug = Str::slug($activity->name);
-            }
-        });
-
         static::deleting(function (Activity $activity): void {
             $activity->teams()
                 ->where('teams.default_activity_id', $activity->getKey())

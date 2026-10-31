@@ -79,12 +79,6 @@ class VenueResource extends Resource
                             ->searchable()
                             ->reactive()
                             ->options(fn (): array => Countries::getNames()),
-                        TextInput::make('slug')
-                            ->label(__('Slug'))
-                            ->prefix('/')
-                            ->helperText(__('Leave blank to generate from the name.'))
-                            ->alphaDash()
-                            ->visible(fn (string $operation): bool => $operation === 'edit'),
                         Textarea::make('notes')
                             ->columnSpanFull(),
                     ]),

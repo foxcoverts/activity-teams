@@ -18,7 +18,6 @@ class ActivityFactory extends Factory
 
         return [
             'name' => Str::title($name),
-            'slug' => Str::slug($name),
             'description' => fake()->optional()->sentence(),
         ];
     }

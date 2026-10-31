@@ -12,15 +12,14 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
-        Activity::query()->firstOrCreate(
-            ['slug' => 'climbing'],
-            ['name' => 'Climbing', 'description' => 'Climbing and abseiling sessions.']
+        $activity = Activity::query()->firstOrCreate(
+            ['name' => 'Climbing'],
+            ['description' => 'Climbing and abseiling sessions.']
         );
 
-        Venue::query()->firstOrCreate(
-            ['slug' => 'fox-coverts-campsite'],
+        $venue = Venue::query()->firstOrCreate(
+            ['name' => 'Fox Coverts Campsite'],
             [
-                'name' => 'Fox Coverts Campsite',
                 'street' => 'Newbold Road',
                 'city' => 'Kirkby Mallory',
                 'postcode' => 'LE9 7QG',
@@ -36,8 +35,6 @@ class DatabaseSeeder extends Seeder
             'email' => 'leader@example.com',
         ]);
 
-        $activity = Activity::query()->where('slug', 'climbing')->firstOrFail();
-        $venue = Venue::query()->where('slug', 'fox-coverts-campsite')->firstOrFail();
         $team?->addActivity($activity);
         $team?->addVenue($venue);
     }

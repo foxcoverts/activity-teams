@@ -11,7 +11,6 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Support\Str;
 use Override;
 use Spatie\Activitylog\Models\Concerns\LogsActivity;
 use Spatie\Activitylog\Support\LogOptions;
@@ -23,7 +22,6 @@ class Venue extends Model
 
     protected $fillable = [
         'name',
-        'slug',
         'notes',
         'street',
         'street2',
@@ -51,12 +49,6 @@ class Venue extends Model
 
     protected static function booted(): void
     {
-        static::saving(function (Venue $venue): void {
-            if (blank($venue->slug) && filled($venue->name)) {
-                $venue->slug = Str::slug($venue->name);
-            }
-        });
-
         static::deleting(function (Venue $venue): void {
             $venue->teams()
                 ->where('teams.default_venue_id', $venue->getKey())
