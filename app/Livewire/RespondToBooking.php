@@ -26,6 +26,8 @@ class RespondToBooking extends Component
 
     public ?string $pendingChoice = null;
 
+    public bool $sequenceStale = false;
+
     public function mount(Booking $booking, User $attendee): void
     {
         $this->booking = $booking->load(['activity', 'venue', 'attendees']);
@@ -36,6 +38,7 @@ class RespondToBooking extends Component
         abort_unless($attendance && $this->invite === $attendance->token, 403, __('Invitation invalid'));
 
         $this->response = $attendance->status;
+        $this->sequenceStale = $this->linkSequenceIsStale();
         $this->pendingChoice = $this->requestedChoice();
     }
 
@@ -76,6 +79,7 @@ class RespondToBooking extends Component
         $this->response = $this->booking->attendees->find($this->attendee)->attendance->status;
         $this->changing = false;
         $this->pendingChoice = null;
+        $this->sequenceStale = false;
     }
 
     public function leadWarning(): ?string
@@ -125,6 +129,21 @@ class RespondToBooking extends Component
         }
 
         return $status->value;
+    }
+
+    private function linkSequenceIsStale(): bool
+    {
+        $sequence = request('sequence');
+
+        if ($sequence === null || $sequence === '') {
+            return false;
+        }
+
+        if (! is_numeric($sequence)) {
+            return true;
+        }
+
+        return (int) $sequence < (int) $this->booking->sequence;
     }
 
     public function bookingUrl(): string

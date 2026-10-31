@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Support\AttendanceResponseLinks;
 use App\Support\BookingMailThread;
 use App\Support\MailPreference;
+use App\Support\MailReplyTo;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
@@ -36,7 +37,10 @@ class AttendanceRecordedMail extends Mailable implements ShouldQueue
 
     public function envelope(): Envelope
     {
-        return BookingMailThread::envelope($this->booking, __('Attendance'));
+        return new Envelope(
+            subject: BookingMailThread::subject($this->booking, __('Attendance')),
+            replyTo: [MailReplyTo::booking($this->booking)],
+        );
     }
 
     public function headers(): Headers
@@ -55,7 +59,12 @@ class AttendanceRecordedMail extends Mailable implements ShouldQueue
                 'attendance' => $this->attendance,
                 'choiceUrls' => AttendanceResponseLinks::choices($this->booking, $this->attendee, $this->attendance),
                 'respondUrl' => $token
-                    ? route('respond', [$this->booking, $this->attendee, 'invite' => $token])
+                    ? route('respond', [
+                        $this->booking,
+                        $this->attendee,
+                        'invite' => $token,
+                        'sequence' => $this->booking->sequence,
+                    ])
                     : null,
                 ...MailPreference::footerViewData($this->attendee, MailGroup::Bookings, $this->booking),
             ],

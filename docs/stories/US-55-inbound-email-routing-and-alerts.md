@@ -1,7 +1,7 @@
 ---
 id: US-55
 title: "Inbound Email Routing & Failure Alerts"
-status: not-started
+status: done
 area: communications
 scope: required
 ---
@@ -21,3 +21,7 @@ As the person responsible for the system, I want email replies sent to the syste
 - The operator receives enough safe diagnostic context to identify and investigate the issue without requiring a general-purpose mail-log interface.
 - Refinement defines the alert channel, retention period and review process for queued messages, and how sensitive message content is protected.
 - Successfully routed messages do not generate failure alerts.
+
+## Progress
+
+Authenticated webhook payloads are stored as `InboundMail`. System admins review them in Admin → Inbound mail (mark reviewed / delete). Unauthenticated payloads are never stored. Member-facing mail uses plus-address Reply-To (`booking+`, `key-ring+`, `teams+`); manager/admin/account mail stays on `MAIL_FROM_ADDRESS`. Unhandled resource mail emails that resource's managers (skipping the sender if they are one) with subject, sender, related link, and Admin review link — not the raw body. From-address / unknown local-part replies rely on the existing `team@` / catch-all inboxes, so there is no extra developer ping. Successful REPLY/REFRESH do not alert. News and booking-comment routing stay out of this slice ([US-54](US-54-team-news-posts.md), [US-40](US-40-booking-commenting-threads.md)).

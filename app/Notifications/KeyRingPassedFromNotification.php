@@ -5,6 +5,7 @@ namespace App\Notifications;
 use App\Enums\MailGroup;
 use App\Models\KeyRing;
 use App\Models\User;
+use App\Support\InboundMailAddress;
 use App\Support\MailPreference;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -45,6 +46,7 @@ class KeyRingPassedFromNotification extends Notification implements ShouldQueue
 
         return MailPreference::withFooter(
             (new MailMessage)
+                ->replyTo(InboundMailAddress::forKeyRing($this->ring))
                 ->subject(__('You no longer hold :ring', ['ring' => $this->ring->name]))
                 ->greeting(__('Hello :name,', ['name' => $notifiable->name]))
                 ->line($line)

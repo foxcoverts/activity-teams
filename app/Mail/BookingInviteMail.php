@@ -2,22 +2,27 @@
 
 namespace App\Mail;
 
+use App\Enums\CalendarMethod;
 use App\Enums\MailGroup;
+use App\Mail\Concerns\AttachesBookingCalendar;
 use App\Models\Booking;
 use App\Models\BookingAttendance;
 use App\Models\User;
 use App\Support\AttendanceResponseLinks;
 use App\Support\BookingMailThread;
 use App\Support\MailPreference;
+use App\Support\MailReplyTo;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Mail\Mailables\Headers;
 use Illuminate\Queue\SerializesModels;
+use Symfony\Component\Mime\Email;
 
 class BookingInviteMail extends Mailable
 {
+    use AttachesBookingCalendar;
     use Queueable, SerializesModels;
 
     public ?BookingAttendance $attendance = null;
@@ -31,7 +36,13 @@ class BookingInviteMail extends Mailable
 
     public function envelope(): Envelope
     {
-        return BookingMailThread::envelope($this->booking, __('Invitation'));
+        return new Envelope(
+            subject: BookingMailThread::subject($this->booking, __('Invitation')),
+            replyTo: [MailReplyTo::booking($this->booking)],
+            using: [
+                fn (Email $message) => $this->attachCalendarData($message),
+            ],
+        );
     }
 
     public function headers(): Headers
@@ -50,5 +61,20 @@ class BookingInviteMail extends Mailable
                 ...MailPreference::footerViewData($this->attendee, MailGroup::Bookings, $this->booking),
             ],
         );
+    }
+
+    protected function booking(): Booking
+    {
+        return $this->booking;
+    }
+
+    protected function attendee(): User
+    {
+        return $this->attendee;
+    }
+
+    protected function calendarMethod(): CalendarMethod
+    {
+        return CalendarMethod::Request;
     }
 }

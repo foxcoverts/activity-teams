@@ -91,7 +91,9 @@ class SendBookingNotification implements ShouldQueue
             }
 
             if ($skipDeclined && $attendee->attendance?->status === BookingAttendeeStatus::Declined) {
-                continue;
+                if (! $this->declinedViaImip($booking, $attendee)) {
+                    continue;
+                }
             }
 
             if ($attendee->isSuspended() || ! $attendee->hasVerifiedEmail()) {
@@ -128,5 +130,17 @@ class SendBookingNotification implements ShouldQueue
 
             Mail::to($attendee)->send(new BookingInviteMail($booking, $attendee));
         }
+    }
+
+    private function declinedViaImip(Booking $booking, User $attendee): bool
+    {
+        $activity = $booking->activitiesAsSubject()
+            ->where('event', 'attendance_updated')
+            ->where('properties->attendee_id', $attendee->getKey())
+            ->where('properties->status', BookingAttendeeStatus::Declined->value)
+            ->latest()
+            ->first();
+
+        return $activity?->getProperty('via') === 'imip';
     }
 }

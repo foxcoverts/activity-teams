@@ -116,6 +116,20 @@ return [
         'name' => env('MAIL_FROM_NAME', 'Fox Coverts Climbing Team'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Inbound mail (ForwardEmail webhook)
+    |--------------------------------------------------------------------------
+    |
+    | Calendar UIDs and Reply-To plus-addresses use the inbound domain, which
+    | may differ from APP_URL. The webhook secret authenticates ForwardEmail.
+    |
+    */
+
+    'inbound_domain' => env('MAIL_INBOUND_DOMAIN', 'climbfoxcoverts.co.uk'),
+
+    'webhook_secret' => env('MAIL_WEBHOOK_SECRET'),
+
     'markdown' => [
         'theme' => env('MAIL_MARKDOWN_THEME', 'default'),
         'paths' => [

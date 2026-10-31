@@ -18,4 +18,4 @@ As an Activity Manager, I want to manually update or override a team member's at
 
 ## Progress
 
-Attendance-recorded mail respects [US-61](US-61-notification-settings.md) `bookings.mail`. The override still saves when that channel is off.
+Attendance-recorded mail respects [US-61](US-61-notification-settings.md) `bookings.mail`. The override still saves when that channel is off. Self-service attendance stays silent for digest purposes; [US-17](US-17-schedule-digest-changelog.md) remains an extra and is not a Phase 2 blocker.

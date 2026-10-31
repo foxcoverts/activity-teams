@@ -25,6 +25,12 @@
 
     <p><a href="{{ $this->bookingUrl() }}" class="text-sm text-sky-700 underline">{{ __('View booking') }}</a></p>
 
+    @if ($sequenceStale)
+        <p class="rounded-lg bg-amber-50 p-4 text-amber-950">
+            {{ __('This booking has changed since the email you opened. Check the details above before you confirm.') }}
+        </p>
+    @endif
+
     @if ($warning = $this->leadWarning())
         <p class="rounded-lg bg-amber-50 p-4 text-amber-950">{{ $warning }}</p>
     @endif

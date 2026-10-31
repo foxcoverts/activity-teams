@@ -46,7 +46,7 @@ When an enum is shown in Filament, give it a label, and a color and icon when th
 - [US-53 Re-invite After Declined Session Changes](US-53-reinvite-after-declined-session-changes.md) — `not-started`
 - [US-26 Filterable Roster Additions & Batch Management](US-26-filterable-roster-additions.md) — `done`
 - [US-27 Manager-Overridden Attendance Updates](US-27-manager-overridden-attendance.md) — `done`
-- [US-28 Booking Cancellation Reasons & Participant Notification](US-28-booking-cancellation-reasons.md) — `partial`
+- [US-28 Booking Cancellation Reasons & Participant Notification](US-28-booking-cancellation-reasons.md) — `done`
 - [US-37 Related Bookings & Multi-Day Event Linking](US-37-related-bookings-multi-day.md) — `done`
 - [US-50 Invite Someone Who Is Not on the Team](US-50-invite-non-members.md) — `not-started`
 - [US-64 Booking Other Venue](US-64-booking-other-venue.md) — `not-started`
@@ -55,9 +55,9 @@ When an enum is shown in Filament, give it a label, and a color and icon when th
 
 - [US-12 Public Booking Summary View](US-12-public-booking-summary.md) — `done`
 - [US-13 Subscription ICS Export Feeds](US-13-subscription-ics-feeds.md) — `done`
-- [US-65 ICS Precise Location](US-65-ics-precise-location.md) — `not-started`
+- [US-65 ICS Precise Location](US-65-ics-precise-location.md) — `done`
 - [US-14 Interactive Email RSVP Action Buttons](US-14-email-rsvp-action-buttons.md) — `done`
-- [US-15 Inbound Calendar Response & Webhook Parsing](US-15-inbound-calendar-response-parsing.md) — `not-started`
+- [US-15 Inbound Calendar Response & Webhook Parsing](US-15-inbound-calendar-response-parsing.md) — `done`
 - [US-16 Escalating Invitation Nudges & Booking Reminders](US-16-invitation-nudges-reminders.md) — `not-started`
 - [US-17 Scheduled Schedule Digest & Changelog Notifications](US-17-schedule-digest-changelog.md) — `not-started`
 - [US-29 Booking Share Link Copy Action](US-29-booking-share-link-copy.md) — `not-started`
@@ -65,7 +65,7 @@ When an enum is shown in Filament, give it a label, and a color and icon when th
 - [US-31 Open Graph Meta Tags for Link Previews](US-31-open-graph-link-previews.md) — `done`
 - [US-45 Outgoing Email Delivery Tracking & Bounce Management](US-45-email-delivery-bounce-tracking.md) — `not-started`
 - [US-54 Team News Posts & Distribution](US-54-team-news-posts.md) — `not-started`
-- [US-55 Inbound Email Routing & Failure Alerts](US-55-inbound-email-routing-and-alerts.md) — `not-started`
+- [US-55 Inbound Email Routing & Failure Alerts](US-55-inbound-email-routing-and-alerts.md) — `done`
 - [US-61 Notification Settings](US-61-notification-settings.md) — `done`
 - [US-62 Unmapped Calendar Reply Identity](US-62-unmapped-calendar-reply-identity.md) — `not-started`
 
@@ -109,7 +109,7 @@ When an enum is shown in Filament, give it a label, and a color and icon when th
 - **Extra:** US-16, US-17, US-24, US-29, US-34, US-35, US-36, US-41, US-42, US-43, US-44, US-53, US-62, US-63, US-64, and US-65.
   - US-29 has a UI action in the legacy climbing-team app, but not in Activity Teams; it is not a release priority.
   - US-45 is extra and should be reconsidered during outgoing-mail reimplementation; include delivery/bounce tracking if the mail provider makes it cheap or free.
-  - US-63 is extra and done: catalog postal address and map pin. US-64 Other booking venue and US-65 ICS precise location depend on it; US-13 stays done with LOCATION still the venue name until US-65.
+  - US-63 is extra and done: catalog postal address and map pin. US-65 ICS precise location is done on the shared factory; US-64 Other booking venue can fill the same location helpers later. US-13 stays done.
 - **Deferred:** [US-06 User Role & Status Badges](US-06-user-role-status-badges.md), [US-22 Team & Multi-Activity Task Management](US-22-task-management.md), [US-50 Invite Someone Who Is Not on the Team](US-50-invite-non-members.md), [US-23 Instructor Kit Compliance](US-23-instructor-kit-compliance.md), and [US-33 Kit Checker Inspection](US-33-kit-checker-inspection-workflow.md). These are deliberately held back from relaunch.
 
 ## Delivery approach

@@ -6,6 +6,7 @@ use App\Enums\MailGroup;
 use App\Filament\Member\Resources\KeyRings\KeyRingResource;
 use App\Models\KeyRing;
 use App\Models\User;
+use App\Support\InboundMailAddress;
 use App\Support\MailPreference;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -41,6 +42,7 @@ class KeyRingPassedToNotification extends Notification implements ShouldQueue
 
         return MailPreference::withFooter(
             (new MailMessage)
+                ->replyTo(InboundMailAddress::forKeyRing($this->ring))
                 ->subject(__('You now hold :ring', ['ring' => $this->ring->name]))
                 ->greeting(__('Hello :name,', ['name' => $notifiable->name]))
                 ->line(__('You now hold **:ring**. It has been passed to you from **:from**.', [

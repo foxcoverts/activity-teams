@@ -1,7 +1,7 @@
 ---
 id: US-28
 title: "Booking Cancellation Reasons & Participant Notification"
-status: partial
+status: done
 area: bookings
 scope: required
 ---
@@ -18,4 +18,4 @@ As an Activity Manager, I want to provide a mandatory reason when cancelling a b
 
 ## Progress
 
-Cancelling requires a reason. It is stored as the booking activity-log description and included in cancellation mail. The subject is `Cancelled: {Activity} at {Venue}, {start}`. Recipients are invited or confirmed attendees; everyone who declined is skipped. Sending cancellation to an iMIP `REPLY` decline waits on [US-15](US-15-inbound-calendar-response-parsing.md).
+Cancelling requires a reason. It is stored as the booking activity-log description and included in cancellation mail with `METHOD:CANCEL` ICS. The subject is `Cancelled: {Activity} at {Venue}, {start}`. Recipients are invited or confirmed attendees; declined attendees are skipped unless their latest attendance activity for that decline is `via: imip`.

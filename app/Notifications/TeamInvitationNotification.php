@@ -3,6 +3,7 @@
 namespace App\Notifications;
 
 use App\Models\TeamInvitation;
+use App\Support\InboundMailAddress;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -40,7 +41,7 @@ class TeamInvitationNotification extends Notification implements ShouldQueue
             ? __('You have been invited as :roles.', ['roles' => $invitation->siteAccessPhrase()])
             : __('You have been invited to join :team.', ['team' => $invitation->team->name]);
 
-        return (new MailMessage)
+        $message = (new MailMessage)
             ->subject($subject)
             ->greeting(__('Hello :name,', [
                 'name' => $invitation->user->name,
@@ -52,5 +53,11 @@ class TeamInvitationNotification extends Notification implements ShouldQueue
                 ['invitation' => $invitation, 'token' => $invitation->token],
             ))
             ->line(__('This invitation expires on :date.', ['date' => $invitation->expires_at->format('j F Y')]));
+
+        if (! $invitation->isSiteInvitation() && $invitation->team !== null) {
+            $message->replyTo(InboundMailAddress::forTeam($invitation->team));
+        }
+
+        return $message;
     }
 }

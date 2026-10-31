@@ -54,6 +54,7 @@ class AttendanceResponseLinks
             $attendee,
             'invite' => $token,
             'choice' => $choice->value,
+            'sequence' => $booking->sequence,
         ]);
     }
 }

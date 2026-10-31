@@ -2,6 +2,7 @@
 
 namespace App\Mail;
 
+use App\Enums\CalendarMethod;
 use App\Models\Booking;
 use App\Models\User;
 
@@ -40,5 +41,15 @@ class BookingCancelledMail extends BookingStatusMail
     protected function leadNotesForRecipient(): ?string
     {
         return null;
+    }
+
+    protected function calendarMethod(): CalendarMethod
+    {
+        return CalendarMethod::Cancel;
+    }
+
+    protected function calendarNeedsRsvp(): bool
+    {
+        return false;
     }
 }

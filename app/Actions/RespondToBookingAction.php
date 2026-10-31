@@ -24,7 +24,8 @@ class RespondToBookingAction
     public function __invoke(
         User|string $attendee,
         BookingAttendeeStatus|string $status,
-        ?string $comment = null
+        ?string $comment = null,
+        ?string $via = null,
     ): void {
         $attendeeId = is_string($attendee) ? $attendee : $attendee->id;
         $status = is_string($status) ? BookingAttendeeStatus::from($status) : $status;
@@ -47,14 +48,20 @@ class RespondToBookingAction
             ],
         ]);
 
+        $properties = [
+            'attendee_id' => $attendeeId,
+            'status' => $status->value,
+            'comment' => $comment,
+        ];
+
+        if (filled($via)) {
+            $properties['via'] = $via;
+        }
+
         activity()
             ->causedBy($author)
             ->performedOn($this->booking)
-            ->withProperties([
-                'attendee_id' => $attendeeId,
-                'status' => $status->value,
-                'comment' => $comment,
-            ])
+            ->withProperties($properties)
             ->event('attendance_updated')
             ->log('Attendance updated');
 

@@ -222,4 +222,35 @@ class RespondToBookingTest extends TestCase
             'status' => BookingAttendeeStatus::Accepted->value,
         ]);
     }
+
+    public function test_stale_sequence_warns_before_confirming(): void
+    {
+        $booking = Booking::factory()->create();
+        $booking->forceFill(['sequence' => 4])->saveQuietly();
+        $attendee = User::factory()->teamMember()->create();
+        $token = BookingAttendance::generateToken();
+
+        $booking->attendees()->attach($attendee->id, [
+            'status' => BookingAttendeeStatus::NeedsAction->value,
+            'token' => $token,
+        ]);
+
+        Livewire::withQueryParams([
+            'invite' => $token,
+            'choice' => 'accepted',
+            'sequence' => '2',
+        ])
+            ->test(RespondToBooking::class, [
+                'booking' => $booking,
+                'attendee' => $attendee,
+            ])
+            ->assertSee('This booking has changed since the email you opened')
+            ->assertSee('Confirm now');
+
+        $this->assertDatabaseHas('booking_user', [
+            'booking_id' => $booking->id,
+            'user_id' => $attendee->id,
+            'status' => BookingAttendeeStatus::NeedsAction->value,
+        ]);
+    }
 }

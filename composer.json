@@ -21,6 +21,7 @@
         "mallardduck/blade-lucide-icons": "^2.0",
         "propaganistas/laravel-phone": "^6.1",
         "ralphjsmit/laravel-filament-activitylog": "^3.0.0-beta2",
+        "sabre/vobject": "^5.0",
         "spatie/laravel-activitylog": "^5.1",
         "symfony/intl": "^8.1",
         "symfony/yaml": "^7.4|^8.0",
