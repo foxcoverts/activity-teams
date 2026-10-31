@@ -75,6 +75,32 @@ class BookingIcsLocationTest extends TestCase
         $this->assertStringContainsString(InboundMailAddress::forBooking($booking), $ics);
         $this->assertStringContainsString('SEQUENCE:'.(int) $booking->sequence, $ics);
         $this->assertStringContainsString('ATTENDEE', $ics);
+        $this->assertStringContainsString('ROLE=REQ-PARTICIPANT', $ics);
+    }
+
+    public function test_mail_ics_marks_the_lead_instructor_as_chair(): void
+    {
+        $lead = User::factory()->teamMember()->create();
+        $booking = Booking::factory()->confirmed()->create([
+            'team_id' => $lead->teams()->first()->getKey(),
+            'lead_instructor_id' => $lead->getKey(),
+        ]);
+        $booking->attendees()->attach($lead->getKey(), [
+            'status' => 'accepted',
+            'token' => 'token',
+        ]);
+        $booking->unsetRelation('attendees');
+
+        $ics = app(BookingIcsFactory::class)->make(
+            [$booking->fresh(['activity', 'venue', 'attendees', 'related'])],
+            'Invite',
+            method: CalendarMethod::Request,
+            forAttendee: $lead,
+            rsvp: true,
+        );
+
+        $this->assertStringContainsString('ROLE=CHAIR', $ics);
+        $this->assertStringNotContainsString('ROLE=REQ-PARTICIPANT', $ics);
     }
 
     public function test_name_only_location_remains_valid_without_geo(): void

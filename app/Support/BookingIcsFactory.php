@@ -12,6 +12,7 @@ use Eluceo\iCal\Domain\Entity\Calendar;
 use Eluceo\iCal\Domain\Entity\Event;
 use Eluceo\iCal\Domain\Enum\EventStatus;
 use Eluceo\iCal\Domain\Enum\ParticipationStatus;
+use Eluceo\iCal\Domain\Enum\RoleType;
 use Eluceo\iCal\Domain\ValueObject\DateTime;
 use Eluceo\iCal\Domain\ValueObject\EmailAddress;
 use Eluceo\iCal\Domain\ValueObject\GeographicPosition;
@@ -77,7 +78,12 @@ class BookingIcsFactory
                 if ($forAttendee instanceof User && filled($forAttendee->email)) {
                     $attendee = (new Attendee(new EmailAddress($forAttendee->email)))
                         ->setDisplayName($forAttendee->name)
-                        ->setResponseNeededFromAttendee($rsvp && $method === CalendarMethod::Request);
+                        ->setResponseNeededFromAttendee($rsvp && $method === CalendarMethod::Request)
+                        ->setRole(
+                            $booking->lead_instructor_id === $forAttendee->getKey()
+                                ? RoleType::CHAIR()
+                                : RoleType::REQ_PARTICIPANT()
+                        );
 
                     $status = $booking->attendees->find($forAttendee->getKey())?->attendance?->status;
 
