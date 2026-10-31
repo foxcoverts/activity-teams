@@ -33,7 +33,7 @@ class KeyResource extends Resource
 {
     protected static ?string $model = Key::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedKey;
 
     protected static string|\UnitEnum|null $navigationGroup = NavigationGroup::Site;
 

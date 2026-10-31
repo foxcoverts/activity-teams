@@ -26,7 +26,7 @@ class KeyRingResource extends Resource
 {
     protected static ?string $model = KeyRing::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedCircleStack;
 
     protected static string|\UnitEnum|null $navigationGroup = NavigationGroup::Team;
 
