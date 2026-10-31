@@ -2,22 +2,19 @@
 
 namespace App\Filament\Manage\Resources\Keys;
 
-use App\Filament\Keys\PassKeyAction;
 use App\Filament\Manage\NavigationGroup;
 use App\Filament\Manage\Resources\Keys\Pages\ListKeys;
 use App\Filament\Manage\Resources\Keys\Pages\ViewKey;
+use App\Filament\Manage\Resources\Keys\Schemas\KeyInfolist;
+use App\Filament\Manage\Resources\Keys\Tables\KeysTable;
 use App\Models\Key;
 use App\Models\Team;
 use App\Models\User;
 use BackedEnum;
-use Filament\Actions\ViewAction;
 use Filament\Facades\Filament;
-use Filament\Infolists\Components\TextEntry;
 use Filament\Resources\Resource;
-use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
-use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -89,59 +86,12 @@ class KeyResource extends Resource
 
     public static function infolist(Schema $schema): Schema
     {
-        return $schema
-            ->components([
-                Section::make(__('Key'))
-                    ->icon(Heroicon::OutlinedKey)
-                    ->columns(1)
-                    ->columnSpanFull()
-                    ->schema([
-                        TextEntry::make('name'),
-                        TextEntry::make('holder_name')
-                            ->label(__('Holder'))
-                            ->state(fn (Key $record): string => $record->holderName()),
-                    ]),
-                Section::make(__('Unlocks'))
-                    ->icon(Heroicon::OutlinedLockClosed)
-                    ->columns(1)
-                    ->columnSpanFull()
-                    ->schema([
-                        TextEntry::make('key_descriptions')
-                            ->hiddenLabel()
-                            ->state(fn (Key $record): array => $record->lockDescriptions() ?: [__('This key opens no locks.')])
-                            ->listWithLineBreaks()
-                            ->placeholder('-'),
-                        TextEntry::make('required_for')
-                            ->label(__('Required for'))
-                            ->state(fn (Key $record): array => $record->requirementSummariesFor(static::currentTeam()))
-                            ->listWithLineBreaks()
-                            ->placeholder('-'),
-                    ]),
-            ]);
+        return KeyInfolist::configure($schema);
     }
 
     public static function table(Table $table): Table
     {
-        return $table
-            ->defaultSort('name')
-            ->columns([
-                TextColumn::make('name')
-                    ->label(__('Key'))
-                    ->searchable(),
-                TextColumn::make('holder.name')
-                    ->label(__('Holder'))
-                    ->placeholder(__('In the cupboard')),
-                TextColumn::make('unlocks')
-                    ->label(__('Unlocks'))
-                    ->state(fn (Key $record): array => $record->lockNames())
-                    ->listWithLineBreaks()
-                    ->placeholder('-'),
-            ])
-            ->recordActions([
-                ViewAction::make(),
-                PassKeyAction::make(),
-            ])
-            ->toolbarActions([]);
+        return KeysTable::configure($table);
     }
 
     public static function getPages(): array
