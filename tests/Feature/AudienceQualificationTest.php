@@ -9,7 +9,7 @@ use App\Models\Activity;
 use App\Models\ActivityAudience;
 use App\Models\Audience;
 use App\Models\Booking;
-use App\Models\Key;
+use App\Models\Lock;
 use App\Models\Qualification;
 use App\Models\User;
 use App\Models\Venue;
@@ -93,7 +93,7 @@ class AudienceQualificationTest extends TestCase
         $team = Audience::factory()->create();
         ActivityAudience::factory()->for($activity)->for($scouts)->create();
         ActivityAudience::factory()->for($activity)->for($team)->create();
-        $key = Key::factory()->create(['name' => 'Wall key']);
+        $key = Lock::factory()->create(['name' => 'Wall key']);
         $key->requirements()->create([
             'activity_id' => $activity->getKey(),
             'venue_id' => $venue->getKey(),
@@ -113,11 +113,11 @@ class AudienceQualificationTest extends TestCase
 
         $this->assertSame(
             [$key->getKey()],
-            $scoutBooking->requiredKeys()->modelKeys(),
+            $scoutBooking->requiredLocks()->modelKeys(),
         );
         $this->assertSame(
-            $scoutBooking->requiredKeys()->modelKeys(),
-            $teamBooking->requiredKeys()->modelKeys(),
+            $scoutBooking->requiredLocks()->modelKeys(),
+            $teamBooking->requiredLocks()->modelKeys(),
         );
         $this->assertNull($teamBooking->group_name);
         $this->assertSame($activity->name.' — '.$team->name, $teamBooking->icsSummary());

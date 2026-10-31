@@ -196,9 +196,9 @@ class User extends Authenticatable implements FilamentUser, HasDefaultTenant, Ha
         return $this->hasMany(Booking::class, 'lead_instructor_id');
     }
 
-    public function keyRings(): HasMany
+    public function keys(): HasMany
     {
-        return $this->hasMany(KeyRing::class, 'holder_id')->orderBy('name');
+        return $this->hasMany(Key::class, 'holder_id')->orderBy('name');
     }
 
     /**
@@ -209,63 +209,63 @@ class User extends Authenticatable implements FilamentUser, HasDefaultTenant, Ha
         return $this->hasMany(NotificationSetting::class);
     }
 
-    public function holdsKey(Key $key): bool
+    public function holdsLock(Lock $key): bool
     {
-        return $this->keyRings()
+        return $this->keys()
             ->where(function (Builder $rings) use ($key): void {
-                $rings->whereHas('keys', fn (Builder $keys) => $keys->whereKey($key->getKey()))
-                    ->orWhereHas('keys.covers', fn (Builder $covered) => $covered->whereKey($key->getKey()));
+                $rings->whereHas('locks', fn (Builder $keys) => $keys->whereKey($key->getKey()))
+                    ->orWhereHas('locks.covers', fn (Builder $covered) => $covered->whereKey($key->getKey()));
             })
             ->exists();
     }
 
-    public function scopeHolding(Builder $users, Key $key): void
+    public function scopeHolding(Builder $users, Lock $key): void
     {
         $users->whereHas(
-            'keyRings',
+            'keys',
             fn (Builder $rings) => $rings->where(function (Builder $rings) use ($key): void {
-                $rings->whereHas('keys', fn (Builder $keys) => $keys->whereKey($key->getKey()))
-                    ->orWhereHas('keys.covers', fn (Builder $covered) => $covered->whereKey($key->getKey()));
+                $rings->whereHas('locks', fn (Builder $keys) => $keys->whereKey($key->getKey()))
+                    ->orWhereHas('locks.covers', fn (Builder $covered) => $covered->whereKey($key->getKey()));
             }),
         );
     }
 
     /**
-     * @param  iterable<int, Key>  $keys
+     * @param  iterable<int, Lock>  $keys
      * @return list<string>
      */
-    public function namesOfOpenedKeys(iterable $keys): array
+    public function namesOfOpenedLocks(iterable $keys): array
     {
-        $wanted = collect($keys)->filter(fn (mixed $key): bool => $key instanceof Key)->values();
+        $wanted = collect($keys)->filter(fn (mixed $key): bool => $key instanceof Lock)->values();
 
         if ($wanted->isEmpty()) {
             return [];
         }
 
-        $this->loadMissing('keyRings.keys.covers');
+        $this->loadMissing('keys.locks.covers');
 
         return $wanted
-            ->filter(fn (Key $key): bool => $this->opensLoadedKey($key))
-            ->sortBy(fn (Key $key): string => $key->name)
+            ->filter(fn (Lock $key): bool => $this->opensLoadedKey($key))
+            ->sortBy(fn (Lock $key): string => $key->name)
             ->values()
-            ->map(fn (Key $key): string => $key->name)
+            ->map(fn (Lock $key): string => $key->name)
             ->all();
     }
 
     /**
-     * @return Builder<Key>
+     * @return Builder<Lock>
      */
-    public function openedKeys(): Builder
+    public function openedLocks(): Builder
     {
-        return $this->openedKeysQuery();
+        return $this->openedLocksQuery();
     }
 
     /**
-     * @return Builder<Key>
+     * @return Builder<Lock>
      */
-    public function openedKeysQuery(?Team $team = null): Builder
+    public function openedLocksQuery(?Team $team = null): Builder
     {
-        $keys = Key::query()->openedBy($this)->orderBy('name');
+        $keys = Lock::query()->openedBy($this)->orderBy('name');
 
         if ($team instanceof Team) {
             $keys->relevantTo($team);
@@ -274,15 +274,15 @@ class User extends Authenticatable implements FilamentUser, HasDefaultTenant, Ha
         return $keys;
     }
 
-    private function opensLoadedKey(Key $key): bool
+    private function opensLoadedKey(Lock $key): bool
     {
-        foreach ($this->keyRings as $ring) {
-            foreach ($ring->keys as $held) {
+        foreach ($this->keys as $ring) {
+            foreach ($ring->locks as $held) {
                 if ($held->is($key)) {
                     return true;
                 }
 
-                if ($held->covers->contains(fn (Key $covered): bool => $covered->is($key))) {
+                if ($held->covers->contains(fn (Lock $covered): bool => $covered->is($key))) {
                     return true;
                 }
             }

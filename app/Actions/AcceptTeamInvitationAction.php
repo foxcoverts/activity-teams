@@ -90,7 +90,7 @@ class AcceptTeamInvitationAction
 
             DB::table('bookings')->where('lead_instructor_id', $placeholder->getKey())->update(['lead_instructor_id' => $account->getKey()]);
             DB::table('qualifications')->where('user_id', $placeholder->getKey())->update(['user_id' => $account->getKey()]);
-            DB::table('key_rings')->where('holder_id', $placeholder->getKey())->update(['holder_id' => $account->getKey()]);
+            DB::table('keys')->where('holder_id', $placeholder->getKey())->update(['holder_id' => $account->getKey()]);
 
             $placeholder->forceDelete();
 

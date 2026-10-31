@@ -3,6 +3,7 @@
 namespace Database\Factories;
 
 use App\Models\Key;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -14,6 +15,14 @@ class KeyFactory extends Factory
     {
         return [
             'name' => fake()->words(2, true),
+            'holder_id' => null,
         ];
+    }
+
+    public function heldBy(User $user): static
+    {
+        return $this->state(fn (): array => [
+            'holder_id' => $user->getKey(),
+        ]);
     }
 }

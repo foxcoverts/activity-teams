@@ -7,19 +7,17 @@ use App\Filament\Admin\Resources\Keys\Pages\CreateKey;
 use App\Filament\Admin\Resources\Keys\Pages\EditKey;
 use App\Filament\Admin\Resources\Keys\Pages\ListKeys;
 use App\Filament\Admin\Resources\Keys\Pages\ViewKey;
-use App\Filament\Admin\Resources\Keys\RelationManagers\CoversRelationManager;
-use App\Filament\Admin\Resources\Keys\RelationManagers\RingsRelationManager;
+use App\Filament\Admin\Resources\Keys\RelationManagers\LocksRelationManager;
 use App\Models\Key;
 use App\Models\User;
 use BackedEnum;
+use Closure;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
-use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
-use Filament\Infolists\Components\RepeatableEntry;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
@@ -33,25 +31,23 @@ class KeyResource extends Resource
 {
     protected static ?string $model = Key::class;
 
+    protected static ?string $modelLabel = 'key';
+
+    protected static ?string $pluralModelLabel = 'keys';
+
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedKey;
 
     protected static string|\UnitEnum|null $navigationGroup = NavigationGroup::Site;
 
     protected static ?string $recordTitleAttribute = 'name';
 
+    protected static bool $isScopedToTenant = false;
+
     public static function canViewAny(): bool
     {
         $user = auth()->user();
 
         return $user instanceof User && $user->isSystemAdmin();
-    }
-
-    public static function getEloquentQuery(): Builder
-    {
-        return parent::getEloquentQuery()->with([
-            'requirements.activity',
-            'requirements.venue',
-        ]);
     }
 
     public static function form(Schema $schema): Schema
@@ -66,48 +62,57 @@ class KeyResource extends Resource
                         TextInput::make('name')
                             ->required(),
                     ]),
-                Section::make(__('Required for'))
-                    ->icon(Heroicon::OutlinedClipboardDocumentList)
+                Section::make(__('Holder'))
+                    ->icon(Heroicon::User)
                     ->columns(1)
                     ->columnSpanFull()
                     ->schema([
-                        Repeater::make('requirements')
-                            ->relationship()
+                        Select::make('holder_id')
                             ->hiddenLabel()
-                            ->helperText(__('Each row is an activity at a session venue. The lock can be somewhere else.'))
-                            ->schema([
-                                Select::make('activity_id')
-                                    ->label(__('Activity'))
-                                    ->relationship('activity', 'name')
-                                    ->searchable()
-                                    ->preload()
-                                    ->required(),
-                                Select::make('venue_id')
-                                    ->label(__('Session venue'))
-                                    ->relationship('venue', 'name')
-                                    ->searchable()
-                                    ->preload()
-                                    ->required(),
-                            ])
-                            ->columns(1)
-                            ->columnSpanFull(),
-                    ]),
-                Section::make(__('Covers'))
-                    ->icon(Heroicon::OutlinedLink)
-                    ->columns(1)
-                    ->columnSpanFull()
-                    ->schema([
-                        Select::make('covers')
-                            ->hiddenLabel()
-                            ->helperText(__('Holding this key counts as holding each of these. A key cannot cover itself.'))
                             ->relationship(
-                                name: 'covers',
-                                titleAttribute: 'name',
-                                modifyQueryUsing: fn (Builder $query): Builder => $query->orderBy('name'),
-                                ignoreRecord: true,
+                                'holder',
+                                'name',
+                                function (Builder $query, ?Key $record): Builder {
+                                    return $query
+                                        ->withTrashed()
+                                        ->where(function (Builder $holders) use ($record): void {
+                                            $holders->whereNull($holders->getModel()->getQualifiedDeletedAtColumn());
+
+                                            if ($record instanceof Key && filled($record->holder_id)) {
+                                                $holders->orWhereKey($record->holder_id);
+                                            }
+                                        });
+                                },
                             )
+                            ->searchable()
+                            ->preload()
+                            ->placeholder(__('In the cupboard'))
+                            ->nullable()
+                            ->rule(fn (?Key $record): Closure => function (string $attribute, mixed $value, Closure $fail) use ($record): void {
+                                if (blank($value)) {
+                                    return;
+                                }
+
+                                if ($record instanceof Key && (string) $record->holder_id === (string) $value) {
+                                    return;
+                                }
+
+                                if (User::query()->whereKey($value)->doesntExist()) {
+                                    $fail(User::leftRecordMessage());
+                                }
+                            }),
+                    ]),
+                Section::make(__('Unlocks'))
+                    ->icon(Heroicon::OutlinedLockClosed)
+                    ->columns(1)
+                    ->columnSpanFull()
+                    ->schema([
+                        Select::make('locks')
+                            ->hiddenLabel()
+                            ->relationship('locks', 'name')
                             ->multiple()
                             ->preload()
+                            ->searchable()
                             ->columnSpanFull(),
                     ]),
             ]);
@@ -124,21 +129,14 @@ class KeyResource extends Resource
                     ->schema([
                         TextEntry::make('name'),
                     ]),
-                Section::make(__('Required for'))
-                    ->icon(Heroicon::OutlinedClipboardDocumentList)
+                Section::make(__('Holder'))
+                    ->icon(Heroicon::User)
                     ->columns(1)
                     ->columnSpanFull()
                     ->schema([
-                        RepeatableEntry::make('requirements')
+                        TextEntry::make('holder_name')
                             ->hiddenLabel()
-                            ->placeholder(__('Not required for a session yet.'))
-                            ->schema([
-                                TextEntry::make('activity.name')
-                                    ->label(__('Activity')),
-                                TextEntry::make('venue.name')
-                                    ->label(__('Session venue')),
-                            ])
-                            ->columns(1),
+                            ->state(fn (Key $record): string => $record->holderName()),
                     ]),
             ]);
     }
@@ -147,13 +145,12 @@ class KeyResource extends Resource
     {
         return $table
             ->defaultSort('name')
-            ->recordTitleAttribute('name')
             ->columns([
                 TextColumn::make('name')
                     ->searchable(),
-                TextColumn::make('requirements_count')
-                    ->counts('requirements')
-                    ->label(__('Required for')),
+                TextColumn::make('holder.name')
+                    ->label(__('Holder'))
+                    ->placeholder(__('In the cupboard')),
             ])
             ->recordActions([
                 ViewAction::make(),
@@ -169,8 +166,7 @@ class KeyResource extends Resource
     public static function getRelations(): array
     {
         return [
-            CoversRelationManager::class,
-            RingsRelationManager::class,
+            LocksRelationManager::class,
         ];
     }
 

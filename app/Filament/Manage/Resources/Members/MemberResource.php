@@ -12,11 +12,11 @@ use App\Filament\Manage\NavigationGroup;
 use App\Filament\Manage\Resources\Members\Pages\EditMember;
 use App\Filament\Manage\Resources\Members\Pages\ListMembers;
 use App\Filament\Manage\Resources\Members\Pages\ViewMember;
-use App\Filament\Manage\Resources\Members\RelationManagers\KeysRelationManager;
+use App\Filament\Manage\Resources\Members\RelationManagers\LocksRelationManager;
 use App\Filament\RelationManagers\QualificationsRelationManager;
 use App\Filament\Schemas\ContactFields;
 use App\Filament\Schemas\PersonalDataSection;
-use App\Models\Key;
+use App\Models\Lock;
 use App\Models\Team;
 use App\Models\User;
 use App\Support\Palette;
@@ -91,7 +91,7 @@ class MemberResource extends Resource
             return $query->whereRaw('0 = 1');
         }
 
-        return $query->with(['invitation', 'keyRings.keys.covers'])->whereHas(
+        return $query->with(['invitation', 'keys.locks.covers'])->whereHas(
             'teams',
             fn (Builder $teams) => $teams->whereKey($team->getKey()),
         );
@@ -186,21 +186,21 @@ class MemberResource extends Resource
                     ->label(__('Keys'))
                     ->badge()
                     ->icon(Heroicon::OutlinedKey)
-                    ->state(fn (User $record): ?string => $record->namesOfOpenedKeys(static::teamKeys()) === []
+                    ->state(fn (User $record): ?string => $record->namesOfOpenedLocks(static::teamLocks()) === []
                         ? null
                         : __('Key holder'))
                     ->color(fn (?string $state): array => filled($state) ? Palette::positive() : Palette::neutral())
                     ->action(static::heldKeysAction())
                     ->disabledClick(fn (?string $state): bool => blank($state))
-                    ->visible(fn (): bool => static::teamKeys()->isNotEmpty()),
+                    ->visible(fn (): bool => static::teamLocks()->isNotEmpty()),
             ])
             ->filters([
                 Filter::make('not_accepted')
                     ->label('Not yet accepted')
                     ->query(fn (Builder $query): Builder => $query->whereNull('users.email')->whereNull('users.deleted_at')),
                 SelectFilter::make('key')
-                    ->label(__('Keys'))
-                    ->options(fn (): array => static::teamKeys()->pluck('name', 'id')->all())
+                    ->label(__('Locks'))
+                    ->options(fn (): array => static::teamLocks()->pluck('name', 'id')->all())
                     ->query(function (Builder $query, array $data): Builder {
                         $keyId = $data['value'] ?? null;
 
@@ -208,15 +208,15 @@ class MemberResource extends Resource
                             return $query;
                         }
 
-                        $key = Key::query()->find($keyId);
+                        $key = Lock::query()->find($keyId);
 
-                        if (! $key instanceof Key) {
+                        if (! $key instanceof Lock) {
                             return $query;
                         }
 
                         return $query->holding($key);
                     })
-                    ->visible(fn (): bool => static::teamKeys()->isNotEmpty()),
+                    ->visible(fn (): bool => static::teamLocks()->isNotEmpty()),
             ])
             ->recordActions([
                 static::invitationActions(),
@@ -230,7 +230,7 @@ class MemberResource extends Resource
     public static function getRelations(): array
     {
         return [
-            KeysRelationManager::class,
+            LocksRelationManager::class,
             QualificationsRelationManager::class,
         ];
     }
@@ -252,9 +252,9 @@ class MemberResource extends Resource
     }
 
     /**
-     * @return EloquentCollection<int, Key>
+     * @return EloquentCollection<int, Lock>
      */
-    public static function teamKeys(): EloquentCollection
+    public static function teamLocks(): EloquentCollection
     {
         $team = static::currentTeam();
 
@@ -262,7 +262,7 @@ class MemberResource extends Resource
             return new EloquentCollection;
         }
 
-        return once(fn (): EloquentCollection => Key::query()->relevantTo($team)->orderBy('name')->get());
+        return once(fn (): EloquentCollection => Lock::query()->relevantTo($team)->orderBy('name')->get());
     }
 
     /**
@@ -276,10 +276,10 @@ class MemberResource extends Resource
             return [];
         }
 
-        return $member->openedKeysQuery($team)
+        return $member->openedLocksQuery($team)
             ->with(['requirements.activity', 'requirements.venue'])
             ->get()
-            ->map(fn (Key $key): array => [
+            ->map(fn (Lock $key): array => [
                 'name' => $key->name,
                 'required_for' => $key->requirementSummariesFor($team),
             ])
@@ -289,13 +289,13 @@ class MemberResource extends Resource
     public static function heldKeysAction(): Action
     {
         return Action::make('heldKeys')
-            ->label(__('Keys'))
+            ->label(__('Locks'))
             ->modalHeading(fn (User $record): string => $record->name)
             ->modalWidth(Width::Large)
             ->modalSubmitAction(false)
             ->modalCancelActionLabel(__('Close'))
             ->visible(fn (?User $record): bool => $record instanceof User
-                && $record->namesOfOpenedKeys(static::teamKeys()) !== [])
+                && $record->namesOfOpenedLocks(static::teamLocks()) !== [])
             ->modalContent(fn (User $record): View => view('filament.members.held-keys', [
                 'keys' => static::openedKeyLines($record),
             ]));

@@ -46,7 +46,7 @@ class BookingGuestList
         $memberIdLookup = array_fill_keys($currentMemberIds, true);
         $keyBadges = $includeAccessDetails ? BookingPeople::keyBadges($booking, $people) : [];
         $showQualified = $includeAccessDetails && $booking->requiresQualification();
-        $showKeys = $includeAccessDetails && $booking->requiredKeys()->isNotEmpty();
+        $showKeys = $includeAccessDetails && $booking->requiredLocks()->isNotEmpty();
 
         $rows = $people
             ->map(function (User $person) use ($booking, $includeAccessDetails, $keyBadges, $memberIdLookup, $showQualified): ?array {

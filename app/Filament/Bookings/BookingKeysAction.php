@@ -3,7 +3,7 @@
 namespace App\Filament\Bookings;
 
 use App\Enums\KeyHolderAttendance;
-use App\Enums\KeyRingSituation;
+use App\Enums\KeySituation;
 use App\Filament\Manage\Resources\Members\MemberResource;
 use App\Models\Booking;
 use App\Models\Team;
@@ -22,7 +22,7 @@ class BookingKeysAction
             ->modalHeading(__('Keys'))
             ->modalSubmitAction(false)
             ->modalCancelActionLabel(__('Close'))
-            ->visible(fn (Booking $record): bool => $record->requiredKeys()->isNotEmpty())
+            ->visible(fn (Booking $record): bool => $record->requiredLocks()->isNotEmpty())
             ->icon(fn (Booking $record): Heroicon => self::attendance($record)->getIcon())
             ->color(fn (Booking $record): array => self::attendance($record)->getColor())
             ->tooltip(fn (Booking $record): string => self::attendance($record)->getLabel())
@@ -32,7 +32,7 @@ class BookingKeysAction
     }
 
     /**
-     * @return list<array{name: string, groups: list<array{situation: KeyRingSituation, rings: list<array{name: string, holder: ?string, holder_id: ?string, url: ?string}>}>}>
+     * @return list<array{name: string, groups: list<array{situation: KeySituation, rings: list<array{name: string, holder: ?string, holder_id: ?string, url: ?string}>}>}>
      */
     public static function lines(Booking $booking): array
     {

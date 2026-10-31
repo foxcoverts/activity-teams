@@ -219,7 +219,7 @@ class InviteAttendees extends Component
 
     private function bookingNeedsKeys(): bool
     {
-        return $this->booking->requiredKeys()->isNotEmpty();
+        return $this->booking->requiredLocks()->isNotEmpty();
     }
 
     /**

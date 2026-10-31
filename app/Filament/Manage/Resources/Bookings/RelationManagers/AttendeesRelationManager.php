@@ -319,7 +319,7 @@ class AttendeesRelationManager extends RelationManager
 
     protected function bookingNeedsKeys(): bool
     {
-        return $this->booking()->requiredKeys()->isNotEmpty();
+        return $this->booking()->requiredLocks()->isNotEmpty();
     }
 
     protected function isQualified(User $record): bool

@@ -30,7 +30,7 @@ enum MailChannel: string implements HasLabel
             self::BookingsUpdates => __('Changes, confirms, cancels, and lead-instructor responsibility.'),
             self::BookingsComments => __('Comments on a booking. Mail is not sent until commenting is available.'),
             self::BookingsDigest => __('A periodic summary of your rota.'),
-            self::KeysMail => __('When a key ring is passed to you or away from you.'),
+            self::KeysMail => __('When a key is passed to you or away from you.'),
             self::NewsMail => __('Direct email when a team publishes news.'),
         };
     }

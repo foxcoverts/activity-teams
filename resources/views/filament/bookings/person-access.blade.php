@@ -34,7 +34,7 @@
                     </ul>
                 </section>
             @empty
-                <p class="text-gray-500 dark:text-gray-400">{{ __('No key rings recorded.') }}</p>
+                <p class="text-gray-500 dark:text-gray-400">{{ __('No keys recorded.') }}</p>
             @endforelse
         @elseif ($alpine)
             <div x-show="qualification === null" class="flex flex-col gap-2">

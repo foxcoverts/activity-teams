@@ -5,10 +5,10 @@ namespace App\Mail;
 use App\Filament\Admin\Resources\InboundMails\InboundMailResource;
 use App\Filament\Admin\Resources\Teams\TeamResource;
 use App\Filament\Manage\Resources\Bookings\BookingResource;
-use App\Filament\Manage\Resources\KeyRings\KeyRingResource;
+use App\Filament\Manage\Resources\Keys\KeyResource;
 use App\Models\Booking;
 use App\Models\InboundMail;
-use App\Models\KeyRing;
+use App\Models\Key;
 use App\Models\Team;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -59,7 +59,7 @@ class UnhandledInboundMail extends Mailable implements ShouldQueue
                 $resource->audience?->name,
                 filled($resource->group_name) ? $resource->group_name : null,
             ])->filter()->implode(' · '),
-            $resource instanceof KeyRing => $resource->name,
+            $resource instanceof Key => $resource->name,
             $resource instanceof Team => $resource->name,
             default => null,
         };
@@ -71,7 +71,7 @@ class UnhandledInboundMail extends Mailable implements ShouldQueue
 
         return match (true) {
             $resource instanceof Booking => BookingResource::getUrl('view', ['record' => $resource], panel: 'manage'),
-            $resource instanceof KeyRing => KeyRingResource::getUrl('view', ['record' => $resource], panel: 'manage'),
+            $resource instanceof Key => KeyResource::getUrl('view', ['record' => $resource], panel: 'manage'),
             $resource instanceof Team => TeamResource::getUrl('view', ['record' => $resource], panel: 'admin'),
             default => null,
         };

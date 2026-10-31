@@ -4,11 +4,11 @@ namespace App\Support;
 
 use App\Enums\BookingAttendeeStatus;
 use App\Enums\KeyHolderAttendance;
-use App\Enums\KeyRingSituation;
+use App\Enums\KeySituation;
 use App\Models\ActivityQualificationRequirement;
 use App\Models\Booking;
 use App\Models\Key;
-use App\Models\KeyRing;
+use App\Models\Lock;
 use App\Models\Qualification;
 use App\Models\User;
 use Illuminate\Support\Collection;
@@ -22,15 +22,15 @@ class BookingPeople
     public static function keyBadges(Booking $booking, iterable $users): array
     {
         $people = collect($users)->filter(fn (mixed $user): bool => $user instanceof User)->values();
-        $requiredIds = $booking->requiredKeys()->modelKeys();
+        $requiredIds = $booking->requiredLocks()->modelKeys();
 
         if ($requiredIds === [] || $people->isEmpty()) {
             return [];
         }
 
-        $rings = KeyRing::query()
+        $rings = Key::query()
             ->whereIn('holder_id', $people->map->getKey()->all())
-            ->with('keys.covers')
+            ->with('locks.covers')
             ->get()
             ->groupBy('holder_id');
 
@@ -42,7 +42,7 @@ class BookingPeople
             $any = false;
 
             foreach ($held as $ring) {
-                foreach ($ring->keys as $key) {
+                foreach ($ring->locks as $key) {
                     $any = true;
 
                     if (self::opensRequired($key, $requiredIds)) {
@@ -75,7 +75,7 @@ class BookingPeople
     }
 
     /**
-     * @return list<array{name: string, groups: list<array{situation: KeyRingSituation, rings: list<array{name: string, holder: ?string, holder_id: ?string}>}>}>
+     * @return list<array{name: string, groups: list<array{situation: KeySituation, rings: list<array{name: string, holder: ?string, holder_id: ?string}>}>}>
      */
     public static function keyAccess(Booking $booking): array
     {
@@ -85,8 +85,8 @@ class BookingPeople
             fn (User $person): array => [(string) $person->getKey() => $person->attendance?->status],
         );
 
-        return $booking->requiredKeys()
-            ->map(fn (Key $key): array => [
+        return $booking->requiredLocks()
+            ->map(fn (Lock $key): array => [
                 'name' => $key->name,
                 'groups' => self::groupsForKey($key, $statusById),
             ])
@@ -95,17 +95,17 @@ class BookingPeople
 
     /**
      * @param  Collection<string, BookingAttendeeStatus|null>  $statusById
-     * @return list<array{situation: KeyRingSituation, rings: list<array{name: string, holder: ?string, holder_id: ?string}>}>
+     * @return list<array{situation: KeySituation, rings: list<array{name: string, holder: ?string, holder_id: ?string}>}>
      */
-    private static function groupsForKey(Key $key, Collection $statusById): array
+    private static function groupsForKey(Lock $key, Collection $statusById): array
     {
         $grouped = [];
 
-        foreach (KeyRingSituation::displayOrder() as $situation) {
+        foreach (KeySituation::displayOrder() as $situation) {
             $grouped[$situation->value] = [];
         }
 
-        foreach ($key->accessRings()->with('holder')->get() as $ring) {
+        foreach ($key->accessKeys()->with('holder')->get() as $ring) {
             $situation = self::situation($ring, $statusById);
             $grouped[$situation->value][] = [
                 'name' => $ring->name,
@@ -116,7 +116,7 @@ class BookingPeople
 
         $groups = [];
 
-        foreach (KeyRingSituation::displayOrder() as $situation) {
+        foreach (KeySituation::displayOrder() as $situation) {
             if ($grouped[$situation->value] === []) {
                 continue;
             }
@@ -133,19 +133,19 @@ class BookingPeople
     /**
      * @param  Collection<string, BookingAttendeeStatus|null>  $statusById
      */
-    private static function situation(KeyRing $ring, Collection $statusById): KeyRingSituation
+    private static function situation(Key $ring, Collection $statusById): KeySituation
     {
         if ($ring->holder_id === null) {
-            return KeyRingSituation::Cupboard;
+            return KeySituation::Cupboard;
         }
 
         $status = $statusById->get((string) $ring->holder_id);
 
         return match ($status) {
-            BookingAttendeeStatus::Accepted => KeyRingSituation::Attending,
-            BookingAttendeeStatus::Declined => KeyRingSituation::CannotMakeIt,
-            BookingAttendeeStatus::Tentative, BookingAttendeeStatus::NeedsAction => KeyRingSituation::Invited,
-            default => KeyRingSituation::NotInvited,
+            BookingAttendeeStatus::Accepted => KeySituation::Attending,
+            BookingAttendeeStatus::Declined => KeySituation::CannotMakeIt,
+            BookingAttendeeStatus::Tentative, BookingAttendeeStatus::NeedsAction => KeySituation::Invited,
+            default => KeySituation::NotInvited,
         };
     }
 
@@ -154,12 +154,12 @@ class BookingPeople
      */
     public static function ringLines(User $person): array
     {
-        return $person->keyRings()
-            ->with('keys.covers')
+        return $person->keys()
+            ->with('locks.covers')
             ->get()
-            ->map(fn (KeyRing $ring): array => [
+            ->map(fn (Key $ring): array => [
                 'name' => $ring->name,
-                'keys' => $ring->keyDescriptions(),
+                'keys' => $ring->lockDescriptions(),
             ])
             ->all();
     }
@@ -219,14 +219,14 @@ class BookingPeople
     /**
      * @param  list<int|string>  $requiredIds
      */
-    private static function opensRequired(Key $key, array $requiredIds): bool
+    private static function opensRequired(Lock $key, array $requiredIds): bool
     {
         if (in_array($key->getKey(), $requiredIds, true)) {
             return true;
         }
 
         return $key->covers->contains(
-            fn (Key $covered): bool => in_array($covered->getKey(), $requiredIds, true),
+            fn (Lock $covered): bool => in_array($covered->getKey(), $requiredIds, true),
         );
     }
 

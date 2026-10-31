@@ -257,15 +257,15 @@ class Booking extends Model
      * Keys marked required for this booking's activity at its venue.
      * A key that covers one of these is not itself required.
      *
-     * @return EloquentCollection<int, Key>
+     * @return EloquentCollection<int, Lock>
      */
-    public function requiredKeys(): EloquentCollection
+    public function requiredLocks(): EloquentCollection
     {
         if (blank($this->activity_id) || blank($this->venue_id)) {
             return new EloquentCollection;
         }
 
-        return Key::query()
+        return Lock::query()
             ->whereHas('requirements', function (Builder $requirements): void {
                 $requirements
                     ->where('activity_id', $this->activity_id)

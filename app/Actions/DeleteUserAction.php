@@ -3,10 +3,10 @@
 namespace App\Actions;
 
 use App\Models\Key;
-use App\Models\KeyRing;
+use App\Models\Lock;
 use App\Models\Team;
 use App\Models\User;
-use App\Notifications\KeyRingHolderLeavingNotification;
+use App\Notifications\KeyHolderLeavingNotification;
 use App\Notifications\LastManagerLeavingNotification;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Support\Collection;
@@ -34,7 +34,7 @@ class DeleteUserAction
         }
 
         $teamsWithoutManager = $user->teamsLeftWithoutActiveManager();
-        $keyRings = $user->keyRings()->with('keys')->get();
+        $keys = $user->keys()->with('locks')->get();
 
         $user->delete();
 
@@ -42,10 +42,10 @@ class DeleteUserAction
             Notification::send($this->systemAdmins(), new LastManagerLeavingNotification($user, $teamsWithoutManager));
         }
 
-        $managers = $this->managersForKeyRings($user, $keyRings);
+        $managers = $this->managersForKeys($user, $keys);
 
-        if ($keyRings->isNotEmpty() && $managers->isNotEmpty()) {
-            Notification::send($managers, new KeyRingHolderLeavingNotification($user, $keyRings));
+        if ($keys->isNotEmpty() && $managers->isNotEmpty()) {
+            Notification::send($managers, new KeyHolderLeavingNotification($user, $keys));
         }
     }
 
@@ -63,12 +63,12 @@ class DeleteUserAction
     }
 
     /**
-     * @param  EloquentCollection<int, KeyRing>  $keyRings
+     * @param  EloquentCollection<int, Key>  $keys
      * @return Collection<int, User>
      */
-    private function managersForKeyRings(User $user, EloquentCollection $keyRings): Collection
+    private function managersForKeys(User $user, EloquentCollection $keys): Collection
     {
-        $keyIds = $keyRings->flatMap(fn (KeyRing $ring) => $ring->keys->modelKeys())->unique()->all();
+        $keyIds = $keys->flatMap(fn (Key $ring) => $ring->locks->modelKeys())->unique()->all();
 
         $teams = Team::query()
             ->with('managers')
@@ -78,7 +78,7 @@ class DeleteUserAction
                     return false;
                 }
 
-                return Key::query()->relevantTo($team)->whereKey($keyIds)->exists();
+                return Lock::query()->relevantTo($team)->whereKey($keyIds)->exists();
             });
 
         if ($teams->isEmpty()) {

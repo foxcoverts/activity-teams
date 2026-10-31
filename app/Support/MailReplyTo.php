@@ -3,7 +3,7 @@
 namespace App\Support;
 
 use App\Models\Booking;
-use App\Models\KeyRing;
+use App\Models\Key;
 use App\Models\Team;
 use App\Models\TeamInvitation;
 use Illuminate\Mail\Mailables\Address;
@@ -15,9 +15,9 @@ class MailReplyTo
         return new Address(InboundMailAddress::forBooking($booking));
     }
 
-    public static function keyRing(KeyRing $ring): Address
+    public static function key(Key $ring): Address
     {
-        return new Address(InboundMailAddress::forKeyRing($ring));
+        return new Address(InboundMailAddress::forKey($ring));
     }
 
     public static function team(Team $team): Address

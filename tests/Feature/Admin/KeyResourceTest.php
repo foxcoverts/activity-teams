@@ -21,7 +21,7 @@ class KeyResourceTest extends TestCase
         Filament::setCurrentPanel(Filament::getPanel('admin'));
     }
 
-    public function test_the_key_list_is_sorted_by_name(): void
+    public function test_the_key_ring_list_is_sorted_by_name(): void
     {
         $admin = User::factory()->systemAdmin()->create();
         $zebra = Key::factory()->create(['name' => 'Zebra']);

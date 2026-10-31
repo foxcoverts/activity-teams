@@ -3,7 +3,7 @@
 namespace App\Support;
 
 use App\Models\Booking;
-use App\Models\KeyRing;
+use App\Models\Key;
 use App\Models\Team;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
@@ -12,7 +12,7 @@ class InboundMailAddress
 {
     public const BOOKING = 'booking';
 
-    public const KEY_RING = 'key-ring';
+    public const KEY = 'key';
 
     public const TEAMS = 'teams';
 
@@ -34,9 +34,9 @@ class InboundMailAddress
         return self::make(self::BOOKING, $booking->getKey());
     }
 
-    public static function forKeyRing(KeyRing $ring): string
+    public static function forKey(Key $ring): string
     {
-        return self::make(self::KEY_RING, $ring->getKey());
+        return self::make(self::KEY, $ring->getKey());
     }
 
     public static function forTeam(Team $team): string
@@ -73,14 +73,14 @@ class InboundMailAddress
             return null;
         }
 
-        if (! in_array($type, [self::BOOKING, self::KEY_RING, self::TEAMS], true)) {
+        if (! in_array($type, [self::BOOKING, self::KEY, self::TEAMS], true)) {
             return null;
         }
 
         return ['type' => $type, 'id' => $id];
     }
 
-    public static function findResource(string $address): Booking|KeyRing|Team|null
+    public static function findResource(string $address): Booking|Key|Team|null
     {
         $parts = self::parse($address);
 
@@ -90,7 +90,7 @@ class InboundMailAddress
 
         return match ($parts['type']) {
             self::BOOKING => Booking::query()->find($parts['id']),
-            self::KEY_RING => KeyRing::query()->find($parts['id']),
+            self::KEY => Key::query()->find($parts['id']),
             self::TEAMS => Team::query()->find($parts['id']),
             default => null,
         };
@@ -104,7 +104,7 @@ class InboundMailAddress
         $managers = match (true) {
             $resource instanceof Booking => $resource->team?->managers ?? collect(),
             $resource instanceof Team => $resource->managers,
-            $resource instanceof KeyRing => $resource->interestedTeams()
+            $resource instanceof Key => $resource->interestedTeams()
                 ->loadMissing('managers')
                 ->flatMap(fn (Team $team) => $team->managers),
             default => collect(),

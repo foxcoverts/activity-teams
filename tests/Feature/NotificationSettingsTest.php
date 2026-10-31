@@ -3,7 +3,7 @@
 namespace Tests\Feature;
 
 use App\Actions\OverrideAttendanceAction;
-use App\Actions\PassKeyRingAction;
+use App\Actions\PassKeyAction;
 use App\Enums\BookingAttendeeStatus;
 use App\Enums\MailChannel;
 use App\Enums\MailGroup;
@@ -21,14 +21,14 @@ use App\Models\Activity;
 use App\Models\Booking;
 use App\Models\BookingAttendance;
 use App\Models\Key;
-use App\Models\KeyRing;
+use App\Models\Lock;
 use App\Models\NotificationSetting;
 use App\Models\Team;
 use App\Models\User;
 use App\Models\Venue;
-use App\Notifications\KeyRingPassedFromNotification;
-use App\Notifications\KeyRingPassedToNotification;
-use App\Notifications\KeyRingReturnedToCupboardNotification;
+use App\Notifications\KeyPassedFromNotification;
+use App\Notifications\KeyPassedToNotification;
+use App\Notifications\KeyReturnedToCupboardNotification;
 use App\Support\MailPreference;
 use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -432,17 +432,17 @@ class NotificationSettingsTest extends TestCase
             MailChannel::KeysMail->value => '0',
         ]);
 
-        (new PassKeyRingAction)($actor, $ring, $receiver->getKey());
+        (new PassKeyAction)($actor, $ring, $receiver->getKey());
 
-        Notification::assertNotSentTo($receiver, KeyRingPassedToNotification::class);
-        Notification::assertSentTo($holder, KeyRingPassedFromNotification::class);
+        Notification::assertNotSentTo($receiver, KeyPassedToNotification::class);
+        Notification::assertSentTo($holder, KeyPassedFromNotification::class);
 
         Notification::fake();
 
-        (new PassKeyRingAction)($actor, $ring->fresh(), null);
+        (new PassKeyAction)($actor, $ring->fresh(), null);
 
-        Notification::assertNotSentTo($receiver, KeyRingPassedFromNotification::class);
-        Notification::assertSentTo($otherManager, KeyRingReturnedToCupboardNotification::class);
+        Notification::assertNotSentTo($receiver, KeyPassedFromNotification::class);
+        Notification::assertSentTo($otherManager, KeyReturnedToCupboardNotification::class);
     }
 
     public function test_key_holder_mail_includes_a_preferences_footer(): void
@@ -454,7 +454,7 @@ class NotificationSettingsTest extends TestCase
         MailPreference::tokenFor($receiver);
 
         $url = route('mail-preferences.group', ['user' => $receiver, 'group' => MailGroup::Keys]);
-        $message = (new KeyRingPassedToNotification($ring, $holder))->toMail($receiver);
+        $message = (new KeyPassedToNotification($ring, $holder))->toMail($receiver);
         $html = (string) $message->render();
         $thanks = strpos($html, 'Thanks');
         $href = strpos($html, 'href="'.$url.'"');
@@ -492,7 +492,7 @@ class NotificationSettingsTest extends TestCase
         $team->activities()->sync([$activity->getKey()]);
         $team->venues()->sync([$venue->getKey()]);
 
-        $key = Key::factory()->create(['name' => 'Climbing store']);
+        $key = Lock::factory()->create(['name' => 'Climbing store']);
         $key->requirements()->create([
             'activity_id' => $activity->getKey(),
             'venue_id' => $venue->getKey(),
@@ -501,10 +501,10 @@ class NotificationSettingsTest extends TestCase
         return [$team, $key];
     }
 
-    private function heldRing(User $holder, Key $key): KeyRing
+    private function heldRing(User $holder, Lock $key): Key
     {
-        $ring = KeyRing::factory()->heldBy($holder)->create(['name' => 'Shared climbing']);
-        $ring->keys()->attach($key);
+        $ring = Key::factory()->heldBy($holder)->create(['name' => 'Shared climbing']);
+        $ring->locks()->attach($key);
 
         return $ring;
     }

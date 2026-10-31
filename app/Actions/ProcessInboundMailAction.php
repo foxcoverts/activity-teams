@@ -8,7 +8,7 @@ use App\Enums\InboundMailOutcome;
 use App\Mail\UnhandledInboundMail;
 use App\Models\Booking;
 use App\Models\InboundMail;
-use App\Models\KeyRing;
+use App\Models\Key;
 use App\Models\Team;
 use App\Models\User;
 use App\Support\InboundCalendar;
@@ -28,7 +28,7 @@ class ProcessInboundMailAction
             $resource = $this->resourceFromAddress($mail->to_address)
                 ?? $calendar?->events()->map->booking()->filter()->first();
 
-            if ($resource instanceof Booking || $resource instanceof KeyRing || $resource instanceof Team) {
+            if ($resource instanceof Booking || $resource instanceof Key || $resource instanceof Team) {
                 $mail->resource()->associate($resource);
             }
 
@@ -191,7 +191,7 @@ class ProcessInboundMailAction
     {
         $resource = $mail->resource;
 
-        if (! $resource instanceof Booking && ! $resource instanceof KeyRing && ! $resource instanceof Team) {
+        if (! $resource instanceof Booking && ! $resource instanceof Key && ! $resource instanceof Team) {
             // From-address / unknown local-part: already lands in the operator inbox.
             return;
         }
@@ -214,7 +214,7 @@ class ProcessInboundMailAction
         Mail::to($recipients)->send(new UnhandledInboundMail($mail));
     }
 
-    protected function resourceFromAddress(?string $address): Booking|KeyRing|Team|null
+    protected function resourceFromAddress(?string $address): Booking|Key|Team|null
     {
         if (! filled($address)) {
             return null;

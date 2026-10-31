@@ -8,8 +8,8 @@ use App\Actions\ExportPersonalDataAction;
 use App\Actions\SendTeamInvitationAction;
 use App\Enums\MembershipRole;
 use App\Enums\Section;
-use App\Filament\Admin\Resources\KeyRings\Pages\CreateKeyRing;
-use App\Filament\Admin\Resources\KeyRings\Pages\EditKeyRing;
+use App\Filament\Admin\Resources\Keys\Pages\CreateKey;
+use App\Filament\Admin\Resources\Keys\Pages\EditKey;
 use App\Filament\Admin\Resources\Users\Pages\EditUser;
 use App\Filament\Admin\Resources\Users\Pages\ListUsers;
 use App\Filament\Admin\Resources\Users\Pages\ViewUser;
@@ -18,11 +18,11 @@ use App\Filament\Auth\EditProfile;
 use App\Filament\Auth\Register;
 use App\Filament\Manage\Resources\Members\Pages\ViewMember;
 use App\Livewire\AcceptInvitation;
-use App\Models\KeyRing;
+use App\Models\Key;
 use App\Models\Qualification;
 use App\Models\Team;
 use App\Models\User;
-use App\Notifications\KeyRingHolderLeavingNotification;
+use App\Notifications\KeyHolderLeavingNotification;
 use App\Notifications\LastManagerLeavingNotification;
 use Filament\Actions\Testing\TestAction;
 use Filament\Facades\Filament;
@@ -157,7 +157,7 @@ class AccountPrivacyTest extends TestCase
         Filament::setCurrentPanel(Filament::getPanel('admin'));
         $this->actingAs($admin);
 
-        Livewire::test(CreateKeyRing::class)
+        Livewire::test(CreateKey::class)
             ->fillForm([
                 'name' => 'Store keys',
                 'holder_id' => $member->getKey(),
@@ -165,20 +165,20 @@ class AccountPrivacyTest extends TestCase
             ->call('create')
             ->assertHasFormErrors(['holder_id']);
 
-        $this->assertDatabaseMissing('key_rings', ['name' => 'Store keys']);
+        $this->assertDatabaseMissing('keys', ['name' => 'Store keys']);
     }
 
     public function test_a_key_ring_held_by_a_deleted_person_still_shows_their_name(): void
     {
         $admin = User::factory()->systemAdmin()->create();
         $holder = User::factory()->create(['name' => 'Deleted Holder']);
-        $ring = KeyRing::factory()->heldBy($holder)->create(['name' => 'Store keys']);
+        $ring = Key::factory()->heldBy($holder)->create(['name' => 'Store keys']);
         $holder->delete();
 
         Filament::setCurrentPanel(Filament::getPanel('admin'));
         $this->actingAs($admin);
 
-        Livewire::test(EditKeyRing::class, ['record' => $ring->getKey()])
+        Livewire::test(EditKey::class, ['record' => $ring->getKey()])
             ->assertOk()
             ->assertSee('Deleted Holder')
             ->fillForm([
@@ -200,13 +200,13 @@ class AccountPrivacyTest extends TestCase
         $team = Team::factory()->create();
         $manager = User::factory()->teamManager($team)->create();
         $holder = User::factory()->teamMember($team)->create(['name' => 'Key Holder']);
-        $ring = KeyRing::factory()->heldBy($holder)->create(['name' => 'Store keys']);
+        $ring = Key::factory()->heldBy($holder)->create(['name' => 'Store keys']);
 
         app(DeleteUserAction::class)->delete($holder, $holder, 'password');
 
         $this->assertTrue($holder->trashed());
         $this->assertSame($holder->getKey(), $ring->fresh()->holder_id);
-        Notification::assertSentTo($manager, KeyRingHolderLeavingNotification::class);
+        Notification::assertSentTo($manager, KeyHolderLeavingNotification::class);
     }
 
     public function test_purge_after_thirty_days_clears_contact_and_keeps_the_name_and_qualifications(): void

@@ -5,34 +5,34 @@ namespace Tests\Feature;
 use App\Enums\BookingAttendeeResponse;
 use App\Enums\BookingAttendeeStatus;
 use App\Enums\MembershipRole;
-use App\Filament\Admin\Resources\KeyRings\KeyRingResource as ManageKeyRingResource;
-use App\Filament\Admin\Resources\KeyRings\Pages\CreateKeyRing;
-use App\Filament\Admin\Resources\KeyRings\Pages\ViewKeyRing;
-use App\Filament\Admin\Resources\KeyRings\RelationManagers\KeysRelationManager as KeyRingKeysRelationManager;
-use App\Filament\Admin\Resources\Keys\KeyResource;
+use App\Filament\Admin\Resources\Keys\KeyResource as ManageKeyResource;
 use App\Filament\Admin\Resources\Keys\Pages\CreateKey;
 use App\Filament\Admin\Resources\Keys\Pages\ViewKey;
-use App\Filament\Admin\Resources\Keys\RelationManagers\CoversRelationManager;
-use App\Filament\Admin\Resources\Keys\RelationManagers\RingsRelationManager;
+use App\Filament\Admin\Resources\Keys\RelationManagers\LocksRelationManager as KeyLocksRelationManager;
+use App\Filament\Admin\Resources\Locks\LockResource;
+use App\Filament\Admin\Resources\Locks\Pages\CreateLock;
+use App\Filament\Admin\Resources\Locks\Pages\ViewLock;
+use App\Filament\Admin\Resources\Locks\RelationManagers\CoversRelationManager;
+use App\Filament\Admin\Resources\Locks\RelationManagers\KeysRelationManager;
 use App\Filament\Bookings\BookingKeysAction;
 use App\Filament\Manage\Resources\Bookings\Pages\ViewBooking as ManageViewBooking;
 use App\Filament\Manage\Resources\Bookings\RelationManagers\AttendeesRelationManager;
-use App\Filament\Manage\Resources\KeyRings\KeyRingResource as TeamKeyRingResource;
+use App\Filament\Manage\Resources\Keys\KeyResource as TeamKeyResource;
 use App\Filament\Manage\Resources\Members\MemberResource;
 use App\Filament\Manage\Resources\Members\Pages\ListMembers;
 use App\Filament\Manage\Resources\Members\Pages\ViewMember;
-use App\Filament\Manage\Resources\Members\RelationManagers\KeysRelationManager;
+use App\Filament\Manage\Resources\Members\RelationManagers\LocksRelationManager;
 use App\Filament\Member\Resources\Bookings\BookingResource;
 use App\Filament\Member\Resources\Bookings\Pages\ViewBooking as MemberViewBooking;
 use App\Filament\Member\Resources\Bookings\RelationManagers\AttendeesRelationManager as MemberAttendeesRelationManager;
-use App\Filament\Member\Resources\KeyRings\KeyRingResource as MemberKeyRingResource;
+use App\Filament\Member\Resources\Keys\KeyResource as MemberKeyResource;
 use App\Livewire\SessionRoster;
 use App\Models\Activity;
 use App\Models\ActivityAudience;
 use App\Models\Booking;
 use App\Models\BookingAttendance;
 use App\Models\Key;
-use App\Models\KeyRing;
+use App\Models\Lock;
 use App\Models\Qualification;
 use App\Models\Team;
 use App\Models\User;
@@ -55,13 +55,13 @@ class KeyAccessTest extends TestCase
         $campsite = Venue::factory()->create(['name' => 'Campsite']);
         $britannia = Venue::factory()->create(['name' => 'Britannia']);
 
-        $store = Key::factory()->create(['name' => 'Climbing store']);
+        $store = Lock::factory()->create(['name' => 'Climbing store']);
         $store->requirements()->create([
             'activity_id' => $climbing->getKey(),
             'venue_id' => $campsite->getKey(),
         ]);
 
-        $guns = Key::factory()->create(['name' => 'Britannia shooting store']);
+        $guns = Lock::factory()->create(['name' => 'Britannia shooting store']);
         $guns->requirements()->create([
             'activity_id' => $shooting->getKey(),
             'venue_id' => $campsite->getKey(),
@@ -71,10 +71,10 @@ class KeyAccessTest extends TestCase
             'venue_id' => $britannia->getKey(),
         ]);
 
-        $door = Key::factory()->create(['name' => 'Britannia front door']);
+        $door = Lock::factory()->create(['name' => 'Britannia front door']);
         $guns->covers()->attach($door);
 
-        $warden = Key::factory()->create(['name' => 'Warden key']);
+        $warden = Lock::factory()->create(['name' => 'Warden key']);
         $warden->covers()->attach($store);
 
         $team = Team::factory()->create();
@@ -97,35 +97,35 @@ class KeyAccessTest extends TestCase
             'venue_id' => $britannia->getKey(),
         ]);
 
-        $this->assertSame(['Climbing store'], $atCamp->requiredKeys()->pluck('name')->all());
-        $this->assertSame(['Britannia shooting store'], $shootingAtCamp->requiredKeys()->pluck('name')->all());
-        $this->assertSame(['Britannia shooting store'], $shootingAtHq->requiredKeys()->pluck('name')->all());
+        $this->assertSame(['Climbing store'], $atCamp->requiredLocks()->pluck('name')->all());
+        $this->assertSame(['Britannia shooting store'], $shootingAtCamp->requiredLocks()->pluck('name')->all());
+        $this->assertSame(['Britannia shooting store'], $shootingAtHq->requiredLocks()->pluck('name')->all());
 
         $climber = User::factory()->create();
-        KeyRing::factory()->heldBy($climber)->create(['name' => 'Shared climbing'])->keys()->attach($store);
-        $this->assertTrue($climber->holdsKey($store));
-        $this->assertFalse($climber->holdsKey($guns));
+        Key::factory()->heldBy($climber)->create(['name' => 'Shared climbing'])->locks()->attach($store);
+        $this->assertTrue($climber->holdsLock($store));
+        $this->assertFalse($climber->holdsLock($guns));
 
         $wardenHolder = User::factory()->create();
-        KeyRing::factory()->heldBy($wardenHolder)->create(['name' => 'Warden'])->keys()->attach($warden);
-        $this->assertTrue($wardenHolder->holdsKey($store));
-        $this->assertFalse($wardenHolder->holdsKey($guns));
+        Key::factory()->heldBy($wardenHolder)->create(['name' => 'Warden'])->locks()->attach($warden);
+        $this->assertTrue($wardenHolder->holdsLock($store));
+        $this->assertFalse($wardenHolder->holdsLock($guns));
 
         $doorHolder = User::factory()->create();
-        KeyRing::factory()->heldBy($doorHolder)->create(['name' => 'Front door only'])->keys()->attach($door);
-        $this->assertFalse($doorHolder->holdsKey($guns));
-        $this->assertTrue($doorHolder->holdsKey($door));
+        Key::factory()->heldBy($doorHolder)->create(['name' => 'Front door only'])->locks()->attach($door);
+        $this->assertFalse($doorHolder->holdsLock($guns));
+        $this->assertTrue($doorHolder->holdsLock($door));
 
         $gunHolder = User::factory()->create();
-        KeyRing::factory()->heldBy($gunHolder)->create(['name' => 'Shooting'])->keys()->attach($guns);
-        $this->assertTrue($gunHolder->holdsKey($guns));
-        $this->assertTrue($gunHolder->holdsKey($door));
+        Key::factory()->heldBy($gunHolder)->create(['name' => 'Shooting'])->locks()->attach($guns);
+        $this->assertTrue($gunHolder->holdsLock($guns));
+        $this->assertTrue($gunHolder->holdsLock($door));
 
         $empty = Booking::factory()->make([
             'activity_id' => null,
             'venue_id' => null,
         ]);
-        $this->assertTrue($empty->requiredKeys()->isEmpty());
+        $this->assertTrue($empty->requiredLocks()->isEmpty());
     }
 
     public function test_a_system_admin_configures_keys_and_rings_and_a_manager_cannot(): void
@@ -136,15 +136,15 @@ class KeyAccessTest extends TestCase
         $manager = User::factory()->teamManager()->create();
         $activity = Activity::factory()->create(['name' => 'Scout climbing']);
         $venue = Venue::factory()->create(['name' => 'Campsite']);
-        $archery = Key::factory()->create(['name' => 'Archery locker']);
+        $archery = Lock::factory()->create(['name' => 'Archery locker']);
 
         $this->actingAs($manager);
-        $this->get(KeyResource::getUrl('create'))->assertForbidden();
-        $this->get(ManageKeyRingResource::getUrl('create'))->assertForbidden();
+        $this->get(LockResource::getUrl('create'))->assertForbidden();
+        $this->get(ManageKeyResource::getUrl('create'))->assertForbidden();
 
         $this->actingAs($admin);
 
-        Livewire::test(CreateKey::class)
+        Livewire::test(CreateLock::class)
             ->fillForm([
                 'name' => 'Climbing store',
                 'requirements' => [
@@ -158,59 +158,60 @@ class KeyAccessTest extends TestCase
             ->call('create')
             ->assertHasNoFormErrors();
 
-        $store = Key::query()->where('name', 'Climbing store')->first();
+        $store = Lock::query()->where('name', 'Climbing store')->first();
         $this->assertNotNull($store);
         $this->assertSame('Scout climbing at Campsite', $store->requirements()->first()?->summary());
         $this->assertTrue($store->covers()->whereKey($archery->getKey())->exists());
 
         $holder = User::factory()->create(['name' => 'Pat Smith']);
 
-        Livewire::test(CreateKeyRing::class)
+        Livewire::test(CreateKey::class)
             ->fillForm([
                 'name' => 'Shared climbing',
                 'holder_id' => $holder->getKey(),
-                'keys' => [$store->getKey()],
+                'locks' => [$store->getKey()],
             ])
             ->call('create')
             ->assertHasNoFormErrors();
 
-        $ring = KeyRing::query()->where('name', 'Shared climbing')->first();
+        $ring = Key::query()->where('name', 'Shared climbing')->first();
         $this->assertNotNull($ring);
         $this->assertSame($holder->getKey(), $ring->holder_id);
-        $this->assertTrue($ring->keys()->whereKey($store->getKey())->exists());
+        $this->assertTrue($ring->locks()->whereKey($store->getKey())->exists());
 
-        $this->get(KeyResource::getUrl('view', ['record' => $store]))->assertOk();
-        $this->get(ManageKeyRingResource::getUrl('view', ['record' => $ring]))->assertOk();
+        $this->get(LockResource::getUrl('view', ['record' => $store]))->assertOk();
+        $this->get(ManageKeyResource::getUrl('view', ['record' => $ring]))->assertOk();
 
-        Livewire::test(ViewKey::class, ['record' => $store->getKey()])
+        Livewire::test(ViewLock::class, ['record' => $store->getKey()])
             ->assertOk()
             ->assertSee('Scout climbing')
             ->assertSee('Campsite')
             ->assertSee('Covers')
-            ->assertSee('Key Rings');
+            ->assertSee('Keys');
 
         Livewire::test(CoversRelationManager::class, [
             'ownerRecord' => $store,
-            'pageClass' => ViewKey::class,
+            'pageClass' => ViewLock::class,
         ])->assertCanSeeTableRecords([$archery]);
 
-        Livewire::test(RingsRelationManager::class, [
+        Livewire::test(KeysRelationManager::class, [
             'ownerRecord' => $store,
-            'pageClass' => ViewKey::class,
+            'pageClass' => ViewLock::class,
         ])
             ->assertCanSeeTableRecords([$ring])
             ->assertSee('Pat Smith');
 
-        Livewire::test(ViewKeyRing::class, ['record' => $ring->getKey()])
+        Livewire::test(ViewKey::class, ['record' => $ring->getKey()])
             ->assertOk()
             ->assertSee('Shared climbing')
-            ->assertSee('Pat Smith')
-            ->assertSee('Keys');
+            ->assertSee('Pat Smith');
 
-        Livewire::test(KeyRingKeysRelationManager::class, [
+        Livewire::test(KeyLocksRelationManager::class, [
             'ownerRecord' => $ring,
-            'pageClass' => ViewKeyRing::class,
-        ])->assertCanSeeTableRecords([$store]);
+            'pageClass' => ViewKey::class,
+        ])
+            ->assertSee('Unlocks')
+            ->assertCanSeeTableRecords([$store]);
     }
 
     public function test_a_manager_sees_every_holder_of_the_keys_their_team_needs(): void
@@ -228,19 +229,19 @@ class KeyAccessTest extends TestCase
         $team->activities()->sync([$climbing->getKey()]);
         $team->venues()->sync([$campsite->getKey()]);
 
-        $store = Key::factory()->create(['name' => 'Climbing store']);
+        $store = Lock::factory()->create(['name' => 'Climbing store']);
         $store->requirements()->create([
             'activity_id' => $climbing->getKey(),
             'venue_id' => $campsite->getKey(),
         ]);
 
-        $guns = Key::factory()->create(['name' => 'Britannia shooting store']);
+        $guns = Lock::factory()->create(['name' => 'Britannia shooting store']);
         $guns->requirements()->create([
             'activity_id' => $shooting->getKey(),
             'venue_id' => $britannia->getKey(),
         ]);
 
-        $wardenKey = Key::factory()->create(['name' => 'Warden key']);
+        $wardenKey = Lock::factory()->create(['name' => 'Warden key']);
         $wardenKey->covers()->attach($store);
 
         $outsider = User::factory()->create([
@@ -248,17 +249,17 @@ class KeyAccessTest extends TestCase
             'phone' => '07000999888',
             'emergency_phone' => '07000111222',
         ]);
-        KeyRing::factory()->heldBy($outsider)->create(['name' => 'Shared climbing'])->keys()->attach($store);
-        KeyRing::factory()->create(['name' => 'Spare climbing'])->keys()->attach($store);
+        Key::factory()->heldBy($outsider)->create(['name' => 'Shared climbing'])->locks()->attach($store);
+        Key::factory()->create(['name' => 'Spare climbing'])->locks()->attach($store);
 
         $warden = User::factory()->create(['name' => 'Sam Warden']);
-        KeyRing::factory()->heldBy($warden)->create(['name' => 'Warden ring'])->keys()->attach($wardenKey);
+        Key::factory()->heldBy($warden)->create(['name' => 'Warden ring'])->locks()->attach($wardenKey);
 
-        KeyRing::factory()->heldBy($outsider)->create(['name' => 'Shooting ring'])->keys()->attach($guns);
+        Key::factory()->heldBy($outsider)->create(['name' => 'Shooting ring'])->locks()->attach($guns);
 
         $this->actingAs($manager);
 
-        $this->get(TeamKeyRingResource::getUrl('index'))
+        $this->get(TeamKeyResource::getUrl('index'))
             ->assertOk()
             ->assertSee('Shared climbing')
             ->assertSee('Robin Outsider')
@@ -272,7 +273,7 @@ class KeyAccessTest extends TestCase
             ->assertDontSee('Britannia shooting store')
             ->assertDontSee('07000999888')
             ->assertDontSee('07000111222')
-            ->assertDontSee('New key ring');
+            ->assertDontSee('New key');
     }
 
     public function test_a_member_sees_only_the_key_rings_they_hold(): void
@@ -280,31 +281,31 @@ class KeyAccessTest extends TestCase
         $member = User::factory()->create(['name' => 'Alex Member']);
         $other = User::factory()->create(['name' => 'Blake Other']);
 
-        $store = Key::factory()->create(['name' => 'Climbing store']);
-        $wardenKey = Key::factory()->create(['name' => 'Warden key']);
+        $store = Lock::factory()->create(['name' => 'Climbing store']);
+        $wardenKey = Lock::factory()->create(['name' => 'Warden key']);
         $wardenKey->covers()->attach($store);
 
-        $own = KeyRing::factory()->heldBy($member)->create(['name' => 'My warden ring']);
-        $own->keys()->attach($wardenKey);
-        KeyRing::factory()->heldBy($other)->create(['name' => 'Someone else']);
+        $own = Key::factory()->heldBy($member)->create(['name' => 'My warden ring']);
+        $own->locks()->attach($wardenKey);
+        Key::factory()->heldBy($other)->create(['name' => 'Someone else']);
 
         Filament::setCurrentPanel(Filament::getPanel('member'));
         $this->actingAs($member);
 
-        $this->get(MemberKeyRingResource::getUrl('index'))
+        $this->get(MemberKeyResource::getUrl('index'))
             ->assertOk()
-            ->assertSee('Key Rings')
+            ->assertSee('Keys')
             ->assertSee('My warden ring')
             ->assertSee('Warden key')
-            ->assertSee('These are the key rings you hold.')
+            ->assertSee('These are the keys you hold.')
             ->assertDontSee('Someone else')
-            ->assertDontSee('New key ring');
+            ->assertDontSee('New key');
 
-        $this->get(MemberKeyRingResource::getUrl('view', ['record' => $own]))
+        $this->get(MemberKeyResource::getUrl('view', ['record' => $own]))
             ->assertOk()
             ->assertSee('Warden key, which also opens Climbing store');
 
-        $this->get(MemberKeyRingResource::getUrl('view', ['record' => KeyRing::query()->where('name', 'Someone else')->first()]))
+        $this->get(MemberKeyResource::getUrl('view', ['record' => Key::query()->where('name', 'Someone else')->first()]))
             ->assertNotFound();
     }
 
@@ -323,18 +324,18 @@ class KeyAccessTest extends TestCase
             'token' => BookingAttendance::generateToken(),
         ]);
 
-        $store = Key::factory()->create(['name' => 'Climbing store']);
+        $store = Lock::factory()->create(['name' => 'Climbing store']);
         $store->requirements()->create([
             'activity_id' => $booking->activity_id,
             'venue_id' => $booking->venue_id,
         ]);
-        $shared = KeyRing::factory()->heldBy($holder)->create(['name' => 'Shared climbing']);
-        $shared->keys()->attach($store);
-        KeyRing::factory()->create(['name' => 'Spare climbing']);
-        $spare = KeyRing::query()->where('name', 'Spare climbing')->first();
-        $spare->keys()->attach($store);
-        $door = Key::factory()->create(['name' => 'Front door']);
-        KeyRing::factory()->heldBy($other)->create(['name' => 'Door ring'])->keys()->attach($door);
+        $shared = Key::factory()->heldBy($holder)->create(['name' => 'Shared climbing']);
+        $shared->locks()->attach($store);
+        Key::factory()->create(['name' => 'Spare climbing']);
+        $spare = Key::query()->where('name', 'Spare climbing')->first();
+        $spare->locks()->attach($store);
+        $door = Lock::factory()->create(['name' => 'Front door']);
+        Key::factory()->heldBy($other)->create(['name' => 'Door ring'])->locks()->attach($door);
 
         Filament::setCurrentPanel(Filament::getPanel('manage'));
         $this->actingAs($manager);
@@ -409,14 +410,14 @@ class KeyAccessTest extends TestCase
             'permit_type' => 'supervisory',
         ])->create(['expires_on' => now()->subDay()->toDateString()]);
 
-        $store = Key::factory()->create(['name' => 'Climbing store']);
+        $store = Lock::factory()->create(['name' => 'Climbing store']);
         $store->requirements()->create([
             'activity_id' => $booking->activity_id,
             'venue_id' => $booking->venue_id,
         ]);
-        KeyRing::factory()->heldBy($holder)->create(['name' => 'Shared climbing'])->keys()->attach($store);
-        $unrelated = Key::factory()->create(['name' => 'Unrelated key']);
-        KeyRing::factory()->heldBy($member)->create(['name' => 'Unrelated ring'])->keys()->attach($unrelated);
+        Key::factory()->heldBy($holder)->create(['name' => 'Shared climbing'])->locks()->attach($store);
+        $unrelated = Lock::factory()->create(['name' => 'Unrelated key']);
+        Key::factory()->heldBy($member)->create(['name' => 'Unrelated ring'])->locks()->attach($unrelated);
 
         foreach ([$lead, $holder, $member] as $person) {
             $booking->attendees()->attach($person->id, [
@@ -549,32 +550,32 @@ class KeyAccessTest extends TestCase
         $team->activities()->sync([$climbing->getKey()]);
         $team->venues()->sync([$campsite->getKey()]);
 
-        $store = Key::factory()->create(['name' => 'Climbing store']);
+        $store = Lock::factory()->create(['name' => 'Climbing store']);
         $store->requirements()->create([
             'activity_id' => $climbing->getKey(),
             'venue_id' => $campsite->getKey(),
         ]);
 
-        $guns = Key::factory()->create(['name' => 'Britannia shooting store']);
+        $guns = Lock::factory()->create(['name' => 'Britannia shooting store']);
         $guns->requirements()->create([
             'activity_id' => $shooting->getKey(),
             'venue_id' => $britannia->getKey(),
         ]);
 
-        $wardenKey = Key::factory()->create(['name' => 'Warden key']);
+        $wardenKey = Lock::factory()->create(['name' => 'Warden key']);
         $wardenKey->covers()->attach($store);
 
         $climber = User::factory()->create(['name' => 'Pat Climber']);
         $team->grant($climber, MembershipRole::Member);
-        KeyRing::factory()->heldBy($climber)->create(['name' => 'Shared climbing'])->keys()->attach($store);
+        Key::factory()->heldBy($climber)->create(['name' => 'Shared climbing'])->locks()->attach($store);
 
         $warden = User::factory()->create(['name' => 'Sam Warden']);
         $team->grant($warden, MembershipRole::Member);
-        KeyRing::factory()->heldBy($warden)->create(['name' => 'Warden ring'])->keys()->attach($wardenKey);
+        Key::factory()->heldBy($warden)->create(['name' => 'Warden ring'])->locks()->attach($wardenKey);
 
         $shooter = User::factory()->create(['name' => 'Alex Shooter']);
         $team->grant($shooter, MembershipRole::Member);
-        KeyRing::factory()->heldBy($shooter)->create(['name' => 'Shooting ring'])->keys()->attach($guns);
+        Key::factory()->heldBy($shooter)->create(['name' => 'Shooting ring'])->locks()->attach($guns);
 
         $this->actingAs($manager);
         Filament::setTenant($team);
@@ -596,7 +597,7 @@ class KeyAccessTest extends TestCase
             ->assertCanSeeTableRecords([$climber, $warden])
             ->assertCanNotSeeTableRecords([$shooter]);
 
-        Livewire::test(KeysRelationManager::class, [
+        Livewire::test(LocksRelationManager::class, [
             'ownerRecord' => $climber,
             'pageClass' => ViewMember::class,
         ])
@@ -605,7 +606,7 @@ class KeyAccessTest extends TestCase
             ->assertDontSee('Britannia shooting store')
             ->assertDontSee('Warden key');
 
-        Livewire::test(KeysRelationManager::class, [
+        Livewire::test(LocksRelationManager::class, [
             'ownerRecord' => $warden,
             'pageClass' => ViewMember::class,
         ])
@@ -614,7 +615,7 @@ class KeyAccessTest extends TestCase
             ->assertDontSee('Britannia shooting store')
             ->assertDontSee('Warden key');
 
-        Livewire::test(KeysRelationManager::class, [
+        Livewire::test(LocksRelationManager::class, [
             'ownerRecord' => $shooter,
             'pageClass' => ViewMember::class,
         ])->assertForbidden();
@@ -629,15 +630,15 @@ class KeyAccessTest extends TestCase
         $uninvited = User::factory()->teamMember($team)->create(['name' => 'Uma Uninvited']);
         $booking = Booking::factory()->forTeam($team)->create();
 
-        $store = Key::factory()->create(['name' => 'Climbing store']);
+        $store = Lock::factory()->create(['name' => 'Climbing store']);
         $store->requirements()->create([
             'activity_id' => $booking->activity_id,
             'venue_id' => $booking->venue_id,
         ]);
-        KeyRing::factory()->heldBy($declined)->create(['name' => 'Declined ring'])->keys()->attach($store);
-        KeyRing::factory()->heldBy($maybe)->create(['name' => 'Maybe ring'])->keys()->attach($store);
-        KeyRing::factory()->heldBy($uninvited)->create(['name' => 'Uninvited ring'])->keys()->attach($store);
-        KeyRing::factory()->create(['name' => 'Cupboard ring'])->keys()->attach($store);
+        Key::factory()->heldBy($declined)->create(['name' => 'Declined ring'])->locks()->attach($store);
+        Key::factory()->heldBy($maybe)->create(['name' => 'Maybe ring'])->locks()->attach($store);
+        Key::factory()->heldBy($uninvited)->create(['name' => 'Uninvited ring'])->locks()->attach($store);
+        Key::factory()->create(['name' => 'Cupboard ring'])->locks()->attach($store);
 
         $booking->attendees()->attach($declined->id, [
             'status' => BookingAttendeeStatus::Declined->value,
@@ -701,12 +702,12 @@ class KeyAccessTest extends TestCase
             'token' => BookingAttendance::generateToken(),
         ]);
 
-        $store = Key::factory()->create(['name' => 'Climbing store']);
+        $store = Lock::factory()->create(['name' => 'Climbing store']);
         $store->requirements()->create([
             'activity_id' => $booking->activity_id,
             'venue_id' => $booking->venue_id,
         ]);
-        KeyRing::factory()->heldBy($holder)->create(['name' => 'Shared climbing'])->keys()->attach($store);
+        Key::factory()->heldBy($holder)->create(['name' => 'Shared climbing'])->locks()->attach($store);
 
         Filament::setCurrentPanel(Filament::getPanel('manage'));
         $this->actingAs($manager);

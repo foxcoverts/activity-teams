@@ -34,7 +34,7 @@ When an enum is shown in Filament, give it a label, and a color and icon when th
 - [US-07 Qualification Expiry Tracking](US-07-qualification-expiry-tracking.md) — `done`
 - [US-47 Multiple Activity Teams](US-47-multiple-activity-teams.md) — `done`
 - [US-49 System Administration](US-49-system-administration.md) — `done`
-- [US-51 Pass a Key Ring](US-51-pass-a-key-ring.md) — `done`
+- [US-51 Pass a Key Ring](US-51-pass-a-key.md) — `done`
 
 ## Bookings & Scheduling Lifecycle
 

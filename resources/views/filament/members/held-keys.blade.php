@@ -11,6 +11,6 @@
             @endif
         </section>
     @empty
-        <p class="text-gray-500 dark:text-gray-400">{{ __('No keys recorded.') }}</p>
+        <p class="text-gray-500 dark:text-gray-400">{{ __('Opens no locks.') }}</p>
     @endforelse
 </div>

@@ -3,7 +3,7 @@
 namespace App\Actions;
 
 use App\Models\Booking;
-use App\Models\KeyRing;
+use App\Models\Key;
 use App\Models\Qualification;
 use App\Models\TeamMembership;
 use App\Models\User;
@@ -20,7 +20,7 @@ class ExportPersonalDataAction
             'qualifications',
             'bookings.activity',
             'ledBookings.activity',
-            'keyRings.keys',
+            'keys.locks',
         ]);
 
         return [
@@ -54,9 +54,9 @@ class ExportPersonalDataAction
                 'status' => $booking->status?->value,
                 'role' => 'lead',
             ]))->values()->all(),
-            'key_rings' => $user->keyRings->map(fn (KeyRing $ring): array => [
+            'keys' => $user->keys->map(fn (Key $ring): array => [
                 'name' => $ring->name,
-                'keys' => $ring->keys->pluck('name')->all(),
+                'locks' => $ring->locks->pluck('name')->all(),
             ])->all(),
         ];
     }

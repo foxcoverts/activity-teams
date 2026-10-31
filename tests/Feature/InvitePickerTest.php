@@ -13,7 +13,7 @@ use App\Models\ActivityAudience;
 use App\Models\Booking;
 use App\Models\BookingAttendance;
 use App\Models\Key;
-use App\Models\KeyRing;
+use App\Models\Lock;
 use App\Models\Qualification;
 use App\Models\User;
 use App\Support\MailPreference;
@@ -170,15 +170,15 @@ class InvitePickerTest extends TestCase
     {
         [$manager, $booking, $qualified, $other] = $this->teamWithRequirement();
         $holder = User::factory()->teamMember()->create(['name' => 'Robin Outsider']);
-        $key = Key::factory()->create(['name' => 'Climbing store']);
+        $key = Lock::factory()->create(['name' => 'Climbing store']);
         $key->requirements()->create([
             'activity_id' => $booking->activity_id,
             'venue_id' => $booking->venue_id,
         ]);
-        $ring = KeyRing::factory()->heldBy($holder)->create(['name' => 'Shared climbing']);
-        $ring->keys()->attach($key);
-        $spare = Key::factory()->create(['name' => 'Front door']);
-        KeyRing::factory()->heldBy($other)->create(['name' => 'Spare door'])->keys()->attach($spare);
+        $ring = Key::factory()->heldBy($holder)->create(['name' => 'Shared climbing']);
+        $ring->locks()->attach($key);
+        $spare = Lock::factory()->create(['name' => 'Front door']);
+        Key::factory()->heldBy($other)->create(['name' => 'Spare door'])->locks()->attach($spare);
 
         $this->actingAs($manager);
 

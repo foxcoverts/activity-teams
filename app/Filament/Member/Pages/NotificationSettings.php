@@ -106,7 +106,7 @@ class NotificationSettings extends Page implements HasTable
                     ->schema([
                         Placeholder::make('manager_notice')
                             ->hiddenLabel()
-                            ->content(__('Mail about leading a team — such as a booking that needs a lead instructor, or a key ring returning to the cupboard — is always on. That is part of being a manager.')),
+                            ->content(__('Mail about leading a team — such as a booking that needs a lead instructor, or a key returning to the cupboard — is always on. That is part of being a manager.')),
                     ]),
                 Section::make()
                     ->schema([
