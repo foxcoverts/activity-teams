@@ -86,6 +86,7 @@ class QualificationResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
+            ->defaultSort('expires_on')
             ->columns([
                 TextColumn::make('type_label')
                     ->label(__('Type')),

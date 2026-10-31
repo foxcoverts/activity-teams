@@ -176,6 +176,7 @@ class UserResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
+            ->defaultSort('name')
             ->recordTitleAttribute('name')
             ->modifyQueryUsing(function (Builder $query, HasTable $livewire): Builder {
                 $teamId = static::filteredTeamId($livewire);

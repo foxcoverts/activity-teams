@@ -46,8 +46,7 @@ class KeyRingResource extends Resource
                 fn (Builder $query) => $query->where('holder_id', $user->getKey()),
                 fn (Builder $query) => $query->whereRaw('0 = 1'),
             )
-            ->with('keys.covers')
-            ->orderBy('name');
+            ->with('keys.covers');
     }
 
     public static function infolist(Schema $schema): Schema
@@ -78,6 +77,7 @@ class KeyRingResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
+            ->defaultSort('name')
             ->columns([
                 TextColumn::make('name')
                     ->label(__('Key ring')),

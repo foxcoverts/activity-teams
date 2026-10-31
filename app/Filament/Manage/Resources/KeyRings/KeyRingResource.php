@@ -75,8 +75,7 @@ class KeyRingResource extends Resource
                 'keys.covers.requirements.venue',
                 'keys.requirements.activity',
                 'keys.requirements.venue',
-            ])
-            ->orderBy('name');
+            ]);
         $team = static::currentTeam();
 
         if (! $team instanceof Team) {
@@ -122,6 +121,7 @@ class KeyRingResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
+            ->defaultSort('name')
             ->columns([
                 TextColumn::make('name')
                     ->label(__('Key ring'))

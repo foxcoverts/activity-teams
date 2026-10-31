@@ -284,6 +284,7 @@ class BookingResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
+            ->defaultSort('start_at')
             ->recordTitleAttribute('display_name')
             ->columns([
                 TextColumn::make('activity.name')
@@ -308,14 +309,6 @@ class BookingResource extends Resource
                     ->searchable(),
                 TextColumn::make('leadInstructor.name')
                     ->searchable(),
-                TextColumn::make('created_at')
-                    ->dateTime('M j, Y H:i')
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-                TextColumn::make('updated_at')
-                    ->dateTime('M j, Y H:i')
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
                 //
