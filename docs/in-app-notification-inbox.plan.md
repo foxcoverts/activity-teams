@@ -35,7 +35,7 @@ Classify by **how soon someone must act or see it**, not by how often it fires o
 - **Preference sink:** when [US-61](stories/US-61-notification-settings.md) would block an optional/immediate booking send, still write an in-app inbox item (no ICS) so nothing is lost.
 - **Manager “always-on”** means the channel cannot be muted for recording / digest eligibility — not that every manager alert must send SMTP immediately.
 - **Daily combined email** (extends [US-17](stories/US-17-schedule-digest-changelog.md)): one message per member (including managers). **Inbox / “you have N new notifications” before the rota digest.**
-- **Direct email counts as read** for that inbox item (unless a bounce comes back). A summary “you have N new” mail does not.
+- **Direct email counts as read** for that inbox item (unless a bounce comes back). Same rule for every path that successfully emails an item’s **full content** — immediate dual-write **or** the digest “send that one message” flush. A summary “you have N new” mail does not.
 
 ```mermaid
 flowchart TD
@@ -102,9 +102,17 @@ When writing from a suppressed preference path, still store the same content tha
 
 ### Read vs notified
 
-- **Direct email ⇒ read.** If we successfully send someone the **full content** of a specific inbox item (the single-item flush path: `E = 1` and no rota), set `read_at` as well as `digest_notified_at`. They already got the message in email; the inbox should not keep nagging it as unread.
+Path-agnostic rule: **any successful direct send of an item’s full content marks that inbox row read** (and stores `outbound_message_id`). Implement once (e.g. on `NotificationDelivery` / inbox writer) and call it from every direct-send site — do not special-case only the digest job.
+
+Applies to both:
+
+1. **Immediate + inbox** — if a send path both emails the full content now **and** writes (or updates) an inbox row for that same notice, create/update the row with `read_at` and `digest_notified_at` already set. The member got the email; the inbox is a record, not an unread nag. (Today, successful calendar/auth SMTP usually has no inbox row; preference-blocked booking mail writes inbox **without** SMTP and stays unread/in-app-only. If a future or optional dual-write lands an inbox row alongside a successful immediate send, it is born read.)
+2. **Digest “send that one message”** (`E = 1` and no rota) — after that single full-content email succeeds, set `read_at` and `digest_notified_at` on that one item.
+
+Also:
+
 - **Summary email ⇒ notified only.** The “you have :NewTotal new notifications” mail is a pointer, not the content. Stamp `digest_notified_at` only; leave `read_at` null until they open the item in the app (or until a later direct send of that item’s content).
-- **Bounce ⇒ unread again.** If we get a bounce for a correlated outbound message, clear `read_at` (and keep or clear `digest_notified_at` so it can resurface on the next digest — prefer clearing both so it counts as new/unread again). Wire this into whatever bounce/DSN path exists or is added; do not invent a full bounce product in this slice beyond that correlation.
+- **Bounce ⇒ unread again.** If we get a bounce for a correlated outbound message, clear `read_at` (and prefer clearing `digest_notified_at` too so it counts as new/unread again). Wire into whatever bounce/DSN path exists or is added; do not invent a full bounce product in this slice beyond that correlation.
 
 ## Member UI
 
@@ -159,7 +167,7 @@ No per-booking `References` on this mail (US-17).
 2. `NotificationDelivery` router keyed by urgency; migrate deferrable senders to `inbox` (incl. invitation declined, last-manager leaving, key-ring holder leaving); stop per-message `UnhandledInboundMail`; coalesced system-admin inbound nudge; keep only calendar/auth on `immediate`.
 3. Preference-off path: write inbox item when optional (and when immediate booking update/invite is suppressed).
 4. Daily combined digest job + mailable (incl. admin inbound count for system admins); enable `bookings.digest` on Notifications; update stories.
-5. Focused tests: urgency tier routing, no per-message unhandled-inbound SMTP, coalesced admin nudge, preference-off still creates inbox, digest send/skip/single/many, single direct send marks read, summary does not mark read, bounce clears read, iMIP/auth still immediate, stewardship ops deferred to inbox.
+5. Focused tests: urgency tier routing, no per-message unhandled-inbound SMTP, coalesced admin nudge, preference-off still creates inbox, digest send/skip/single/many, digest single-item direct send marks read, immediate+inbox dual-write marks read via the same helper, summary does not mark read, bounce clears read, iMIP/auth still immediate, stewardship ops deferred to inbox.
 
 ## Out of scope this slice
 
