@@ -20,4 +20,4 @@ As a Team Member, I want a secure, token-based .ics calendar feed link so I can 
 
 ## Progress
 
-Feeds, per-user tokens (including revoke/regenerate), CLASS:PRIVATE, and sibling RELATED-TO are in place. LOCATION is still the venue name. Structured postal address and GEO are [US-65](US-65-ics-precise-location.md); do not treat that leftover wording as reopening this story.
+Feeds, per-user tokens (including revoke/regenerate), CLASS:PRIVATE, and sibling RELATED-TO are in place. Precise LOCATION and GEO are [US-65](US-65-ics-precise-location.md) and are done; do not treat that follow-up as reopening this story.
