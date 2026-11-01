@@ -330,7 +330,7 @@ class ActivityTeamsTest extends TestCase
             ->get('/manage/'.$team->slug)
             ->assertOk()
             ->assertSeeTextInOrder([
-                'Team admin',
+                'Team',
                 'Activities',
                 'Bookings',
                 'Venues',
@@ -344,7 +344,7 @@ class ActivityTeamsTest extends TestCase
         $this->actingAs($manager)
             ->get('/manage/'.$manager->managedTeams()->first()->slug)
             ->assertOk()
-            ->assertSee('Team admin')
+            ->assertSee('Team')
             ->assertSee('Activities')
             ->assertDontSee('Site admin')
             ->assertDontSee('Activity catalog');

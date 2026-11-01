@@ -2,13 +2,12 @@
 
 namespace App\Filament\Admin\Resources\Teams\Tables;
 
-use App\Filament\Manage\PanelNavigationItem as ManagePanelNavigationItem;
+use App\Filament\Manage\Pages\Dashboard as ManageDashboard;
 use App\Filament\Manage\Resources\Members\MemberResource;
 use App\Models\Team;
 use App\Support\Palette;
 use Filament\Actions\Action;
 use Filament\Actions\EditAction;
-use Filament\Pages\Dashboard;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
@@ -45,10 +44,10 @@ class TeamsTable
             ->recordActions([
                 EditAction::make(),
                 Action::make('manage')
-                    ->label(ManagePanelNavigationItem::label())
-                    ->icon(ManagePanelNavigationItem::icon())
+                    ->label(ManageDashboard::getNavigationLabel())
+                    ->icon(ManageDashboard::getNavigationIcon())
                     ->color(Palette::positive())
-                    ->url(fn (Team $record): string => Dashboard::getUrl(panel: 'manage', tenant: $record)),
+                    ->url(fn (Team $record): string => ManageDashboard::getUrl(panel: 'manage', tenant: $record)),
             ]);
     }
 }

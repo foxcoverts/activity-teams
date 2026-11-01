@@ -50,7 +50,7 @@ class AuthenticationTest extends TestCase
 
         $this->get('/bookings')
             ->assertOk()
-            ->assertSeeTextInOrder(['Dashboard', 'Manage'])
+            ->assertSeeTextInOrder(['Dashboard', 'Manage Team'])
             ->assertSee('/manage/'.$lastManagedTeam->slug, false);
     }
 
@@ -183,7 +183,7 @@ class AuthenticationTest extends TestCase
 
         $this->get('/bookings')
             ->assertOk()
-            ->assertSee('Manage')
+            ->assertSee('Manage Team')
             ->assertDontSee('Admin')
             ->assertDontSee(Filament::getPanel('admin')->getUrl(), false);
     }
@@ -250,14 +250,14 @@ class AuthenticationTest extends TestCase
         $this->actingAs($manager)
             ->get('/manage/'.$team->slug)
             ->assertOk()
-            ->assertSeeTextInOrder(['Dashboard', 'Members', 'Team admin'])
+            ->assertSeeTextInOrder(['Dashboard', 'Manage Team', 'Team', 'Members'])
             ->assertDontSee('Admin', false)
             ->assertSee('href="'.$membersUrl.'"', false);
 
         $this->actingAs($admin)
             ->get('/manage/'.$team->slug)
             ->assertOk()
-            ->assertSeeTextInOrder(['Dashboard', 'Members', 'Admin', 'Team admin'])
+            ->assertSeeTextInOrder(['Dashboard', 'Manage Team', 'Admin', 'Team'])
             ->assertSee('href="'.$membersUrl.'"', false);
     }
 
@@ -270,13 +270,13 @@ class AuthenticationTest extends TestCase
             ->get('/')
             ->assertOk()
             ->assertSee('Admin')
-            ->assertDontSee('Manage');
+            ->assertDontSee('Manage Team');
 
         Filament::setCurrentPanel(Filament::getPanel('admin'));
         $this->actingAs($admin)
             ->get('/admin')
             ->assertOk()
-            ->assertDontSee('Manage', false);
+            ->assertDontSee('Manage Team', false);
     }
 
     public function test_admin_sidebar_links_back_to_members_panel(): void
@@ -289,14 +289,14 @@ class AuthenticationTest extends TestCase
         $this->actingAs($admin)
             ->get('/admin')
             ->assertOk()
-            ->assertSeeTextInOrder(['Dashboard', 'Members', 'Manage', 'Site admin'])
+            ->assertSeeTextInOrder(['Dashboard', 'Manage Team', 'Admin', 'Site admin'])
             ->assertSee('href="'.$membersUrl.'"', false);
 
         $this->actingAs($oversight)
             ->get('/admin')
             ->assertOk()
-            ->assertSeeTextInOrder(['Dashboard', 'Members', 'Site admin'])
-            ->assertDontSee('Manage', false)
+            ->assertSeeTextInOrder(['Dashboard', 'Admin', 'Site admin'])
+            ->assertDontSee('Manage Team', false)
             ->assertSee('href="'.$membersUrl.'"', false);
     }
 }

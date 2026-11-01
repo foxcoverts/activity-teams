@@ -11,7 +11,7 @@ enum NavigationGroup: string implements HasLabel
     public function getLabel(): string
     {
         return match ($this) {
-            self::Team => __('Team admin'),
+            self::Team => __('Team'),
         };
     }
 }

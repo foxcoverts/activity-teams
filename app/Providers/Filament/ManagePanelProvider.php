@@ -2,12 +2,12 @@
 
 namespace App\Providers\Filament;
 
-use App\Filament\Admin\PanelNavigationItem as AdminPanelNavigationItem;
+use App\Filament\Admin\Pages\Dashboard as AdminDashboard;
 use App\Filament\Auth\EditProfile;
 use App\Filament\Manage\NavigationGroup;
-use App\Filament\Manage\PanelNavigationItem as ManagePanelNavigationItem;
+use App\Filament\Manage\Pages\Dashboard;
+use App\Filament\Member\Pages\Dashboard as MemberDashboard;
 use App\Filament\Member\Pages\NotificationSettings;
-use App\Filament\Member\PanelNavigationItem as MemberPanelNavigationItem;
 use App\Filament\Pages\ChangePassword;
 use App\Http\Middleware\RememberManageTeam;
 use App\Http\Middleware\RequireProfileConfirmation;
@@ -16,11 +16,9 @@ use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
-use Filament\Pages\Dashboard;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
-use Filament\View\PanelsIconAlias;
 use Filament\Widgets\AccountWidget;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
@@ -43,9 +41,6 @@ class ManagePanelProvider extends PanelProvider
             ->colors([
                 'primary' => Color::Sky,
             ])
-            ->icons([
-                PanelsIconAlias::PAGES_DASHBOARD_NAVIGATION_ITEM => ManagePanelNavigationItem::icon(),
-            ])
             ->viteTheme('resources/css/filament/theme.css')
             ->plugin(FilamentActivitylog::make())
             ->tenant(Team::class, slugAttribute: 'slug')
@@ -64,8 +59,8 @@ class ManagePanelProvider extends PanelProvider
                 ChangePassword::userMenuItem(),
             ])
             ->navigationItems([
-                MemberPanelNavigationItem::make(),
-                AdminPanelNavigationItem::make(),
+                MemberDashboard::navigationItem(),
+                AdminDashboard::navigationItem(),
             ])
             ->discoverWidgets(in: app_path('Filament/Manage/Widgets'), for: 'App\\Filament\\Manage\\Widgets')
             ->widgets([

@@ -2,11 +2,12 @@
 
 namespace App\Providers\Filament;
 
-use App\Filament\Admin\PanelNavigationItem as AdminPanelNavigationItem;
+use App\Filament\Admin\Pages\Dashboard as AdminDashboard;
 use App\Filament\Auth\EditProfile;
 use App\Filament\Auth\Login;
 use App\Filament\Auth\Register;
-use App\Filament\Manage\PanelNavigationItem as ManagePanelNavigationItem;
+use App\Filament\Manage\Pages\Dashboard as ManageDashboard;
+use App\Filament\Member\Pages\Dashboard;
 use App\Filament\Member\Pages\NotificationSettings;
 use App\Filament\Pages\ChangePassword;
 use App\Http\Middleware\RequireProfileConfirmation;
@@ -15,7 +16,6 @@ use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
-use Filament\Pages\Dashboard;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
@@ -58,8 +58,8 @@ class MemberPanelProvider extends PanelProvider
                 ChangePassword::userMenuItem(),
             ])
             ->navigationItems([
-                ManagePanelNavigationItem::make(),
-                AdminPanelNavigationItem::make(),
+                ManageDashboard::navigationItem(),
+                AdminDashboard::navigationItem(),
             ])
             ->discoverWidgets(in: app_path('Filament/Member/Widgets'), for: 'App\\Filament\\Member\\Widgets')
             ->widgets([
