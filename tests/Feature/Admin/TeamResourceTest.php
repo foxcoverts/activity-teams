@@ -62,4 +62,21 @@ class TeamResourceTest extends TestCase
         $this->assertFalse($names->contains($former->name));
         $this->assertFalse($names->contains($admin->name));
     }
+
+    public function test_the_manager_filter_none_option_includes_teams_with_only_a_suspended_manager(): void
+    {
+        $admin = User::factory()->systemAdmin()->create();
+        $open = Team::factory()->create(['name' => 'Open']);
+        $suspendedOnly = Team::factory()->create(['name' => 'Suspended Only']);
+        $covered = Team::factory()->create(['name' => 'Covered']);
+        User::factory()->teamManager($suspendedOnly)->create(['suspended' => true]);
+        User::factory()->teamManager($covered)->create();
+
+        $this->actingAs($admin);
+
+        Livewire::test(ListTeams::class)
+            ->filterTable('managers.id', '__empty')
+            ->assertCanSeeTableRecords([$open, $suspendedOnly])
+            ->assertCanNotSeeTableRecords([$covered]);
+    }
 }

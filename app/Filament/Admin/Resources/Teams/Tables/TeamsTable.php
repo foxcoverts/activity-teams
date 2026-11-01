@@ -34,7 +34,7 @@ class TeamsTable
                 SelectFilter::make('managers.id')
                     ->label('Managers')
                     ->relationship(
-                        'managers',
+                        'activeManagers',
                         'name',
                         modifyQueryUsing: fn (Builder $query): Builder => $query
                             ->where('users.suspended', false)

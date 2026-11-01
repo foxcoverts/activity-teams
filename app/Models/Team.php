@@ -62,6 +62,11 @@ class Team extends Model
         return $this->members()->wherePivot('role', MembershipRole::Manager->value);
     }
 
+    public function activeManagers(): BelongsToMany
+    {
+        return $this->managers()->where('users.suspended', false);
+    }
+
     public function activities(): BelongsToMany
     {
         return $this->belongsToMany(Activity::class)
