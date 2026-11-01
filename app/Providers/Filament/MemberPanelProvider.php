@@ -37,7 +37,6 @@ class MemberPanelProvider extends PanelProvider
             ->default()
             ->id('member')
             ->path('')
-            ->brandName('Members')
             ->login(Login::class)
             ->registration(Register::class)
             ->passwordReset()
