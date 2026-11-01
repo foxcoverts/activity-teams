@@ -3,12 +3,9 @@
 namespace App\Actions;
 
 use App\Enums\BookingAttendeeStatus;
-use App\Enums\MailChannel;
-use App\Mail\AttendanceRecordedMail;
 use App\Models\Booking;
 use App\Models\User;
-use App\Support\MailPreference;
-use Illuminate\Support\Facades\Mail;
+use App\Notifications\AttendanceRecordedNotification;
 use Illuminate\Validation\ValidationException;
 
 class OverrideAttendanceAction
@@ -72,11 +69,7 @@ class OverrideAttendanceAction
             return;
         }
 
-        if (! MailPreference::allows($attendee, MailChannel::BookingsMail, $booking)) {
-            return;
-        }
-
-        Mail::to($attendee)->send(new AttendanceRecordedMail($booking, $attendee));
+        $attendee->notify(new AttendanceRecordedNotification($booking, $attendee));
     }
 
     private function stepLeadAway(Booking $booking, User $attendee, User $manager, BookingAttendeeStatus $status): void

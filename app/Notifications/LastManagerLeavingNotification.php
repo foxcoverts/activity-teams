@@ -2,17 +2,19 @@
 
 namespace App\Notifications;
 
+use App\Filament\Admin\Resources\Teams\TeamResource;
 use App\Models\Team;
 use App\Models\User;
+use App\Notifications\Concerns\RecordsInbox;
 use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
-class LastManagerLeavingNotification extends Notification implements ShouldQueue
+class LastManagerLeavingNotification extends Notification
 {
     use Queueable;
+    use RecordsInbox;
 
     public bool $deleteWhenMissingModels = true;
 
@@ -24,12 +26,50 @@ class LastManagerLeavingNotification extends Notification implements ShouldQueue
         $this->afterCommit();
     }
 
-    /**
-     * @return array<int, string>
-     */
-    public function via(object $notifiable): array
+    public function inboxBody(object $notifiable): string
     {
-        return ['mail'];
+        return __(':member was the last manager of :teams and has deleted their account.', [
+            'member' => $this->member->name,
+            'teams' => $this->teams->pluck('name')->join(', '),
+        ]);
+    }
+
+    public function inboxUrl(object $notifiable): ?string
+    {
+        return TeamResource::getUrl('index', [
+            'filters' => [
+                'managers.id' => ['value' => '__empty'],
+            ],
+        ], panel: 'admin');
+    }
+
+    public function inboxAlwaysEmailable(): bool
+    {
+        return true;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function inboxRebuild(): array
+    {
+        return [
+            'member_id' => $this->member->getKey(),
+            'team_ids' => $this->teams->modelKeys(),
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    public static function fromInbox(array $data): self
+    {
+        $rebuild = $data['rebuild'];
+
+        return new self(
+            User::withTrashed()->findOrFail($rebuild['member_id']),
+            Team::query()->whereKey($rebuild['team_ids'])->get(),
+        );
     }
 
     public function toMail(object $notifiable): MailMessage

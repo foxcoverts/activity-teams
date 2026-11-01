@@ -3,13 +3,11 @@
 namespace App\Actions;
 
 use App\Models\Key;
-use App\Models\Lock;
 use App\Models\Team;
 use App\Models\User;
 use App\Notifications\KeyHolderLeavingNotification;
 use App\Notifications\LastManagerLeavingNotification;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Notification;
@@ -42,10 +40,8 @@ class DeleteUserAction
             Notification::send($this->systemAdmins(), new LastManagerLeavingNotification($user, $teamsWithoutManager));
         }
 
-        $managers = $this->managersForKeys($user, $keys);
-
-        if ($keys->isNotEmpty() && $managers->isNotEmpty()) {
-            Notification::send($managers, new KeyHolderLeavingNotification($user, $keys));
+        if ($keys->isNotEmpty()) {
+            $this->notifyManagersOfHeldKeys($user, $keys);
         }
     }
 
@@ -64,31 +60,53 @@ class DeleteUserAction
 
     /**
      * @param  EloquentCollection<int, Key>  $keys
-     * @return Collection<int, User>
      */
-    private function managersForKeys(User $user, EloquentCollection $keys): Collection
+    private function notifyManagersOfHeldKeys(User $user, EloquentCollection $keys): void
     {
-        $keyIds = $keys->flatMap(fn (Key $ring) => $ring->locks->modelKeys())->unique()->all();
+        /** @var array<string, array{team: Team, keys: EloquentCollection<int, Key>}> $groups */
+        $groups = [];
+        $unmatched = new EloquentCollection;
 
-        $teams = Team::query()
-            ->with('managers')
-            ->get()
-            ->filter(function (Team $team) use ($keyIds): bool {
-                if ($keyIds === []) {
-                    return false;
-                }
+        foreach ($keys as $ring) {
+            $teams = $ring->interestedTeams();
 
-                return Lock::query()->relevantTo($team)->whereKey($keyIds)->exists();
-            });
+            if ($teams->isEmpty()) {
+                $unmatched->push($ring);
 
-        if ($teams->isEmpty()) {
-            $teams = $user->teams()->with('managers')->get();
+                continue;
+            }
+
+            foreach ($teams as $team) {
+                $groups[(string) $team->getKey()]['team'] = $team;
+                $groups[(string) $team->getKey()]['keys'] ??= new EloquentCollection;
+                $groups[(string) $team->getKey()]['keys']->push($ring);
+            }
         }
 
-        return $teams
-            ->flatMap(fn (Team $team) => $team->managers)
-            ->unique('id')
-            ->filter(fn (User $manager): bool => $manager->isActive() && ! $manager->isSuspended() && $manager->hasVerifiedEmail())
-            ->values();
+        if ($unmatched->isNotEmpty()) {
+            foreach ($user->teams()->with('managers')->get() as $team) {
+                $groups[(string) $team->getKey()]['team'] = $team;
+                $groups[(string) $team->getKey()]['keys'] ??= new EloquentCollection;
+
+                foreach ($unmatched as $ring) {
+                    $groups[(string) $team->getKey()]['keys']->push($ring);
+                }
+            }
+        }
+
+        foreach ($groups as $group) {
+            $team = $group['team'];
+            $team->loadMissing('managers');
+
+            $managers = $team->managers
+                ->filter(fn (User $manager): bool => $manager->isActive() && ! $manager->isSuspended() && $manager->hasVerifiedEmail())
+                ->values();
+
+            if ($managers->isEmpty()) {
+                continue;
+            }
+
+            Notification::send($managers, new KeyHolderLeavingNotification($user, $group['keys'], $team));
+        }
     }
 }

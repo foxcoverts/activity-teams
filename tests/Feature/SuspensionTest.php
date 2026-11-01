@@ -14,10 +14,10 @@ use App\Filament\Manage\Resources\Members\Pages\ViewMember;
 use App\Filament\Member\Resources\Bookings\BookingResource as MemberBookingResource;
 use App\Filament\Member\Resources\Bookings\Pages\ViewBooking as MemberViewBooking;
 use App\Filament\Member\Resources\Bookings\RelationManagers\AttendeesRelationManager as MemberAttendeesRelationManager;
-use App\Mail\LeadNeededMail;
 use App\Models\Booking;
 use App\Models\Team;
 use App\Models\User;
+use App\Notifications\LeadNeededNotification;
 use Filament\Actions\Testing\TestAction;
 use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -153,9 +153,10 @@ class SuspensionTest extends TestCase
         $this->assertTrue($past->fresh()->isConfirmed());
         $this->assertSame($this->member->getKey(), $cancelled->fresh()->lead_instructor_id);
         $this->assertSame($this->manager->getKey(), $other->fresh()->lead_instructor_id);
-        Mail::assertQueued(LeadNeededMail::class, fn (LeadNeededMail $mail): bool => $mail->hasTo($otherManager->email));
-        Mail::assertNotQueued(LeadNeededMail::class, fn (LeadNeededMail $mail): bool => $mail->hasTo($this->manager->email));
-        Mail::assertNotQueued(LeadNeededMail::class, fn (LeadNeededMail $mail): bool => $mail->hasTo($this->member->email));
+        $this->assertTrue($otherManager->notifications()->where('type', LeadNeededNotification::class)->exists());
+        $this->assertFalse($this->manager->notifications()->where('type', LeadNeededNotification::class)->exists());
+        $this->assertFalse($this->member->notifications()->where('type', LeadNeededNotification::class)->exists());
+        Mail::assertNothingQueued();
     }
 
     public function test_the_modal_does_not_mention_bookings_when_there_are_none_to_unassign(): void

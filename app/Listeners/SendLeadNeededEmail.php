@@ -3,10 +3,9 @@
 namespace App\Listeners;
 
 use App\Events\LeadInstructorCleared;
-use App\Mail\LeadNeededMail;
 use App\Models\Team;
 use App\Models\User;
-use Illuminate\Support\Facades\Mail;
+use App\Notifications\LeadNeededNotification;
 
 class SendLeadNeededEmail
 {
@@ -32,7 +31,7 @@ class SendLeadNeededEmail
                 continue;
             }
 
-            Mail::to($manager)->send(new LeadNeededMail($event->booking, $event->previousLead));
+            $manager->notify(new LeadNeededNotification($event->booking, $event->previousLead));
         }
     }
 

@@ -5,6 +5,10 @@
 @source '../../../vendor/ralphjsmit/laravel-filament-activitylog/resources/**/*.blade.php';
 @source '../../../resources/views/vendor/filament-activitylog/**/*.blade.php';
 
+.inbox-notifications .fi-ta-row.fi-selected:not(.fi-striped) {
+    @apply bg-primary-50 dark:bg-primary-400/10;
+}
+
 .fi-ta-col:has(.team-default-action) {
     cursor: pointer;
 }

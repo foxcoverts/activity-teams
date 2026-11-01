@@ -7,6 +7,16 @@ use Filament\Support\Colors\Color;
 final class Palette
 {
     /**
+     * For information.
+     *
+     * @return array<int, string>
+     */
+    public static function informative(): array
+    {
+        return Color::Blue;
+    }
+
+    /**
      * A yes: confirmed, can help.
      *
      * @return array<int, string>

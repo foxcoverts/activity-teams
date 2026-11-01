@@ -5,7 +5,6 @@ namespace App\Actions;
 use App\Enums\BookingAttendeeStatus;
 use App\Enums\CalendarMethod;
 use App\Enums\InboundMailOutcome;
-use App\Mail\UnhandledInboundMail;
 use App\Models\Booking;
 use App\Models\InboundMail;
 use App\Models\Key;
@@ -14,7 +13,6 @@ use App\Models\User;
 use App\Support\InboundCalendar;
 use App\Support\InboundCalendarEvent;
 use App\Support\InboundMailAddress;
-use Illuminate\Support\Facades\Mail;
 use InvalidArgumentException;
 use Throwable;
 
@@ -182,36 +180,7 @@ class ProcessInboundMailAction
         $mail->outcome_detail = $detail;
         $mail->save();
 
-        $this->alertManagersIfNeeded($mail);
-
         return $mail;
-    }
-
-    protected function alertManagersIfNeeded(InboundMail $mail): void
-    {
-        $resource = $mail->resource;
-
-        if (! $resource instanceof Booking && ! $resource instanceof Key && ! $resource instanceof Team) {
-            // From-address / unknown local-part: already lands in the operator inbox.
-            return;
-        }
-
-        $managerEmails = InboundMailAddress::managerEmailsFor($resource);
-        $sender = strtolower((string) $mail->from_address);
-
-        $recipients = User::query()
-            ->whereIn('email', $managerEmails)
-            ->where('suspended', false)
-            ->get()
-            ->reject(fn (User $user): bool => strtolower((string) $user->email) === $sender)
-            ->filter(fn (User $user): bool => $user->hasVerifiedEmail())
-            ->values();
-
-        if ($recipients->isEmpty()) {
-            return;
-        }
-
-        Mail::to($recipients)->send(new UnhandledInboundMail($mail));
     }
 
     protected function resourceFromAddress(?string $address): Booking|Key|Team|null

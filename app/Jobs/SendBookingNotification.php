@@ -10,6 +10,7 @@ use App\Mail\BookingConfirmedMail;
 use App\Mail\BookingInviteMail;
 use App\Models\Booking;
 use App\Models\User;
+use App\Notifications\BookingHeldNotification;
 use App\Support\BookingNotificationWindow;
 use App\Support\MailPreference;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -101,6 +102,13 @@ class SendBookingNotification implements ShouldQueue
             }
 
             if (! MailPreference::allows($attendee, MailChannel::BookingsUpdates, $booking)) {
+                $attendee->notify(new BookingHeldNotification(
+                    $booking,
+                    __('An update to :activity is in your inbox.', [
+                        'activity' => $booking->activity->name,
+                    ]),
+                ));
+
                 continue;
             }
 
@@ -125,6 +133,13 @@ class SendBookingNotification implements ShouldQueue
             }
 
             if (! MailPreference::allows($attendee, MailChannel::BookingsMail, $booking)) {
+                $attendee->notify(new BookingHeldNotification(
+                    $booking,
+                    __('You were invited to :activity.', [
+                        'activity' => $booking->activity->name,
+                    ]),
+                ));
+
                 continue;
             }
 

@@ -1,7 +1,7 @@
 ---
 id: US-17
 title: "Scheduled Schedule Digest & Changelog Notifications"
-status: not-started
+status: done
 area: communications
 scope: extra
 ---
@@ -12,14 +12,15 @@ As a team member, I want to receive an automated periodic digest email summarisi
 
 ## Acceptance criteria
 
-- Dispatches one digest a day. Send nothing when that person's rota is unchanged since the last digest.
-- A person is on the rota for a booking when their attendance is Can help. The digest includes only future bookings.
-- List additions, then removals, then the other future bookings already on the rota. An addition is a future booking they were not on at the last digest and are on now. A removal is a future booking they were on and are no longer on, including because it was cancelled or its time changed.
-- Respects individual notification preference settings.
-- The digest covers many bookings, so it does not set `References` to one booking's revision id.
+- The digest job does not know the time of day. It sends whenever a person's rota changed since the snapshot it stored, or when [US-67](US-67-member-notification-inbox.md) has emailable inbox items. The scheduler runs it daily. A second run with nothing outstanding sends nothing. Turning `bookings.digest` off drops the rota section only and still advances the snapshot.
+- A person is on the rota for a booking when their attendance is Can help. The digest includes only future bookings. The first snapshot is stored and does not email the whole rota.
+- List additions, then removals, then the other future bookings already on the rota. An addition is a future booking they were not on at the last digest and are on now. A removal is a future booking they were on and are no longer on, including because it was cancelled or its time changed. When the same mail also includes inbox items, that section is above the rota.
+- One emailable inbox item and no rota change sends that existing message. Several inbox items, or any emailable inbox item with a rota change, send one summary ("You have N new") plus the rota when it changed. A row read before the run is left out of both.
+- Respects individual notification preference settings. `bookings.digest` off suppresses rota content only.
+- The digest covers many bookings, so it does not set `References` to one booking's revision id. It does not send `List-Unsubscribe`.
 
-A member who changes their own attendance does not get a per-booking mail; this digest is that notice. [US-27](US-27-manager-overridden-attendance.md) sends the per-booking confirmation when a manager makes the change. [US-16](US-16-invitation-nudges-reminders.md) reminds people who have not answered. There is no US-32.
+A member who changes their own attendance does not get a per-booking mail; this digest is that notice. [US-27](US-27-manager-overridden-attendance.md) records the per-booking confirmation in the inbox when a manager makes the change. [US-16](US-16-invitation-nudges-reminders.md) reminds people who have not answered. There is no US-32.
 
 ## Progress
 
-[US-61](US-61-notification-settings.md) reserves `bookings.digest`. Decide `hasSubject` vs `listUnsubscribe` here; gate with `MailPreference::allows`. Show the digest control on the Notifications page when this ships.
+The rota section is the same job as [US-67](US-67-member-notification-inbox.md). `bookings.digest` is on the Notifications page. The job stores a snapshot per person and emails additions, removals, and the remaining future Can-help bookings. It does not set `References` or `List-Unsubscribe`.

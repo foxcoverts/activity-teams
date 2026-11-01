@@ -190,6 +190,14 @@ Booking invite, update, confirm, and cancel mail already leaves the request thro
 
 Use `Mail::assertQueued()` for queued mailables and `Mail::assertSent()` for mail sent inside `SendBookingNotification`.
 
+## Inbox notifications
+
+Every deferrable notice stored through `RecordsInbox` has a URL from `inboxUrl()`. The inbox row opens the resource view page. That page marks the row read and redirects to the URL. It does not render the notice.
+
+Give every new notice a destination: the booking, key, team, person, or list the reader should open. Do not send a notice from a branch where `inboxUrl()` would return null.
+
+If a notice truly cannot have a destination, stop and change `ViewNotification` so it shows the message instead of redirecting. Do not add that screen before such a notice exists.
+
 ## Application Palette
 
 Use `App\Support\Palette` for semantic colors in Filament components and status enums instead of hard-coded Filament color names or `Color` constants:

@@ -32,5 +32,10 @@ class AppServiceProvider extends ServiceProvider
             PanelsRenderHook::TOPBAR_AFTER,
             fn (): View => view('filament.hooks.profile-confirmation-banner'),
         );
+
+        FilamentView::registerRenderHook(
+            PanelsRenderHook::GLOBAL_SEARCH_AFTER,
+            fn (): View => view('filament.hooks.inbox-trigger'),
+        );
     }
 }

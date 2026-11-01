@@ -11,6 +11,7 @@ class PaletteTest extends TestCase
 {
     public function test_meanings_use_one_shade_each(): void
     {
+        $this->assertSame(Color::Blue, Palette::informative());
         $this->assertSame(Color::Green, Palette::positive());
         $this->assertSame(Color::Red, Palette::destructive());
         $this->assertSame(Color::Amber, Palette::uncertain());

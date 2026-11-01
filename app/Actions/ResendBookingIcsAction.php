@@ -3,10 +3,13 @@
 namespace App\Actions;
 
 use App\Enums\CalendarMethod;
+use App\Enums\MailChannel;
 use App\Mail\BookingIcsRefreshMail;
 use App\Models\Booking;
 use App\Models\User;
+use App\Notifications\BookingHeldNotification;
 use App\Support\BookingIcsFactory;
+use App\Support\MailPreference;
 use Illuminate\Support\Facades\Mail;
 
 class ResendBookingIcsAction
@@ -18,6 +21,17 @@ class ResendBookingIcsAction
         }
 
         $booking->loadMissing(['activity', 'venue', 'attendees', 'related']);
+
+        if (! MailPreference::allows($attendee, MailChannel::BookingsMail, $booking)) {
+            $attendee->notify(new BookingHeldNotification(
+                $booking,
+                __('A calendar copy of :activity is in your inbox.', [
+                    'activity' => $booking->activity->name,
+                ]),
+            ));
+
+            return;
+        }
 
         $method = $booking->isCancelled()
             ? CalendarMethod::Cancel

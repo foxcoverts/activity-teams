@@ -9,7 +9,6 @@ use App\Events\BookingCancelled;
 use App\Jobs\SendBookingNotification;
 use App\Mail\BookingCancelledMail;
 use App\Mail\BookingIcsRefreshMail;
-use App\Mail\UnhandledInboundMail;
 use App\Models\Booking;
 use App\Models\InboundMail;
 use App\Models\User;
@@ -84,12 +83,12 @@ class InboundMailReplyTest extends TestCase
         $this->assertSame(InboundMailOutcome::Resent, InboundMail::query()->first()?->outcome);
     }
 
-    public function test_unmapped_reply_is_queued_and_alerts_managers(): void
+    public function test_unmapped_reply_is_queued_without_emailing_managers(): void
     {
         Mail::fake();
 
         [$booking] = $this->bookingWithAttendee();
-        $manager = User::factory()->teamManager($booking->team)->create();
+        User::factory()->teamManager($booking->team)->create();
 
         $ics = $this->ics($booking, 'stranger@example.com', 'REPLY', 'ACCEPTED', (int) $booking->sequence);
 
@@ -98,7 +97,7 @@ class InboundMailReplyTest extends TestCase
             ->assertOk();
 
         $this->assertSame(InboundMailOutcome::Queued, InboundMail::query()->first()?->outcome);
-        Mail::assertQueued(UnhandledInboundMail::class, fn (UnhandledInboundMail $mail): bool => $mail->hasTo($manager->email));
+        Mail::assertNothingQueued();
     }
 
     public function test_cancellation_includes_imip_decline(): void

@@ -2,13 +2,11 @@
 
 namespace App\Actions;
 
-use App\Enums\MailChannel;
 use App\Models\Key;
 use App\Models\User;
 use App\Notifications\KeyPassedFromNotification;
 use App\Notifications\KeyPassedToNotification;
 use App\Notifications\KeyReturnedToCupboardNotification;
-use App\Support\MailPreference;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Support\Facades\Gate;
@@ -52,13 +50,11 @@ class PassKeyAction
     {
         $skipIds = [(string) $actor->getKey()];
 
-        if ($this->shouldNotify($next) && $next instanceof User && ! in_array((string) $next->getKey(), $skipIds, true)
-            && MailPreference::allows($next, MailChannel::KeysMail)) {
+        if ($this->shouldNotify($next) && $next instanceof User && ! in_array((string) $next->getKey(), $skipIds, true)) {
             $next->notify(new KeyPassedToNotification($ring, $previous));
         }
 
-        if ($this->shouldNotify($previous) && $previous instanceof User && ! in_array((string) $previous->getKey(), $skipIds, true)
-            && MailPreference::allows($previous, MailChannel::KeysMail)) {
+        if ($this->shouldNotify($previous) && $previous instanceof User && ! in_array((string) $previous->getKey(), $skipIds, true)) {
             $previous->notify(new KeyPassedFromNotification($ring, $next));
             $skipIds[] = (string) $previous->getKey();
         }

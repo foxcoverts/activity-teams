@@ -29,6 +29,7 @@ use App\Models\Venue;
 use App\Notifications\KeyPassedFromNotification;
 use App\Notifications\KeyPassedToNotification;
 use App\Notifications\KeyReturnedToCupboardNotification;
+use App\Notifications\LeadNeededNotification;
 use App\Support\MailPreference;
 use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -221,7 +222,7 @@ class NotificationSettingsTest extends TestCase
         Mail::assertNotSent(BookingChangedMail::class);
     }
 
-    public function test_lead_needed_mail_still_sends_when_booking_mail_is_off_and_has_no_preferences_footer(): void
+    public function test_lead_needed_is_recorded_when_booking_mail_is_off_and_the_mail_has_no_preferences_footer(): void
     {
         [$booking, $attendee, $actor] = $this->bookingWithAttendee();
         $otherManager = User::factory()->teamManager($booking->team)->create();
@@ -234,7 +235,8 @@ class NotificationSettingsTest extends TestCase
 
         event(new LeadInstructorCleared($booking, $attendee, $actor));
 
-        Mail::assertQueued(LeadNeededMail::class, fn (LeadNeededMail $mail): bool => $mail->hasTo($otherManager->email));
+        $this->assertTrue($otherManager->notifications()->where('type', LeadNeededNotification::class)->exists());
+        Mail::assertNothingQueued();
 
         $html = (new LeadNeededMail($booking, $attendee))->render();
 
@@ -414,7 +416,7 @@ class NotificationSettingsTest extends TestCase
         Mail::assertNotSent(BookingInviteMail::class, fn (BookingInviteMail $mail): bool => $mail->hasTo($attendee->email));
     }
 
-    public function test_key_holder_mail_is_skipped_when_keys_mail_is_off_and_cupboard_manager_mail_still_sends(): void
+    public function test_key_mail_off_still_records_holder_and_cupboard_inbox_items(): void
     {
         Notification::fake();
 
@@ -434,14 +436,14 @@ class NotificationSettingsTest extends TestCase
 
         (new PassKeyAction)($actor, $ring, $receiver->getKey());
 
-        Notification::assertNotSentTo($receiver, KeyPassedToNotification::class);
+        Notification::assertSentTo($receiver, KeyPassedToNotification::class);
         Notification::assertSentTo($holder, KeyPassedFromNotification::class);
 
         Notification::fake();
 
         (new PassKeyAction)($actor, $ring->fresh(), null);
 
-        Notification::assertNotSentTo($receiver, KeyPassedFromNotification::class);
+        Notification::assertSentTo($receiver, KeyPassedFromNotification::class);
         Notification::assertSentTo($otherManager, KeyReturnedToCupboardNotification::class);
     }
 

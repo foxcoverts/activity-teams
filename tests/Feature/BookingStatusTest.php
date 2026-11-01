@@ -26,6 +26,7 @@ use App\Models\BookingAttendance;
 use App\Models\Qualification;
 use App\Models\User;
 use App\Models\Venue;
+use App\Notifications\LeadNeededNotification;
 use App\Support\BookingMailThread;
 use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
@@ -454,17 +455,19 @@ class BookingStatusTest extends TestCase
 
         $reference = BookingMailThread::reference($booking->fresh());
 
-        Mail::assertQueued(LeadNeededMail::class, function (LeadNeededMail $mail) use ($manager, $reference): bool {
-            return $mail->hasTo($manager->email)
-                && str_contains($mail->envelope()->subject, 'Lead needed:')
-                && str_contains($mail->render(), 'Casey Lead')
-                && str_contains($mail->headers()->referencesString() ?? '', $reference);
-        });
-        Mail::assertNotQueued(LeadNeededMail::class, fn (LeadNeededMail $mail): bool => $mail->hasTo($unverified->email));
-        Mail::assertNotQueued(LeadNeededMail::class, fn (LeadNeededMail $mail): bool => $mail->hasTo($inactive->email));
-        Mail::assertNotQueued(LeadNeededMail::class, fn (LeadNeededMail $mail): bool => $mail->hasTo($suspended->email));
-        Mail::assertNotQueued(LeadNeededMail::class, fn (LeadNeededMail $mail): bool => $mail->hasTo($attendee->email));
-        Mail::assertNotQueued(LeadNeededMail::class, fn (LeadNeededMail $mail): bool => $mail->hasTo($lead->email));
+        $this->assertTrue($manager->notifications()->where('type', LeadNeededNotification::class)->exists());
+        $this->assertFalse($unverified->notifications()->where('type', LeadNeededNotification::class)->exists());
+        $this->assertFalse($inactive->notifications()->where('type', LeadNeededNotification::class)->exists());
+        $this->assertFalse($suspended->notifications()->where('type', LeadNeededNotification::class)->exists());
+        $this->assertFalse($attendee->notifications()->where('type', LeadNeededNotification::class)->exists());
+        $this->assertFalse($lead->notifications()->where('type', LeadNeededNotification::class)->exists());
+
+        $mail = new LeadNeededMail($booking->fresh(), $lead);
+
+        $this->assertStringContainsString('Lead needed:', $mail->envelope()->subject);
+        $this->assertStringContainsString('Casey Lead', $mail->render());
+        $this->assertStringContainsString($reference, $mail->headers()->referencesString() ?? '');
+        Mail::assertNothingQueued();
     }
 
     public function test_removing_the_lead_uses_the_update_mail_for_managers_on_the_booking(): void
@@ -494,9 +497,10 @@ class BookingStatusTest extends TestCase
             $job->handle();
         }
 
-        Mail::assertQueued(LeadNeededMail::class, fn (LeadNeededMail $mail): bool => $mail->hasTo($otherManager->email));
-        Mail::assertNotQueued(LeadNeededMail::class, fn (LeadNeededMail $mail): bool => $mail->hasTo($actor->email));
-        Mail::assertNotQueued(LeadNeededMail::class, fn (LeadNeededMail $mail): bool => $mail->hasTo($attendeeManager->email));
+        $this->assertTrue($otherManager->notifications()->where('type', LeadNeededNotification::class)->exists());
+        $this->assertFalse($actor->notifications()->where('type', LeadNeededNotification::class)->exists());
+        $this->assertFalse($attendeeManager->notifications()->where('type', LeadNeededNotification::class)->exists());
+        Mail::assertNotQueued(LeadNeededMail::class);
 
         Mail::assertSent(BookingChangedMail::class, function (BookingChangedMail $mail) use ($actor): bool {
             $html = $mail->render();
