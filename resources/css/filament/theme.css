@@ -159,14 +159,10 @@
     @apply border-t border-gray-200 dark:border-white/10;
 }
 
-.comment-row-ghosted .comment-avatar,
+.comment-row-ghosted .fi-user-avatar,
 .comment-row-ghosted .comment-meta,
 .comment-row-ghosted .comment-body {
     @apply opacity-60;
-}
-
-.comment-avatar {
-    @apply size-10 shrink-0 rounded-full;
 }
 
 .comment-main {

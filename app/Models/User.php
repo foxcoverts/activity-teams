@@ -13,6 +13,7 @@ use Database\Factories\UserFactory;
 use Filament\Auth\Notifications\VerifyEmail;
 use Filament\Facades\Filament;
 use Filament\Models\Contracts\FilamentUser;
+use Filament\Models\Contracts\HasAvatar;
 use Filament\Models\Contracts\HasDefaultTenant;
 use Filament\Models\Contracts\HasTenants;
 use Filament\Panel;
@@ -33,7 +34,7 @@ use Illuminate\Support\Str;
 use Spatie\Activitylog\Models\Concerns\LogsActivity;
 use Spatie\Activitylog\Support\LogOptions;
 
-class User extends Authenticatable implements FilamentUser, HasDefaultTenant, HasTenants, MustVerifyEmail
+class User extends Authenticatable implements FilamentUser, HasAvatar, HasDefaultTenant, HasTenants, MustVerifyEmail
 {
     /** @use HasFactory<UserFactory> */
     use Concerns\HasUid, HasFactory, HasUlids, LogsActivity, Notifiable, SoftDeletes;
@@ -363,6 +364,11 @@ class User extends Authenticatable implements FilamentUser, HasDefaultTenant, Ha
         $hash = hash('sha256', strtolower(trim((string) $this->email)));
 
         return 'https://www.gravatar.com/avatar/'.$hash.'?d=identicon&s='.$size;
+    }
+
+    public function getFilamentAvatarUrl(): ?string
+    {
+        return $this->gravatarUrl(200);
     }
 
     public function isLastSystemAdmin(): bool

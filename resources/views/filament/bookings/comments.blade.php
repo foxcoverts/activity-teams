@@ -29,13 +29,11 @@
                         x-init="$el.scrollIntoView({ block: 'center' })"
                     @endif
                 >
-                    <img
-                        src="{{ $row['avatar'] }}"
-                        alt=""
-                        width="40"
-                        height="40"
-                        class="comment-avatar"
-                    >
+                    <x-filament-panels::avatar.user
+                        :user="$row['authorUser']"
+                        size="lg"
+                        class="shrink-0"
+                    />
 
                     <div class="comment-main">
                         <div class="comment-header">
@@ -146,17 +144,15 @@
 
             @if ($canPost)
                 <form wire:submit="post" class="comment-row comment-composer" x-data="{ canPost: false }">
-                    <img
-                        src="{{ $viewerAvatar }}"
-                        alt=""
-                        width="40"
-                        height="40"
-                        class="comment-avatar"
-                    >
+                    <x-filament-panels::avatar.user
+                        :user="$viewer"
+                        size="lg"
+                        class="shrink-0"
+                    />
 
                     <div class="comment-main">
                         <div class="comment-meta">
-                            <span class="comment-author">{{ $viewerName }}</span>
+                            <span class="comment-author">{{ $viewer->name }}</span>
                         </div>
 
                         <div class="comment-compose">

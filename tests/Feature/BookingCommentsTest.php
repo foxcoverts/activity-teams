@@ -602,6 +602,28 @@ class BookingCommentsTest extends TestCase
             ->assertDontSee('Add a comment...');
     }
 
+    public function test_comments_render_filament_user_avatars_from_gravatar(): void
+    {
+        [, $member, $booking] = $this->party();
+        $member->update(['email' => 'Ada@Example.COM']);
+        Comment::factory()->forBooking($booking)->create([
+            'author_id' => $member->getKey(),
+            'body' => 'Bring helmets.',
+        ]);
+
+        Filament::setCurrentPanel(Filament::getPanel('member'));
+        $this->actingAs($member);
+
+        Livewire::test(BookingComments::class, ['record' => $booking])
+            ->assertSee('Bring helmets.')
+            ->assertSee('fi-user-avatar', false)
+            ->assertSee(
+                'https://www.gravatar.com/avatar/'.hash('sha256', 'ada@example.com').'?d=identicon&amp;s=200',
+                false,
+            )
+            ->assertDontSee('comment-avatar', false);
+    }
+
     public function test_manage_and_member_booking_views_show_comments_under_the_details(): void
     {
         [$manager, $member, $booking] = $this->party();

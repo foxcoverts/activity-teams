@@ -157,8 +157,7 @@ class BookingComments extends Component
             'showOlder' => $this->showOlder,
             'highlightId' => $target?->getKey(),
             'showPanel' => $canPost || $visible->isNotEmpty() || ($hasOlder && ! $this->showOlder),
-            'viewerAvatar' => $viewer->gravatarUrl(),
-            'viewerName' => $viewer->name,
+            'viewer' => $viewer,
         ]);
     }
 
@@ -216,7 +215,7 @@ class BookingComments extends Component
             'id' => $comment->getKey(),
             'body' => $comment->body,
             'author' => $author?->name ?? __('someone'),
-            'avatar' => $author?->gravatarUrl() ?? (new User)->gravatarUrl(),
+            'authorUser' => $author ?? new User,
             'when' => $this->when($comment, $viewer),
             'when_full' => $this->whenFull($comment, $viewer),
             'when_iso' => $this->whenIso($comment, $viewer),

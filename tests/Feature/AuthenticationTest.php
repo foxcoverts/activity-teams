@@ -185,6 +185,24 @@ class AuthenticationTest extends TestCase
             ->assertSee(Filament::getPanel('admin')->getUrl(), false);
     }
 
+    public function test_the_member_dashboard_renders_the_signed_in_users_gravatar(): void
+    {
+        $user = User::factory()->teamMember()->create([
+            'email' => 'Ada@Example.COM',
+        ]);
+
+        Filament::setCurrentPanel(Filament::getPanel('member'));
+        $this->actingAs($user);
+
+        $this->get('/')
+            ->assertOk()
+            ->assertSee('fi-user-avatar', false)
+            ->assertSee(
+                'https://www.gravatar.com/avatar/'.hash('sha256', 'ada@example.com').'?d=identicon&amp;s=200',
+                false,
+            );
+    }
+
     public function test_a_team_manager_does_not_see_the_admin_link_in_the_members_sidebar(): void
     {
         $manager = User::factory()->teamManager()->create();
