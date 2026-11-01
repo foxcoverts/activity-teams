@@ -2,6 +2,7 @@
 
 namespace App\Filament\Member\Resources\NewsPosts;
 
+use App\Filament\Member\NavigationGroup;
 use App\Filament\Member\Resources\NewsPosts\Pages\ListNewsPosts;
 use App\Filament\Member\Resources\NewsPosts\Pages\ViewNewsPost;
 use App\Models\NewsPost;
@@ -19,6 +20,10 @@ class NewsPostResource extends Resource
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedNewspaper;
 
     protected static ?string $recordTitleAttribute = 'title';
+
+    protected static string|\UnitEnum|null $navigationGroup = NavigationGroup::Team;
+
+    protected static ?int $navigationSort = 3;
 
     protected static ?string $navigationLabel = 'News';
 

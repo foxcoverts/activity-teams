@@ -27,6 +27,8 @@ class KeyResource extends Resource
 
     protected static string|\UnitEnum|null $navigationGroup = NavigationGroup::Team;
 
+    protected static ?int $navigationSort = 3;
+
     protected static ?string $modelLabel = 'key';
 
     protected static ?string $pluralModelLabel = 'keys';

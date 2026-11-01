@@ -2,6 +2,7 @@
 
 namespace App\Filament\Member\Resources\Qualifications;
 
+use App\Filament\Member\NavigationGroup;
 use App\Filament\Member\Resources\Qualifications\Pages\ListQualifications;
 use App\Filament\Member\Resources\Qualifications\Pages\ViewQualification;
 use App\Models\Qualification;
@@ -24,6 +25,10 @@ class QualificationResource extends Resource
     protected static ?string $model = Qualification::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedAcademicCap;
+
+    protected static string|\UnitEnum|null $navigationGroup = NavigationGroup::Personal;
+
+    protected static ?int $navigationSort = 2;
 
     protected static ?string $navigationLabel = 'Qualifications';
 

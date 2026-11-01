@@ -7,6 +7,7 @@ use App\Filament\Auth\EditProfile;
 use App\Filament\Auth\Login;
 use App\Filament\Auth\Register;
 use App\Filament\Manage\Pages\Dashboard as ManageDashboard;
+use App\Filament\Member\NavigationGroup;
 use App\Filament\Member\Pages\Dashboard;
 use App\Filament\Member\Pages\Feeds;
 use App\Filament\Member\Pages\NotificationSettings;
@@ -47,6 +48,7 @@ class MemberPanelProvider extends PanelProvider
             ])
             ->viteTheme('resources/css/filament/theme.css')
             ->plugin(FilamentActivitylog::make())
+            ->navigationGroups(NavigationGroup::class)
             ->discoverResources(in: app_path('Filament/Member/Resources'), for: 'App\\Filament\\Member\\Resources')
             ->discoverPages(in: app_path('Filament/Member/Pages'), for: 'App\\Filament\\Member\\Pages')
             ->pages([

@@ -28,7 +28,9 @@ class VenueResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedMapPin;
 
-    protected static string|\UnitEnum|null $navigationGroup = NavigationGroup::Team;
+    protected static string|\UnitEnum|null $navigationGroup = NavigationGroup::Setup;
+
+    protected static ?int $navigationSort = 2;
 
     protected static ?string $navigationLabel = 'Venues';
 

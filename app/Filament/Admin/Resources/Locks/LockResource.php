@@ -39,7 +39,9 @@ class LockResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedLockClosed;
 
-    protected static string|\UnitEnum|null $navigationGroup = NavigationGroup::Site;
+    protected static string|\UnitEnum|null $navigationGroup = NavigationGroup::Inventory;
+
+    protected static ?int $navigationSort = 2;
 
     protected static ?string $recordTitleAttribute = 'name';
 

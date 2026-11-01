@@ -22,7 +22,9 @@ class TeamResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedUserGroup;
 
-    protected static string|\UnitEnum|null $navigationGroup = NavigationGroup::Site;
+    protected static string|\UnitEnum|null $navigationGroup = NavigationGroup::Organisation;
+
+    protected static ?int $navigationSort = 1;
 
     protected static ?string $recordTitleAttribute = 'name';
 

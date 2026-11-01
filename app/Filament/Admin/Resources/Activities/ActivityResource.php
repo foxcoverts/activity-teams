@@ -31,7 +31,9 @@ class ActivityResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedFlag;
 
-    protected static string|\UnitEnum|null $navigationGroup = NavigationGroup::Site;
+    protected static string|\UnitEnum|null $navigationGroup = NavigationGroup::Catalog;
+
+    protected static ?int $navigationSort = 1;
 
     protected static ?string $recordTitleAttribute = 'name';
 

@@ -50,7 +50,7 @@ class AuthenticationTest extends TestCase
 
         $this->get('/bookings')
             ->assertOk()
-            ->assertSeeTextInOrder(['Dashboard', 'Manage Team'])
+            ->assertSeeTextInOrder(['Dashboard', 'Manage Team', 'Team'])
             ->assertSee('/manage/'.$lastManagedTeam->slug, false);
     }
 
@@ -61,6 +61,17 @@ class AuthenticationTest extends TestCase
         $this->actingAs($member)
             ->get('/bookings')
             ->assertOk()
+            ->assertSeeTextInOrder([
+                'Dashboard',
+                'Team',
+                'Bookings',
+                'Documents',
+                'News',
+                'Keys',
+                'Personal',
+                'Inbox',
+                'Qualifications',
+            ])
             ->assertDontSee('Manage')
             ->assertDontSee('Admin')
             ->assertDontSee('href="/manage', false)
@@ -326,13 +337,13 @@ class AuthenticationTest extends TestCase
         $this->actingAs($admin)
             ->get('/admin')
             ->assertOk()
-            ->assertSeeTextInOrder(['Dashboard', 'Manage Team', 'Admin', 'Site admin'])
+            ->assertSeeTextInOrder(['Dashboard', 'Manage Team', 'Admin', 'Organisation'])
             ->assertSee('href="'.$membersUrl.'"', false);
 
         $this->actingAs($oversight)
             ->get('/admin')
             ->assertOk()
-            ->assertSeeTextInOrder(['Dashboard', 'Admin', 'Site admin'])
+            ->assertSeeTextInOrder(['Dashboard', 'Admin', 'Organisation'])
             ->assertDontSee('Manage Team', false)
             ->assertSee('href="'.$membersUrl.'"', false);
     }

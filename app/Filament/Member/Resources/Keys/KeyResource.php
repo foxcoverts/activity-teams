@@ -3,6 +3,7 @@
 namespace App\Filament\Member\Resources\Keys;
 
 use App\Filament\Keys\PassKeyAction;
+use App\Filament\Member\NavigationGroup;
 use App\Filament\Member\Resources\Keys\Pages\ListKeys;
 use App\Filament\Member\Resources\Keys\Pages\ViewKey;
 use App\Models\Key;
@@ -27,6 +28,10 @@ class KeyResource extends Resource
     protected static ?string $pluralModelLabel = 'keys';
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedKey;
+
+    protected static string|\UnitEnum|null $navigationGroup = NavigationGroup::Team;
+
+    protected static ?int $navigationSort = 4;
 
     protected static ?string $recordTitleAttribute = 'name';
 

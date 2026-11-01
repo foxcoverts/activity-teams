@@ -2,6 +2,7 @@
 
 namespace App\Filament\Member\Resources\Inbox;
 
+use App\Filament\Member\NavigationGroup;
 use App\Filament\Member\Resources\Inbox\Pages\ListNotifications;
 use App\Filament\Member\Resources\Inbox\Pages\ViewNotification;
 use App\Filament\Member\Resources\Inbox\Tables\NotificationsTable;
@@ -20,6 +21,10 @@ class InboxResource extends Resource
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedInbox;
 
     protected static ?string $modelLabel = 'Notification';
+
+    protected static string|\UnitEnum|null $navigationGroup = NavigationGroup::Personal;
+
+    protected static ?int $navigationSort = 1;
 
     protected static ?string $navigationLabel = 'Inbox';
 

@@ -2,6 +2,7 @@
 
 namespace App\Filament\Member\Resources\Documents;
 
+use App\Filament\Member\NavigationGroup;
 use App\Filament\Member\Resources\Documents\Pages\ListDocuments;
 use App\Filament\Member\Resources\Documents\Tables\DocumentsTable;
 use App\Models\Document;
@@ -20,6 +21,10 @@ class DocumentResource extends Resource
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedDocument;
 
     protected static ?string $recordTitleAttribute = 'title';
+
+    protected static string|\UnitEnum|null $navigationGroup = NavigationGroup::Team;
+
+    protected static ?int $navigationSort = 2;
 
     protected static ?string $navigationLabel = 'Documents';
 

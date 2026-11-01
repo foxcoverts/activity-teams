@@ -331,8 +331,9 @@ class ActivityTeamsTest extends TestCase
             ->assertOk()
             ->assertSeeTextInOrder([
                 'Team',
-                'Activities',
                 'Bookings',
+                'Setup',
+                'Activities',
                 'Venues',
             ]);
     }
@@ -346,7 +347,9 @@ class ActivityTeamsTest extends TestCase
             ->assertOk()
             ->assertSee('Team')
             ->assertSee('Activities')
-            ->assertDontSee('Site admin')
+            ->assertDontSee('Organisation')
+            ->assertDontSee('Catalog')
+            ->assertDontSee('Mail')
             ->assertDontSee('Activity catalog');
     }
 

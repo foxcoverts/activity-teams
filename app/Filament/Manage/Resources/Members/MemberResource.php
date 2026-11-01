@@ -57,6 +57,8 @@ class MemberResource extends Resource
 
     protected static string|\UnitEnum|null $navigationGroup = NavigationGroup::Team;
 
+    protected static ?int $navigationSort = 2;
+
     protected static ?string $navigationLabel = 'Members';
 
     protected static ?string $modelLabel = 'member';

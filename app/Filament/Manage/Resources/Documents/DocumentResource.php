@@ -29,6 +29,8 @@ class DocumentResource extends Resource
 
     protected static string|\UnitEnum|null $navigationGroup = NavigationGroup::Team;
 
+    protected static ?int $navigationSort = 4;
+
     protected static ?string $navigationLabel = 'Documents';
 
     protected static ?string $modelLabel = 'document';

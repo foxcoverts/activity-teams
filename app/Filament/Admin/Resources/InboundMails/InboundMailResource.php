@@ -21,7 +21,9 @@ class InboundMailResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedInboxArrowDown;
 
-    protected static string|\UnitEnum|null $navigationGroup = NavigationGroup::Site;
+    protected static string|\UnitEnum|null $navigationGroup = NavigationGroup::Mail;
+
+    protected static ?int $navigationSort = 1;
 
     protected static ?string $navigationLabel = null;
 
