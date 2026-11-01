@@ -1,7 +1,7 @@
 ---
 id: US-05
 title: "Team Document & Resource Repository"
-status: not-started
+status: done
 area: qualifications
 scope: required
 ---
@@ -12,8 +12,11 @@ As an Activity Manager, I want to upload and share internal compliance documents
 
 ## Acceptance criteria
 
-- Managers can upload, edit, and delete document files with descriptive notes, scoped to activity teams or general campsite use.
+- A manager can upload, edit, and delete PDF documents with optional notes for a team they manage.
+- A member can view and download documents for the teams they belong to, in one combined list with an optional team filter rather than a tenant switch.
+- Members cannot see documents belonging to teams they do not belong to.
+- Members do not see who uploaded a document. Managers see the uploader name on Manage.
 
 ## Progress
 
-An activity team is a team in this app. General campsite use is the site scope, the same split keys will use. Not built yet. Documents should be reachable in Members across the user's teams, with an optional team filter rather than a tenant switch.
+Done. Team-owned PDFs (1 KB–10 MB) with title and optional markdown notes. Manage list, edit, trash, restore, and force-delete; private disk under `documents/{team_id}/`. The file comes first on the form: choosing it fills title and a sanitised download filename, which the manager can edit. Filename stays on the edit form; the uploader name is on the Manage table. Members combined table at `/documents` with a team filter, notes under the title, and download from the list. No view pages. Lists sort by title by default; title and updated date are sortable. No site/campsite library and no category.

@@ -26,7 +26,7 @@ The legacy repository is `foxcoverts/climbing-team`. Its authenticated routes in
 
 | Legacy workflow | Story or follow-up | Current planning note |
 |---|---|---|
-| Shared documents | [US-05 Team Document & Resource Repository](US-05-team-document-repository.md) | Legacy has document management and trash routes. Not implemented in Activity Teams. |
+| Shared documents | [US-05 Team Document & Resource Repository](US-05-team-document-repository.md) | Done. Managers upload team PDFs with optional notes; members see a combined list at `/documents` with an optional team filter. Private disk; Manage trash/restore. No site library and no category. |
 | Incident reports | [US-21 Incident & Accident Reporting](US-21-incident-accident-reporting.md) | Legacy has an incident form and reporting flow. Safety and notification details need acceptance review. |
 | Team tasks and iCalendar VTODO | [US-22 Task Management](US-22-task-management.md) | Legacy has task management and VTODO export. Explicitly deferred; not needed for relaunch. |
 | Personal kit checks | [US-23 Instructor Kit Compliance](US-23-instructor-kit-compliance.md), [US-33 Kit Checker Inspection](US-33-kit-checker-inspection-workflow.md) | Legacy records annual checks and who performed them. Explicitly deferred; not needed for relaunch. |
@@ -133,13 +133,13 @@ US-49 should precede changes that depend on controlled activity or venue catalog
 
 ### Phase 3 — Deliver remaining retained team workflows
 
-**Phase 3 status: in progress.** Required US-54 is done. Next is US-21 incident reporting.
+**Phase 3 status: in progress.** Required US-54 and US-05 are done. Next is US-21 incident reporting.
 
 The product owner has confirmed these legacy workflows should be retained; the listed order remains adjustable based on implementation sizing and operational risk.
 
 1. **Done: Team communications.** Required US-54 (manager publishing, combined member article feed, deferrable inbox/digest, Atom/RSS on `feed_token`).
 2. **Safety and compliance:** implement required US-21 incident reporting.
-3. **Team operations:** implement required US-05 document repository.
+3. **Done: Team operations.** Required US-05 document repository (team PDFs, combined member list with team filter, Manage trash).
 4. **Audit and collaboration:** complete required US-38 and implement US-40 comments. Keep the existing US-39 booking timeline behavior.
 5. **Unrepresented legacy functions:** confirm any additional user-facing workflows identified in Phase 0. The general-purpose legacy mail log stays retired; inbound routing and failure alerts are done in [US-55](US-55-inbound-email-routing-and-alerts.md).
 
