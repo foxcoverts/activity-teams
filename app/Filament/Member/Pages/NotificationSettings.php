@@ -79,7 +79,7 @@ class NotificationSettings extends Page implements HasTable
 
     public function updated(string $property): void
     {
-        foreach ([MailGroup::Bookings, MailGroup::Keys] as $group) {
+        foreach ([MailGroup::Bookings, MailGroup::Keys, MailGroup::News] as $group) {
             $master = $group->masterChannel();
 
             if ($master instanceof MailChannel && $property === 'data.'.$master->formKey()) {
@@ -99,6 +99,7 @@ class NotificationSettings extends Page implements HasTable
             ->components([
                 $this->groupSection(MailGroup::Bookings),
                 $this->groupSection(MailGroup::Keys),
+                $this->groupSection(MailGroup::News),
                 Section::make(MailGroup::Manager->getLabel())
                     ->icon(MailGroup::Manager->getIcon())
                     ->columns(1)
@@ -190,6 +191,7 @@ class NotificationSettings extends Page implements HasTable
 
         MailPreference::save($user, MailGroup::Bookings, $data);
         MailPreference::save($user->fresh(), MailGroup::Keys, $data);
+        MailPreference::save($user->fresh(), MailGroup::News, $data);
 
         $this->form->fill($this->globalFormState());
 
@@ -205,6 +207,7 @@ class NotificationSettings extends Page implements HasTable
 
         MailPreference::save($user, MailGroup::Bookings, []);
         MailPreference::save($user->fresh(), MailGroup::Keys, []);
+        MailPreference::save($user->fresh(), MailGroup::News, []);
 
         $this->form->fill($this->globalFormState());
 
@@ -224,6 +227,7 @@ class NotificationSettings extends Page implements HasTable
         return array_merge(
             MailPreference::displayState($user, MailGroup::Bookings),
             MailPreference::displayState($user, MailGroup::Keys),
+            MailPreference::displayState($user, MailGroup::News),
         );
     }
 

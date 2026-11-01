@@ -101,6 +101,23 @@
     @apply flex items-center gap-3 border-b border-amber-200 bg-amber-50 px-4 py-2.5 text-sm text-amber-950 sm:px-6 dark:border-amber-400/20 dark:bg-amber-400/10 dark:text-amber-200;
 }
 
+.news-article .fi-section-header {
+    @apply items-center;
+}
+
+.news-article-body.fi-prose {
+    font-size: var(--text-base);
+    line-height: 1.7;
+}
+
+.news-team-filters a.fi-badge {
+    transition: filter 150ms ease;
+}
+
+.news-team-filters a.fi-badge:is(:hover, :focus-visible) {
+    filter: brightness(1.25);
+}
+
 .invite-empty {
     @apply px-3 py-3 text-sm text-gray-500 dark:text-gray-400;
 }

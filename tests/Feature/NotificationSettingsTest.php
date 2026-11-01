@@ -331,9 +331,11 @@ class NotificationSettingsTest extends TestCase
         $this->assertFalse(NotificationSettings::shouldRegisterNavigation());
 
         Livewire::test(NotificationSettings::class)
+            ->assertSee(__('News'))
             ->fillForm([
                 MailChannel::BookingsMail->formKey() => '0',
                 MailChannel::KeysMail->formKey() => '0',
+                MailChannel::NewsMail->formKey() => '0',
             ])
             ->call('save')
             ->assertNotified();
@@ -342,6 +344,7 @@ class NotificationSettingsTest extends TestCase
 
         $this->assertFalse($user->mail_preferences[MailChannel::BookingsMail->value]);
         $this->assertFalse($user->mail_preferences[MailChannel::KeysMail->value]);
+        $this->assertFalse($user->mail_preferences[MailChannel::NewsMail->value]);
 
         Livewire::test(NotificationSettings::class)
             ->call('resetDefaults')

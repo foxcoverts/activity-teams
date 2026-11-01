@@ -31,7 +31,7 @@ enum MailGroup: string implements HasIcon, HasLabel
         return match ($this) {
             self::Bookings => Heroicon::OutlinedCalendarDays,
             self::Keys => Heroicon::OutlinedKey,
-            self::News => Heroicon::OutlinedMegaphone,
+            self::News => Heroicon::OutlinedNewspaper,
             self::Manager => Heroicon::OutlinedShieldCheck,
             self::Account => Heroicon::OutlinedUserCircle,
         };
@@ -63,8 +63,8 @@ enum MailGroup: string implements HasIcon, HasLabel
     public function isReleased(): bool
     {
         return match ($this) {
-            self::Bookings, self::Keys, self::Manager => true,
-            self::News, self::Account => false,
+            self::Bookings, self::Keys, self::News, self::Manager => true,
+            self::Account => false,
         };
     }
 

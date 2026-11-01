@@ -171,6 +171,11 @@ class Team extends Model
         return $this->hasMany(Booking::class);
     }
 
+    public function newsPosts(): HasMany
+    {
+        return $this->hasMany(NewsPost::class);
+    }
+
     private function addDefaultableRecord(Activity|Venue $record, string $relation, string $defaultAttribute): void
     {
         $defaultId = DB::transaction(function () use ($record, $relation, $defaultAttribute): string {

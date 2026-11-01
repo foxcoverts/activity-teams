@@ -50,7 +50,7 @@ class User extends Authenticatable implements FilamentUser, HasDefaultTenant, Ha
         'suspended',
         'oversight',
         'is_system_admin',
-        'ical_token',
+        'feed_token',
         'mail_preferences',
         'privacy_notice_accepted_at',
         'profile_confirmed_at',
@@ -538,6 +538,19 @@ class User extends Authenticatable implements FilamentUser, HasDefaultTenant, Ha
     public function isSystemAdmin(): bool
     {
         return $this->is_system_admin && ! $this->isSuspended();
+    }
+
+    public function ensureFeedToken(): string
+    {
+        if ($this->exists && ! array_key_exists('feed_token', $this->getAttributes())) {
+            $this->refresh();
+        }
+
+        if (blank($this->feed_token)) {
+            $this->forceFill(['feed_token' => static::generateToken()])->save();
+        }
+
+        return $this->feed_token;
     }
 
     public static function generateToken(): string

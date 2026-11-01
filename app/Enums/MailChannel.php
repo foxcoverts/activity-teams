@@ -59,10 +59,7 @@ enum MailChannel: string implements HasLabel
 
     public function isShown(): bool
     {
-        return match ($this) {
-            self::NewsMail => false,
-            default => true,
-        };
+        return true;
     }
 
     public function formKey(): string

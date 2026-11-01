@@ -7,6 +7,7 @@ use App\Filament\Auth\EditProfile;
 use App\Filament\Manage\NavigationGroup;
 use App\Filament\Manage\Pages\Dashboard;
 use App\Filament\Member\Pages\Dashboard as MemberDashboard;
+use App\Filament\Member\Pages\Feeds;
 use App\Filament\Member\Pages\NotificationSettings;
 use App\Filament\Pages\ChangePassword;
 use App\Http\Middleware\RememberManageTeam;
@@ -56,6 +57,7 @@ class ManagePanelProvider extends PanelProvider
             ->userMenuItems([
                 EditProfile::userMenuItem(),
                 NotificationSettings::userMenuItem(),
+                Feeds::userMenuItem(),
                 ChangePassword::userMenuItem(),
             ])
             ->navigationItems([

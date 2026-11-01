@@ -7,6 +7,7 @@ use App\Filament\Admin\Pages\Dashboard;
 use App\Filament\Auth\EditProfile;
 use App\Filament\Manage\Pages\Dashboard as ManageDashboard;
 use App\Filament\Member\Pages\Dashboard as MemberDashboard;
+use App\Filament\Member\Pages\Feeds;
 use App\Filament\Member\Pages\NotificationSettings;
 use App\Filament\Pages\ChangePassword;
 use App\Http\Middleware\RequireProfileConfirmation;
@@ -50,6 +51,7 @@ class AdminPanelProvider extends PanelProvider
             ->userMenuItems([
                 EditProfile::userMenuItem(),
                 NotificationSettings::userMenuItem(),
+                Feeds::userMenuItem(),
                 ChangePassword::userMenuItem(),
             ])
             ->navigationItems([

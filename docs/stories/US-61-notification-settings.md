@@ -24,4 +24,4 @@ As a team member, I want to choose which emails I receive — globally and, for 
 
 ## Progress
 
-The catalog, global Notifications page, public manage page, optional-mail footers, and gates on immediate optional senders are in this repository. The invite list shows a **No email** badge when `bookings.mail` is off; the guest list does not. `bookings.digest` is shown and gates the rota section of [US-67](US-67-member-notification-inbox.md). `news.mail` stays hidden. Off channels still land in the inbox. Last-manager, key-holder leaving, and a declined invitation are always recorded and digestable. Account mail stays immediate.
+The catalog, global Notifications page, public manage page, optional-mail footers, and gates on immediate optional senders are in this repository. The invite list shows a **No email** badge when `bookings.mail` is off; the guest list does not. `bookings.digest` is shown and gates the rota section of [US-67](US-67-member-notification-inbox.md). `news.mail` is shown. Off channels still land in the inbox. Last-manager, key-holder leaving, and a declined invitation are always recorded and digestable. Account mail stays immediate.

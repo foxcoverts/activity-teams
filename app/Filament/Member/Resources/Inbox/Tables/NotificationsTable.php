@@ -39,7 +39,9 @@ class NotificationsTable
                     ->wrap(),
                 TextColumn::make('created_at')
                     ->label(__('When'))
-                    ->dateTime('j M Y, H:i')
+                    ->timezone(fn () => auth()->user()->timezone ?? config('app.timezone'))
+                    ->since()
+                    ->dateTimeTooltip('j M Y, H:i')
                     ->weight($weight)
                     ->sortable(),
             ])

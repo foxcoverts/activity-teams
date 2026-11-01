@@ -3,7 +3,7 @@
 namespace Tests\Feature;
 
 use App\Enums\BookingAttendeeStatus;
-use App\Filament\Member\Pages\CalendarLinks;
+use App\Filament\Member\Pages\Feeds;
 use App\Filament\Member\Resources\Bookings\BookingResource;
 use App\Models\Activity;
 use App\Models\Booking;
@@ -115,7 +115,7 @@ class BookingPreviewAndIcsTest extends TestCase
     public function test_ics_feed_requires_token_and_returns_calendar(): void
     {
         $user = User::factory()->teamMember()->create([
-            'ical_token' => User::generateToken(),
+            'feed_token' => User::generateToken(),
         ]);
         $booking = Booking::factory()->confirmed()->create();
         $booking->attendees()->attach($user->id, [
@@ -132,7 +132,7 @@ class BookingPreviewAndIcsTest extends TestCase
     public function test_ics_feed_marks_linked_bookings_as_siblings(): void
     {
         $user = User::factory()->teamMember()->create([
-            'ical_token' => User::generateToken(),
+            'feed_token' => User::generateToken(),
         ]);
         $saturday = Booking::factory()->confirmed()->create([
             'start_at' => '2026-12-12 09:00:00',
@@ -162,7 +162,7 @@ class BookingPreviewAndIcsTest extends TestCase
     public function test_regenerating_calendar_links_stops_the_old_token(): void
     {
         $user = User::factory()->teamMember()->create([
-            'ical_token' => User::generateToken(),
+            'feed_token' => User::generateToken(),
         ]);
         $oldUrl = route('booking.ics', $user);
 
@@ -171,12 +171,12 @@ class BookingPreviewAndIcsTest extends TestCase
 
         $this->get($oldUrl)->assertOk();
 
-        Livewire::test(CalendarLinks::class)
+        Livewire::test(Feeds::class)
             ->callAction('regenerate');
 
         $user->refresh();
 
-        $this->get($oldUrl)->assertNotFound();
+        $this->get($oldUrl)->assertUnauthorized();
         $this->get(route('booking.ics', $user))->assertOk();
         $this->assertNotSame($oldUrl, route('booking.ics', $user));
     }

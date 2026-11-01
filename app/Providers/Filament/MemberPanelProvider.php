@@ -8,6 +8,7 @@ use App\Filament\Auth\Login;
 use App\Filament\Auth\Register;
 use App\Filament\Manage\Pages\Dashboard as ManageDashboard;
 use App\Filament\Member\Pages\Dashboard;
+use App\Filament\Member\Pages\Feeds;
 use App\Filament\Member\Pages\NotificationSettings;
 use App\Filament\Pages\ChangePassword;
 use App\Http\Middleware\RequireProfileConfirmation;
@@ -55,6 +56,7 @@ class MemberPanelProvider extends PanelProvider
             ])
             ->userMenuItems([
                 NotificationSettings::userMenuItem(),
+                Feeds::userMenuItem(),
                 ChangePassword::userMenuItem(),
             ])
             ->navigationItems([

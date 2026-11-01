@@ -90,6 +90,26 @@ class InboxTest extends TestCase
             ->assertDontSeeHtml('>1<');
     }
 
+    public function test_the_inbox_when_column_shows_how_long_ago_with_a_datetime_tooltip(): void
+    {
+        $this->travelTo('2026-11-01 17:32:00');
+
+        $manager = User::factory()->teamManager()->create(['timezone' => 'Europe/London']);
+        $booking = Booking::factory()->create([
+            'team_id' => $manager->managedTeams()->first()->getKey(),
+        ]);
+        $manager->notify(new LeadNeededNotification($booking, null));
+        $row = $manager->notifications()->first();
+        $row->forceFill(['created_at' => '2026-11-01 15:32:00'])->save();
+
+        Filament::setCurrentPanel(Filament::getPanel('member'));
+        $this->actingAs($manager);
+
+        Livewire::test(ListNotifications::class)
+            ->assertSee('2 hours ago')
+            ->assertSee('1 Nov 2026, 15:32');
+    }
+
     public function test_sorting_by_when_puts_the_newest_notification_first(): void
     {
         $manager = User::factory()->teamManager()->create();

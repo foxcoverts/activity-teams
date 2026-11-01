@@ -20,7 +20,7 @@ class PurgeDeletedUsersAction
         'emergency_phone',
         'password',
         'remember_token',
-        'ical_token',
+        'feed_token',
         'mail_preference_token',
         'mail_preferences',
         'timezone',
