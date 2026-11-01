@@ -199,6 +199,43 @@ class AuthenticationTest extends TestCase
             ->assertSee(Filament::getPanel('admin')->getUrl(), false);
     }
 
+    public function test_a_system_admin_who_manages_a_team_opens_that_team_from_manage(): void
+    {
+        Team::factory()->create(['name' => 'Alpha']);
+        $zebra = Team::factory()->create(['name' => 'Zebra']);
+        $admin = User::factory()->systemAdmin()->teamManager($zebra)->create();
+
+        Filament::setCurrentPanel(Filament::getPanel('member'));
+        $this->actingAs($admin);
+
+        $this->get('/bookings')
+            ->assertOk()
+            ->assertSee('/manage/'.$zebra->slug, false);
+
+        $this->get('/manage')
+            ->assertRedirect('/manage/'.$zebra->slug);
+    }
+
+    public function test_a_system_admin_keeps_a_remembered_unmanaged_team(): void
+    {
+        $alpha = Team::factory()->create(['name' => 'Alpha']);
+        $zebra = Team::factory()->create(['name' => 'Zebra']);
+        $admin = User::factory()->systemAdmin()->teamManager($zebra)->create();
+
+        $this->actingAs($admin)
+            ->get('/manage/'.$alpha->slug)
+            ->assertOk();
+
+        $this->get('/manage')
+            ->assertRedirect('/manage/'.$alpha->slug);
+
+        Filament::setCurrentPanel(Filament::getPanel('member'));
+
+        $this->get('/bookings')
+            ->assertOk()
+            ->assertSee('/manage/'.$alpha->slug, false);
+    }
+
     public function test_admin_sidebar_links_to_manage_and_members(): void
     {
         $admin = User::factory()->systemAdmin()->create();

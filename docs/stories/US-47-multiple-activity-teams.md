@@ -20,7 +20,7 @@ As an activity manager, I want bookings, members, and invite lists to belong to 
 - The Members panel is the personal, cross-team workspace for bookings and invitations a user may access. It has no current-team tenant switch.
 - Team-scoped resources such as documents or news may offer a team filter within Members, but do not require switching the current tenant.
 - Managers remain members and lead instructors and use Members for day-to-day member tools, as well as Manage for team management.
-- The manage panel keeps one team current, and bookings, members, activities, and venues follow that team. It is for team managers and system admins, not for oversight-only accounts.
+- The manage panel keeps one team current, and bookings, members, activities, and venues follow that team. It is for team managers and system admins, not for oversight-only accounts. When a system admin also manages a team, that team is the current Manage team unless they already chose another.
 - Site-wide Users, Teams, catalogs, and key rings live on a separate untenanted Admin panel. Oversight and system admins can open it; team managers cannot.
 - Sidebars link among Members, Manage, and Admin only for users who can open each panel. Manage is hidden when the user has no team to make current.
 - Leaving a team keeps attendance already recorded. They can still open those bookings, and they leave future invite lists.
@@ -28,4 +28,4 @@ As an activity manager, I want bookings, members, and invite lists to belong to 
 
 ## Progress
 
-Implemented: Members stays the untenanted personal workspace; Manage is tenanted by team slug for managers and system admins; Admin at `/admin` holds Users, Teams, catalogs, and key rings. Oversight uses Admin rather than a fake Manage tenant. Panel links follow `canAccessPanel`, and Manage is omitted when there is no current team.
+Implemented: Members stays the untenanted personal workspace; Manage is tenanted by team slug for managers and system admins; Admin at `/admin` holds Users, Teams, catalogs, and key rings. Oversight uses Admin rather than a fake Manage tenant. Panel links follow `canAccessPanel`, and Manage is omitted when there is no current team. A system admin who also manages a team opens that team from Manage unless a remembered last-visited team is still accessible.

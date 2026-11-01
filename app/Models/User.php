@@ -183,6 +183,12 @@ class User extends Authenticatable implements FilamentUser, HasDefaultTenant, Ha
             }
         }
 
+        $managed = $this->managedTeams()->orderBy('name')->first();
+
+        if ($managed instanceof Team && $tenants->contains('id', $managed->getKey())) {
+            return $managed;
+        }
+
         return $tenants->first();
     }
 
