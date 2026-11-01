@@ -7,6 +7,16 @@
 - When a task is likely to consume significant credits or its direction is uncertain, pause before doing that work. Briefly state what is known, what needs resolving, and the lower-cost options; ask whether to continue with Copilot/Cursor, have the product owner investigate or implement a part, or use Gemini for independent reasoning. Do not pause for routine, clearly scoped implementation.
 - Use the product owner's strong domain and backend experience: keep domain decisions and legacy interpretation with them; favor AI assistance for bounded Livewire, front-end, and feature-test implementation and iteration.
 
+## Local browser accounts
+
+The gitignored file `.agent-accounts.json` lists local logins that are safe for browser checks. It is not seeded and must not be committed. A fresh database still has no users so the first person can register.
+
+- Before signing into the local app, read that file and pick the account whose `use_for`, teams, and panels match the check. Do not inspect the database to choose a login when the file already has a suitable entry.
+- Never sign in as a real person's mailbox (for example a Gmail address) unless that person listed it in the file.
+- Prefer an existing account. Create a new local user for browser work only when none fits. Use an `@example.test` address, a known password, and append an entry with name, email, password, panels, teams (name, slug, role), flags, and `use_for`.
+- If you change an account you created, update its entry. If a listed password fails, stop and tell the product owner; do not reset a password you did not just set.
+- Feature tests keep using factories. Do not create users only to fill this file.
+
 <laravel-boost-guidelines>
 === foundation rules ===
 
@@ -197,6 +207,8 @@ Every deferrable notice stored through `RecordsInbox` has a URL from `inboxUrl()
 Give every new notice a destination: the booking, key, team, person, or list the reader should open. Do not send a notice from a branch where `inboxUrl()` would return null.
 
 If a notice truly cannot have a destination, stop and change `ViewNotification` so it shows the message instead of redirecting. Do not add that screen before such a notice exists.
+
+The unread badge and inbox list use `read_at`. The digest outstanding queue is rows with both `read_at` and `digest_notified_at` null. When you send that notice's own email (immediate optional mail, or a one-item digest replay), call `InboxNotification::markReadForDelivery()` so both timestamps are set. Stamping only `digest_notified_at` skips the digest but leaves the row unread. A multi-item digest is the exception: it stamps only `digest_notified_at` so the inbox stays unread. Preference-blocked sends leave both null.
 
 ## Application Palette
 

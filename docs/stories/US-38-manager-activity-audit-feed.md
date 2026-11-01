@@ -3,7 +3,7 @@ id: US-38
 title: "Manager Centralised Activity Audit Feed"
 status: partial
 area: audit
-scope: required
+scope: extra
 ---
 
 ## Story
@@ -17,4 +17,4 @@ As an Activity Manager, I want a centralised team-wide audit log of recent activ
 
 ## Progress
 
-The feed is the current team's bookings. "System-wide" means that team, within what that manager can see. The central feed itself is still open.
+The feed is the current team's bookings. "System-wide" means that team, within what that manager can see. The central feed itself is still open. Extra: not a relaunch requirement, and not in Phase 3. Per-booking history stays in [US-39](US-39-member-booking-audit-stream.md).

@@ -358,6 +358,13 @@ class User extends Authenticatable implements FilamentUser, HasDefaultTenant, Ha
         return $this->timezone?->getName() ?? (string) config('app.timezone');
     }
 
+    public function gravatarUrl(int $size = 64): string
+    {
+        $hash = hash('sha256', strtolower(trim((string) $this->email)));
+
+        return 'https://www.gravatar.com/avatar/'.$hash.'?d=identicon&s='.$size;
+    }
+
     public function isLastSystemAdmin(): bool
     {
         if (! $this->is_system_admin) {

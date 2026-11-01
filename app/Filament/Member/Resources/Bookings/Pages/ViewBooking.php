@@ -9,6 +9,7 @@ use App\Filament\Bookings\BookingKeysAction;
 use App\Filament\Bookings\RefreshesWhenAttendanceChanges;
 use App\Filament\Member\Resources\Bookings\BookingResource;
 use App\Filament\Member\Resources\Bookings\BookingTimeline;
+use App\Livewire\BookingComments;
 use App\Livewire\RelatedBookings;
 use App\Models\Booking;
 use App\Models\User;
@@ -59,7 +60,15 @@ class ViewBooking extends ViewRecord
         return $schema->components([
             Grid::make(['default' => 1, 'lg' => 5])
                 ->schema([
-                    $this->getInfolistContentComponent()
+                    Group::make([
+                        $this->getInfolistContentComponent(),
+                        Livewire::make(BookingComments::class, [
+                            'record' => $record,
+                            'highlightId' => is_string(request()->query('comment'))
+                                ? request()->query('comment')
+                                : null,
+                        ]),
+                    ])
                         ->columnSpan(['default' => 1, 'lg' => 3]),
                     Group::make($sidebar)
                         ->extraAttributes(['class' => 'invite-panel'])

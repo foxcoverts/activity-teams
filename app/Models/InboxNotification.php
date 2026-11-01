@@ -17,6 +17,9 @@ class InboxNotification extends DatabaseNotification
         ];
     }
 
+    /**
+     * Mark the row read and digest-notified. Use this after sending the notice's own email, or when the member marks it read. Do not stamp only digest_notified_at unless a multi-item digest should leave the inbox unread.
+     */
     public function markReadForDelivery(): void
     {
         $this->forceFill([

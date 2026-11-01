@@ -7,6 +7,7 @@ use App\Filament\Bookings\RefreshesWhenAttendanceChanges;
 use App\Filament\Manage\Resources\Bookings\BookingResource;
 use App\Filament\Manage\Resources\Bookings\BookingStatusActions;
 use App\Filament\Manage\Resources\Bookings\BookingTimeline;
+use App\Livewire\BookingComments;
 use App\Livewire\RelatedBookings;
 use App\Models\Booking;
 use Filament\Actions\DeleteAction;
@@ -31,7 +32,15 @@ class ViewBooking extends ViewRecord
             ->components([
                 Grid::make(['default' => 1, 'lg' => 5])
                     ->schema([
-                        $this->getInfolistContentComponent()
+                        Group::make([
+                            $this->getInfolistContentComponent(),
+                            Livewire::make(BookingComments::class, [
+                                'record' => $record,
+                                'highlightId' => is_string(request()->query('comment'))
+                                    ? request()->query('comment')
+                                    : null,
+                            ]),
+                        ])
                             ->columnSpan(['default' => 1, 'lg' => 3]),
                         Group::make([
                             $this->getRelationManagersContentComponent(),

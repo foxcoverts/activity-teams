@@ -134,6 +134,95 @@
     @apply p-0;
 }
 
+.booking-comments-panel.fi-section:not(.fi-section-not-contained) {
+    @apply overflow-visible;
+}
+
+.booking-comments-panel.fi-section:not(.fi-section-not-contained)>.fi-section-header {
+    @apply p-4 sm:px-6;
+}
+
+.booking-comments-panel.fi-section:not(.fi-section-not-contained):not(.fi-divided)>.fi-section-content-ctn,
+.booking-comments-panel.fi-section:not(.fi-section-not-contained):not(.fi-divided)>.fi-section-content-ctn>.fi-section-content {
+    @apply overflow-visible p-0;
+}
+
+.comment-toolbar {
+    @apply border-b border-gray-200 px-4 py-3 sm:px-6 dark:border-white/10;
+}
+
+.comment-row {
+    @apply flex gap-3 px-4 py-3 sm:px-6;
+}
+
+.comment-row + .comment-row {
+    @apply border-t border-gray-200 dark:border-white/10;
+}
+
+.comment-row-ghosted .comment-avatar,
+.comment-row-ghosted .comment-meta,
+.comment-row-ghosted .comment-body {
+    @apply opacity-60;
+}
+
+.comment-avatar {
+    @apply size-10 shrink-0 rounded-full;
+}
+
+.comment-main {
+    @apply min-w-0 flex-1;
+}
+
+.comment-header {
+    @apply flex items-start gap-2;
+}
+
+.comment-meta {
+    @apply flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-1 text-sm;
+}
+
+.comment-author {
+    @apply font-medium text-gray-950 dark:text-white;
+}
+
+.comment-dot,
+.comment-when,
+.comment-state {
+    @apply text-gray-500 dark:text-gray-400;
+}
+
+.comment-when {
+    @apply cursor-help;
+}
+
+.comment-menu {
+    @apply -mt-1 -me-1.5 shrink-0;
+}
+
+.comment-menu .fi-dropdown-panel {
+    @apply w-max min-w-32 max-w-48;
+}
+
+.comment-body {
+    @apply mt-1 text-sm text-gray-950 dark:text-white;
+}
+
+.comment-compose {
+    @apply mt-1 flex min-w-0 items-start gap-3;
+}
+
+.comment-input {
+    @apply min-h-6 w-full resize-none bg-transparent text-sm leading-6 text-gray-950 outline-none placeholder:text-gray-400 dark:text-white dark:placeholder:text-gray-500;
+}
+
+.comment-submit {
+    @apply shrink-0 text-sm font-medium text-primary-600 hover:text-primary-500 disabled:pointer-events-none disabled:opacity-40 dark:text-primary-400;
+}
+
+.comment-error {
+    @apply mt-1 text-sm text-red-600 dark:text-red-400;
+}
+
 .venue-map-panel.fi-sc-section .fi-section:not(.fi-section-not-contained) {
     @apply overflow-hidden;
 }

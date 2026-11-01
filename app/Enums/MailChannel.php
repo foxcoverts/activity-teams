@@ -28,7 +28,7 @@ enum MailChannel: string implements HasLabel
         return match ($this) {
             self::BookingsMail => __('Invites and attendance recorded by a manager.'),
             self::BookingsUpdates => __('Changes, confirms, cancels, and lead-instructor responsibility.'),
-            self::BookingsComments => __('Comments on a booking. Mail is not sent until commenting is available.'),
+            self::BookingsComments => __('Comments on a booking.'),
             self::BookingsDigest => __('A periodic summary of your rota.'),
             self::KeysMail => __('When a key is passed to you, passed on, or returned to the cupboard.'),
             self::NewsMail => __('Direct email when a team publishes news.'),

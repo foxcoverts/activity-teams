@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Casts\AsSequence;
 use App\Casts\AsTimezone;
+use App\Contracts\Commentable;
 use App\Enums\BookingAttendeeStatus;
 use App\Enums\BookingStatus;
 use App\Support\Coords;
@@ -27,10 +28,10 @@ use Spatie\Activitylog\Models\Activity as ActivityLog;
 use Spatie\Activitylog\Models\Concerns\LogsActivity;
 use Spatie\Activitylog\Support\LogOptions;
 
-class Booking extends Model
+class Booking extends Model implements Commentable
 {
     /** @use HasFactory<BookingFactory> */
-    use Concerns\HasSequence, Concerns\HasUid, HasFactory, HasUlids, LogsActivity;
+    use Concerns\HasComments, Concerns\HasSequence, Concerns\HasUid, HasFactory, HasUlids, LogsActivity;
 
     protected $fillable = [
         'team_id',
@@ -431,6 +432,13 @@ class Booking extends Model
     public function team(): BelongsTo
     {
         return $this->belongsTo(Team::class);
+    }
+
+    public function commentTeam(): ?Team
+    {
+        $this->loadMissing('team');
+
+        return $this->team;
     }
 
     public function summary(): Attribute
