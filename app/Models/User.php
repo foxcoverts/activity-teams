@@ -8,7 +8,6 @@ use App\Enums\AccountStatus;
 use App\Enums\InvitationStatus;
 use App\Enums\MembershipRole;
 use App\Enums\PersonalDataSection;
-use App\Enums\Section;
 use Database\Factories\UserFactory;
 use Filament\Auth\Notifications\VerifyEmail;
 use Filament\Facades\Filament;
@@ -47,7 +46,7 @@ class User extends Authenticatable implements FilamentUser, HasAvatar, HasDefaul
         'emergency_phone',
         'password',
         'timezone',
-        'section',
+        'under_18',
         'suspended',
         'oversight',
         'is_system_admin',
@@ -64,7 +63,7 @@ class User extends Authenticatable implements FilamentUser, HasAvatar, HasDefaul
     ];
 
     protected $attributes = [
-        'section' => Section::Adult->value,
+        'under_18' => false,
         'suspended' => false,
         'oversight' => false,
         'is_system_admin' => false,
@@ -80,7 +79,7 @@ class User extends Authenticatable implements FilamentUser, HasAvatar, HasDefaul
             'privacy_notice_accepted_at' => 'datetime',
             'profile_confirmed_at' => 'datetime',
             'password' => 'hashed',
-            'section' => Section::class,
+            'under_18' => 'boolean',
             'suspended' => 'boolean',
             'oversight' => 'boolean',
             'is_system_admin' => 'boolean',
@@ -511,7 +510,20 @@ class User extends Authenticatable implements FilamentUser, HasAvatar, HasDefaul
             return MembershipRole::Manager;
         }
 
+        if ($this->teams->contains(fn (Team $team): bool => $team->pivot->role === MembershipRole::Member)) {
+            return MembershipRole::Member;
+        }
+
+        if ($this->teams->contains(fn (Team $team): bool => $team->pivot->role === MembershipRole::Parent)) {
+            return MembershipRole::Parent;
+        }
+
         return $this->teams->isNotEmpty() ? MembershipRole::Member : null;
+    }
+
+    public function isUnder18(): bool
+    {
+        return (bool) $this->under_18;
     }
 
     public function scopeOrdered(Builder $query): void

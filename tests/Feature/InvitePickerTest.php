@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Enums\BookingAttendeeStatus;
 use App\Enums\MailChannel;
 use App\Enums\MailGroup;
+use App\Enums\MembershipRole;
 use App\Filament\Manage\Resources\Bookings\Pages\EditBooking;
 use App\Filament\Manage\Resources\Bookings\RelationManagers\AttendeesRelationManager;
 use App\Livewire\InviteAttendees;
@@ -80,6 +81,8 @@ class InvitePickerTest extends TestCase
     {
         $manager = User::factory()->teamManager()->create();
         $member = User::factory()->teamMember()->create(['name' => 'Alex Guest']);
+        $parent = User::factory()->create(['name' => 'Pat Parent']);
+        $manager->managedTeams()->firstOrFail()->grant($parent, MembershipRole::Parent);
         $booking = Booking::factory()->create();
 
         $this->actingAs($manager);
@@ -91,12 +94,38 @@ class InvitePickerTest extends TestCase
             ->assertDontSee('No email')
             ->assertDontSee('Qualified only')
             ->assertDontSee('Key holders only')
+            ->assertSee('Members only')
+            ->assertSee('Pat Parent')
+            ->call('toggleMembersOnly')
+            ->assertDontSee('Pat Parent')
+            ->assertSee('Alex Guest')
+            ->assertSet('queued', [])
             ->call('send');
 
         $this->assertDatabaseMissing('booking_user', [
             'booking_id' => $booking->id,
             'user_id' => $member->id,
         ]);
+    }
+
+    public function test_qualified_parents_are_not_auto_queued_or_badged_as_parents(): void
+    {
+        [$manager, $booking, $qualified] = $this->teamWithRequirement();
+        $parent = User::factory()->underEighteen()->create(['name' => 'Taylor']);
+        $booking->team->grant($parent, MembershipRole::Parent);
+        Qualification::factory()->forMember($parent)->mountainTraining()->create();
+
+        $this->actingAs($manager);
+
+        Livewire::test(InviteAttendees::class, ['booking' => $booking])
+            ->assertSet('queued', [$qualified->getKey()])
+            ->assertSee('Taylor')
+            ->assertSee('Under 18')
+            ->assertSee('Qualified')
+            ->assertDontSee('Parent')
+            ->call('toggleMembersOnly')
+            ->assertDontSee('Taylor')
+            ->assertSet('queued', [$qualified->getKey()]);
     }
 
     public function test_a_name_filter_narrows_the_picker_and_add_everyone_shown_skips_people_already_on_the_booking(): void

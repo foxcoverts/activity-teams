@@ -233,14 +233,28 @@ class Booking extends Model implements Commentable
     }
 
     /**
-     * @return array<string, string>
+     * @return array<string, array<string, string>>
      */
     public function leadOptions(): array
     {
-        return $this->acceptedAttendees()
+        $attendees = $this->acceptedAttendees()
             ->filter(fn (User $user): bool => $this->metBy($user))
-            ->mapWithKeys(fn (User $user): array => [$user->getKey() => $user->name])
-            ->all();
+            ->values();
+
+        $options = [];
+
+        foreach ([__('Adult') => false, __('Under 18') => true] as $label => $under18) {
+            $group = $attendees
+                ->filter(fn (User $user): bool => $user->isUnder18() === $under18)
+                ->mapWithKeys(fn (User $user): array => [$user->getKey() => $user->name])
+                ->all();
+
+            if ($group !== []) {
+                $options[$label] = $group;
+            }
+        }
+
+        return $options;
     }
 
     public function metBy(User $user): bool

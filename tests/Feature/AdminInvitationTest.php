@@ -6,7 +6,6 @@ use App\Actions\AcceptTeamInvitationAction;
 use App\Actions\SendTeamInvitationAction;
 use App\Enums\InvitationStatus;
 use App\Enums\MembershipRole;
-use App\Enums\Section;
 use App\Filament\Admin\Resources\Users\Pages\ListUsers;
 use App\Filament\Admin\Resources\Users\Pages\ViewUser;
 use App\Filament\Admin\Resources\Users\UserResource;
@@ -100,7 +99,7 @@ class AdminInvitationTest extends TestCase
 
         $this->expectException(AuthorizationException::class);
 
-        app(SendTeamInvitationAction::class)->addAdmin($oversight, 'Sam', 'x@example.com', true, false, Section::Adult);
+        app(SendTeamInvitationAction::class)->addAdmin($oversight, 'Sam', 'x@example.com', true, false);
     }
 
     public function test_a_team_manager_cannot_send_a_site_access_invitation(): void
@@ -110,7 +109,7 @@ class AdminInvitationTest extends TestCase
 
         $this->expectException(AuthorizationException::class);
 
-        app(SendTeamInvitationAction::class)->addAdmin($manager, 'Sam', 'x@example.com', false, true, Section::Adult);
+        app(SendTeamInvitationAction::class)->addAdmin($manager, 'Sam', 'x@example.com', false, true);
     }
 
     public function test_a_suspended_email_is_refused_and_named_as_suspended(): void
@@ -174,7 +173,7 @@ class AdminInvitationTest extends TestCase
     {
         $manager = User::factory()->create();
         $this->team->grant($manager, MembershipRole::Manager);
-        $placeholder = app(SendTeamInvitationAction::class)->add($manager, $this->team, 'Sam Placeholder', 'new@example.com', MembershipRole::Member, Section::Adult);
+        $placeholder = app(SendTeamInvitationAction::class)->add($manager, $this->team, 'Sam Placeholder', 'new@example.com', MembershipRole::Member);
 
         app(AcceptTeamInvitationAction::class)->decline($placeholder->invitation);
 
@@ -248,7 +247,7 @@ class AdminInvitationTest extends TestCase
             ->callAction('add', [
                 'name' => 'Sam Placeholder',
                 'email' => 'new@example.com',
-                'section' => 'adult',
+                'under_18' => false,
                 'oversight' => false,
                 'is_system_admin' => true,
             ])
@@ -260,6 +259,7 @@ class AdminInvitationTest extends TestCase
             ->assertCanSeeTableRecords([$placeholder])
             ->assertSee('Invited')
             ->assertDontSee('new@example.com');
+        $this->assertFalse($placeholder->isUnder18());
     }
 
     public function test_oversight_does_not_see_the_users_add_action(): void
@@ -332,7 +332,7 @@ class AdminInvitationTest extends TestCase
         $manager = User::factory()->create();
         $this->team->grant($manager, MembershipRole::Manager);
 
-        $placeholder = app(SendTeamInvitationAction::class)->add($manager, $this->team, 'Sam Placeholder', 'new@example.com', MembershipRole::Member, Section::Adult);
+        $placeholder = app(SendTeamInvitationAction::class)->add($manager, $this->team, 'Sam Placeholder', 'new@example.com', MembershipRole::Member);
 
         $this->assertFalse($placeholder->oversight);
         $this->assertFalse($placeholder->is_system_admin);
@@ -381,7 +381,7 @@ class AdminInvitationTest extends TestCase
 
     private function inviteAdmin(string $email = 'new@example.com', bool $oversight = false, bool $systemAdmin = true): User
     {
-        return app(SendTeamInvitationAction::class)->addAdmin($this->admin, 'Sam Placeholder', $email, $oversight, $systemAdmin, Section::Adult);
+        return app(SendTeamInvitationAction::class)->addAdmin($this->admin, 'Sam Placeholder', $email, $oversight, $systemAdmin);
     }
 
     private function acceptUrl(TeamInvitation $invitation): string

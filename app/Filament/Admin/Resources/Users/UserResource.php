@@ -9,7 +9,7 @@ use App\Enums\AccountStatus;
 use App\Enums\InvitationStatus;
 use App\Enums\MembershipRole;
 use App\Enums\PersonalDataSection as PersonalDataSectionEnum;
-use App\Enums\Section as UserSection;
+use App\Enums\AgeGroup;
 use App\Filament\Admin\NavigationGroup;
 use App\Filament\Admin\Resources\Users\Pages\EditUser;
 use App\Filament\Admin\Resources\Users\Pages\ListUsers;
@@ -28,7 +28,6 @@ use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
 use Filament\Forms\Components\Placeholder;
-use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Infolists\Components\TextEntry;
@@ -89,10 +88,9 @@ class UserResource extends Resource
                     ->schema([
                         TextInput::make('name')
                             ->required(),
-                        Select::make('section')
-                            ->options(UserSection::class)
-                            ->default('adult')
-                            ->required(),
+                        Toggle::make('under_18')
+                            ->label(__('Under 18'))
+                            ->default(false),
                         TimezoneSelect::make('timezone')
                             ->searchable(),
                         Placeholder::make('password')
@@ -135,8 +133,6 @@ class UserResource extends Resource
                     ->columnSpanFull()
                     ->schema([
                         TextEntry::make('name'),
-                        TextEntry::make('section')
-                            ->badge(),
                         TextEntry::make('timezone')
                             ->placeholder('-'),
                         TextEntry::make('invited_email')
@@ -162,11 +158,15 @@ class UserResource extends Resource
     }
 
     /**
-     * @return list<AccountStatus|MembershipRole|AccountRole>
+     * @return list<AccountStatus|MembershipRole|AccountRole|AgeGroup>
      */
     protected static function statusBadges(User $user): array
     {
         $badges = [$user->status()];
+
+        if ($user->isUnder18()) {
+            $badges[] = AgeGroup::Under18;
+        }
 
         if ($teamRole = $user->teamRole()) {
             $badges[] = $teamRole;
@@ -200,9 +200,6 @@ class UserResource extends Resource
                 TextColumn::make('roles')
                     ->badge()
                     ->state(fn (User $record): array => $record->roles()),
-                TextColumn::make('section')
-                    ->badge()
-                    ->searchable(),
                 TextColumn::make('teams.name')
                     ->label('Teams')
                     ->visible(fn (HasTable $livewire): bool => blank($livewire->getTableFilterState('team')['value'] ?? null))

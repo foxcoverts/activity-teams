@@ -41,9 +41,9 @@ class AuthenticationTest extends TestCase
 
     public function test_team_manager_sees_manage_link_in_members_sidebar(): void
     {
-        $manager = User::factory()->teamManager()->create();
-        $lastManagedTeam = Team::factory()->create(['name' => 'Archery']);
-        $lastManagedTeam->grant($manager, MembershipRole::Manager);
+        $manager = User::factory()->create();
+        $managedTeam = Team::factory()->create(['name' => 'Archery']);
+        $managedTeam->grant($manager, MembershipRole::Manager);
 
         Filament::setCurrentPanel(Filament::getPanel('member'));
         $this->actingAs($manager);
@@ -51,7 +51,7 @@ class AuthenticationTest extends TestCase
         $this->get('/bookings')
             ->assertOk()
             ->assertSeeTextInOrder(['Dashboard', 'Manage Team', 'Team'])
-            ->assertSee('/manage/'.$lastManagedTeam->slug, false);
+            ->assertSee('/manage/'.$managedTeam->slug, false);
     }
 
     public function test_team_member_does_not_see_manage_or_admin_links_in_members_sidebar(): void

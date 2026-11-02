@@ -5,7 +5,6 @@ namespace Tests\Feature;
 use App\Actions\AcceptTeamInvitationAction;
 use App\Actions\SendTeamInvitationAction;
 use App\Enums\MembershipRole;
-use App\Enums\Section;
 use App\Models\Team;
 use App\Models\User;
 use Filament\Auth\Notifications\VerifyEmail;
@@ -30,7 +29,6 @@ class TeamInvitationVerificationTest extends TestCase
             'Sam Placeholder',
             'invited@example.com',
             MembershipRole::Member,
-            Section::Adult,
         );
 
         $user = app(AcceptTeamInvitationAction::class)->createAccount($placeholder->invitation, [

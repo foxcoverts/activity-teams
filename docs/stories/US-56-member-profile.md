@@ -17,7 +17,7 @@ As a signed-in person, I want to maintain my own name, contact details, emergenc
 - Phone and emergency-contact fields use the same usage notices as the invitation accept form.
 - The profile shows a link to the privacy notice (same URL as account creation).
 - The profile shows the current photo, explains that it comes from Gravatar using the account email, and links to Gravatar to change it.
-- Section stays manager-set ([US-59](US-59-team-member-invitations.md)). Password, export, and deletion stay [US-57](US-57-member-account-privacy-controls.md).
+- The under-18 safeguarding flag stays manager-set ([US-59](US-59-team-member-invitations.md)). Password, export, and deletion stay [US-57](US-57-member-account-privacy-controls.md).
 - Managers keep the existing ability to edit another person's profile ([US-48](US-48-suspend-and-restore-a-member.md)); self-view stays exempt from [US-58](US-58-personal-data-viewing-acknowledgement.md).
 
 ## Refinement
@@ -26,4 +26,4 @@ Fields already exist on `User`. The member panel hosts the custom profile (name,
 
 ## Progress
 
-Implemented: custom Filament profile on the member panel for name, email (with verification hint and re-verification on change), phone, emergency contact, timezone, the invitation usage notices, a Gravatar avatar preview with a link to change it, and a link to the privacy notice. The manage user menu links to that same member-panel page. Phone fields use E.164 storage. Team-less system admins can open the same profile. Section stays manager-set. Password, export, and deletion are on [US-57](US-57-member-account-privacy-controls.md).
+Implemented: custom Filament profile on the member panel for name, email (with verification hint and re-verification on change), phone, emergency contact, timezone, the invitation usage notices, a Gravatar avatar preview with a link to change it, and a link to the privacy notice. The manage user menu links to that same member-panel page. Phone fields use E.164 storage. Team-less system admins can open the same profile. The under-18 safeguarding flag stays manager-set. Password, export, and deletion are on [US-57](US-57-member-account-privacy-controls.md).

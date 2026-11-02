@@ -10,6 +10,21 @@
     </x-filament::badge>
 @endif
 
+@if ($person['under_18'])
+    <x-filament::badge :color="\App\Support\Palette::youth()">
+        {{ __('Under 18') }}
+    </x-filament::badge>
+@endif
+
+@if ($person['is_parent'] && ! $person['qualified'])
+    <x-filament::badge
+        :color="\App\Enums\MembershipRole::Parent->getColor()"
+        :icon="\App\Enums\MembershipRole::Parent->getIcon()"
+    >
+        {{ __('Parent') }}
+    </x-filament::badge>
+@endif
+
 @if ($showQualified && $person['qualified'])
     <button
         type="button"

@@ -205,7 +205,7 @@ class BookingStatusTest extends TestCase
         $this->actingAs($manager);
 
         $this->assertSame(
-            [$qualified->getKey() => 'Qualified Lead'],
+            [__('Adult') => [$qualified->getKey() => 'Qualified Lead']],
             $booking->fresh()->leadOptions(),
         );
 
@@ -252,16 +252,30 @@ class BookingStatusTest extends TestCase
         Livewire::test(EditBooking::class, ['record' => $booking->getRouteKey()])
             ->mountAction('confirmBooking')
             ->assertSchemaComponentExists('lead_instructor_id', checkComponentUsing: function (Select $select) use ($accepted, $alsoAccepted): bool {
-                $options = $select->getOptions();
-                $expected = [
-                    $accepted->getKey() => $accepted->name,
-                    $alsoAccepted->getKey() => $alsoAccepted->name,
+                return $select->getOptions() === [
+                    __('Adult') => [
+                        $accepted->getKey() => $accepted->name,
+                        $alsoAccepted->getKey() => $alsoAccepted->name,
+                    ],
                 ];
-                ksort($options);
-                ksort($expected);
-
-                return $options === $expected;
             });
+    }
+
+    public function test_lead_options_group_adults_before_under_18_attendees(): void
+    {
+        $manager = User::factory()->teamManager()->create();
+        $adult = User::factory()->create(['name' => 'Adult Lead']);
+        $youngPerson = User::factory()->underEighteen()->create(['name' => 'Young Lead']);
+        $booking = Booking::factory()->create();
+        $this->attend($booking, $adult, BookingAttendeeStatus::Accepted);
+        $this->attend($booking, $youngPerson, BookingAttendeeStatus::Accepted);
+
+        $this->actingAs($manager);
+
+        $this->assertSame([
+            __('Adult') => [$adult->getKey() => 'Adult Lead'],
+            __('Under 18') => [$youngPerson->getKey() => 'Young Lead'],
+        ], $booking->fresh()->leadOptions());
     }
 
     public function test_confirming_with_an_accepted_lead_succeeds(): void

@@ -67,17 +67,17 @@ final class Palette
     }
 
     /**
-     * A young person's section: Squirrels through Network.
+     * A safeguarding badge for people under 18.
      *
      * @return array<int, string>
      */
     public static function youth(): array
     {
-        return Color::Teal;
+        return Color::Rose;
     }
 
     /**
-     * An adult's section, distinct from the youth sections.
+     * A safeguarding badge for adults.
      *
      * @return array<int, string>
      */

@@ -14,7 +14,7 @@ As a team member, I want to be prompted annually to review and confirm my profil
 
 - Twelve months after the account is created (invitation accept or first-user register), and every twelve months after the last confirmation, the person must review and confirm contact and emergency details.
 - When due, the first screen of the visit is a take-over. They cannot dismiss it by clicking outside or going back. The only ways off it are Confirm or an explicit Defer.
-- The take-over is the edit-then-confirm step: only email, phone, emergency contact name and phone, with the same US-18/US-19 notices and a link to the privacy notice. Name, timezone, and section stay on the [US-56](US-56-member-profile.md) profile.
+- The take-over is the edit-then-confirm step: only email, phone, emergency contact name and phone, with the same US-18/US-19 notices and a link to the privacy notice. Name, timezone, and the manager-set under-18 safeguarding flag stay on the [US-56](US-56-member-profile.md) profile.
 - They can confirm the values as shown, or change those fields and confirm in the same action. Changing email still follows verification. Saving those same fields on the US-56 profile also counts as confirmation.
 - This does not lock the rest of the app the way unverified email does. After Defer, they can use the app, with a banner that returns to the same take-over.
 - Defer lasts only for the current visit. A new sign-in, a new browser session, or the next calendar day in the person's timezone shows the take-over again.

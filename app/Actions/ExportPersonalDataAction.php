@@ -30,7 +30,7 @@ class ExportPersonalDataAction
             'emergency_name' => $user->emergency_name,
             'emergency_phone' => $user->emergency_phone,
             'timezone' => $user->timezoneName(),
-            'section' => $user->section?->value,
+            'under_18' => $user->isUnder18(),
             'memberships' => $user->memberships->map(fn (TeamMembership $membership): array => [
                 'team' => $membership->team?->name,
                 'role' => $membership->role?->value,

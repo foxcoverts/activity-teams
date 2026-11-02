@@ -38,14 +38,12 @@
                                 </x-filament::badge>
                             @endif
 
-                            @if ($showAccessDetails)
-                                @include('filament.bookings.person-badges', [
-                                    'person' => $person,
-                                    'showQualified' => $showQualified,
-                                    'showKeys' => $showKeys,
-                                    'panel' => $panel,
-                                ])
-                            @endif
+                            @include('filament.bookings.person-badges', [
+                                'person' => $person,
+                                'showQualified' => $showAccessDetails && $showQualified,
+                                'showKeys' => $showAccessDetails && $showKeys,
+                                'panel' => $panel,
+                            ])
                         </div>
 
                         @if ($panel === 'member-relation-manager' && (($person['can_phone'] ?? false) || ($person['can_emergency'] ?? false)))

@@ -210,11 +210,14 @@ class BookingStatusActions
     {
         $leadId = $record->lead_instructor_id;
 
-        if ($leadId === null || ! array_key_exists($leadId, $record->leadOptions())) {
+        if ($leadId === null) {
             return null;
         }
 
-        return $leadId;
+        $leadIsAvailable = collect($record->leadOptions())
+            ->contains(fn (array $group): bool => array_key_exists($leadId, $group));
+
+        return $leadIsAvailable ? $leadId : null;
     }
 
     private static function leadUnavailableReason(Booking $record): ?string

@@ -18,7 +18,7 @@ As an invited team member, I want to manage my account security and exercise con
 - A member can download a JSON copy of the personal data held about them (profile, memberships, qualifications, booking attendance, key rings). Usable and commonly readable; no other person's contact or emergency details.
 - Self-delete is confirmed with the current password. The confirm UI states what is kept (name, qualifications, past attendance / lead history, key assignment) and what is removed (contact details, credentials, tokens, preferences, and other non-operational data), immediately vs after 30 days. They cannot sign in after confirm.
 - Soft-delete (`deleted_at`) immediately. Do not hard-delete the row (attendance and qualifications must remain).
-- After 30 days, a scheduled command strips remaining unnecessary personal data, leaving a shell: id, name, section, qualifications, attendance, lead history, key holder. Clear email, phone, emergency, password, remember token, ical token, timezone, access flags, US-20 confirmation timestamp, and any later preference records.
+- After 30 days, a scheduled command strips remaining unnecessary personal data, leaving a shell: id, name, under-18 safeguarding flag, team role, qualifications, attendance, lead history, and key holder. Clear email, phone, emergency, password, remember token, ical token, timezone, access flags, US-20 confirmation timestamp, and any later preference records.
 - Do not auto-expire the shell. There is no participant age on bookings (and no member date of birth), so a 3-year / age-21 cutoff cannot be applied safely.
 - Refuse deletion if they are the last remaining system admin.
 - If they are the last active manager of any team, do not refuse; email current system admins.

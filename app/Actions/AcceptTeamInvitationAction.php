@@ -178,7 +178,19 @@ class AcceptTeamInvitationAction
             ->filter()
             ->map(fn ($role): MembershipRole => $role instanceof MembershipRole ? $role : MembershipRole::from((string) $role));
 
-        return $roles->contains(MembershipRole::Manager) ? MembershipRole::Manager : MembershipRole::Member;
+        if ($roles->contains(MembershipRole::Manager)) {
+            return MembershipRole::Manager;
+        }
+
+        if ($roles->contains(MembershipRole::Member)) {
+            return MembershipRole::Member;
+        }
+
+        if ($roles->contains(MembershipRole::Parent)) {
+            return MembershipRole::Parent;
+        }
+
+        return MembershipRole::Member;
     }
 
     private function guardPending(TeamInvitation $invitation): void

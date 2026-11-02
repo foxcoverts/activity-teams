@@ -7,7 +7,6 @@ use App\Enums\AccountRole;
 use App\Enums\AccountStatus;
 use App\Enums\MembershipRole;
 use App\Enums\PersonalDataSection;
-use App\Enums\Section;
 use App\Filament\Admin\Resources\Users\Pages\EditUser;
 use App\Filament\Admin\Resources\Users\Pages\ViewUser;
 use App\Filament\Admin\Resources\Users\UserResource;
@@ -384,16 +383,5 @@ class PersonalDataAcknowledgementTest extends TestCase
         $this->artisan('model:prune', ['--model' => PersonalDataAcknowledgement::class])->assertSuccessful();
 
         $this->assertDatabaseCount('personal_data_acknowledgements', 0);
-    }
-
-    public function test_adult_and_youth_sections_have_labels_and_different_colours(): void
-    {
-        $this->assertSame('Beaver', Section::Beaver->getLabel());
-        $this->assertSame(Section::Scout->getColor(), Section::Cub->getColor());
-        $this->assertNotSame(Section::Adult->getColor(), Section::Scout->getColor());
-
-        foreach (Section::cases() as $section) {
-            $this->assertNotSame('', $section->getLabel());
-        }
     }
 }

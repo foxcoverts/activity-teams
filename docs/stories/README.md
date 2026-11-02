@@ -19,7 +19,7 @@ Scope is separate from implementation status:
 
 There is no US-32. Original ids are preserved.
 
-When an enum is shown in Filament, give it a label, and a color and icon when they help someone tell the values apart. `BookingStatus` is the pattern: confirmed is green with a check circle, tentative is yellow with a question-mark circle, and cancelled is red with an x circle. Give each enum this treatment when it next appears in the interface. Accreditation, role, section, attendee status, and the permit, qualification, and task enums from [climbing-team pull 303](https://github.com/foxcoverts/climbing-team/pull/303) are the reference.
+When an enum is shown in Filament, give it a label, and a color and icon when they help someone tell the values apart. `BookingStatus` is the pattern: confirmed is green with a check circle, tentative is yellow with a question-mark circle, and cancelled is red with an x circle. Give each enum this treatment when it next appears in the interface. Accreditation, membership role, attendee status, and the permit, qualification, and task enums from [climbing-team pull 303](https://github.com/foxcoverts/climbing-team/pull/303) are the reference.
 
 ## Core Qualifications & Team Management
 

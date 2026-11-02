@@ -226,6 +226,8 @@ class GuestListTest extends TestCase
         $team->grant($member, MembershipRole::Member);
         $accepted = User::factory()->create(['name' => 'Accepted attendee']);
         $team->grant($accepted, MembershipRole::Member);
+        $parent = User::factory()->underEighteen()->create(['name' => 'Parent attendee']);
+        $team->grant($parent, MembershipRole::Parent);
         $declined = User::factory()->create(['name' => 'Declined attendee']);
         $team->grant($declined, MembershipRole::Member);
         $formerMember = User::factory()->guest()->create(['name' => 'Former member']);
@@ -242,6 +244,10 @@ class GuestListTest extends TestCase
             'token' => BookingAttendance::generateToken(),
         ]);
         $booking->attendees()->attach($accepted->getKey(), [
+            'status' => BookingAttendeeStatus::Accepted->value,
+            'token' => BookingAttendance::generateToken(),
+        ]);
+        $booking->attendees()->attach($parent->getKey(), [
             'status' => BookingAttendeeStatus::Accepted->value,
             'token' => BookingAttendance::generateToken(),
         ]);
@@ -270,6 +276,9 @@ class GuestListTest extends TestCase
             ->assertSee('Maybe')
             ->assertSee('Awaiting response')
             ->assertSee('Former member')
+            ->assertSee('Parent attendee')
+            ->assertSee('Under 18')
+            ->assertSee('Parent')
             ->assertSee('Guest')
             ->assertSee('Edit')
             ->assertSee('Remove')

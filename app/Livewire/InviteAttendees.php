@@ -5,8 +5,10 @@ namespace App\Livewire;
 use App\Actions\InviteAttendeesAction;
 use App\Enums\BookingAttendeeStatus;
 use App\Enums\MailChannel;
+use App\Enums\MembershipRole;
 use App\Livewire\Concerns\InteractsWithPersonAccess;
 use App\Models\Booking;
+use App\Models\TeamMembership;
 use App\Models\User;
 use App\Support\BookingPeople;
 use App\Support\MailPreference;
@@ -28,6 +30,8 @@ class InviteAttendees extends Component
     public bool $qualifiedOnly = false;
 
     public bool $keyHoldersOnly = false;
+
+    public bool $membersOnly = false;
 
     public string $name = '';
 
@@ -55,6 +59,11 @@ class InviteAttendees extends Component
         }
 
         $this->keyHoldersOnly = ! $this->keyHoldersOnly;
+    }
+
+    public function toggleMembersOnly(): void
+    {
+        $this->membersOnly = ! $this->membersOnly;
     }
 
     public function add(string $userId): void
@@ -125,7 +134,7 @@ class InviteAttendees extends Component
     }
 
     /**
-     * @return list<array{id: string, name: string, qualified: bool, key_badge: ?string, mail_off: bool, status: ?BookingAttendeeStatus, can_add: bool}>
+     * @return list<array{id: string, name: string, under_18: bool, is_parent: bool, qualified: bool, key_badge: ?string, mail_off: bool, status: ?BookingAttendeeStatus, can_add: bool}>
      */
     public function queuedPeople(): array
     {
@@ -139,7 +148,7 @@ class InviteAttendees extends Component
     }
 
     /**
-     * @return list<array{id: string, name: string, qualified: bool, key_badge: ?string, mail_off: bool, status: ?BookingAttendeeStatus, can_add: bool}>
+     * @return list<array{id: string, name: string, under_18: bool, is_parent: bool, qualified: bool, key_badge: ?string, mail_off: bool, status: ?BookingAttendeeStatus, can_add: bool}>
      */
     public function pickerPeople(): array
     {
@@ -151,6 +160,10 @@ class InviteAttendees extends Component
                 }
 
                 if ($this->keyHoldersOnly && $person['key_badge'] !== 'holder') {
+                    return false;
+                }
+
+                if ($this->membersOnly && $person['is_parent']) {
                     return false;
                 }
 
@@ -172,7 +185,7 @@ class InviteAttendees extends Component
         }
 
         return $this->roster()
-            ->filter(fn (array $person): bool => $person['qualified'] && $person['can_add'])
+            ->filter(fn (array $person): bool => $person['qualified'] && $person['can_add'] && ! $person['is_parent'])
             ->map(fn (array $person): string => $person['id'])
             ->values()
             ->all();
@@ -223,7 +236,7 @@ class InviteAttendees extends Component
     }
 
     /**
-     * @return Collection<int, array{id: string, name: string, qualified: bool, key_badge: ?string, mail_off: bool, status: ?BookingAttendeeStatus, can_add: bool}>
+     * @return Collection<int, array{id: string, name: string, under_18: bool, is_parent: bool, qualified: bool, key_badge: ?string, mail_off: bool, status: ?BookingAttendeeStatus, can_add: bool}>
      */
     private function roster(): Collection
     {
@@ -254,6 +267,23 @@ class InviteAttendees extends Component
             ?? collect();
 
         $attendees = $this->booking->attendees->keyBy(fn (User $user): string => $user->getKey());
+        $teamMemberRoles = $members->mapWithKeys(
+            fn (User $member): array => [$member->getKey() => $member->pivot->role],
+        );
+        $attendeesNotInInviteableMembers = $attendees->keys()->diff($members->keys());
+
+        if ($this->booking->team !== null && $attendeesNotInInviteableMembers->isNotEmpty()) {
+            $teamMemberRoles = $teamMemberRoles->merge(
+                TeamMembership::query()
+                    ->where('team_id', $this->booking->team->getKey())
+                    ->whereNull('left_at')
+                    ->whereIn('user_id', $attendeesNotInInviteableMembers->all())
+                    ->get(['user_id', 'role'])
+                    ->mapWithKeys(fn (TeamMembership $membership): array => [
+                        (string) $membership->user_id => $membership->role,
+                    ]),
+            );
+        }
 
         $showQualified = $this->booking->requiresQualification();
         $badges = BookingPeople::keyBadges(
@@ -264,7 +294,7 @@ class InviteAttendees extends Component
         return $members->keys()
             ->merge($attendees->keys())
             ->unique()
-            ->map(function (string $id) use ($members, $attendees, $showQualified, $badges): array {
+            ->map(function (string $id) use ($members, $attendees, $showQualified, $badges, $teamMemberRoles): array {
                 $member = $members->get($id);
                 $attendee = $attendees->get($id);
                 $user = $member ?? $attendee;
@@ -273,6 +303,8 @@ class InviteAttendees extends Component
                 return [
                     'id' => $id,
                     'name' => $user->name,
+                    'under_18' => $user->isUnder18(),
+                    'is_parent' => $teamMemberRoles->get($id) === MembershipRole::Parent,
                     'qualified' => $showQualified && $this->booking->metBy($user),
                     'key_badge' => $badges[$id] ?? null,
                     'mail_off' => ! MailPreference::allows($user, MailChannel::BookingsMail, $this->booking),

@@ -13,7 +13,7 @@ As a system admin, I want to invite someone as oversight and/or system admin by 
 ## Acceptance criteria
 
 - Only a system admin can send, resend, or revoke these invitations. Oversight and team managers cannot. Existing Access toggles on an existing account stay as they are.
-- The inviter chooses oversight, system admin, or both (at least one required), giving a name and an email address to invite. Section defaults to Adult.
+- The inviter chooses oversight, system admin, or both (at least one required), giving a name and an email address to invite. The under-18 safeguarding flag defaults off.
 - The named person exists immediately as a placeholder with those flags and no team membership. They appear in the global Users list with an invitation status. The invited email address is shown only on that person's own screen, never in the Users list (see [US-58](US-58-personal-data-viewing-acknowledgement.md)).
 - The invitation email is sent to the address given and contains a signed link that expires after 14 days. A system admin can resend or revoke a pending invitation; a revoked or expired link cannot be used, and an expired or revoked link tells the invitee to ask a system administrator for a new invitation.
 - An invitee can accept by creating a new account or by signing in to an existing account. The existing account's email address need not match the invited address. Accepting does not grant a team. Claiming an existing account adds the invited flags to that account (existing flags and team memberships are kept) and removes the placeholder.
@@ -35,6 +35,6 @@ As a system admin, I want to invite someone as oversight and/or system admin by 
 
 ## Progress
 
-Implemented: nullable `team_invitations.team_id` for site-access invitations, Add person and Send/Resend/Invite again/Revoke on the Admin Users list (system admin only), placeholders with oversight and/or system-admin flags and no team, the same 14-day signed invitation page with site-access copy, decline notifications to active verified system admins, claim that ORs flags onto an existing account without granting a team, suspended-email and already-has-an-account checks, removal of Create User and the setup-account path, and activity-log entries. Empty-database registration remains the bootstrap that creates the first system admin. Invited placeholders who are later suspended do not get invitation tools, and a further send is refused.
+Implemented: nullable `team_invitations.team_id` for site-access invitations, Add person and Send/Resend/Invite again/Revoke on the Admin Users list (system admin only), placeholders with oversight and/or system-admin flags and no team, the under-18 safeguarding flag defaulting off, the same 14-day signed invitation page with site-access copy, decline notifications to active verified system admins, claim that ORs flags onto an existing account without granting a team, suspended-email and already-has-an-account checks, removal of Create User and the setup-account path, and activity-log entries. Empty-database registration remains the bootstrap that creates the first system admin. Invited placeholders who are later suspended do not get invitation tools, and a further send is refused.
 
 A candidate for [US-55](US-55-inbound-email-routing-and-alerts.md) refinement: forward replies to a site-access invitation to the system admins.

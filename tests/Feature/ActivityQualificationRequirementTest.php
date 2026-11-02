@@ -218,7 +218,7 @@ class ActivityQualificationRequirementTest extends TestCase
 
         $this->assertSame([], $booking->fresh()->leadOptions());
         $this->assertSame(
-            [$member->getKey() => $member->name],
+            ['Adult' => [$member->getKey() => $member->name]],
             $lastDay->fresh()->leadOptions(),
         );
     }

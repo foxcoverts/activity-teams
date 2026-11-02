@@ -3,44 +3,32 @@
 namespace App\Filament\Manage\Resources\Members;
 
 use App\Actions\SendTeamInvitationAction;
-use App\Enums\AccountStatus;
 use App\Enums\InvitationStatus;
 use App\Enums\MembershipRole;
-use App\Enums\PersonalDataSection as PersonalDataSectionEnum;
-use App\Enums\Section as MemberSection;
 use App\Filament\Manage\NavigationGroup;
 use App\Filament\Manage\Resources\Members\Pages\EditMember;
 use App\Filament\Manage\Resources\Members\Pages\ListMembers;
 use App\Filament\Manage\Resources\Members\Pages\ViewMember;
 use App\Filament\Manage\Resources\Members\RelationManagers\LocksRelationManager;
+use App\Filament\Manage\Resources\Members\Schemas\MemberForm;
+use App\Filament\Manage\Resources\Members\Schemas\MemberInfolist;
+use App\Filament\Manage\Resources\Members\Tables\MembersTable;
 use App\Filament\RelationManagers\QualificationsRelationManager;
-use App\Filament\Schemas\ContactFields;
-use App\Filament\Schemas\PersonalDataSection;
 use App\Models\Lock;
 use App\Models\Team;
 use App\Models\User;
-use App\Support\Palette;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
-use Filament\Actions\EditAction;
-use Filament\Actions\ViewAction;
 use Filament\Facades\Filament;
-use Filament\Forms\Components\Placeholder;
-use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\ToggleButtons;
-use Filament\Infolists\Components\TextEntry;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Component;
-use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Support\Enums\Width;
 use Filament\Support\Icons\Heroicon;
-use Filament\Tables\Columns\TextColumn;
-use Filament\Tables\Filters\Filter;
-use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Contracts\View\View;
@@ -101,132 +89,17 @@ class MemberResource extends Resource
 
     public static function form(Schema $schema): Schema
     {
-        return $schema
-            ->components([
-                Section::make(__('Member'))
-                    ->icon(Heroicon::User)
-                    ->columns(1)
-                    ->columnSpanFull()
-                    ->schema([
-                        TextInput::make('name')
-                            ->required(),
-                        Select::make('section')
-                            ->options(MemberSection::class)
-                            ->required(),
-                        Placeholder::make('role')
-                            ->label(__('Role'))
-                            ->badge()
-                            ->state(fn (User $record): ?MembershipRole => static::roleOnCurrentTeam($record)),
-                        PersonalDataSection::form(PersonalDataSectionEnum::ContactDetails, [
-                            TextInput::make('email')
-                                ->email()
-                                ->required(fn (?User $record): bool => ! $record?->isPlaceholder())
-                                ->disabled(fn (?User $record): bool => $record?->isPlaceholder() ?? false),
-                            ContactFields::phoneInput('phone'),
-                        ]),
-                        PersonalDataSection::form(PersonalDataSectionEnum::EmergencyContact, [
-                            TextInput::make('emergency_name'),
-                            ContactFields::phoneInput('emergency_phone')
-                                ->label(__('Emergency contact phone')),
-                        ]),
-                    ]),
-            ]);
+        return MemberForm::configure($schema);
     }
 
     public static function infolist(Schema $schema): Schema
     {
-        return $schema
-            ->components([
-                Section::make(__('Member'))
-                    ->icon(Heroicon::User)
-                    ->columns(1)
-                    ->columnSpanFull()
-                    ->schema([
-                        TextEntry::make('name'),
-                        TextEntry::make('section')
-                            ->badge(),
-                        TextEntry::make('membership_role')
-                            ->label('Role')
-                            ->badge()
-                            ->state(fn (User $record): ?MembershipRole => static::roleOnCurrentTeam($record)),
-                        TextEntry::make('invited_email')
-                            ->state(fn (User $record): ?string => $record->invitation?->email)
-                            ->visible(fn (User $record): bool => $record->isPlaceholder() && $record->invitation !== null),
-                        TextEntry::make('status')
-                            ->hiddenLabel()
-                            ->badge()
-                            ->state(fn (User $record): AccountStatus|string => $record->status()),
-                        PersonalDataSection::make(PersonalDataSectionEnum::ContactDetails, [
-                            TextEntry::make('email'),
-                            ContactFields::phoneEntry('phone'),
-                        ]),
-                        PersonalDataSection::make(PersonalDataSectionEnum::EmergencyContact, [
-                            TextEntry::make('emergency_name')
-                                ->placeholder('-'),
-                            ContactFields::phoneEntry('emergency_phone')
-                                ->label(__('Emergency contact phone')),
-                        ]),
-                    ]),
-            ]);
+        return MemberInfolist::configure($schema);
     }
 
     public static function table(Table $table): Table
     {
-        return $table
-            ->defaultSort('name')
-            ->columns([
-                TextColumn::make('name')
-                    ->searchable(),
-                TextColumn::make('membership_role')
-                    ->label('Role')
-                    ->badge()
-                    ->state(fn (User $record): ?MembershipRole => static::roleOnCurrentTeam($record)),
-                TextColumn::make('status')
-                    ->state(fn (User $record): AccountStatus|string => $record->status())
-                    ->badge(),
-                TextColumn::make('keys')
-                    ->label(__('Keys'))
-                    ->badge()
-                    ->icon(Heroicon::OutlinedKey)
-                    ->state(fn (User $record): ?string => $record->namesOfOpenedLocks(static::teamLocks()) === []
-                        ? null
-                        : __('Key holder'))
-                    ->color(fn (?string $state): array => filled($state) ? Palette::positive() : Palette::neutral())
-                    ->action(static::heldKeysAction())
-                    ->disabledClick(fn (?string $state): bool => blank($state))
-                    ->visible(fn (): bool => static::teamLocks()->isNotEmpty()),
-            ])
-            ->filters([
-                Filter::make('not_accepted')
-                    ->label('Not yet accepted')
-                    ->query(fn (Builder $query): Builder => $query->whereNull('users.email')->whereNull('users.deleted_at')),
-                SelectFilter::make('key')
-                    ->label(__('Locks'))
-                    ->options(fn (): array => static::teamLocks()->pluck('name', 'id')->all())
-                    ->query(function (Builder $query, array $data): Builder {
-                        $keyId = $data['value'] ?? null;
-
-                        if (blank($keyId)) {
-                            return $query;
-                        }
-
-                        $key = Lock::query()->find($keyId);
-
-                        if (! $key instanceof Lock) {
-                            return $query;
-                        }
-
-                        return $query->holding($key);
-                    })
-                    ->visible(fn (): bool => static::teamLocks()->isNotEmpty()),
-            ])
-            ->recordActions([
-                static::invitationActions(),
-                ViewAction::make(),
-                EditAction::make(),
-                static::changeRoleAction(),
-                static::removeFromTeamAction(),
-            ]);
+        return MembersTable::configure($table);
     }
 
     public static function getRelations(): array

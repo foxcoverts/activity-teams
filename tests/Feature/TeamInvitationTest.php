@@ -7,7 +7,6 @@ use App\Actions\SendTeamInvitationAction;
 use App\Enums\BookingAttendeeStatus;
 use App\Enums\InvitationStatus;
 use App\Enums\MembershipRole;
-use App\Enums\Section;
 use App\Filament\Admin\Resources\Users\Pages\ListUsers;
 use App\Filament\Manage\Resources\Members\MemberResource;
 use App\Filament\Manage\Resources\Members\Pages\EditMember;
@@ -56,9 +55,9 @@ class TeamInvitationTest extends TestCase
         $this->team->grant($this->manager, MembershipRole::Manager);
     }
 
-    private function invite(string $email = 'new@example.com', MembershipRole $role = MembershipRole::Member): User
+    private function invite(string $email = 'new@example.com', MembershipRole $role = MembershipRole::Member, bool $under18 = false): User
     {
-        return app(SendTeamInvitationAction::class)->add($this->manager, $this->team, 'Sam Placeholder', $email, $role, Section::Scout);
+        return app(SendTeamInvitationAction::class)->add($this->manager, $this->team, 'Sam Placeholder', $email, $role, $under18);
     }
 
     private function acceptUrl(TeamInvitation $invitation): string
@@ -93,7 +92,7 @@ class TeamInvitationTest extends TestCase
 
         $this->expectException(AuthorizationException::class);
 
-        app(SendTeamInvitationAction::class)->add($member, $this->team, 'Sam', 'x@example.com', MembershipRole::Member, Section::Adult);
+        app(SendTeamInvitationAction::class)->add($member, $this->team, 'Sam', 'x@example.com', MembershipRole::Member);
     }
 
     public function test_a_system_admin_can_invite_without_managing_the_team(): void
@@ -105,12 +104,35 @@ class TeamInvitationTest extends TestCase
 
         Livewire::test(ListMembers::class)
             ->assertActionVisible('add')
-            ->callAction('add', ['name' => 'Sam', 'email' => 'admin-invited@example.com', 'role' => 'member', 'section' => 'adult'])
+            ->callAction('add', ['name' => 'Sam', 'email' => 'admin-invited@example.com', 'role' => 'member', 'under_18' => true])
             ->assertNotified('Member added and invitation sent');
 
         $placeholder = User::query()->where('name', 'Sam')->firstOrFail();
         $this->assertTrue($admin->canInviteTo($this->team));
         $this->assertSame('admin-invited@example.com', $placeholder->invitation->email);
+        $this->assertTrue($placeholder->isUnder18());
+    }
+
+    public function test_a_parent_can_be_invited_with_the_under_18_flag(): void
+    {
+        $this->actAsManager();
+
+        Livewire::test(ListMembers::class)
+            ->callAction('add', [
+                'name' => 'Sam Parent',
+                'email' => 'parent@example.com',
+                'role' => 'parent',
+                'under_18' => true,
+            ])
+            ->assertNotified('Member added and invitation sent');
+
+        $placeholder = User::query()->where('name', 'Sam Parent')->firstOrFail();
+
+        $this->assertTrue($placeholder->isUnder18());
+        $this->assertSame(
+            MembershipRole::Parent,
+            $this->team->memberships()->where('user_id', $placeholder->getKey())->firstOrFail()->role,
+        );
     }
 
     public function test_an_oversight_account_cannot_invite(): void
@@ -129,7 +151,7 @@ class TeamInvitationTest extends TestCase
             ->assertActionHidden('add');
 
         $this->expectException(AuthorizationException::class);
-        app(SendTeamInvitationAction::class)->add($oversight, $this->team, 'Sam', 'x@example.com', MembershipRole::Member, Section::Adult);
+        app(SendTeamInvitationAction::class)->add($oversight, $this->team, 'Sam', 'x@example.com', MembershipRole::Member);
     }
 
     public function test_an_email_belonging_to_a_suspended_account_is_refused_and_says_why(): void
@@ -328,6 +350,33 @@ class TeamInvitationTest extends TestCase
         $this->assertSame(MembershipRole::Manager, $this->team->memberships()->where('user_id', $this->manager->id)->first()->role);
     }
 
+    public function test_member_role_wins_over_parent_when_claiming_a_parent_placeholder(): void
+    {
+        $placeholder = $this->invite('invited@example.com', MembershipRole::Parent);
+        $account = User::factory()->create();
+        $this->team->grant($account, MembershipRole::Member);
+
+        app(AcceptTeamInvitationAction::class)->claimWith($placeholder->invitation, $account);
+
+        $this->assertSame(
+            MembershipRole::Member,
+            $this->team->memberships()->where('user_id', $account->getKey())->firstOrFail()->role,
+        );
+    }
+
+    public function test_parent_role_is_preserved_when_claiming_with_no_existing_team_membership(): void
+    {
+        $placeholder = $this->invite('invited@example.com', MembershipRole::Parent);
+        $account = User::factory()->create();
+
+        app(AcceptTeamInvitationAction::class)->claimWith($placeholder->invitation, $account);
+
+        $this->assertSame(
+            MembershipRole::Parent,
+            $this->team->memberships()->where('user_id', $account->getKey())->firstOrFail()->role,
+        );
+    }
+
     public function test_a_suspended_account_cannot_claim_an_invitation(): void
     {
         $placeholder = $this->invite();
@@ -472,7 +521,7 @@ class TeamInvitationTest extends TestCase
         $this->actAsManager();
 
         Livewire::test(ListMembers::class)
-            ->callAction('add', ['name' => 'Sam Placeholder', 'email' => 'new@example.com', 'role' => 'member', 'section' => 'scout'])
+            ->callAction('add', ['name' => 'Sam Placeholder', 'email' => 'new@example.com', 'role' => 'member', 'under_18' => false])
             ->assertNotified('Member added and invitation sent');
 
         $placeholder = User::query()->where('name', 'Sam Placeholder')->firstOrFail();
@@ -489,7 +538,7 @@ class TeamInvitationTest extends TestCase
         $this->actAsManager();
 
         Livewire::test(ListMembers::class)
-            ->callAction('add', ['name' => 'Sam', 'email' => 'gone@example.com', 'role' => 'member', 'section' => 'scout'])
+            ->callAction('add', ['name' => 'Sam', 'email' => 'gone@example.com', 'role' => 'member', 'under_18' => false])
             ->assertHasActionErrors(['email']);
 
         $this->assertSame(0, User::query()->where('name', 'Sam')->count());
@@ -502,7 +551,7 @@ class TeamInvitationTest extends TestCase
         $this->actAsManager();
 
         Livewire::test(ListMembers::class)
-            ->callAction('add', ['name' => 'Sam', 'email' => 'there@example.com', 'role' => 'member', 'section' => 'scout'])
+            ->callAction('add', ['name' => 'Sam', 'email' => 'there@example.com', 'role' => 'member', 'under_18' => false])
             ->assertHasActionErrors(['email'])
             ->assertNotNotified();
 

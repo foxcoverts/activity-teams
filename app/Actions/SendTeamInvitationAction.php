@@ -3,7 +3,6 @@
 namespace App\Actions;
 
 use App\Enums\MembershipRole;
-use App\Enums\Section;
 use App\Models\Team;
 use App\Models\TeamInvitation;
 use App\Models\User;
@@ -20,16 +19,16 @@ class SendTeamInvitationAction
     /**
      * Add a named placeholder to the team and invite them by email.
      */
-    public function add(User $manager, Team $team, string $name, string $email, MembershipRole $role, Section $section): User
+    public function add(User $manager, Team $team, string $name, string $email, MembershipRole $role, bool $under18 = false): User
     {
         $this->authorize($manager, $team);
         $email = $this->normalise($email);
         $this->guardEmail($team, $email);
 
-        $placeholder = DB::transaction(function () use ($team, $name, $role, $section): User {
+        $placeholder = DB::transaction(function () use ($team, $name, $role, $under18): User {
             $placeholder = User::query()->create([
                 'name' => $name,
-                'section' => $section,
+                'under_18' => $under18,
             ]);
 
             $team->grant($placeholder, $role);
@@ -45,7 +44,7 @@ class SendTeamInvitationAction
     /**
      * Add a named placeholder with site-wide access and invite them by email.
      */
-    public function addAdmin(User $actor, string $name, string $email, bool $oversight, bool $isSystemAdmin, Section $section): User
+    public function addAdmin(User $actor, string $name, string $email, bool $oversight, bool $isSystemAdmin, bool $under18 = false): User
     {
         $this->authorizeSite($actor);
 
@@ -60,7 +59,7 @@ class SendTeamInvitationAction
 
         $placeholder = User::query()->create([
             'name' => $name,
-            'section' => $section,
+            'under_18' => $under18,
             'oversight' => $oversight,
             'is_system_admin' => $isSystemAdmin,
         ]);

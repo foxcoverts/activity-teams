@@ -3,7 +3,6 @@
 namespace Database\Factories;
 
 use App\Enums\MembershipRole;
-use App\Enums\Section;
 use App\Models\Team;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
@@ -26,7 +25,7 @@ class UserFactory extends Factory
             'password' => static::$password ??= Hash::make('password'),
             'remember_token' => Str::random(10),
             'timezone' => 'Europe/London',
-            'section' => Section::Adult->value,
+            'under_18' => false,
             'suspended' => false,
             'oversight' => false,
             'is_system_admin' => false,
@@ -41,6 +40,11 @@ class UserFactory extends Factory
     public function inactive(): static
     {
         return $this->state(fn () => ['password' => null]);
+    }
+
+    public function underEighteen(): static
+    {
+        return $this->state(fn () => ['under_18' => true]);
     }
 
     public function placeholder(): static

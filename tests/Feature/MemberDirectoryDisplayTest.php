@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Enums\AccountStatus;
 use App\Enums\MembershipRole;
+use App\Enums\AgeGroup;
 use App\Filament\Manage\Resources\Members\Pages\ListMembers;
 use App\Filament\Manage\Resources\Members\Pages\ViewMember;
 use App\Models\TeamInvitation;
@@ -54,7 +55,7 @@ class MemberDirectoryDisplayTest extends TestCase
 
         Livewire::test(ViewMember::class, ['record' => $manager->getKey()])
             ->assertSchemaStateSet([
-                'status' => AccountStatus::Active,
+                'status_badges' => [AccountStatus::Active],
                 'membership_role' => MembershipRole::Manager,
             ]);
     }
@@ -70,7 +71,25 @@ class MemberDirectoryDisplayTest extends TestCase
 
         Livewire::test(ViewMember::class, ['record' => $suspended->getKey()])
             ->assertSchemaStateSet([
-                'status' => AccountStatus::Suspended,
+                'status_badges' => [AccountStatus::Suspended],
+                'membership_role' => MembershipRole::Member,
+            ]);
+    }
+
+    public function test_the_member_view_shows_under18_status_for_under18_members(): void
+    {
+        $manager = User::factory()->teamManager()->create();
+        $team = $manager->managedTeams()->first();
+
+        $under18 = User::factory()->teamMember($team)->underEighteen()->create();
+
+        Filament::setCurrentPanel(Filament::getPanel('manage'));
+        $this->actingAs($manager);
+
+        Livewire::test(ViewMember::class, ['record' => $under18->getKey()])
+            ->assertSuccessful()
+            ->assertSchemaStateSet([
+                'status_badges' => [AccountStatus::Active, AgeGroup::Under18],
                 'membership_role' => MembershipRole::Member,
             ]);
     }

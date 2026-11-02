@@ -31,13 +31,13 @@ This platform is strictly an internal administrative tool used to run invitation
 
 We only collect and process personal data that is strictly necessary to run our campsite activity teams safely and securely.
 
-* **Identity Data:** Full name, manager-assigned section, and timezone.
+* **Identity Data:** Full name, manager-set under-18 safeguarding flag, and timezone.
 * **Account Data:** Email address, password (stored only as a secure hash), and email verification status.
 * **Contact Data:** Your phone number, plus the name and phone number of your designated emergency contact.
 * **Team & Operational Data:** Team memberships, roles, adventurous activity permits/qualifications (e.g., Climbing Tower, Archery, Air Rifles), booking attendance, and lead-instructor history.
 * **Application Records:** Privacy notice acceptance timestamp, annual contact-confirmation timestamp, secure calendar-feed tokens, and activity/system audit logs.
 * **Viewing Acknowledgements:** A permanent record of who viewed another person's contact or emergency details, capturing the viewer's identity, the viewed party's section, and the exact timestamp (with names frozen at that moment).
-* **Placeholder Data:** For individuals who are invited but have not yet registered, we hold their name, section, invitation email, and intended team/role.
+* **Placeholder Data:** For individuals who are invited but have not yet registered, we hold their name, under-18 safeguarding flag, invitation email, and intended team role.
 
 ---
 
@@ -52,13 +52,13 @@ The table below outlines our purposes for processing your data alongside the cor
 | **Contact Data Accuracy:** Administering annual contact details confirmations. | Identity, Contact, and Application Records. | **Legal Obligation:** Necessary to comply with the UK GDPR Principle of Accuracy (Article 5(1)(d)). |
 | **System Security:** Managing invitation-only accounts, password resets, suspensions, and protecting the system from lack of administration (last-admin protection). | Account Data, Application Records. | **Legitimate Interests / Legal Obligation:** Necessary to secure our platform and satisfy our legal duty to secure personal data under Article 32 UK GDPR. |
 | **Accountability & Misuse Prevention:** Logging access via viewing acknowledgements and system audit logs if someone accesses contact details. | Identity, Application Records, Viewing Acknowledgements. | **Legitimate Interests:** Necessary to maintain a robust audit trail to detect, investigate, and prevent unauthorized access or misuse of contact information. |
-| **Defending Legal Claims:** Retaining a minimal "named attendance shell" after an individual leaves the organization. | Identity, Team & Operational Data (Name, section, qualifications, attendance, lead history). | **Legitimate Interests:** Necessary for the establishment, exercise, or defence of potential legal claims resulting from hazardous outdoor activities (under the Limitation Act 1980). |
+| **Defending Legal Claims:** Retaining a minimal "named attendance shell" after an individual leaves the organization. | Identity, Team & Operational Data (Name, under-18 safeguarding flag, team role, qualifications, attendance, lead history). | **Legitimate Interests:** Necessary for the establishment, exercise, or defence of potential legal claims resulting from hazardous outdoor activities (under the Limitation Act 1980). |
 
 ---
 
 ## 4. Children’s Data
 
-Because our application includes a Scout section, **we process the data of individuals under the age of 18**.
+Because managers can mark accounts as under 18, **we process the data of individuals under the age of 18**.
 * **Operational Control:** Accounts are created strictly via closed invitations managed by adult team managers.
 * **Minimisation:** We do not ask for or store dates of birth or ages within booking records.
 * **Extended Retention:** Because minors can legally bring personal injury claims up until their 21st birthday, we retain basic attendance history and names indefinitely to defend against future legal claims.
@@ -70,7 +70,7 @@ Because our application includes a Scout section, **we process the data of indiv
 We enforce strict, time-locked access controls within the application to ensure your information is only visible to those who strictly need it.
 
 * **The Individual:** You can always see and edit your own profile (name, email, phone, emergency contact, timezone). Nobody else can see or set your password.
-* **Team Managers:** Managers can view and edit the profile details of members within their assigned sections.
+* **Team Managers:** Managers can view and edit the profile details of members in their teams.
 * **Phone Numbers:** Visible to the lead instructor and other members listed on the exact same booking. This visibility is strictly time-bound: it starts at the booking start time and vanishes at the booking end time (based on the booking's timezone).
 * **Emergency Contacts:** Visible to fellow participants on the same booking *only* during the active booking window (from start date/time through end date/time), ensuring help can be reached if you are incapacitated. Team managers can access these details outside of booking windows for ongoing welfare and safety management.
 * **The Acknowledgement Wall:** Before any user can view another person's phone or emergency details, they must actively tick a box certifying they will use the information only for legitimate team matters. This acknowledgement expires after 30 minutes, is tracked per person and per section, and does not override standard access rules.

@@ -12,12 +12,14 @@ enum MembershipRole: string implements HasColor, HasIcon, HasLabel
 {
     case Manager = 'manager';
     case Member = 'member';
+    case Parent = 'parent';
 
     public function getLabel(): string
     {
         return match ($this) {
             self::Manager => __('Manager'),
             self::Member => __('Member'),
+            self::Parent => __('Parent'),
         };
     }
 
@@ -29,6 +31,7 @@ enum MembershipRole: string implements HasColor, HasIcon, HasLabel
         return match ($this) {
             self::Manager => Palette::manager(),
             self::Member => Palette::neutral(),
+            self::Parent => Palette::neutral(),
         };
     }
 
@@ -37,6 +40,12 @@ enum MembershipRole: string implements HasColor, HasIcon, HasLabel
         return match ($this) {
             self::Manager => Heroicon::Star,
             self::Member => Heroicon::User,
+            self::Parent => Heroicon::Users,
         };
+    }
+
+    public function isManager(): bool
+    {
+        return $this === self::Manager;
     }
 }

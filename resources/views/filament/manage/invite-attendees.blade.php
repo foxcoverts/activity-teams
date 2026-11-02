@@ -65,6 +65,15 @@
                         {{ __('Key holders only') }}
                     </x-filament::button>
                 @endif
+
+                <x-filament::button
+                    size="sm"
+                    :color="$membersOnly ? 'primary' : 'gray'"
+                    :outlined="! $membersOnly"
+                    wire:click="toggleMembersOnly"
+                >
+                    {{ __('Members only') }}
+                </x-filament::button>
             </div>
 
             <x-filament::button

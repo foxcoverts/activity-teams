@@ -7,7 +7,6 @@ use App\Actions\DeleteUserAction;
 use App\Actions\ExportPersonalDataAction;
 use App\Actions\SendTeamInvitationAction;
 use App\Enums\MembershipRole;
-use App\Enums\Section;
 use App\Filament\Admin\Resources\Keys\Pages\CreateKey;
 use App\Filament\Admin\Resources\Keys\Pages\EditKey;
 use App\Filament\Admin\Resources\Users\Pages\EditUser;
@@ -38,7 +37,7 @@ class AccountPrivacyTest extends TestCase
 
     public function test_a_member_can_download_a_json_copy_of_their_personal_data(): void
     {
-        $user = User::factory()->teamMember()->create([
+        $user = User::factory()->teamMember()->underEighteen()->create([
             'email' => 'alex@example.com',
             'phone' => '+447700900111',
         ]);
@@ -48,6 +47,8 @@ class AccountPrivacyTest extends TestCase
 
         $this->assertSame('alex@example.com', $payload['email']);
         $this->assertSame('+447700900111', $payload['phone']);
+        $this->assertSame(true, $payload['under_18']);
+        $this->assertArrayNotHasKey('section', $payload);
         $this->assertNotEmpty($payload['memberships']);
         $this->assertNotEmpty($payload['qualifications']);
         $this->assertArrayNotHasKey('password', $payload);
@@ -248,7 +249,7 @@ class AccountPrivacyTest extends TestCase
     {
         $manager = User::factory()->teamManager()->create();
         $team = $manager->managedTeams()->first();
-        $placeholder = app(SendTeamInvitationAction::class)->add($manager, $team, 'Sam', 'new@example.com', MembershipRole::Member, Section::Adult);
+        $placeholder = app(SendTeamInvitationAction::class)->add($manager, $team, 'Sam', 'new@example.com', MembershipRole::Member);
         $account = User::factory()->create();
 
         app(AcceptTeamInvitationAction::class)->claimWith($placeholder->invitation, $account);
@@ -260,7 +261,7 @@ class AccountPrivacyTest extends TestCase
     {
         $manager = User::factory()->teamManager()->create();
         $team = $manager->managedTeams()->first();
-        $placeholder = app(SendTeamInvitationAction::class)->add($manager, $team, 'Sam', 'new@example.com', MembershipRole::Member, Section::Adult);
+        $placeholder = app(SendTeamInvitationAction::class)->add($manager, $team, 'Sam', 'new@example.com', MembershipRole::Member);
 
         Livewire::withQueryParams(['token' => $placeholder->invitation->token])
             ->test(AcceptInvitation::class, ['invitation' => $placeholder->invitation])
