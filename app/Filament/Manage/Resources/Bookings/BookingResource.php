@@ -2,6 +2,7 @@
 
 namespace App\Filament\Manage\Resources\Bookings;
 
+use App\Actions\SaveBookingDetailsAction;
 use App\Enums\BookingStatus;
 use App\Filament\Bookings\LocationMapAction;
 use App\Filament\Forms\Components\TimezoneSelect;
@@ -11,16 +12,19 @@ use App\Filament\Manage\Resources\Bookings\Pages\EditBooking;
 use App\Filament\Manage\Resources\Bookings\Pages\ListBookings;
 use App\Filament\Manage\Resources\Bookings\Pages\ViewBooking;
 use App\Filament\Manage\Resources\Bookings\RelationManagers\AttendeesRelationManager;
+use App\Filament\Venues\VenueLocationSchema;
 use App\Models\Activity;
 use App\Models\Audience;
 use App\Models\Booking;
 use App\Models\Team;
 use App\Models\User;
+use App\Models\Venue;
 use App\Support\BookingWhen;
 use BackedEnum;
 use Carbon\Carbon;
 use Carbon\CarbonInterface;
 use DateTimeZone;
+use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\CreateAction;
@@ -30,6 +34,7 @@ use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
@@ -41,6 +46,7 @@ use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
+use Filament\Schemas\Components\Wizard;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
@@ -48,10 +54,15 @@ use Filament\Tables\Table;
 use Illuminate\Auth\Access\Response;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Arr;
 use Illuminate\Validation\ValidationException;
 
 class BookingResource extends Resource
 {
+    public const OTHER_ACTIVITY = 'other';
+
+    public const OTHER_VENUE = 'other';
+
     protected static ?string $model = Booking::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedCalendarDays;
@@ -61,23 +72,6 @@ class BookingResource extends Resource
     protected static ?int $navigationSort = 1;
 
     protected static ?string $recordTitleAttribute = 'summary';
-
-    public static function getCreateAuthorizationResponse(): Response
-    {
-        $response = parent::getCreateAuthorizationResponse();
-
-        if ($response->denied()) {
-            return $response;
-        }
-
-        $reason = static::missingCatalogReason();
-
-        if ($reason !== null) {
-            return Response::deny($reason);
-        }
-
-        return $response;
-    }
 
     public static function getEditAuthorizationResponse(Model $record): Response
     {
@@ -99,18 +93,29 @@ class BookingResource extends Resource
     }
 
     /**
-     * @return array<int, DatePicker|FusedGroup|Grid|Select|Textarea|TimePicker|TextInput>
+     * @return array<int, DatePicker|FusedGroup|Grid|Section|Select|Textarea|TimePicker|TextInput|Hidden>
      */
     public static function detailComponents(): array
     {
         return [
             Select::make('activity_id')
                 ->label(__('Activity'))
-                ->options(fn (): array => static::teamOptions('activities'))
+                ->options(fn (): array => static::activityOptions())
                 ->default(fn (): ?string => static::teamDefault('activities'))
+                ->searchable()
                 ->selectablePlaceholder(false)
+                ->visible(fn (): bool => static::teamHasCatalogActivities())
                 ->live()
                 ->afterStateUpdated(function (mixed $state, Set $set, Get $get): void {
+                    $set('activity_label', null);
+                    $set('show_activity_label', false);
+
+                    if ($state === static::OTHER_ACTIVITY) {
+                        $set('audience_id', null);
+
+                        return;
+                    }
+
                     $offered = static::audienceOptions(is_string($state) ? $state : null);
                     $current = $get('audience_id');
 
@@ -120,12 +125,46 @@ class BookingResource extends Resource
 
                     $set('audience_id', static::defaultAudienceId(is_string($state) ? $state : null));
                 })
-                ->required(),
+                ->required(fn (): bool => static::teamHasCatalogActivities())
+                ->suffixAction(
+                    Action::make('showAs')
+                        ->label(__('Set activity name'))
+                        ->icon(Heroicon::OutlinedPencilSquare)
+                        ->tooltip(__('Use a different name for this booking.'))
+                        ->visible(fn (Get $get): bool => static::teamHasCatalogActivities()
+                            && $get('activity_id') !== static::OTHER_ACTIVITY
+                            && ! $get('show_activity_label'))
+                        ->action(fn (Set $set) => $set('show_activity_label', true)),
+                ),
+            Hidden::make('show_activity_label')
+                ->default(false)
+                ->dehydrated(false),
+            TextInput::make('activity_label')
+                ->label(__('Activity name'))
+                ->placeholder(function (Get $get): ?string {
+                    $activityId = $get('activity_id');
+
+                    if ($activityId === static::OTHER_ACTIVITY || ! static::teamHasCatalogActivities()) {
+                        return __('Enter an activity name');
+                    }
+
+                    return static::activityOptions()[(string) $activityId] ?? null;
+                })
+                ->maxLength(255)
+                ->live(onBlur: true)
+                ->visible(fn (Get $get): bool => ! static::teamHasCatalogActivities()
+                    || $get('activity_id') === static::OTHER_ACTIVITY
+                    || (bool) $get('show_activity_label'))
+                ->required(fn (Get $get): bool => ! static::teamHasCatalogActivities()
+                    || $get('activity_id') === static::OTHER_ACTIVITY),
             Select::make('audience_id')
                 ->label(__('Audience'))
                 ->options(fn (Get $get): array => static::audienceOptions(is_string($get('activity_id')) ? $get('activity_id') : null))
                 ->default(fn (): ?string => static::defaultAudienceId(static::teamDefault('activities')))
-                ->required(),
+                ->visible(fn (Get $get): bool => static::teamHasCatalogActivities()
+                    && $get('activity_id') !== static::OTHER_ACTIVITY)
+                ->required(fn (Get $get): bool => static::teamHasCatalogActivities()
+                    && $get('activity_id') !== static::OTHER_ACTIVITY),
             TextInput::make('group_name')
                 ->maxLength(255),
             Grid::make(['default' => 1, 'sm' => 6])
@@ -203,10 +242,59 @@ class BookingResource extends Resource
                 ->columnSpanFull(),
             Select::make('venue_id')
                 ->label(__('Venue'))
-                ->options(fn (): array => static::teamOptions('venues'))
+                ->options(fn (): array => static::venueOptions())
                 ->default(fn (): ?string => static::teamDefault('venues'))
                 ->selectablePlaceholder(false)
-                ->required(),
+                ->searchable()
+                ->live()
+                ->required()
+                ->afterStateUpdated(function (mixed $state): void {
+                    $team = Filament::getTenant();
+
+                    if (! $team instanceof Team || ! is_string($state) || $state === static::OTHER_VENUE) {
+                        return;
+                    }
+
+                    $venue = Venue::query()->find($state);
+
+                    if (
+                        $venue instanceof Venue
+                        && ! $team->venues()->whereKey($venue->getKey())->exists()
+                    ) {
+                        $team->addVenue($venue);
+                    }
+                })
+                ->createOptionForm(fn (): array => VenueLocationSchema::creationSteps())
+                ->createOptionAction(fn (Action $action): Action => $action
+                    ->steps(fn (): array => VenueLocationSchema::creationSteps())
+                    ->modifyWizardUsing(fn (Wizard $wizard): Wizard => VenueLocationSchema::prepareActionWizard($wizard))
+                )
+                ->createOptionUsing(function (array $data): string {
+                    $team = Filament::getTenant();
+
+                    if (! $team instanceof Team) {
+                        throw ValidationException::withMessages([
+                            'venue_id' => __('Choose a team.'),
+                        ]);
+                    }
+
+                    $similarVenueId = $data['similar_venue_id'] ?? null;
+
+                    if (! (is_string($similarVenueId) && $similarVenueId !== '')) {
+                        VenueLocationSchema::validateCatalogName($data);
+                    }
+
+                    $venue = is_string($similarVenueId) && $similarVenueId !== ''
+                        ? Venue::query()->findOrFail($similarVenueId)
+                        : Venue::create(Arr::only($data, VenueLocationSchema::venueAttributes()));
+
+                    $team->addVenue($venue);
+
+                    return (string) $venue->getKey();
+                }),
+            ...VenueLocationSchema::components(
+                visible: fn (Get $get): bool => $get('venue_id') === static::OTHER_VENUE,
+            ),
             Textarea::make('notes')
                 ->label(__('Team notes'))
                 ->columnSpanFull(),
@@ -257,8 +345,21 @@ class BookingResource extends Resource
                             ->afterLabel([
                                 LocationMapAction::make(),
                             ]),
-                        TextEntry::make('activity.name')->label(__('Activity')),
-                        TextEntry::make('audience.name')->label(__('Audience')),
+                        TextEntry::make('activity.name')
+                            ->label(__('Activity'))
+                            ->state(fn (Booking $record): string => $record->activityTitle())
+                            ->icon(fn (Booking $record): ?Heroicon => filled($record->activity_label)
+                                && $record->activity !== null
+                                ? Heroicon::OutlinedInformationCircle
+                                : null)
+                            ->iconPosition('after')
+                            ->tooltip(fn (Booking $record): ?string => filled($record->activity_label)
+                                && $record->activity !== null
+                                ? __('Original activity: :name', ['name' => $record->activity?->name])
+                                : null),
+                        TextEntry::make('audience.name')
+                            ->label(__('Audience'))
+                            ->placeholder('-'),
                         TextEntry::make('group_name')
                             ->label(__('Group'))
                             ->placeholder('-')
@@ -290,7 +391,23 @@ class BookingResource extends Resource
             ->recordTitleAttribute('display_name')
             ->columns([
                 TextColumn::make('activity.name')
-                    ->searchable(),
+                    ->state(fn (Booking $record): string => $record->activityTitle())
+                    ->icon(fn (Booking $record): ?Heroicon => filled($record->activity_label)
+                        && $record->activity !== null
+                        ? Heroicon::OutlinedInformationCircle
+                        : null)
+                    ->iconPosition('after')
+                    ->tooltip(fn (Booking $record): ?string => filled($record->activity_label)
+                        && $record->activity !== null
+                        ? __('Original activity: :name', ['name' => $record->activity?->name])
+                        : null)
+                    ->searchable(query: fn (Builder $query, string $search): Builder => $query
+                        ->where(function (Builder $query) use ($search): void {
+                            $query
+                                ->where('activity_label', 'like', "%{$search}%")
+                                ->orWhereHas('activity', fn (Builder $activityQuery) => $activityQuery
+                                    ->where('name', 'like', "%{$search}%"));
+                        })),
                 TextColumn::make('audience.name')
                     ->label(__('Audience'))
                     ->searchable(),
@@ -364,23 +481,62 @@ class BookingResource extends Resource
             ->all();
     }
 
-    private static function missingCatalogReason(): ?string
+    /**
+     * @return array<string, string|array<string, string>>
+     */
+    public static function activityOptions(): array
+    {
+        return [
+            ...static::teamOptions('activities'),
+            static::OTHER_ACTIVITY => __('Other'),
+        ];
+    }
+
+    public static function teamHasCatalogActivities(): bool
+    {
+        $team = Filament::getTenant();
+
+        return $team instanceof Team && $team->activities()->exists();
+    }
+
+    /**
+     * @return array<string, string|array<string, string>>
+     */
+    public static function venueOptions(): array
     {
         $team = Filament::getTenant();
 
         if (! $team instanceof Team) {
-            return null;
+            return [static::OTHER_VENUE => __('Other')];
         }
 
-        $missingActivity = ! $team->activities()->exists();
-        $missingVenue = ! $team->venues()->exists();
+        $teamVenues = $team->venues()
+            ->orderBy('venues.name')
+            ->get(['venues.id', 'venues.name', 'venues.street', 'venues.city', 'venues.region', 'venues.postcode'])
+            ->mapWithKeys(fn (Venue $venue): array => [
+                (string) $venue->getKey() => $venue->optionLabel(),
+            ])
+            ->all();
+        $otherVenues = Venue::selectOptions(
+            Venue::query()->whereDoesntHave(
+                'teams',
+                fn (Builder $teams) => $teams->whereKey($team->getKey()),
+            ),
+        );
 
-        return match (true) {
-            $missingActivity && $missingVenue => __('Add an activity and a venue before creating a booking.'),
-            $missingActivity => __('Add an activity before creating a booking.'),
-            $missingVenue => __('Add a venue before creating a booking.'),
-            default => null,
-        };
+        $options = [];
+
+        if ($teamVenues !== []) {
+            $options[__('This team')] = $teamVenues;
+        }
+
+        if ($otherVenues !== []) {
+            $options[__('Other teams')] = $otherVenues;
+        }
+
+        $options[static::OTHER_VENUE] = __('Other');
+
+        return $options;
     }
 
     private static function teamDefault(string $relation): ?string
@@ -444,18 +600,71 @@ class BookingResource extends Resource
         return filled($timezone) ? (string) $timezone : 'Europe/London';
     }
 
+    public static function editAction(): EditAction
+    {
+        return EditAction::make()
+            ->mutateRecordDataUsing(
+                fn (array $data, Booking $record): array => static::hydrateBookingFormData($data, $record),
+            )
+            ->using(
+                fn (array $data, Booking $record): Booking => app(SaveBookingDetailsAction::class)->update(
+                    $record,
+                    static::mergeScheduleData($data),
+                ),
+            );
+    }
+
     public static function createAction(): CreateAction
     {
         return CreateAction::make()
             ->authorizationTooltip()
-            ->mutateDataUsing(fn (array $data): array => static::mergeScheduleData($data));
+            ->using(function (array $data): Booking {
+                $team = Filament::getTenant();
+
+                if (! $team instanceof Team) {
+                    throw ValidationException::withMessages([
+                        'team_id' => __('Choose a team.'),
+                    ]);
+                }
+
+                return app(SaveBookingDetailsAction::class)->create(
+                    static::mergeScheduleData($data),
+                    $team,
+                );
+            });
     }
 
-    public static function editAction(): EditAction
+    /**
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    public static function hydrateBookingFormData(array $data, Booking $booking): array
     {
-        return EditAction::make()
-            ->mutateRecordDataUsing(fn (array $data): array => static::hydrateScheduleData($data))
-            ->mutateDataUsing(fn (array $data): array => static::mergeScheduleData($data));
+        $data = static::hydrateScheduleData($data);
+
+        if (blank($data['activity_id'] ?? null)) {
+            $data['activity_id'] = static::OTHER_ACTIVITY;
+        }
+
+        $data['show_activity_label'] = $data['activity_id'] !== static::OTHER_ACTIVITY
+            && filled($data['activity_label'] ?? null);
+
+        $privateVenue = Venue::onlyPrivate()
+            ->where('booking_id', $booking->getKey())
+            ->whereKey($booking->venue_id)
+            ->first();
+
+        if ($privateVenue instanceof Venue) {
+            $data['venue_id'] = static::OTHER_VENUE;
+
+            foreach (VenueLocationSchema::venueAttributes() as $attribute) {
+                $data[$attribute] = $privateVenue->{$attribute};
+            }
+
+            $data['has_map_pin'] = $privateVenue->coords !== null;
+        }
+
+        return $data;
     }
 
     public static function scheduleTimezone(Get $get): string
@@ -633,6 +842,35 @@ class BookingResource extends Resource
         $data['start_at'] = $start->setTimezone(config('app.timezone'))->format('Y-m-d H:i:s');
         $data['end_at'] = $end->setTimezone(config('app.timezone'))->format('Y-m-d H:i:s');
         unset($data['start_date'], $data['start_time'], $data['end_date'], $data['end_time']);
+
+        if (! static::teamHasCatalogActivities() || ($data['activity_id'] ?? null) === static::OTHER_ACTIVITY) {
+            $data['activity_id'] = null;
+            $data['audience_id'] = null;
+        }
+
+        $data['activity_label'] = filled($data['activity_label'] ?? null)
+            ? trim((string) $data['activity_label'])
+            : null;
+
+        $isPrivateVenue = ($data['venue_id'] ?? null) === static::OTHER_VENUE;
+        $data['private_venue'] = $isPrivateVenue
+            ? Arr::only($data, VenueLocationSchema::venueAttributes())
+            : null;
+
+        if ($isPrivateVenue) {
+            $data['venue_id'] = null;
+        }
+
+        foreach (VenueLocationSchema::venueAttributes() as $attribute) {
+            unset($data[$attribute]);
+        }
+
+        unset(
+            $data['show_activity_label'],
+            $data['similar_venue_id'],
+            $data['has_map_pin'],
+            $data['map'],
+        );
 
         return $data;
     }

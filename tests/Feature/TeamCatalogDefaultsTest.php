@@ -116,10 +116,7 @@ class TeamCatalogDefaultsTest extends TestCase
             ->callAction('give', data: [
                 'activity_id' => $activity->getKey(),
             ]);
-        Livewire::test(ListVenues::class)
-            ->callAction('give', data: [
-                'venue_id' => $venue->getKey(),
-            ]);
+        $team->addVenue($venue);
 
         $this->assertTrue($team->fresh()->defaultActivity->is($activity));
         $this->assertTrue($team->fresh()->defaultVenue->is($venue));
@@ -142,5 +139,20 @@ class TeamCatalogDefaultsTest extends TestCase
         $team->refresh();
         $this->assertTrue($team->defaultActivity->is($otherActivity));
         $this->assertTrue($team->defaultVenue->is($otherVenue));
+    }
+
+    public function test_the_activity_give_action_is_labelled_for_its_audience(): void
+    {
+        $manager = User::factory()->teamManager()->create();
+
+        $this->actingAs($manager);
+        Livewire::test(ListActivities::class)
+            ->assertActionVisible('give')
+            ->assertSee('Add an activity')
+            ->assertDontSee('Give an activity');
+
+        $this->actingAs(User::factory()->systemAdmin()->create());
+        Filament::setTenant($manager->managedTeams()->firstOrFail());
+        Livewire::test(ListActivities::class)->assertSee('Give an activity');
     }
 }

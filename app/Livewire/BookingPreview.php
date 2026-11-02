@@ -24,7 +24,7 @@ class BookingPreview extends Component
     public function heading(): string
     {
         return __(':activity on :date', [
-            'activity' => $this->booking->activity->name,
+            'activity' => $this->booking->activityTitle(),
             'date' => $this->localStart()->toFormattedDayDateString(),
         ]);
     }
@@ -36,7 +36,7 @@ class BookingPreview extends Component
         $sameDay = $start->isSameDay($end);
 
         return __(':activity from :start to :end at :venue.', [
-            'activity' => $this->booking->activity->name,
+            'activity' => $this->booking->activityTitle(),
             'start' => $sameDay ? $start->isoFormat('HH:mm') : $start->isoFormat('ddd D MMM YYYY HH:mm'),
             'end' => $sameDay ? $end->isoFormat('HH:mm') : $end->isoFormat('ddd D MMM YYYY HH:mm'),
             'venue' => $this->booking->venue->name,

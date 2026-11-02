@@ -144,6 +144,30 @@ Action::make('updateEmail')
     ->action(fn (array $data, User $record) => $record->update($data)),
 ```
 
+### Wizard in an action modal
+
+Use the action's own `->steps()` for a multi-step modal. Never place a `Wizard` component inside `->schema()`, `->form()` or `createOptionForm()`: the modal then wraps the whole wizard in one `<form>`, so pressing Enter in any step submits the action and skips the remaining steps. With `->steps()` the action drops that wrapper and each step handles Enter itself (next step, or submit on the last step).
+
+```php
+use Filament\Actions\Action;
+use Filament\Schemas\Components\Wizard;
+use Filament\Schemas\Components\Wizard\Step;
+
+Action::make('create')
+    ->steps([
+        Step::make('Details')->schema([/* ... */]),
+        Step::make('Confirm')->schema([/* ... */]),
+    ])
+    ->modifyWizardUsing(fn (Wizard $wizard): Wizard => $wizard->submitAction(/* custom final button */))
+    ->action(fn (array $data) => /* ... */),
+```
+
+- `->steps()` replaces the modal footer; the wizard renders its own Back, Next, Cancel and submit buttons. `modalSubmitAction()` and `modalCancelAction()` do not apply, so do not call `modalSubmitAction(false)` on a wizard.
+- Customise the wizard with `->modifyWizardUsing()`, plus `->startOnStep()` and `->skippableSteps()` on the action. A custom `submitAction()` must call `$wire.callMountedAction()` itself, because there is no form to submit. Resolve anything that needs the wizard's state path lazily (for example in an `Htmlable::toHtml()`), as the wizard has no container when the callback runs.
+- On a `Select`, keep `->createOptionForm()` returning the steps (it makes the create-option action exist), then call `->steps()` and `->modifyWizardUsing()` inside `->createOptionAction()`. Persist the result in `->createOptionUsing()`.
+- On a resource `CreateRecord` page use the `HasWizard` concern and `getSteps()` instead. That page has no form wrapper either.
+- A step's fields are only validated when moving forward, so check any cross-step rule again in the final action.
+
 ## Boy scout rule
 
 When modifying an existing Filament resource, page, widget, form, infolist, table, or action, bring the surface being changed into line with the applicable project conventions in `AGENTS.md` where it is safe and reasonably within scope. For example, when a form or infolist is already being changed, apply the required section layout; use the semantic palette and icon guidance for components in scope.
@@ -253,6 +277,12 @@ Livewire::test(ViewUser::class, ['record' => $user->getKey()])
 
 Use `assertFormFieldExists()` / `assertFormFieldDoesNotExist()` for form fields, and `assertSchemaComponentExists()` / `assertSchemaComponentDoesNotExist()` for other schema components. For table columns, use table assertions such as `assertTableColumnDoesNotExist()` instead of checking rendered markup.
 
+### Testing wizards
+
+Drive wizard steps with `->goToNextWizardStep()` and `->goToPreviousWizardStep()`, and set state with `->fillForm()`. `fillForm()` disables state-update hooks, so it does not run `->afterStateUpdated()` callbacks; use `->set('data.field', $value)` when a test depends on a hook (for example one field clearing another).
+
+For a wizard in an action modal, call `->mountFormComponentAction()` or `->mountAction()` and assert with `assertMountedActionModalSee()`. Real keypresses cannot be tested, so assert the rendered step handler instead, for example `assertMountedActionModalSeeHtml('isLastStep() ? $wire.callMountedAction() : requestNextStep()')`.
+
 ## Correct namespaces
 
 - Form fields (`TextInput`, `Select`, `Repeater`, etc.): `Filament\Forms\Components\`
@@ -270,6 +300,7 @@ Use `assertFormFieldExists()` / `assertFormFieldDoesNotExist()` for form fields,
 - **Never assume full-width layout.** `Grid`, `Section`, `Fieldset`, and `Repeater` do not span all columns by default.
 - **Use `Select::make('author_id')->relationship('author', 'name')` for `BelongsTo` fields.** `BelongsToSelect` does not exist; use `Select::relationship()`.
 - **`Repeater` uses `->schema()`, not `->fields()`.**
+- **Never nest a `Wizard` inside an action or create-option modal schema.** Use `->steps()` on the action, otherwise Enter submits the modal from the first step. See "Wizard in an action modal".
 - **Never add `->dehydrated(false)` to fields that need to be saved.** It strips the value from form state before `->action()` or the save handler runs. Only use it for helper/UI-only fields.
 - **Use correct property types when overriding `Page`, `Resource`, and `Widget` properties.** These properties have union types or modifiers that must be preserved:
   - `$navigationIcon`: `protected static string | BackedEnum | null` (not `?string`)

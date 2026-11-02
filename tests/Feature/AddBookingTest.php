@@ -2,20 +2,23 @@
 
 namespace Tests\Feature;
 
+use App\Enums\BookingAttendeeStatus;
 use App\Enums\BookingStatus;
 use App\Enums\MembershipRole;
+use App\Events\BookingChanged;
 use App\Filament\Forms\Components\TimezoneSelect;
 use App\Filament\Manage\Resources\Bookings\BookingResource;
 use App\Filament\Manage\Resources\Bookings\Pages\CreateBooking;
 use App\Filament\Manage\Resources\Bookings\Pages\EditBooking;
 use App\Filament\Manage\Resources\Bookings\Pages\ListBookings;
+use App\Filament\Manage\Resources\Bookings\Pages\ViewBooking;
 use App\Models\Activity;
 use App\Models\ActivityAudience;
 use App\Models\Booking;
+use App\Models\BookingAttendance;
 use App\Models\Team;
 use App\Models\User;
 use App\Models\Venue;
-use Filament\Actions\Action;
 use Filament\Actions\Testing\TestAction;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\DatePicker;
@@ -24,6 +27,9 @@ use Filament\Schemas\Components\FusedGroup;
 use Filament\Schemas\Components\Grid;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Queue;
 use Livewire\Livewire;
 use Tests\TestCase;
 
@@ -98,6 +104,223 @@ class AddBookingTest extends TestCase
         $this->assertTrue($booking->venue->is($venue));
     }
 
+    public function test_manager_can_book_an_other_activity_at_a_private_venue_without_catalog_venues(): void
+    {
+        $manager = User::factory()->teamManager()->create();
+        $team = $manager->managedTeams()->firstOrFail();
+        Activity::factory()->create();
+
+        $this->actingAs($manager);
+        Filament::setTenant($team);
+
+        Livewire::test(CreateBooking::class)
+            ->fillForm([
+                'activity_id' => 'other',
+                'activity_label' => 'Planning meeting',
+                'venue_id' => 'other',
+                'name' => 'A home address',
+                'street' => '1 Example Road',
+                'city' => 'Anytown',
+                'postcode' => 'AB1 2CD',
+                'start_date' => '2026-10-24',
+                'start_time' => '09:30',
+                'end_time' => '11:30',
+                'timezone' => 'Europe/London',
+            ])
+            ->call('create')
+            ->assertHasNoFormErrors();
+
+        $booking = Booking::query()->firstOrFail();
+        $privateVenue = Venue::onlyPrivate()
+            ->where('booking_id', $booking->getKey())
+            ->firstOrFail();
+
+        $this->assertNull($booking->activity_id);
+        $this->assertNull($booking->audience_id);
+        $this->assertSame('Planning meeting', $booking->activityTitle());
+        $this->assertSame($privateVenue->getKey(), $booking->venue_id);
+        $this->assertSame('A home address', $privateVenue->name);
+        $this->assertFalse($team->venues()->whereKey($privateVenue->getKey())->exists());
+        $this->assertSame(0, Venue::query()->count());
+
+        $this->get(BookingResource::getUrl('view', ['record' => $booking], panel: 'manage'))
+            ->assertOk()
+            ->assertSee('A home address')
+            ->assertSee('1 Example Road')
+            ->assertSee('AB1 2CD');
+
+        $this->get(route('booking.preview', $booking))
+            ->assertOk()
+            ->assertSee('A home address')
+            ->assertDontSee('1 Example Road')
+            ->assertDontSee('AB1 2CD');
+
+        $lead = User::factory()->create();
+        $booking->attendees()->attach($lead->getKey(), [
+            'status' => BookingAttendeeStatus::Accepted->value,
+            'token' => BookingAttendance::generateToken(),
+        ]);
+        Mail::fake();
+        Queue::fake();
+
+        Livewire::test(EditBooking::class, ['record' => $booking->getRouteKey()])
+            ->callAction('confirmBooking', data: ['lead_instructor_id' => $lead->getKey()])
+            ->assertHasNoFormErrors();
+
+        $booking->refresh();
+        $this->assertSame(BookingStatus::Confirmed, $booking->status);
+        $this->assertSame($lead->getKey(), $booking->lead_instructor_id);
+        $this->assertSame($privateVenue->getKey(), $booking->venue_id);
+
+        Livewire::test(EditBooking::class, ['record' => $booking->getRouteKey()])
+            ->callAction('cancelBooking', data: ['reason' => 'Weather'])
+            ->assertHasNoFormErrors();
+
+        Livewire::test(ViewBooking::class, ['record' => $booking->getRouteKey()])
+            ->callAction('restoreBooking')
+            ->assertHasNoFormErrors();
+
+        $booking->refresh();
+        $this->assertSame(BookingStatus::Tentative, $booking->status);
+        $this->assertSame($privateVenue->getKey(), $booking->venue_id);
+
+        $booking->delete();
+        $this->assertDatabaseMissing('venues', ['id' => $privateVenue->getKey()]);
+    }
+
+    public function test_private_venue_names_can_repeat_across_bookings(): void
+    {
+        $manager = User::factory()->teamManager()->create();
+        $team = $manager->managedTeams()->firstOrFail();
+        Activity::factory()->create();
+
+        $this->actingAs($manager);
+        Filament::setTenant($team);
+
+        foreach (['24', '25'] as $day) {
+            Livewire::test(CreateBooking::class)
+                ->fillForm([
+                    'activity_id' => 'other',
+                    'activity_label' => 'Planning meeting',
+                    'venue_id' => 'other',
+                    'name' => 'Home',
+                    'start_date' => "2026-10-{$day}",
+                    'start_time' => '09:30',
+                    'end_time' => '11:30',
+                    'timezone' => 'Europe/London',
+                ])
+                ->call('create')
+                ->assertHasNoFormErrors();
+        }
+
+        $this->assertSame(2, Venue::onlyPrivate()->where('name', 'Home')->count());
+        $this->assertSame(0, Venue::query()->where('name', 'Home')->count());
+    }
+
+    public function test_activity_choice_and_custom_label_changes_increment_booking_sequence(): void
+    {
+        $booking = Booking::factory()->create();
+        $catalogActivityId = (string) $booking->activity_id;
+        $catalogAudienceId = (string) $booking->audience_id;
+        $sequence = $booking->sequence;
+
+        $booking->activity_id = null;
+        $booking->audience_id = null;
+        $booking->activity_label = 'Tower Maintenance';
+        $booking->save();
+
+        $this->assertSame($sequence + 1, $booking->sequence);
+        $this->assertSame('Tower Maintenance', $booking->activityTitle());
+
+        $booking->activity_label = 'Equipment Maintenance';
+        $booking->save();
+
+        $this->assertSame($sequence + 2, $booking->sequence);
+
+        $booking->activity_id = $catalogActivityId;
+        $booking->audience_id = $catalogAudienceId;
+        $booking->activity_label = null;
+        $booking->save();
+
+        $this->assertSame($sequence + 3, $booking->sequence);
+    }
+
+    public function test_activity_name_field_is_hidden_until_used_and_visible_for_an_existing_label(): void
+    {
+        $manager = User::factory()->teamManager()->create();
+        Activity::factory()->create(['name' => 'Climbing']);
+        Venue::factory()->create();
+
+        $this->actingAs($manager);
+
+        Livewire::test(CreateBooking::class)
+            ->assertFormFieldHidden('activity_label')
+            ->assertFormComponentActionVisible('activity_id', 'showAs')
+            ->callFormComponentAction('activity_id', 'showAs')
+            ->assertFormFieldVisible('activity_label')
+            ->assertSeeText('Activity name')
+            ->assertSee('placeholder="Climbing"', false);
+
+        $booking = Booking::factory()->create([
+            'activity_label' => 'Tower Maintenance',
+        ]);
+
+        Livewire::test(EditBooking::class, ['record' => $booking->getRouteKey()])
+            ->assertFormFieldVisible('activity_label');
+    }
+
+    public function test_editing_a_private_venue_updates_booking_sequence_and_notifies_attendees(): void
+    {
+        $manager = User::factory()->teamManager()->create();
+        $team = $manager->managedTeams()->firstOrFail();
+        $booking = Booking::factory()->create();
+        $catalogVenueId = (string) $booking->venue_id;
+        $originalSequence = $booking->sequence;
+
+        $this->actingAs($manager);
+        Filament::setTenant($team);
+        Event::fake([BookingChanged::class]);
+
+        Livewire::test(EditBooking::class, ['record' => $booking->getRouteKey()])
+            ->fillForm([
+                'venue_id' => 'other',
+                'name' => 'Private meeting room',
+                'street' => '2 Example Road',
+            ])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $booking->refresh();
+        $privateVenue = Venue::onlyPrivate()
+            ->where('booking_id', $booking->getKey())
+            ->firstOrFail();
+
+        $this->assertSame('Private meeting room', $privateVenue->name);
+        $this->assertSame($originalSequence + 1, $booking->sequence);
+        Event::assertDispatched(BookingChanged::class);
+
+        Livewire::test(EditBooking::class, ['record' => $booking->getRouteKey()])
+            ->fillForm(['name' => 'Updated private room'])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $booking->refresh();
+        $privateVenue->refresh();
+        $this->assertSame('Updated private room', $privateVenue->name);
+        $this->assertSame($originalSequence + 2, $booking->sequence);
+
+        Livewire::test(EditBooking::class, ['record' => $booking->getRouteKey()])
+            ->fillForm(['venue_id' => $catalogVenueId])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $booking->refresh();
+        $this->assertSame($catalogVenueId, $booking->venue_id);
+        $this->assertSame($originalSequence + 3, $booking->sequence);
+        $this->assertDatabaseMissing('venues', ['id' => $privateVenue->getKey()]);
+        Event::assertDispatchedTimes(BookingChanged::class, 3);
+    }
+
     public function test_create_booking_defaults_each_field_when_multiple_options_exist(): void
     {
         $user = User::factory()->teamManager()->create();
@@ -155,42 +378,44 @@ class AddBookingTest extends TestCase
             ]);
     }
 
-    public function test_new_booking_stays_disabled_until_the_team_has_an_activity_and_a_venue(): void
+    public function test_manager_can_create_a_booking_when_the_team_has_no_catalog_activities(): void
     {
-        $user = User::factory()->teamManager()->create();
-        $team = $user->managedTeams()->firstOrFail();
+        $manager = User::factory()->teamManager()->create();
+        $team = $manager->managedTeams()->firstOrFail();
 
-        $this->actingAs($user);
-
-        Livewire::test(ListBookings::class)
-            ->assertActionDisabled('create')
-            ->assertActionExists('create', fn (Action $action): bool => $action->getTooltip() === 'Add an activity and a venue before creating a booking.')
-            ->callAction('create');
-
-        $this->assertSame(0, Booking::query()->count());
-        $this->get(BookingResource::getUrl('create', panel: 'manage', tenant: $team))->assertForbidden();
-
-        $activity = Activity::factory()->create();
+        $this->actingAs($manager);
+        Filament::setTenant($team);
 
         Livewire::test(ListBookings::class)
-            ->assertActionDisabled('create')
-            ->assertActionExists('create', fn (Action $action): bool => $action->getTooltip() === 'Add a venue before creating a booking.');
+            ->assertActionEnabled('create');
 
-        $team->removeActivity($activity);
-        Venue::factory()->create();
+        $this->get(BookingResource::getUrl('create', panel: 'manage', tenant: $team))->assertOk();
 
-        Livewire::test(ListBookings::class)
-            ->assertActionDisabled('create')
-            ->assertActionExists('create', fn (Action $action): bool => $action->getTooltip() === 'Add an activity before creating a booking.');
+        Livewire::test(CreateBooking::class)
+            ->assertFormFieldHidden('activity_id')
+            ->assertFormFieldVisible('activity_label')
+            ->fillForm([
+                'activity_label' => 'Planning meeting',
+                'venue_id' => 'other',
+                'name' => 'Home',
+                'start_date' => '2026-10-24',
+                'start_time' => '09:30',
+                'end_time' => '11:30',
+                'timezone' => 'Europe/London',
+            ])
+            ->call('create')
+            ->assertHasNoFormErrors();
 
-        $team->addActivity($activity);
+        $booking = Booking::query()->firstOrFail();
 
-        Livewire::test(ListBookings::class)
-            ->assertActionEnabled('create')
-            ->assertActionExists('create', fn (Action $action): bool => $action->getTooltip() === null);
+        $this->assertNull($booking->activity_id);
+        $this->assertNull($booking->audience_id);
+        $this->assertSame('Planning meeting', $booking->activityTitle());
+        $this->assertSame('Home', $booking->venue->name);
+        $this->assertTrue(Venue::onlyPrivate()->whereKey($booking->venue_id)->exists());
     }
 
-    public function test_the_booking_form_cannot_create_an_activity_or_venue(): void
+    public function test_the_booking_form_keeps_activities_catalog_only_and_allows_adding_venues(): void
     {
         $user = User::factory()->teamManager()->create();
         Activity::factory()->create();
@@ -200,7 +425,89 @@ class AddBookingTest extends TestCase
 
         Livewire::test(CreateBooking::class)
             ->assertFormComponentActionDoesNotExist('activity_id', 'createOption')
-            ->assertFormComponentActionDoesNotExist('venue_id', 'createOption');
+            ->assertFormComponentActionExists('venue_id', 'createOption')
+            ->mountFormComponentAction('venue_id', 'createOption')
+            ->assertMountedActionModalSee(['Venue details', 'Create new venue', 'Use this venue', 'Cancel'])
+            ->assertMountedActionModalSeeHtml('isLastStep() ? $wire.callMountedAction() : requestNextStep()');
+    }
+
+    public function test_booking_venue_create_option_can_add_a_similar_catalog_venue_to_the_team(): void
+    {
+        $manager = User::factory()->teamManager()->create();
+        $team = $manager->managedTeams()->firstOrFail();
+        Activity::factory()->create();
+        $otherTeam = Team::factory()->create();
+        $venue = Venue::factory()->create(['name' => 'Fox Coverts Hall']);
+        $otherTeam->addVenue($venue);
+
+        $this->actingAs($manager);
+        Filament::setTenant($team);
+
+        Livewire::test(CreateBooking::class)
+            ->callFormComponentAction('venue_id', 'createOption', [
+                'name' => 'Fox Coverts Hall',
+                'similar_venue_id' => $venue->getKey(),
+            ])
+            ->assertHasNoFormErrors()
+            ->assertFormSet(['venue_id' => $venue->getKey()]);
+
+        $this->assertTrue($team->venues()->whereKey($venue->getKey())->exists());
+        $this->assertSame(1, Venue::query()->where('name', 'Fox Coverts Hall')->count());
+    }
+
+    public function test_booking_venue_create_option_can_create_a_new_catalog_venue(): void
+    {
+        $manager = User::factory()->teamManager()->create();
+        $team = $manager->managedTeams()->firstOrFail();
+        Activity::factory()->create();
+
+        $this->actingAs($manager);
+        Filament::setTenant($team);
+
+        Livewire::test(CreateBooking::class)
+            ->callFormComponentAction('venue_id', 'createOption', [
+                'name' => 'New Local Hall',
+                'street' => '5 Local Road',
+                'city' => 'Anytown',
+            ])
+            ->assertHasNoFormErrors();
+
+        $venue = Venue::query()->where('name', 'New Local Hall')->firstOrFail();
+
+        $this->assertSame('5 Local Road', $venue->street);
+        $this->assertTrue($team->venues()->whereKey($venue->getKey())->exists());
+    }
+
+    public function test_booking_can_use_a_catalog_venue_from_another_team(): void
+    {
+        $manager = User::factory()->teamManager()->create();
+        $team = $manager->managedTeams()->firstOrFail();
+        $activity = Activity::factory()->create();
+        $audienceId = $this->offerAudience($activity);
+        $otherTeam = Team::factory()->create();
+        $venue = Venue::factory()->create(['name' => 'Shared Catalog Hall']);
+        $otherTeam->addVenue($venue);
+
+        $this->actingAs($manager);
+        Filament::setTenant($team);
+
+        Livewire::test(CreateBooking::class)
+            ->fillForm([
+                'activity_id' => $activity->getKey(),
+                'audience_id' => $audienceId,
+                'venue_id' => $venue->getKey(),
+                'start_date' => '2026-10-24',
+                'start_time' => '09:30',
+                'end_time' => '11:30',
+                'timezone' => 'Europe/London',
+            ])
+            ->call('create')
+            ->assertHasNoFormErrors();
+
+        $booking = Booking::query()->firstOrFail();
+
+        $this->assertSame($venue->getKey(), $booking->venue_id);
+        $this->assertTrue($team->venues()->whereKey($venue->getKey())->exists());
     }
 
     public function test_booking_form_places_a_searchable_timezone_select_with_grouped_utc_offsets(): void

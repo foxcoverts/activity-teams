@@ -26,7 +26,7 @@ class ResendBookingIcsAction
             $attendee->notify(new BookingHeldNotification(
                 $booking,
                 __('A calendar copy of :activity is in your inbox.', [
-                    'activity' => $booking->activity->name,
+                    'activity' => $booking->activityTitle(),
                 ]),
             ));
 
@@ -39,7 +39,7 @@ class ResendBookingIcsAction
 
         $ics = app(BookingIcsFactory::class)->make(
             [$booking],
-            $booking->activity->name,
+            $booking->activityTitle(),
             method: $method,
             forAttendee: $attendee,
         );

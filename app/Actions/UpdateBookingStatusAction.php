@@ -10,20 +10,25 @@ use App\Events\BookingConfirmed;
 use App\Events\BookingRestored;
 use App\Models\Booking;
 use App\Models\User;
+use Illuminate\Support\Arr;
 use Illuminate\Validation\ValidationException;
 
 class UpdateBookingStatusAction
 {
+    public function __construct(private SaveBookingDetailsAction $saveBookingDetails) {}
+
     public function __invoke(Booking $booking, User $actor, ?string $cancelReason = null): void
     {
         $previousStatus = $this->previousStatus($booking);
 
         if ($previousStatus === BookingStatus::Cancelled && ! $booking->isCancelled()) {
+            $changes = $booking->getChanges();
+            $previousSchedule = $this->previousSchedule($booking);
             $this->resetAttendanceExceptDeclined($booking);
             $booking->refresh();
             $booking->load('attendees');
 
-            event(new BookingRestored($booking, $actor, $booking->getChanges(), $this->previousSchedule($booking)));
+            event(new BookingRestored($booking, $actor, $changes, $previousSchedule));
 
             return;
         }
@@ -66,12 +71,14 @@ class UpdateBookingStatusAction
             ]);
         }
 
-        $this->assertAttending($booking, $leadId);
-
-        $booking->fill($details);
+        $booking->fill(Arr::except($details, ['private_venue']));
         $booking->lead_instructor_id = $leadId;
         $booking->status = BookingStatus::Confirmed;
-        $booking->save();
+        $this->assertAttending($booking, $leadId);
+
+        $details['lead_instructor_id'] = $leadId;
+        $details['status'] = BookingStatus::Confirmed;
+        $this->saveBookingDetails->update($booking, $details);
 
         $this($booking, $actor);
     }
@@ -112,14 +119,16 @@ class UpdateBookingStatusAction
 
         unset($details['status'], $details['lead_instructor_id']);
 
-        $booking->fill($details);
+        $booking->fill(Arr::except($details, ['private_venue']));
         $booking->status = BookingStatus::Tentative;
 
         if ($booking->leadInstructor?->isSuspended()) {
             $booking->lead_instructor_id = null;
         }
 
-        $booking->save();
+        $details['status'] = BookingStatus::Tentative;
+        $details['lead_instructor_id'] = $booking->lead_instructor_id;
+        $this->saveBookingDetails->update($booking, $details);
 
         $this($booking, $actor);
     }

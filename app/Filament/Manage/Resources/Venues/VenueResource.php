@@ -3,8 +3,11 @@
 namespace App\Filament\Manage\Resources\Venues;
 
 use App\Filament\Manage\NavigationGroup;
+use App\Filament\Manage\Resources\Venues\Pages\CreateVenue;
+use App\Filament\Manage\Resources\Venues\Pages\EditVenue;
 use App\Filament\Manage\Resources\Venues\Pages\ListVenues;
 use App\Filament\Manage\Resources\Venues\Pages\ViewVenue;
+use App\Filament\Venues\VenueLocationSchema;
 use App\Models\Team;
 use App\Models\User;
 use App\Models\Venue;
@@ -12,6 +15,7 @@ use App\Support\Palette;
 use BackedEnum;
 use Darkclow4\FilamentMapPicker\Infolists\Components\MapEntry;
 use Filament\Actions\Action;
+use Filament\Actions\EditAction;
 use Filament\Facades\Filament;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Resources\Resource;
@@ -50,7 +54,7 @@ class VenueResource extends Resource
 
     public static function canCreate(): bool
     {
-        return false;
+        return auth()->user()?->can('create', Venue::class) ?? false;
     }
 
     public static function getEloquentQuery(): Builder
@@ -107,6 +111,14 @@ class VenueResource extends Resource
             ]);
     }
 
+    public static function form(Schema $schema): Schema
+    {
+        return $schema
+            ->components(VenueLocationSchema::components(
+                includeNotes: true,
+            ));
+    }
+
     public static function table(Table $table): Table
     {
         return $table
@@ -142,6 +154,13 @@ class VenueResource extends Resource
                     ),
             ])
             ->recordActions([
+                EditAction::make()
+                    ->visible(fn (): bool => true)
+                    ->disabled(fn (Venue $record): bool => ! (auth()->user()?->can('update', $record) ?? false))
+                    ->tooltip(fn (Venue $record): ?string => auth()->user()?->can('update', $record)
+                        ? null
+                        : __('This venue is shared by more than one team. Contact the site admin to make changes.'))
+                    ->authorize(fn (): bool => true),
                 Action::make('remove')
                     ->label('Remove from team')
                     ->color(Palette::destructive())
@@ -156,7 +175,9 @@ class VenueResource extends Resource
     {
         return [
             'index' => ListVenues::route('/'),
+            'create' => CreateVenue::route('/create'),
             'view' => ViewVenue::route('/{record}'),
+            'edit' => EditVenue::route('/{record}/edit'),
         ];
     }
 

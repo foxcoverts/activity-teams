@@ -2,9 +2,13 @@
 
 namespace App\Filament\Manage\Resources\Bookings\Pages;
 
+use App\Actions\SaveBookingDetailsAction;
 use App\Enums\BookingStatus;
 use App\Filament\Manage\Resources\Bookings\BookingResource;
+use App\Models\Team;
+use Filament\Facades\Filament;
 use Filament\Resources\Pages\CreateRecord;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Validation\ValidationException;
 
 class CreateBooking extends CreateRecord
@@ -28,5 +32,13 @@ class CreateBooking extends CreateRecord
         unset($data['status']);
 
         return BookingResource::mergeScheduleData($data);
+    }
+
+    protected function handleRecordCreation(array $data): Model
+    {
+        $team = Filament::getTenant();
+        abort_unless($team instanceof Team, 404);
+
+        return app(SaveBookingDetailsAction::class)->create($data, $team);
     }
 }

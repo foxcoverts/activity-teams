@@ -7,6 +7,7 @@ use App\Filament\Admin\Resources\Venues\Pages\EditVenue;
 use App\Filament\Admin\Resources\Venues\VenueResource as AdminVenueResource;
 use App\Filament\Manage\Resources\Bookings\BookingResource;
 use App\Filament\Manage\Resources\Bookings\Pages\ViewBooking as ManageViewBooking;
+use App\Filament\Manage\Resources\Venues\Pages\CreateVenue as ManageCreateVenue;
 use App\Filament\Manage\Resources\Venues\VenueResource as ManageVenueResource;
 use App\Filament\Member\Resources\Bookings\Pages\ViewBooking as MemberViewBooking;
 use App\Models\Booking;
@@ -15,6 +16,7 @@ use App\Models\Venue;
 use App\Support\Coords;
 use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Validation\ValidationException;
 use Livewire\Livewire;
 use Tests\TestCase;
 
@@ -143,6 +145,278 @@ class VenueTest extends TestCase
         $this->assertNull($venue->latitude);
         $this->assertNull($venue->longitude);
         $this->assertNull($venue->coords);
+    }
+
+    public function test_manager_cannot_create_a_catalog_venue_with_the_same_name_and_no_postcode(): void
+    {
+        $manager = User::factory()->teamManager()->create();
+        $team = $manager->managedTeams()->firstOrFail();
+        Venue::factory()->create([
+            'name' => 'Fox Hall',
+            'postcode' => 'AB1 2CD',
+            'city' => 'Anytown',
+        ]);
+
+        $this->actingAs($manager);
+        Filament::setTenant($team);
+        Filament::setCurrentPanel('manage');
+
+        Livewire::test(ManageCreateVenue::class)
+            ->assertSeeText('Venue details')
+            ->assertSeeText('Similar venues')
+            ->assertSeeText('Confirm venue')
+            ->fillForm(['name' => 'fOX hALL'])
+            ->call('create')
+            ->assertHasFormErrors(['postcode'])
+            ->assertSeeText('Add a postcode. "Fox Hall" already exists (Anytown, AB1 2CD).');
+
+        $this->assertSame(1, Venue::query()->whereRaw('LOWER(name) = ?', ['fox hall'])->count());
+    }
+
+    public function test_catalog_name_conflict_stops_the_wizard_on_venue_details(): void
+    {
+        $manager = User::factory()->teamManager()->create();
+        $team = $manager->managedTeams()->firstOrFail();
+        Venue::factory()->create([
+            'name' => 'Fox Hall',
+            'postcode' => 'AB1 2CD',
+            'city' => 'Anytown',
+        ]);
+
+        $this->actingAs($manager);
+        Filament::setTenant($team);
+        Filament::setCurrentPanel('manage');
+
+        Livewire::test(ManageCreateVenue::class)
+            ->fillForm(['name' => 'Fox Hall'])
+            ->goToNextWizardStep()
+            ->assertHasFormErrors(['postcode'])
+            ->assertSeeText('Add a postcode. "Fox Hall" already exists (Anytown, AB1 2CD).')
+            ->assertSeeText('Venue details');
+
+        $this->assertSame(1, Venue::query()->whereRaw('LOWER(name) = ?', ['fox hall'])->count());
+    }
+
+    public function test_manager_can_create_a_same_named_catalog_venue_at_a_different_postcode(): void
+    {
+        $manager = User::factory()->teamManager()->create();
+        $team = $manager->managedTeams()->firstOrFail();
+        Venue::factory()->create([
+            'name' => 'Fox Hall',
+            'postcode' => 'AB1 2CD',
+        ]);
+
+        $this->actingAs($manager);
+        Filament::setTenant($team);
+        Filament::setCurrentPanel('manage');
+
+        Livewire::test(ManageCreateVenue::class)
+            ->fillForm([
+                'name' => 'Fox Hall',
+                'postcode' => 'XY9 8ZZ',
+                'city' => 'Othertown',
+            ])
+            ->call('create')
+            ->assertHasNoFormErrors();
+
+        $this->assertSame(2, Venue::query()->whereRaw('LOWER(name) = ?', ['fox hall'])->count());
+        $this->assertTrue($team->venues()->where('venues.postcode', 'XY9 8ZZ')->exists());
+    }
+
+    public function test_a_manager_can_choose_a_similar_catalog_venue_instead_of_creating_a_duplicate(): void
+    {
+        $manager = User::factory()->teamManager()->create();
+        $team = $manager->managedTeams()->firstOrFail();
+        $venue = Venue::factory()->create([
+            'name' => 'Fox Hall',
+            'street' => '1 Example Road',
+            'city' => 'Anytown',
+        ]);
+
+        $this->actingAs($manager);
+        Filament::setTenant($team);
+        Filament::setCurrentPanel('manage');
+
+        Livewire::test(ManageCreateVenue::class)
+            ->fillForm([
+                'name' => 'Fox Hall',
+                'street' => '1 Example Road',
+                'city' => 'Anytown',
+                'similar_venue_id' => $venue->getKey(),
+            ])
+            ->call('create')
+            ->assertHasNoFormErrors();
+
+        $this->assertSame(1, Venue::query()->whereRaw('LOWER(name) = ?', ['fox hall'])->count());
+        $this->assertTrue($team->venues()->whereKey($venue->getKey())->exists());
+    }
+
+    public function test_admin_wizard_lists_similar_venues_and_opens_the_chosen_one_instead_of_creating_a_duplicate(): void
+    {
+        $admin = User::factory()->systemAdmin()->create();
+        $venue = Venue::factory()->create([
+            'name' => 'Fox Hall',
+            'postcode' => 'AB1 2CD',
+        ]);
+
+        Filament::setCurrentPanel('admin');
+        $this->actingAs($admin);
+
+        Livewire::test(CreateVenue::class)
+            ->fillForm([
+                'name' => 'Fox Hall Annexe',
+                'postcode' => 'AB1 2CD',
+            ])
+            ->goToNextWizardStep()
+            ->assertSeeText('Fox Hall')
+            ->set('data.similar_venue_id', $venue->getKey())
+            ->goToNextWizardStep()
+            ->assertSeeText('Open existing venue')
+            ->call('create')
+            ->assertHasNoFormErrors()
+            ->assertRedirect(AdminVenueResource::getUrl('view', ['record' => $venue]));
+
+        $this->assertSame(1, Venue::query()->count());
+    }
+
+    public function test_admin_can_create_a_new_venue_despite_similar_matches(): void
+    {
+        $admin = User::factory()->systemAdmin()->create();
+        $venue = Venue::factory()->create([
+            'name' => 'Fox Hall',
+            'postcode' => 'AB1 2CD',
+        ]);
+
+        Filament::setCurrentPanel('admin');
+        $this->actingAs($admin);
+
+        Livewire::test(CreateVenue::class)
+            ->fillForm([
+                'name' => 'Fox Hall Annexe',
+                'postcode' => 'AB1 2CD',
+            ])
+            ->goToNextWizardStep()
+            ->set('data.similar_venue_id', $venue->getKey())
+            ->set('data.use_new_venue', '1')
+            ->goToNextWizardStep()
+            ->assertSeeText('Create venue')
+            ->call('create')
+            ->assertHasNoFormErrors();
+
+        $this->assertDatabaseHas('venues', ['name' => 'Fox Hall Annexe']);
+        $this->assertSame(2, Venue::query()->count());
+    }
+
+    public function test_admin_cannot_create_a_catalog_venue_with_the_same_name_and_postcode(): void
+    {
+        $admin = User::factory()->systemAdmin()->create();
+        Venue::factory()->create([
+            'name' => 'Fox Hall',
+            'postcode' => 'AB1 2CD',
+        ]);
+
+        Filament::setCurrentPanel('admin');
+        $this->actingAs($admin);
+
+        Livewire::test(CreateVenue::class)
+            ->fillForm([
+                'name' => 'fOX hALL',
+                'postcode' => 'ab1 2cd',
+            ])
+            ->call('create')
+            ->assertHasFormErrors(['postcode'])
+            ->assertSeeText('A catalog venue named Fox Hall already exists at AB1 2CD.');
+
+        $this->assertSame(1, Venue::query()->count());
+    }
+
+    public function test_catalog_venue_model_allows_a_postcoded_namesake_of_a_blank_existing_venue(): void
+    {
+        Venue::factory()->create(['name' => 'Fox Hall']);
+
+        $venue = Venue::create([
+            'name' => 'Fox Hall',
+            'postcode' => 'AB1 2CD',
+        ]);
+
+        $this->assertSame('AB1 2CD', $venue->postcode);
+        $this->assertSame(2, Venue::query()->whereRaw('LOWER(name) = ?', ['fox hall'])->count());
+    }
+
+    public function test_catalog_venue_model_rejects_saving_a_blank_namesake_after_a_postcoded_twin_exists(): void
+    {
+        $blank = Venue::factory()->create(['name' => 'Fox Hall']);
+        Venue::factory()->create([
+            'name' => 'Fox Hall',
+            'postcode' => 'AB1 2CD',
+        ]);
+
+        try {
+            $blank->notes = 'Updated notes';
+            $blank->save();
+            $this->fail('A blank namesake was saved after a postcoded twin existed.');
+        } catch (ValidationException $exception) {
+            $this->assertSame(
+                'Add a postcode. "Fox Hall" already exists (AB1 2CD).',
+                $exception->errors()['postcode'][0],
+            );
+        }
+    }
+
+    public function test_catalog_venue_model_rejects_two_blank_postcode_namesakes(): void
+    {
+        Venue::factory()->create(['name' => 'Fox Hall']);
+
+        try {
+            Venue::create(['name' => ' fOX hALL ']);
+            $this->fail('A duplicate blank catalog venue name was accepted.');
+        } catch (ValidationException $exception) {
+            $this->assertSame(
+                'Add a postcode. "Fox Hall" already exists without a postcode.',
+                $exception->errors()['postcode'][0],
+            );
+        }
+
+        $this->assertSame(1, Venue::query()->count());
+    }
+
+    public function test_venue_option_label_uses_the_best_available_place_hint(): void
+    {
+        $venue = Venue::factory()->make([
+            'name' => 'Fox Hall',
+            'street' => '1 Example Road',
+            'city' => 'Anytown',
+            'region' => 'Kent',
+            'postcode' => 'AB1 2CD',
+        ]);
+
+        $this->assertSame('Fox Hall (Anytown, AB1 2CD)', $venue->optionLabel());
+
+        $venue->city = null;
+        $this->assertSame('Fox Hall (Kent, AB1 2CD)', $venue->optionLabel());
+
+        $venue->region = null;
+        $this->assertSame('Fox Hall (AB1 2CD)', $venue->optionLabel());
+
+        $venue->postcode = null;
+        $this->assertSame('Fox Hall (1 Example Road)', $venue->optionLabel());
+
+        $venue->street = null;
+        $this->assertSame('Fox Hall', $venue->optionLabel());
+    }
+
+    public function test_editing_a_catalog_venue_does_not_change_booking_sequence(): void
+    {
+        $venue = Venue::factory()->create(['name' => 'Original Hall']);
+        $booking = Booking::factory()->create([
+            'venue_id' => $venue->getKey(),
+        ]);
+        $sequence = $booking->sequence;
+
+        $venue->name = 'Renamed Hall';
+        $venue->save();
+
+        $this->assertSame($sequence, $booking->fresh()->sequence);
     }
 
     public function test_admin_create_persists_postal_parts_as_a_country_code(): void

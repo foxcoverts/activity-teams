@@ -55,7 +55,7 @@ class UnhandledInboundMail extends Mailable implements ShouldQueue
 
         return match (true) {
             $resource instanceof Booking => collect([
-                $resource->activity?->name,
+                $resource->activityTitle(),
                 $resource->audience?->name,
                 filled($resource->group_name) ? $resource->group_name : null,
             ])->filter()->implode(' · '),

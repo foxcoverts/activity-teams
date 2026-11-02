@@ -2,6 +2,7 @@
 
 namespace App\Filament\Manage\Resources\Bookings\Pages;
 
+use App\Actions\SaveBookingDetailsAction;
 use App\Actions\UpdateBookingStatusAction;
 use App\Filament\Manage\Resources\Bookings\BookingResource;
 use App\Filament\Manage\Resources\Bookings\BookingStatusActions;
@@ -10,6 +11,7 @@ use App\Models\User;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\ViewAction;
 use Filament\Resources\Pages\EditRecord;
+use Illuminate\Database\Eloquent\Model;
 
 class EditBooking extends EditRecord
 {
@@ -41,7 +43,11 @@ class EditBooking extends EditRecord
      */
     protected function mutateFormDataBeforeFill(array $data): array
     {
-        return BookingResource::hydrateScheduleData($data);
+        $record = $this->getRecord();
+
+        return $record instanceof Booking
+            ? BookingResource::hydrateBookingFormData($data, $record)
+            : BookingResource::hydrateScheduleData($data);
     }
 
     /**
@@ -53,6 +59,13 @@ class EditBooking extends EditRecord
         return BookingResource::mergeScheduleData($data);
     }
 
+    protected function handleRecordUpdate(Model $record, array $data): Model
+    {
+        abort_unless($record instanceof Booking, 404);
+
+        return app(SaveBookingDetailsAction::class)->update($record, $data);
+    }
+
     protected function afterSave(): void
     {
         $actor = auth()->user();
@@ -62,7 +75,7 @@ class EditBooking extends EditRecord
         }
 
         app(UpdateBookingStatusAction::class)(
-            $this->record->refresh(),
+            $this->record,
             $actor,
         );
     }

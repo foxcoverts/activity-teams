@@ -105,7 +105,7 @@ class SendBookingNotification implements ShouldQueue
                 $attendee->notify(new BookingHeldNotification(
                     $booking,
                     __('An update to :activity is in your inbox.', [
-                        'activity' => $booking->activity->name,
+                        'activity' => $booking->activityTitle(),
                     ]),
                 ));
 
@@ -136,7 +136,7 @@ class SendBookingNotification implements ShouldQueue
                 $attendee->notify(new BookingHeldNotification(
                     $booking,
                     __('You were invited to :activity.', [
-                        'activity' => $booking->activity->name,
+                        'activity' => $booking->activityTitle(),
                     ]),
                 ));
 

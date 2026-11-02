@@ -11,6 +11,7 @@ use App\Filament\Admin\Resources\Locks\RelationManagers\CoversRelationManager;
 use App\Filament\Admin\Resources\Locks\RelationManagers\KeysRelationManager;
 use App\Models\Lock;
 use App\Models\User;
+use App\Models\Venue;
 use BackedEnum;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
@@ -91,6 +92,9 @@ class LockResource extends Resource
                                 Select::make('venue_id')
                                     ->label(__('Session venue'))
                                     ->relationship('venue', 'name')
+                                    ->getOptionLabelFromRecordUsing(
+                                        fn (Venue $record): string => $record->optionLabel(),
+                                    )
                                     ->searchable()
                                     ->preload()
                                     ->required(),

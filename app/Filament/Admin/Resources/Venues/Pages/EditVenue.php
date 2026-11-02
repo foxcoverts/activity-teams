@@ -17,7 +17,7 @@ class EditVenue extends EditRecord
      */
     protected function mutateFormDataBeforeSave(array $data): array
     {
-        unset($data['location'], $data['map']);
+        unset($data['has_map_pin'], $data['map'], $data['similar_venue_id']);
 
         return $data;
     }

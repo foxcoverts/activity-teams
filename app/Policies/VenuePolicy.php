@@ -20,12 +20,18 @@ class VenuePolicy
 
     public function create(User $user): bool
     {
-        return $user->isSystemAdmin();
+        return $user->isSystemAdmin() || $user->managedTeams()->exists();
     }
 
     public function update(User $user, Venue $venue): bool
     {
-        return $user->isSystemAdmin();
+        if ($user->isSystemAdmin()) {
+            return true;
+        }
+
+        $teams = $venue->teams()->limit(2)->get();
+
+        return $teams->count() === 1 && $user->manages($teams->first());
     }
 
     public function delete(User $user, Venue $venue): bool

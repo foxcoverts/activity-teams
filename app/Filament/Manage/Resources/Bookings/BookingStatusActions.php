@@ -192,8 +192,9 @@ class BookingStatusActions
             ? $record->timezone->getName()
             : (string) $record->timezone;
 
-        return BookingResource::hydrateScheduleData([
+        return BookingResource::hydrateBookingFormData([
             'activity_id' => $record->activity_id,
+            'activity_label' => $record->activity_label,
             'audience_id' => $record->audience_id,
             'venue_id' => $record->venue_id,
             'start_at' => $record->start_at?->timezone(config('app.timezone'))->format('Y-m-d H:i:s'),
@@ -202,7 +203,7 @@ class BookingStatusActions
             'group_name' => $record->group_name,
             'notes' => $record->notes,
             'lead_instructor_notes' => $record->lead_instructor_notes,
-        ]);
+        ], $record);
     }
 
     private static function currentQualifiedLead(Booking $record): ?string

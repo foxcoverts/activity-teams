@@ -1,7 +1,7 @@
 <div class="space-y-4 rounded-xl bg-white p-6 shadow">
     <h1 class="text-xl font-semibold">{{ $this->heading() }}</h1>
     <dl class="space-y-2 text-sm">
-        <div><dt class="font-medium">{{ __('Activity') }}</dt><dd>{{ $booking->activity->name }}</dd></div>
+        <div><dt class="font-medium">{{ __('Activity') }}</dt><dd>{{ $booking->activityTitle() }}</dd></div>
         <div><dt class="font-medium">{{ __('Venue') }}</dt><dd>{{ $booking->venue->name }}</dd></div>
         <x-booking.schedule :booking="$booking" />
     </dl>

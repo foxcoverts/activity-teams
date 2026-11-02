@@ -37,6 +37,7 @@ class Booking extends Model implements Commentable
         'team_id',
         'activity_id',
         'audience_id',
+        'activity_label',
         'venue_id',
         'start_at',
         'end_at',
@@ -54,6 +55,8 @@ class Booking extends Model implements Commentable
 
     public ?string $cancellationReason = null;
 
+    public ?string $privateVenueIdForDeletion = null;
+
     protected function casts(): array
     {
         return [
@@ -68,6 +71,10 @@ class Booking extends Model implements Commentable
     protected static function booted(): void
     {
         static::saving(function (Booking $booking): void {
+            $booking->activity_label = filled($booking->activity_label)
+                ? trim((string) $booking->activity_label)
+                : null;
+
             $tenant = Filament::getTenant();
 
             if (blank($booking->team_id) && $tenant instanceof Team) {
@@ -96,7 +103,15 @@ class Booking extends Model implements Commentable
                 $booking->group_name = null;
             }
 
-            if (blank($booking->audience_id) || blank($booking->activity_id) || ! $booking->hasOfferedAudience()) {
+            if (blank($booking->activity_id)) {
+                if (blank($booking->activity_label)) {
+                    throw ValidationException::withMessages([
+                        'activity_label' => __('Enter an activity name.'),
+                    ]);
+                }
+
+                $booking->audience_id = null;
+            } elseif (blank($booking->audience_id) || ! $booking->hasOfferedAudience()) {
                 throw ValidationException::withMessages([
                     'audience_id' => __('Choose an audience this activity offers.'),
                 ]);
@@ -115,10 +130,36 @@ class Booking extends Model implements Commentable
                 }
             }
 
-            if (filled($booking->venue_id) && ! $team->venues()->whereKey($booking->venue_id)->exists()) {
+            $hasCatalogVenue = filled($booking->venue_id)
+                && $team->venues()->whereKey($booking->venue_id)->exists();
+            $hasPrivateVenue = $booking->exists
+                && filled($booking->venue_id)
+                && Venue::onlyPrivate()
+                    ->whereKey($booking->venue_id)
+                    ->where('booking_id', $booking->getKey())
+                    ->exists();
+
+            if (filled($booking->venue_id) && ! $hasCatalogVenue && ! $hasPrivateVenue) {
                 throw ValidationException::withMessages([
                     'venue_id' => __('Choose a venue this team has been given.'),
                 ]);
+            }
+        });
+
+        static::deleting(function (Booking $booking): void {
+            if (
+                Venue::onlyPrivate()
+                    ->whereKey($booking->venue_id)
+                    ->where('booking_id', $booking->getKey())
+                    ->exists()
+            ) {
+                $booking->privateVenueIdForDeletion = (string) $booking->venue_id;
+            }
+        });
+
+        static::deleted(function (Booking $booking): void {
+            if ($booking->privateVenueIdForDeletion !== null) {
+                Venue::withPrivate()->find($booking->privateVenueIdForDeletion)?->delete();
             }
         });
     }
@@ -132,6 +173,7 @@ class Booking extends Model implements Commentable
         return [
             'activity_id',
             'audience_id',
+            'activity_label',
             'start_at',
             'end_at',
             'venue_id',
@@ -203,7 +245,8 @@ class Booking extends Model implements Commentable
 
     public function metBy(User $user): bool
     {
-        return $this->activityAudience()?->metBy($user, $this) ?? false;
+        return blank($this->activity_id)
+            || ($this->activityAudience()?->metBy($user, $this) ?? false);
     }
 
     public function requiresQualification(): bool
@@ -222,7 +265,11 @@ class Booking extends Model implements Commentable
             return null;
         }
 
-        if ($this->relationLoaded('activity') && $this->activity?->relationLoaded('activityAudiences')) {
+        if (
+            $this->relationLoaded('activity')
+            && (string) $this->activity?->getKey() === (string) $this->activity_id
+            && $this->activity?->relationLoaded('activityAudiences')
+        ) {
             return $this->activity->activityAudiences->first(
                 fn (ActivityAudience $pairing): bool => (string) $pairing->audience_id === (string) $this->audience_id,
             );
@@ -244,6 +291,17 @@ class Booking extends Model implements Commentable
         return $this->belongsTo(Activity::class);
     }
 
+    public function activityTitle(): string
+    {
+        if (filled($this->activity_label)) {
+            return (string) $this->activity_label;
+        }
+
+        $this->loadMissing('activity');
+
+        return (string) ($this->activity?->name ?? '');
+    }
+
     public function audience(): BelongsTo
     {
         return $this->belongsTo(Audience::class);
@@ -251,7 +309,7 @@ class Booking extends Model implements Commentable
 
     public function venue(): BelongsTo
     {
-        return $this->belongsTo(Venue::class);
+        return $this->belongsTo(Venue::class)->withoutGlobalScope('catalog');
     }
 
     /**
@@ -327,7 +385,7 @@ class Booking extends Model implements Commentable
 
         $parts = [
             $start->isoFormat('ddd D MMM YYYY HH:mm'),
-            $this->activity->name,
+            $this->activityTitle(),
             $this->audience?->name,
         ];
 
@@ -343,7 +401,7 @@ class Booking extends Model implements Commentable
         $this->loadMissing('activity', 'audience');
 
         $parts = [
-            $this->activity?->name,
+            $this->activityTitle(),
             $this->audience?->name,
         ];
 
@@ -363,7 +421,7 @@ class Booking extends Model implements Commentable
 
             $this->loadMissing('activity', 'audience');
 
-            return collect([$this->activity?->name, $this->audience?->name])
+            return collect([$this->activityTitle(), $this->audience?->name])
                 ->filter(fn (?string $part): bool => filled($part))
                 ->implode(' · ');
         });
@@ -444,7 +502,7 @@ class Booking extends Model implements Commentable
     public function summary(): Attribute
     {
         return Attribute::make(
-            get: fn () => $this->activity->name.' - '.$this->start_at->timezone($this->timezone)->toFormattedDayDateString()
+            get: fn () => $this->activityTitle().' - '.$this->start_at->timezone($this->timezone)->toFormattedDayDateString()
         );
     }
 

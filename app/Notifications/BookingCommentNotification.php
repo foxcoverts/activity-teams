@@ -28,7 +28,7 @@ class BookingCommentNotification extends Notification
     public function inboxBody(object $notifiable): string
     {
         $booking = $this->booking();
-        $activity = $booking?->activity?->name ?? __('a booking');
+        $activity = $booking?->activityTitle() ?? __('a booking');
 
         return __(':author commented on :activity.', [
             'author' => $this->comment->author?->name ?? __('someone'),

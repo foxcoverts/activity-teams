@@ -5,13 +5,13 @@
 
 @if ($cancelled)
 {{ __('Here is the current cancellation for :activity for :audience at :venue.', [
-    'activity' => $booking->activity->name,
+    'activity' => $booking->activityTitle(),
     'audience' => $booking->audience?->name,
     'venue' => $booking->venue->name,
 ]) }}
 @else
 {{ __('Here is the current invitation for :activity for :audience at :venue.', [
-    'activity' => $booking->activity->name,
+    'activity' => $booking->activityTitle(),
     'audience' => $booking->audience?->name,
     'venue' => $booking->venue->name,
 ]) }}

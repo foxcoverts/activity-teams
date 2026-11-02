@@ -42,13 +42,13 @@ class ExportPersonalDataAction
                 'expires_on' => $qualification->expires_on?->toDateString(),
             ])->all(),
             'bookings' => $user->bookings->map(fn (Booking $booking): array => [
-                'activity' => $booking->activity?->name,
+                'activity' => $booking->activityTitle(),
                 'start_at' => $booking->start_at?->toIso8601String(),
                 'end_at' => $booking->end_at?->toIso8601String(),
                 'status' => $booking->attendance?->status?->value,
                 'role' => 'attendee',
             ])->concat($user->ledBookings->map(fn (Booking $booking): array => [
-                'activity' => $booking->activity?->name,
+                'activity' => $booking->activityTitle(),
                 'start_at' => $booking->start_at?->toIso8601String(),
                 'end_at' => $booking->end_at?->toIso8601String(),
                 'status' => $booking->status?->value,

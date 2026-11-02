@@ -26,7 +26,7 @@ class LeadNeededNotification extends Notification
 
     public function inboxBody(object $notifiable): string
     {
-        $activity = $this->booking->activity?->name ?? __('a booking');
+        $activity = $this->booking->activityTitle();
 
         if ($this->previousLead instanceof User) {
             return __(':name is no longer the lead instructor for :activity.', [

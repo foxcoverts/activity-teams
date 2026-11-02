@@ -3,7 +3,7 @@
 
 {{ __('You have been invited to help with a booking.') }}
 
-**{{ __('Activity') }}:** {{ $booking->activity->name }}  
+**{{ __('Activity') }}:** {{ $booking->activityTitle() }}<br>
 **{{ __('Audience') }}:** {{ $booking->audience?->name }}  
 **{{ __('Venue') }}:** {{ $booking->venue->name }}  
 @if (filled($booking->group_name))

@@ -90,7 +90,7 @@ final class RotaDigest
             ->orderBy('start_at')
             ->get()
             ->mapWithKeys(fn (Booking $booking): array => [
-                (string) $booking->getKey() => trim($booking->activity->name.' '.$booking->start_at?->timezone(config('app.timezone'))->format('j M Y, H:i')),
+                (string) $booking->getKey() => trim($booking->activityTitle().' '.$booking->start_at?->timezone(config('app.timezone'))->format('j M Y, H:i')),
             ])
             ->all();
     }

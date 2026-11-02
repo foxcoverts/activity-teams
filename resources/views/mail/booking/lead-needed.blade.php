@@ -7,7 +7,7 @@
 {{ __('This booking is tentative and needs a lead instructor.') }}
 @endif
 
-**{{ __('Activity') }}:** {{ $booking->activity->name }}  
+**{{ __('Activity') }}:** {{ $booking->activityTitle() }}<br>
 **{{ __('Audience') }}:** {{ $booking->audience?->name }}  
 **{{ __('Venue') }}:** {{ $booking->venue->name }}  
 @if (filled($booking->group_name))

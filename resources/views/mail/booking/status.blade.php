@@ -25,7 +25,7 @@
 </x-mail.panel>
 @endif
 
-**{{ __('Activity') }}:** {{ $booking->activity->name }}{{ $changeList->suffix('activity_id') }}  
+**{{ __('Activity') }}:** {{ $booking->activityTitle() }}{{ $changeList->suffix('activity_id') }}<br>
 **{{ __('Audience') }}:** {{ $booking->audience?->name }}{{ $changeList->suffix('audience_id') }}  
 **{{ __('Venue') }}:** {{ $booking->venue->name }}{{ $changeList->suffix('venue_id') }}  
 @if (filled($booking->group_name) || $changeList->has('group_name'))

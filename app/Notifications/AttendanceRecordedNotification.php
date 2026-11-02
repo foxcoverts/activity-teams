@@ -28,7 +28,7 @@ class AttendanceRecordedNotification extends Notification
     {
         $attendance = $this->booking->attendees()->whereKey($this->attendee->getKey())->first()?->attendance;
         $status = $attendance?->status?->getLabel() ?? __('updated');
-        $activity = $this->booking->activity?->name ?? __('a booking');
+        $activity = $this->booking->activityTitle();
 
         return __('Your attendance for :activity was recorded as :status.', [
             'activity' => $activity,

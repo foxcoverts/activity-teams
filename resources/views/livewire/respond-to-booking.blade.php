@@ -17,7 +17,7 @@
     <h1 class="text-xl font-semibold">{{ __('Respond to booking') }}</h1>
 
     <dl class="space-y-2 text-sm">
-        <div><dt class="font-medium">{{ __('Activity') }}</dt><dd>{{ $booking->activity->name }}</dd></div>
+        <div><dt class="font-medium">{{ __('Activity') }}</dt><dd>{{ $booking->activityTitle() }}</dd></div>
         <div><dt class="font-medium">{{ __('Audience') }}</dt><dd>{{ $booking->audience?->name }}</dd></div>
         <div><dt class="font-medium">{{ __('Venue') }}</dt><dd>{{ $booking->venue->name }}</dd></div>
         @if (filled($booking->group_name))

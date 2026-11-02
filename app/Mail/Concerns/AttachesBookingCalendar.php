@@ -26,7 +26,7 @@ trait AttachesBookingCalendar
 
         $ics = app(BookingIcsFactory::class)->make(
             [$booking],
-            $booking->activity->name,
+            $booking->activityTitle(),
             method: $method,
             forAttendee: $attendee,
             rsvp: $this->calendarNeedsRsvp(),

@@ -84,8 +84,12 @@ class BookingResource extends Resource
                             ->afterLabel([
                                 LocationMapAction::make(),
                             ]),
-                        TextEntry::make('activity.name')->label(__('Activity')),
-                        TextEntry::make('audience.name')->label(__('Audience')),
+                        TextEntry::make('activity_title')
+                            ->label(__('Activity'))
+                            ->state(fn (Booking $record): string => $record->activityTitle()),
+                        TextEntry::make('audience.name')
+                            ->label(__('Audience'))
+                            ->placeholder('-'),
                         TextEntry::make('group_name')
                             ->label(__('Group'))
                             ->placeholder('-')
@@ -116,7 +120,15 @@ class BookingResource extends Resource
             ->recordTitleAttribute('display_name')
             ->columns([
                 TextColumn::make('start_at')->dateTime('M j, Y H:i')->sortable(),
-                TextColumn::make('activity.name')->searchable(),
+                TextColumn::make('activity.name')
+                    ->state(fn (Booking $record): string => $record->activityTitle())
+                    ->searchable(query: fn (Builder $query, string $search): Builder => $query
+                        ->where(function (Builder $query) use ($search): void {
+                            $query
+                                ->where('activity_label', 'like', "%{$search}%")
+                                ->orWhereHas('activity', fn (Builder $activityQuery) => $activityQuery
+                                    ->where('name', 'like', "%{$search}%"));
+                        })),
                 TextColumn::make('audience.name')->label(__('Audience'))->searchable(),
                 TextColumn::make('venue.name')->searchable(),
                 TextColumn::make('group_name')->placeholder('-')->searchable(),

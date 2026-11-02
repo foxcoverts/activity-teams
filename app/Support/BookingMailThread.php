@@ -30,7 +30,7 @@ class BookingMailThread
 
         return __(':kind: :activity at :venue, :start', [
             'kind' => $kind,
-            'activity' => $booking->activity->name,
+            'activity' => $booking->activityTitle(),
             'venue' => $booking->venue->name,
             'start' => $start->isoFormat('ddd D MMM YYYY HH:mm'),
         ]);

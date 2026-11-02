@@ -3,7 +3,7 @@
 
 {{ __(':author commented on :activity.', [
     'author' => $author?->name ?? __('someone'),
-    'activity' => $booking->activity->name,
+    'activity' => $booking->activityTitle(),
 ]) }}
 
 {{ $comment->body }}

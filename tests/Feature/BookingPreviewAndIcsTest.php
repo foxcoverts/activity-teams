@@ -3,8 +3,13 @@
 namespace Tests\Feature;
 
 use App\Enums\BookingAttendeeStatus;
+use App\Enums\BookingStatus;
+use App\Filament\Manage\Resources\Bookings\Pages\ListBookings as ManageListBookings;
+use App\Filament\Manage\Resources\Bookings\Pages\ViewBooking as ManageViewBooking;
 use App\Filament\Member\Pages\Feeds;
 use App\Filament\Member\Resources\Bookings\BookingResource;
+use App\Filament\Member\Resources\Bookings\Pages\ListBookings as MemberListBookings;
+use App\Filament\Member\Resources\Bookings\Pages\ViewBooking;
 use App\Models\Activity;
 use App\Models\Booking;
 use App\Models\User;
@@ -110,6 +115,66 @@ class BookingPreviewAndIcsTest extends TestCase
             ->assertSee('Member Booking')
             ->assertDontSee(__('Lead instructor'))
             ->assertDontSee(__('Can you attend this event?'));
+    }
+
+    public function test_custom_activity_label_is_used_in_member_preview_and_calendar_titles(): void
+    {
+        $manager = User::factory()->teamManager()->create();
+        $booking = $this->sharedBooking();
+        $booking->activity_label = 'Tower Maintenance';
+        $booking->status = BookingStatus::Confirmed;
+        $booking->save();
+
+        $member = User::factory()->teamMember($booking->team)->create([
+            'feed_token' => User::generateToken(),
+        ]);
+        $booking->attendees()->attach($member->getKey(), [
+            'status' => BookingAttendeeStatus::Accepted->value,
+        ]);
+
+        $this->get(route('booking.preview', $booking))
+            ->assertOk()
+            ->assertSee('Tower Maintenance on Sat, Oct 17, 2026')
+            ->assertDontSee('Climbing on Sat, Oct 17, 2026');
+
+        Filament::setCurrentPanel(Filament::getPanel('manage'));
+        $this->actingAs($manager);
+        Filament::setTenant($manager->managedTeams()->firstOrFail());
+
+        Livewire::test(ManageViewBooking::class, ['record' => $booking->getRouteKey()])
+            ->assertSeeText('Tower Maintenance')
+            ->assertDontSeeText('Climbing')
+            ->assertSee('Original activity: Climbing')
+            ->assertDontSeeText('Shown as');
+
+        $start = now()->addWeek()->setTime(9, 0);
+        $booking->start_at = $start;
+        $booking->end_at = $start->copy()->addHours(2);
+        $booking->save();
+
+        Livewire::test(ManageListBookings::class)
+            ->assertCanSeeTableRecords([$booking])
+            ->assertSeeText('Tower Maintenance')
+            ->assertDontSeeText('Climbing');
+
+        Filament::setCurrentPanel(Filament::getPanel('member'));
+        $this->actingAs($member);
+
+        Livewire::test(ViewBooking::class, ['record' => $booking->getRouteKey()])
+            ->assertSeeText('Tower Maintenance')
+            ->assertDontSeeText('Climbing')
+            ->assertDontSeeText('Shown as');
+
+        Livewire::test(MemberListBookings::class)
+            ->assertCanSeeTableRecords([$booking])
+            ->assertSeeText('Tower Maintenance')
+            ->assertDontSeeText('Climbing');
+
+        $calendar = $this->get(route('booking.ics', $member))
+            ->assertOk()
+            ->getContent();
+
+        $this->assertStringContainsString('SUMMARY:Tower Maintenance', $calendar);
     }
 
     public function test_ics_feed_requires_token_and_returns_calendar(): void
