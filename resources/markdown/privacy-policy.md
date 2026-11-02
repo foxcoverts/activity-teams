@@ -84,7 +84,8 @@ We enforce strict, time-locked access controls within the application to ensure 
 To maintain data sovereignty, your data is tightly controlled within the UK:
 * **Application Hosting:** The application and its database are hosted within the United Kingdom using **IONOS** as our infrastructure sub-processor.
 * **Email Infrastructure:** Outbound invitations, password resets, and operational alerts are sent via email. Our email processing provider is **ForwardEmail**.
-* **International Transfers:** All core data remains hosted within the UK. We do not transfer your personal data outside the United Kingdom.
+* **Avatars:** Profile photos are loaded from **Gravatar** using a hash of your email address. You can change the photo on Gravatar. Gravatar is operated by Automattic.
+* **International Transfers:** All core application and database data remains hosted within the UK. Avatar requests go to Gravatar.
 
 ---
 

@@ -7,6 +7,7 @@ use App\Actions\ExportPersonalDataAction;
 use App\Filament\Forms\Components\TimezoneSelect;
 use App\Filament\Schemas\ContactFields;
 use App\Models\User;
+use App\Support\Palette;
 use Filament\Actions\Action;
 use Filament\Auth\Pages\EditProfile as BaseEditProfile;
 use Filament\Facades\Filament;
@@ -17,7 +18,9 @@ use Filament\Schemas\Components\Component;
 use Filament\Schemas\Components\EmbeddedSchema;
 use Filament\Schemas\Components\Form;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\View as SchemaView;
 use Filament\Schemas\Schema;
+use Filament\Support\Enums\Alignment;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
@@ -54,6 +57,9 @@ class EditProfile extends BaseEditProfile
         return $schema
             ->components([
                 Section::make(__('Personal details'))
+                    ->icon(Heroicon::User)
+                    ->columns(1)
+                    ->columnSpanFull()
                     ->schema([
                         $this->getNameFormComponent(),
                         $this->getEmailFormComponent(),
@@ -61,12 +67,34 @@ class EditProfile extends BaseEditProfile
                             ->searchable(),
                     ]),
                 Section::make(__('Contact details'))
+                    ->icon(Heroicon::OutlinedPhone)
+                    ->columns(1)
+                    ->columnSpanFull()
                     ->schema([
                         ContactFields::phoneNotice(),
                         ContactFields::phoneInput('phone'),
                     ]),
                 Section::make(__('Emergency contact'))
+                    ->icon(Heroicon::OutlinedHeart)
+                    ->columns(1)
+                    ->columnSpanFull()
                     ->schema(ContactFields::emergencyFields()),
+                Section::make(__('Avatar'))
+                    ->icon(Heroicon::OutlinedUserCircle)
+                    ->columns(1)
+                    ->columnSpanFull()
+                    ->schema([
+                        SchemaView::make('filament.auth.profile-avatar'),
+                        Actions::make([
+                            Action::make('changeGravatar')
+                                ->label(__('Change on Gravatar'))
+                                ->icon(Heroicon::OutlinedArrowTopRightOnSquare)
+                                ->outlined()
+                                ->color(Palette::neutral())
+                                ->url('https://gravatar.com/profile/avatars', shouldOpenInNewTab: true)
+                                ->extraAttributes(['rel' => 'noopener noreferrer']),
+                        ])->alignment(Alignment::End),
+                    ]),
                 ContactFields::privacyNoticeLink(),
             ]);
     }

@@ -69,6 +69,29 @@ class MemberProfileTest extends TestCase
         $this->assertFalse($user->hasVerifiedEmail());
     }
 
+    public function test_the_profile_explains_how_to_change_the_gravatar_photo(): void
+    {
+        $user = User::factory()->teamMember()->create([
+            'email' => 'Ada@Example.COM',
+        ]);
+
+        Filament::setCurrentPanel(Filament::getPanel('member'));
+        $this->actingAs($user);
+
+        Livewire::test(EditProfile::class)
+            ->assertSeeTextInOrder(['Personal details', 'Contact details', 'Emergency contact', 'Avatar'])
+            ->assertSee('Your photo comes from Gravatar, using the email on this account.')
+            ->assertSee('generated pattern')
+            ->assertSee('Changing your email changes which Gravatar is used.')
+            ->assertSee('Change on Gravatar')
+            ->assertSee('fi-user-avatar', false)
+            ->assertSee(
+                'https://www.gravatar.com/avatar/'.hash('sha256', 'ada@example.com').'?d=identicon&amp;s=200',
+                false,
+            )
+            ->assertSee('https://gravatar.com/profile/avatars', false);
+    }
+
     public function test_a_team_less_system_admin_can_open_the_profile(): void
     {
         $admin = User::factory()->systemAdmin()->create();
