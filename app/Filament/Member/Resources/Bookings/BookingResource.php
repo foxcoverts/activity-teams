@@ -138,6 +138,9 @@ class BookingResource extends Resource
             ])
             ->filters([
                 SelectFilter::make('status')->options(BookingStatus::class),
+                SelectFilter::make('team_id')
+                    ->label(__('Team'))
+                    ->options(fn (): array => auth()->user()?->teams()->orderBy('teams.name')->pluck('teams.name', 'teams.id')->all() ?? []),
             ])
             ->recordActions([
                 ViewAction::make(),
