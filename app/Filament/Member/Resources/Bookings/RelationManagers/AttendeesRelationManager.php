@@ -13,12 +13,16 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Model;
+use Livewire\Attributes\On;
 
 class AttendeesRelationManager extends RelationManager
 {
     protected static ?string $title = 'Guest list';
 
     protected static string $relationship = 'attendees';
+
+    #[On('booking-attendance-updated')]
+    public function refreshAfterAttendanceChange(): void {}
 
     public static function canViewForRecord(Model $ownerRecord, string $pageClass): bool
     {

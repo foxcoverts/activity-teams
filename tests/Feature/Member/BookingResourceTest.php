@@ -2,8 +2,10 @@
 
 namespace Tests\Feature\Member;
 
+use App\Enums\BookingAttendeeStatus;
 use App\Filament\Member\Resources\Bookings\Pages\ListBookings;
 use App\Filament\Member\Resources\Bookings\Pages\ViewBooking;
+use App\Filament\Member\Resources\Bookings\RelationManagers\AttendeesRelationManager;
 use App\Models\Booking;
 use App\Models\Team;
 use App\Models\User;
@@ -90,5 +92,19 @@ class BookingResourceTest extends TestCase
         Livewire::test(ViewBooking::class, ['record' => $booking->getKey()])
             ->assertDontSee('Lead instructor notes')
             ->assertDontSee('Notes');
+    }
+
+    public function test_the_guest_list_refreshes_when_attendance_changes(): void
+    {
+        $member = User::factory()->teamMember()->create();
+        $booking = Booking::factory()->forTeam($member->teams()->firstOrFail())->confirmed()->create();
+        $booking->attendees()->attach($member->getKey(), ['status' => BookingAttendeeStatus::NeedsAction->value]);
+
+        $this->actingAs($member);
+        $component = Livewire::test(AttendeesRelationManager::class, ['ownerRecord' => $booking, 'pageClass' => ViewBooking::class]);
+
+        $booking->attendees()->updateExistingPivot($member->getKey(), ['status' => BookingAttendeeStatus::Accepted->value]);
+
+        $component->dispatch('booking-attendance-updated')->assertSee('Can help');
     }
 }

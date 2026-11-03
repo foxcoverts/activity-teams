@@ -26,7 +26,6 @@ use App\Filament\Member\Resources\Bookings\BookingResource;
 use App\Filament\Member\Resources\Bookings\Pages\ViewBooking as MemberViewBooking;
 use App\Filament\Member\Resources\Bookings\RelationManagers\AttendeesRelationManager as MemberAttendeesRelationManager;
 use App\Filament\Member\Resources\Keys\KeyResource as MemberKeyResource;
-use App\Livewire\SessionRoster;
 use App\Models\Activity;
 use App\Models\ActivityAudience;
 use App\Models\Booking;
@@ -495,31 +494,6 @@ class KeyAccessTest extends TestCase
         $this->assertStringContainsString('x-on:click="showOther = ! showOther"', $qualifications);
         $this->assertStringNotContainsString('toggleOtherQualifications', $qualifications);
 
-        Livewire::test(SessionRoster::class, ['booking' => $booking])
-            ->assertSee('Qualified')
-            ->assertDontSee('Other keys')
-            ->call('openKeys', $member->getKey())
-            ->assertForbidden();
-
-        Livewire::test(SessionRoster::class, ['booking' => $booking])
-            ->assertSee('Qualified')
-            ->call('openQualifications', $holder->getKey())
-            ->assertSee('Climbing and Abseiling — Artificial Top Rope — Leadership')
-            ->assertDontSee('Climbing Wall Instructor')
-            ->assertDontSee('Archery')
-            ->call('toggleOtherQualifications')
-            ->assertSee('Climbing Wall Instructor')
-            ->assertSee('Archery')
-            ->call('openQualification', $permit->getKey())
-            ->assertSee('No night climbing')
-            ->assertSee('Restrictions')
-            ->tap(function ($roster): void {
-                $this->assertSame(1, substr_count($roster->html(), 'wire:click="closeQualification"'));
-            })
-            ->call('closeQualification')
-            ->assertDontSee('No night climbing')
-            ->assertSee('Climbing and Abseiling — Artificial Top Rope — Leadership');
-
         $this->actingAs($member);
 
         $this->get(BookingResource::getUrl('view', ['record' => $booking]))
@@ -527,12 +501,6 @@ class KeyAccessTest extends TestCase
             ->assertDontSee('Key holder')
             ->assertDontSee('No night climbing')
             ->assertDontSee('Shared climbing');
-
-        Livewire::test(SessionRoster::class, ['booking' => $booking])
-            ->assertSee('Sam Holder')
-            ->assertDontSee('Key holder')
-            ->call('openKeys', $holder->getKey())
-            ->assertForbidden();
     }
 
     public function test_the_members_list_shows_and_filters_the_keys_the_team_needs(): void

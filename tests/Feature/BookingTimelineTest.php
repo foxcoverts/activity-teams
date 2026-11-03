@@ -9,7 +9,6 @@ use App\Enums\MembershipRole;
 use App\Filament\Manage\Resources\Bookings\Pages\ViewBooking as ManageViewBooking;
 use App\Filament\Manage\Resources\Members\MemberResource;
 use App\Filament\Member\Resources\Bookings\Pages\ViewBooking as MemberViewBooking;
-use App\Livewire\SessionRoster;
 use App\Models\Booking;
 use App\Models\User;
 use Filament\Facades\Filament;
@@ -72,9 +71,6 @@ class BookingTimelineTest extends TestCase
 
         Livewire::test(MemberViewBooking::class, ['record' => $booking->getRouteKey()])
             ->assertNotFound();
-
-        Livewire::test(SessionRoster::class, ['booking' => $booking])
-            ->assertForbidden();
     }
 
     public function test_the_member_timeline_emboldens_people_who_are_not_links(): void

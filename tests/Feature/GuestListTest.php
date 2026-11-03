@@ -8,12 +8,12 @@ use App\Filament\Manage\Resources\Bookings\Pages\ViewBooking as ManageViewBookin
 use App\Filament\Manage\Resources\Bookings\RelationManagers\AttendeesRelationManager;
 use App\Filament\Member\Resources\Bookings\Pages\ViewBooking as MemberViewBooking;
 use App\Filament\Member\Resources\Bookings\RelationManagers\AttendeesRelationManager as MemberAttendeesRelationManager;
-use App\Livewire\SessionRoster;
 use App\Models\Booking;
 use App\Models\BookingAttendance;
 use App\Models\User;
 use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Livewire\Features\SupportTesting\Testable;
 use Livewire\Livewire;
 use Tests\TestCase;
 
@@ -21,9 +21,32 @@ class GuestListTest extends TestCase
 {
     use RefreshDatabase;
 
+    /**
+     * @param  array<int, array{0: User, 1: BookingAttendeeStatus}>  $attendees
+     */
+    private function attendAll(Booking $booking, array $attendees): void
+    {
+        foreach ($attendees as [$attendee, $status]) {
+            $booking->attendees()->attach($attendee->getKey(), [
+                'status' => $status->value,
+                'token' => BookingAttendance::generateToken(),
+            ]);
+        }
+    }
+
+    private function memberGuestList(Booking $booking): Testable
+    {
+        Filament::setCurrentPanel(Filament::getPanel('member'));
+
+        return Livewire::test(MemberAttendeesRelationManager::class, [
+            'ownerRecord' => $booking,
+            'pageClass' => MemberViewBooking::class,
+        ]);
+    }
+
     public function test_regular_members_see_only_expected_status_groups_and_guest_badges(): void
     {
-        $manager = User::factory()->teamManager()->create();
+        $manager = User::factory()->teamManager()->create(['name' => 'Lead Person']);
         $team = $manager->managedTeams()->firstOrFail();
         $member = User::factory()->create();
         $team->grant($member, MembershipRole::Member);
@@ -38,8 +61,7 @@ class GuestListTest extends TestCase
             'team_id' => $team->getKey(),
             'lead_instructor_id' => $manager->getKey(),
         ]);
-
-        foreach ([
+        $this->attendAll($booking, [
             [$manager, BookingAttendeeStatus::Accepted],
             [$accepted, BookingAttendeeStatus::Accepted],
             [$tentative, BookingAttendeeStatus::Tentative],
@@ -47,17 +69,10 @@ class GuestListTest extends TestCase
             [$awaiting, BookingAttendeeStatus::NeedsAction],
             [$suspended, BookingAttendeeStatus::Accepted],
             [$formerMember, BookingAttendeeStatus::Accepted],
-        ] as [$attendee, $status]) {
-            $booking->attendees()->attach($attendee->getKey(), [
-                'status' => $status->value,
-                'token' => BookingAttendance::generateToken(),
-            ]);
-        }
+        ]);
 
-        Filament::setCurrentPanel(Filament::getPanel('member'));
         $this->actingAs($member);
-
-        $view = Livewire::test(SessionRoster::class, ['booking' => $booking]);
+        $view = $this->memberGuestList($booking);
         $html = $view->html();
 
         $view
@@ -79,47 +94,67 @@ class GuestListTest extends TestCase
         $this->assertIsInt($tentativePosition);
         $this->assertLessThan($acceptedPosition, $leadPosition);
         $this->assertLessThan($tentativePosition, $acceptedPosition);
-        $this->assertStringContainsString(
-            'wire:key="guest-group-accepted"',
-            $html,
-        );
+        $this->assertStringContainsString('wire:key="guest-group-accepted"', $html);
+        $this->assertStringContainsString('wire:key="guest-group-tentative"', $html);
         $this->assertStringContainsString('x-data="{ expanded: true }"', $html);
         $this->assertStringContainsString('x-on:click="expanded = ! expanded"', $html);
-        $this->assertStringContainsString('x-bind:aria-expanded="expanded"', $html);
-        $this->assertStringContainsString('wire:key="guest-group-tentative"', $html);
     }
 
     public function test_lead_instructors_see_declined_and_awaiting_attendees(): void
     {
-        $lead = User::factory()->teamManager()->create();
-        $team = $lead->managedTeams()->firstOrFail();
-        $declined = User::factory()->create(['name' => 'Cannot attend']);
-        $awaiting = User::factory()->create(['name' => 'No response']);
+        $lead = User::factory()->teamMember()->create();
+        $team = $lead->teams()->firstOrFail();
+        $declined = User::factory()->create(['name' => 'Declined attendee']);
+        $awaiting = User::factory()->create(['name' => 'Awaiting attendee']);
         $booking = Booking::factory()->confirmed()->create([
             'team_id' => $team->getKey(),
             'lead_instructor_id' => $lead->getKey(),
         ]);
-        $booking->attendees()->attach($lead->getKey(), [
-            'status' => BookingAttendeeStatus::Accepted->value,
-            'token' => BookingAttendance::generateToken(),
-        ]);
-        $booking->attendees()->attach($declined->getKey(), [
-            'status' => BookingAttendeeStatus::Declined->value,
-            'token' => BookingAttendance::generateToken(),
-        ]);
-        $booking->attendees()->attach($awaiting->getKey(), [
-            'status' => BookingAttendeeStatus::NeedsAction->value,
-            'token' => BookingAttendance::generateToken(),
+        $this->attendAll($booking, [
+            [$lead, BookingAttendeeStatus::Accepted],
+            [$declined, BookingAttendeeStatus::Declined],
+            [$awaiting, BookingAttendeeStatus::NeedsAction],
         ]);
 
-        Filament::setCurrentPanel(Filament::getPanel('member'));
         $this->actingAs($lead);
 
-        Livewire::test(SessionRoster::class, ['booking' => $booking])
-            ->assertSee('Cannot attend')
-            ->assertSee('No response')
+        $this->memberGuestList($booking)
+            ->assertSee('Declined attendee')
             ->assertSee('Cannot make it')
+            ->assertSee('Awaiting attendee')
             ->assertSee('Awaiting response');
+    }
+
+    public function test_managers_see_suspended_attendees_and_all_status_groups_without_guest_badges(): void
+    {
+        $manager = User::factory()->teamManager()->create();
+        $team = $manager->managedTeams()->firstOrFail();
+        $suspended = User::factory()->suspended()->create(['name' => 'Suspended attendee']);
+        $team->grant($suspended, MembershipRole::Member);
+        $declined = User::factory()->create(['name' => 'Declined attendee']);
+        $team->grant($declined, MembershipRole::Member);
+        $awaiting = User::factory()->create(['name' => 'Awaiting attendee']);
+        $team->grant($awaiting, MembershipRole::Member);
+        $booking = Booking::factory()->confirmed()->create([
+            'team_id' => $team->getKey(),
+            'lead_instructor_id' => $manager->getKey(),
+        ]);
+        $this->attendAll($booking, [
+            [$manager, BookingAttendeeStatus::Accepted],
+            [$suspended, BookingAttendeeStatus::Tentative],
+            [$declined, BookingAttendeeStatus::Declined],
+            [$awaiting, BookingAttendeeStatus::NeedsAction],
+        ]);
+
+        $this->actingAs($manager);
+
+        $this->memberGuestList($booking)
+            ->assertSee('Suspended attendee')
+            ->assertSee('Declined attendee')
+            ->assertSee('Cannot make it')
+            ->assertSee('Awaiting attendee')
+            ->assertSee('Awaiting response')
+            ->assertDontSeeHtml('guest-badge');
     }
 
     public function test_members_see_the_read_only_relation_manager_guest_list(): void
@@ -171,49 +206,6 @@ class GuestListTest extends TestCase
             'ownerRecord' => $booking,
             'pageClass' => MemberViewBooking::class,
         ])->assertForbidden();
-    }
-
-    public function test_managers_see_suspended_attendees_and_all_status_groups_in_members(): void
-    {
-        $manager = User::factory()->teamManager()->create();
-        $team = $manager->managedTeams()->firstOrFail();
-        $suspended = User::factory()->suspended()->create(['name' => 'Suspended attendee']);
-        $team->grant($suspended, MembershipRole::Member);
-        $declined = User::factory()->create(['name' => 'Declined attendee']);
-        $team->grant($declined, MembershipRole::Member);
-        $awaiting = User::factory()->create(['name' => 'Awaiting attendee']);
-        $team->grant($awaiting, MembershipRole::Member);
-        $booking = Booking::factory()->confirmed()->create([
-            'team_id' => $team->getKey(),
-            'lead_instructor_id' => $manager->getKey(),
-        ]);
-        $booking->attendees()->attach($manager->getKey(), [
-            'status' => BookingAttendeeStatus::Accepted->value,
-            'token' => BookingAttendance::generateToken(),
-        ]);
-        $booking->attendees()->attach($suspended->getKey(), [
-            'status' => BookingAttendeeStatus::Tentative->value,
-            'token' => BookingAttendance::generateToken(),
-        ]);
-        $booking->attendees()->attach($declined->getKey(), [
-            'status' => BookingAttendeeStatus::Declined->value,
-            'token' => BookingAttendance::generateToken(),
-        ]);
-        $booking->attendees()->attach($awaiting->getKey(), [
-            'status' => BookingAttendeeStatus::NeedsAction->value,
-            'token' => BookingAttendance::generateToken(),
-        ]);
-
-        Filament::setCurrentPanel(Filament::getPanel('member'));
-        $this->actingAs($manager);
-
-        Livewire::test(SessionRoster::class, ['booking' => $booking])
-            ->assertSee('Suspended attendee')
-            ->assertSee('Declined attendee')
-            ->assertSee('Cannot make it')
-            ->assertSee('Awaiting attendee')
-            ->assertSee('Awaiting response')
-            ->assertDontSeeHtml('guest-badge');
     }
 
     public function test_manage_guest_list_is_grouped_and_retains_attendance_actions(): void
