@@ -3,6 +3,7 @@
 namespace App\Livewire;
 
 use App\Actions\AcceptTeamInvitationAction;
+use App\Filament\Member\Pages\Dashboard;
 use App\Filament\Schemas\ContactFields;
 use App\Models\TeamInvitation;
 use App\Models\User;
@@ -87,7 +88,7 @@ class AcceptInvitation extends Component implements HasActions, HasSchemas
 
         Auth::login($user);
 
-        $this->redirect('/');
+        $this->redirect(Dashboard::getUrl(panel: 'member'));
     }
 
     public function useMyAccount(AcceptTeamInvitationAction $accept): void
@@ -98,7 +99,7 @@ class AcceptInvitation extends Component implements HasActions, HasSchemas
 
         $accept->claimWith($this->invitation(), $user);
 
-        $this->redirect('/');
+        $this->redirect(Dashboard::getUrl(panel: 'member'));
     }
 
     public function signOutAndCreateAccount(): void

@@ -1,7 +1,7 @@
 <x-mail::layout>
 {{-- Header --}}
 <x-slot:header>
-<x-mail::header :url="config('app.url')">
+<x-mail::header :url="\App\Filament\Member\Pages\Dashboard::getUrl(panel: 'member')">
 {{ config('app.name') }}
 </x-mail::header>
 </x-slot:header>

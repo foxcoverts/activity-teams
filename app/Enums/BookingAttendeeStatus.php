@@ -57,6 +57,16 @@ enum BookingAttendeeStatus: string implements HasColor, HasIcon, HasLabel
         };
     }
 
+    /**
+     * Answers that still need a firm reply from the member. The single definition shared by the invites list, the dashboard, and reminders.
+     *
+     * @return array<int, BookingAttendeeStatus>
+     */
+    public static function outstanding(): array
+    {
+        return [self::NeedsAction, self::Tentative];
+    }
+
     public function compare(BookingAttendeeStatus $other): int
     {
         return $this->rank() <=> $other->rank();

@@ -2,10 +2,8 @@
 
 namespace App\Filament\Member\Resources\Bookings\Pages;
 
-use App\Actions\RespondToBookingAction;
-use App\Enums\BookingAttendeeResponse;
-use App\Enums\BookingAttendeeStatus;
 use App\Filament\Bookings\BookingKeysAction;
+use App\Filament\Bookings\BookingRespondAction;
 use App\Filament\Bookings\RefreshesWhenAttendanceChanges;
 use App\Filament\Member\Resources\Bookings\BookingResource;
 use App\Filament\Member\Resources\Bookings\BookingTimeline;
@@ -13,18 +11,12 @@ use App\Livewire\BookingComments;
 use App\Livewire\RelatedBookings;
 use App\Models\Booking;
 use App\Models\User;
-use App\Support\LeadAttendanceWarning;
-use Filament\Actions\Action;
-use Filament\Forms\Components\ToggleButtons;
-use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ViewRecord;
 use Filament\Schemas\Components\EmbeddedSchema;
 use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Group;
 use Filament\Schemas\Components\Livewire;
-use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
-use InvalidArgumentException;
 
 class ViewBooking extends ViewRecord
 {
@@ -98,71 +90,8 @@ class ViewBooking extends ViewRecord
             $actions[] = BookingKeysAction::make();
         }
 
-        $actions[] = Action::make('respond')
-            ->authorize(fn (): bool => auth()->user()?->can('respond', [$this->record, auth()->user()]) ?? false)
-            ->schema([
-                ToggleButtons::make('response')
-                    ->label(__('Status'))
-                    ->options(BookingAttendeeResponse::class)
-                    ->inline()
-                    ->default(fn (): ?string => BookingAttendeeResponse::tryFromStatus($this->currentResponse())?->value)
-                    ->live()
-                    ->helperText(function (Get $get): ?string {
-                        $user = auth()->user();
-
-                        if ($user === null || ! $this->getRecord()->isLead($user)) {
-                            return null;
-                        }
-
-                        $choice = $get('response');
-
-                        return LeadAttendanceWarning::message(
-                            $this->getRecord(),
-                            $choice instanceof BookingAttendeeResponse
-                                ? $choice->toStatus()
-                                : BookingAttendeeResponse::tryFrom((string) $choice)?->toStatus(),
-                        );
-                    })
-                    ->required(),
-            ])
-            ->action(function (array $data): void {
-                $response = $data['response'] ?? null;
-                $response = $response instanceof BookingAttendeeResponse
-                    ? $response
-                    : BookingAttendeeResponse::tryFrom((string) $response);
-
-                if ($response === null) {
-                    return;
-                }
-
-                try {
-                    (new RespondToBookingAction($this->record))(
-                        auth()->user(),
-                        $response->toStatus(),
-                    );
-                } catch (InvalidArgumentException $e) {
-                    Notification::make()->danger()->title($e->getMessage())->send();
-
-                    return;
-                }
-
-                Notification::make()->success()->title(__('Attendance updated'))->send();
-
-                $this->getRecord()->unsetRelation('attendees');
-                $this->dispatch('booking-attendance-updated');
-            });
+        $actions[] = BookingRespondAction::make();
 
         return $actions;
-    }
-
-    private function currentResponse(): ?BookingAttendeeStatus
-    {
-        $status = $this->getRecord()->attendees->find(auth()->user())?->attendance?->status;
-
-        if ($status === null || $status === BookingAttendeeStatus::NeedsAction) {
-            return null;
-        }
-
-        return $status;
     }
 }

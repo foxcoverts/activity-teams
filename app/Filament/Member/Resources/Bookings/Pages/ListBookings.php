@@ -25,10 +25,7 @@ class ListBookings extends ListRecords
             'upcoming' => Tab::make(__('Upcoming'))
                 ->modifyQueryUsing(fn (Builder $query) => $query->future()),
             'invites' => Tab::make(__('Invites'))
-                ->modifyQueryUsing(fn (Builder $query) => $query->future()->attendeeStatus($user, [
-                    BookingAttendeeStatus::NeedsAction,
-                    BookingAttendeeStatus::Tentative,
-                ])),
+                ->modifyQueryUsing(fn (Builder $query) => $query->future()->notCancelled()->attendeeStatus($user, BookingAttendeeStatus::outstanding())),
             'rota' => Tab::make(__('My rota'))
                 ->modifyQueryUsing(fn (Builder $query) => $query->future()->attendeeStatus($user, [
                     BookingAttendeeStatus::Accepted,

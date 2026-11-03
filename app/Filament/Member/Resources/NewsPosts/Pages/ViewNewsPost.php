@@ -3,6 +3,7 @@
 namespace App\Filament\Member\Resources\NewsPosts\Pages;
 
 use App\Filament\Member\Resources\NewsPosts\NewsPostResource;
+use App\Models\InboxNotification;
 use App\Models\NewsPost;
 use App\Models\Team;
 use App\Models\User;
@@ -30,6 +31,12 @@ class ViewNewsPost extends ViewRecord
         parent::mount($record);
 
         abort_unless((string) $this->getRecord()->team_id === (string) $team->getKey(), 404);
+
+        $user->unreadNotifications()
+            ->where('data->subject_type', NewsPost::class)
+            ->where('data->subject_id', $this->getRecord()->getKey())
+            ->get()
+            ->each(fn (InboxNotification $notification) => $notification->markReadForDelivery());
     }
 
     protected function authorizeAccess(): void

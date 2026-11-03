@@ -70,6 +70,12 @@ When an enum is shown in Filament, give it a label, and a color and icon when th
 - [US-55 Inbound Email Routing & Failure Alerts](US-55-inbound-email-routing-and-alerts.md) — `done`
 - [US-61 Notification Settings](US-61-notification-settings.md) — `done`
 - [US-67 Member Notification Inbox](US-67-member-notification-inbox.md) — `done`
+- [US-69 Member Dashboard: What Needs My Attention](US-69-member-dashboard.md) — `done`
+- [US-70 Dashboard: My Bookings This Week](US-70-dashboard-this-week.md) — `done`
+- [US-71 Dashboard: Unread Inbox Preview](US-71-dashboard-unread-inbox.md) — `done`
+- [US-72 Dashboard: Responses Still Needed](US-72-dashboard-needs-response.md) — `done`
+- [US-73 Dashboard: Next Booking I Lead](US-73-dashboard-next-led-booking.md) — `done`
+- [US-74 Dashboard: Latest News](US-74-dashboard-latest-news.md) — `done`
 - [US-62 Unmapped Calendar Reply Identity](US-62-unmapped-calendar-reply-identity.md) — `not-started`
 
 ## Personal Data & Account Privacy
@@ -109,7 +115,8 @@ When an enum is shown in Filament, give it a label, and a color and icon when th
 
 - **Essential:** [US-47 Multiple Activity Teams](US-47-multiple-activity-teams.md) is the primary reason for the rewrite.
 - **Operationally required:** [US-18 Lead Instructor Contact Access](US-18-lead-instructor-contact-access.md), [US-19 Participant Lead Contact Access](US-19-participant-lead-contact-access.md), [US-20 Annual Profile & Emergency Contact Data Confirmation](US-20-annual-profile-confirmation.md), [US-30 Standard URL Sharing](US-30-standard-url-sharing.md), [US-31 Open Graph Link Previews](US-31-open-graph-link-previews.md), [US-48 Suspend and Restore a Member](US-48-suspend-and-restore-a-member.md), [US-49 System Administration](US-49-system-administration.md), [US-54 Team News Posts & Distribution](US-54-team-news-posts.md), [US-55 Inbound Email Routing & Failure Alerts](US-55-inbound-email-routing-and-alerts.md), [US-56 Member Profile](US-56-member-profile.md), [US-57 Member Account & Privacy Controls](US-57-member-account-privacy-controls.md), [US-58 Personal Data Viewing Acknowledgement](US-58-personal-data-viewing-acknowledgement.md), [US-61 Notification Settings](US-61-notification-settings.md), and [US-67 Member Notification Inbox](US-67-member-notification-inbox.md). US-30/31 and US-54 are already done. News is published by managers, available in a combined member feed, and distributed directly to members, with an opt-out for direct delivery.
-- **Extra:** US-16, US-17, US-24, US-29, US-34, US-35, US-36, US-38, US-41, US-42, US-43, US-44, US-53, US-62, US-63, US-64, US-65, and US-68.
+- **Extra:** US-16, US-17, US-24, US-29, US-34, US-35, US-36, US-38, US-41, US-42, US-43, US-44, US-53, US-62, US-63, US-64, US-65, US-68, and US-69 to US-74.
+  - US-69 to US-74 are the member dashboard. Their scope is a proposal and is open for the product owner to decide.
   - US-29 has a UI action in the legacy climbing-team app, but not in Activity Teams; it is not a release priority.
   - US-38 is extra. Per-booking history is [US-39](US-39-member-booking-audit-stream.md) and stays done. The team-wide manager feed is not a relaunch requirement.
   - US-45 is extra and should be reconsidered during outgoing-mail reimplementation; include delivery/bounce tracking if the mail provider makes it cheap or free.

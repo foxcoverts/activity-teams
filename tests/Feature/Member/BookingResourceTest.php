@@ -3,6 +3,7 @@
 namespace Tests\Feature\Member;
 
 use App\Filament\Member\Resources\Bookings\Pages\ListBookings;
+use App\Filament\Member\Resources\Bookings\Pages\ViewBooking;
 use App\Models\Booking;
 use App\Models\Team;
 use App\Models\User;
@@ -56,5 +57,38 @@ class BookingResourceTest extends TestCase
             ->assertCanSeeTableRecords([$mine]);
 
         $this->assertNotContains($otherTeam->getKey(), array_keys($member->teams()->pluck('teams.name', 'teams.id')->all()));
+    }
+
+    public function test_lead_instructor_notes_are_only_shown_to_the_lead_and_team_managers(): void
+    {
+        $member = User::factory()->teamMember()->create();
+        $team = $member->teams()->firstOrFail();
+        $manager = User::factory()->teamManager($team)->create();
+        $booking = Booking::factory()->forTeam($team)->confirmed()->create(['lead_instructor_notes' => 'Bring the red rope']);
+
+        $this->actingAs($member);
+        Livewire::test(ViewBooking::class, ['record' => $booking->getKey()])
+            ->assertDontSee('Lead instructor notes');
+
+        $booking->update(['lead_instructor_id' => $member->getKey()]);
+        Livewire::test(ViewBooking::class, ['record' => $booking->getKey()])
+            ->assertSee('Bring the red rope');
+
+        $booking->update(['lead_instructor_id' => null]);
+        $this->actingAs($manager);
+        Livewire::test(ViewBooking::class, ['record' => $booking->getKey()])
+            ->assertSee('Lead instructor notes');
+    }
+
+    public function test_empty_notes_fields_are_hidden_on_the_booking_view(): void
+    {
+        $manager = User::factory()->teamManager()->create();
+        $team = $manager->managedTeams()->firstOrFail();
+        $booking = Booking::factory()->forTeam($team)->confirmed()->create(['notes' => null, 'lead_instructor_notes' => null]);
+
+        $this->actingAs($manager);
+        Livewire::test(ViewBooking::class, ['record' => $booking->getKey()])
+            ->assertDontSee('Lead instructor notes')
+            ->assertDontSee('Notes');
     }
 }
