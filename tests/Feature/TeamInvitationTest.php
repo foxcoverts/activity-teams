@@ -683,8 +683,8 @@ class TeamInvitationTest extends TestCase
             'timezone' => 'Europe/London',
         ]);
 
-        $this->actingAs($user)->get('/')->assertRedirect();
-        $this->assertStringContainsString('verif', (string) $this->actingAs($user)->get('/')->headers->get('Location'));
+        $this->actingAs($user)->get('/dashboard')->assertRedirect();
+        $this->assertStringContainsString('verif', (string) $this->actingAs($user)->get('/dashboard')->headers->get('Location'));
     }
 
     public function test_inviting_and_revoking_are_recorded_in_the_activity_log(): void

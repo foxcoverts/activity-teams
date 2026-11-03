@@ -38,6 +38,7 @@ class MemberPanelProvider extends PanelProvider
             ->default()
             ->id('member')
             ->path('')
+            ->homeUrl(fn (): string => Dashboard::getUrl())
             ->login(Login::class)
             ->registration(Register::class)
             ->passwordReset()

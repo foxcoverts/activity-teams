@@ -703,7 +703,7 @@ class NewsPostsTest extends TestCase
         Filament::setCurrentPanel(Filament::getPanel('member'));
         $this->actingAs($member);
 
-        $this->get('/')
+        $this->get('/dashboard')
             ->assertOk()
             ->assertSee('rel="alternate"', false)
             ->assertSee('type="application/atom+xml"', false)
@@ -717,7 +717,7 @@ class NewsPostsTest extends TestCase
             ->callAction('regenerate');
         $member->refresh();
 
-        $this->get('/')
+        $this->get('/dashboard')
             ->assertOk()
             ->assertSee(route('news.atom', $member), false);
 

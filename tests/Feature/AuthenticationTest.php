@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Enums\BookingAttendeeStatus;
 use App\Enums\MembershipRole;
+use App\Filament\Member\Pages\Dashboard;
 use App\Models\Booking;
 use App\Models\BookingAttendance;
 use App\Models\Team;
@@ -178,7 +179,7 @@ class AuthenticationTest extends TestCase
         Filament::setCurrentPanel(Filament::getPanel('member'));
         $this->actingAs($oversight);
 
-        $this->get('/')
+        $this->get('/dashboard')
             ->assertOk()
             ->assertSee('Admin')
             ->assertDontSee('Manage')
@@ -194,7 +195,7 @@ class AuthenticationTest extends TestCase
         Filament::setCurrentPanel(Filament::getPanel('member'));
         $this->actingAs($user);
 
-        $this->get('/')
+        $this->get('/dashboard')
             ->assertOk()
             ->assertSee('fi-user-avatar', false)
             ->assertSee(
@@ -311,7 +312,7 @@ class AuthenticationTest extends TestCase
         $manager = User::factory()->teamManager()->create();
         $admin = User::factory()->systemAdmin()->create();
         $team = $manager->managedTeams()->first();
-        $membersUrl = Filament::getPanel('member')->getUrl();
+        $membersUrl = Dashboard::getUrl();
 
         $this->actingAs($manager)
             ->get('/manage/'.$team->slug)
@@ -333,7 +334,7 @@ class AuthenticationTest extends TestCase
 
         Filament::setCurrentPanel(Filament::getPanel('member'));
         $this->actingAs($admin)
-            ->get('/')
+            ->get('/dashboard')
             ->assertOk()
             ->assertSee('Admin')
             ->assertDontSee('Manage Team');
@@ -350,7 +351,7 @@ class AuthenticationTest extends TestCase
         $admin = User::factory()->systemAdmin()->create();
         $oversight = User::factory()->oversight()->create();
         Team::factory()->create();
-        $membersUrl = Filament::getPanel('member')->getUrl();
+        $membersUrl = Dashboard::getUrl();
 
         $this->actingAs($admin)
             ->get('/admin')

@@ -12,6 +12,8 @@ use App\Livewire\ManageMailPreferences;
 use App\Livewire\RespondToBooking;
 use Illuminate\Support\Facades\Route;
 
+Route::view('/', 'welcome')->name('home');
+
 Route::get('share/bookings/{booking}', BookingPreview::class)->name('booking.preview');
 Route::get('respond/{booking}/{attendee}', RespondToBooking::class)->name('respond');
 Route::get('mail-preferences/{user:mail_preference_token}/booking/{booking}', ManageMailPreferences::class)
