@@ -31,7 +31,7 @@ The legacy repository is `foxcoverts/climbing-team`. Its authenticated routes in
 | Incident reports | [US-21 Incident & Accident Reporting](US-21-incident-accident-reporting.md) | Done. The member selects a current team; one queued email goes to its active managers with the reporter copied. There is no app-side report store or viewer. |
 | Team tasks and iCalendar VTODO | [US-22 Task Management](US-22-task-management.md) | Legacy has task management and VTODO export. Explicitly deferred; not needed for relaunch. |
 | Personal kit checks | [US-23 Instructor Kit Compliance](US-23-instructor-kit-compliance.md), [US-33 Kit Checker Inspection](US-33-kit-checker-inspection-workflow.md) | Legacy records annual checks and who performed them. Explicitly deferred; not needed for relaunch. |
-| Passing a key ring | [US-51 Pass a Key Ring](US-51-pass-a-key.md) | Legacy has key-transfer routes and notifications. Not implemented in Activity Teams. |
+| Passing a key ring | [US-51 Pass a Key Ring](US-51-pass-a-key.md) | Legacy has key-transfer routes and notifications. Implemented in Activity Teams; see Phase 2. |
 | Booking changes and comments | [US-38 Manager Activity Audit Feed](US-38-manager-activity-audit-feed.md), [US-39 Member Booking Audit Stream](US-39-member-booking-audit-stream.md), [US-40 Booking Commenting Threads](US-40-booking-commenting-threads.md) | Legacy records changes and comments. US-39 is done. US-38 is extra: the team-wide manager feed is still open. US-40 describes a broader discussion experience. |
 | Related bookings and calendar feeds | [US-13 Subscription ICS Export Feeds](US-13-subscription-ics-feeds.md), [US-37 Related Bookings & Multi-Day Event Linking](US-37-related-bookings-multi-day.md) | Symmetric same-team linking, stacked related panel, sibling RELATED-TO, CLASS:PRIVATE, and calendar-token regenerate are in Activity Teams. |
 | Account suspension | [US-48 Suspend and Restore a Member](US-48-suspend-and-restore-a-member.md) | Legacy has a suspended user state. Required for relaunch by decision. |
@@ -134,7 +134,7 @@ US-49 should precede changes that depend on controlled activity or venue catalog
 
 ### Phase 3 — Deliver remaining retained team workflows
 
-**Phase 3 status: in progress.** Required US-54, US-05, US-40, and US-21 are done. Remaining work is to confirm any additional user-facing workflows identified in Phase 0.
+**Phase 3 status: complete (3 November 2026 live-site audit).** Required US-54, US-05, US-40, and US-21 are done. The authenticated audit compared the live legacy workflows with the stories and ROADMAP and found no new required relaunch gaps. Observed workflows map to done, deferred, extra, or retired scope. This closes the inventory confirmation; Phase 4 release verification remains.
 
 The product owner has confirmed these legacy workflows should be retained; the listed order remains adjustable based on implementation sizing and operational risk.
 
@@ -142,7 +142,7 @@ The product owner has confirmed these legacy workflows should be retained; the l
 2. **Done: Safety and compliance.** Required US-21 incident reporting uses a team-selected email distribution path, queue retries, and permanent-failure alerts.
 3. **Done: Team operations.** Required US-05 document repository (team PDFs, combined member list with team filter, Manage trash).
 4. **Done: Audit and collaboration.** Required US-40 comments on bookings (separate panel, immediate threaded mail). Keep the existing US-39 booking timeline behavior. Extra US-38 (team-wide manager feed) is out of this phase.
-5. **Unrepresented legacy functions:** confirm any additional user-facing workflows identified in Phase 0. The general-purpose legacy mail log stays retired; inbound routing and failure alerts are done in [US-55](US-55-inbound-email-routing-and-alerts.md).
+5. **Done: Legacy workflow audit.** The 3 November 2026 live-site audit confirmed that no additional required relaunch workflows were missing from Phase 0. The general-purpose legacy mail log stays retired; inbound routing and failure alerts are done in [US-55](US-55-inbound-email-routing-and-alerts.md). The audit's remaining parity and migration notes are product/documentation follow-ups, not new Phase 3 build work. Some write flows and empty-data paths were not exercised; the audit does not replace Phase 4 end-to-end release verification.
 
 If a retained workflow is large, ship it as a vertical slice: authorization and data model, manager workflow, member workflow, then migration/operational checks. Do not use a broad story label as a substitute for proving the acceptance criteria.
 
