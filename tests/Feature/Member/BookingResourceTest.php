@@ -55,7 +55,10 @@ class BookingResourceTest extends TestCase
 
         Livewire::test(ListBookings::class)
             ->assertTableFilterExists('team_id', fn ($filter): bool => array_keys($filter->getOptions()) === [$team->getKey()])
+            ->assertTableColumnVisible('team.name')
+            ->assertTableColumnStateSet('team.name', $team->name, $mine)
             ->filterTable('team_id', $team->getKey())
+            ->assertTableColumnHidden('team.name')
             ->assertCanSeeTableRecords([$mine]);
 
         $this->assertNotContains($otherTeam->getKey(), array_keys($member->teams()->pluck('teams.name', 'teams.id')->all()));
@@ -106,5 +109,34 @@ class BookingResourceTest extends TestCase
         $booking->attendees()->updateExistingPivot($member->getKey(), ['status' => BookingAttendeeStatus::Accepted->value]);
 
         $component->dispatch('booking-attendance-updated')->assertSee('Can help');
+    }
+
+    public function test_the_booking_list_shows_attendance_status(): void
+    {
+        $member = User::factory()->teamMember()->create();
+        $team = $member->teams()->firstOrFail();
+
+        $noResponseBooking = Booking::factory()->forTeam($team)->confirmed()->create();
+
+        $acceptedBooking = Booking::factory()->forTeam($team)->confirmed()->create();
+        $acceptedBooking->attendees()->attach($member->getKey(), ['status' => BookingAttendeeStatus::Accepted->value]);
+
+        $maybeBooking = Booking::factory()->forTeam($team)->confirmed()->create();
+        $maybeBooking->attendees()->attach($member->getKey(), ['status' => BookingAttendeeStatus::Tentative->value]);
+
+        $invitedBooking = Booking::factory()->forTeam($team)->confirmed()->create();
+        $invitedBooking->attendees()->attach($member->getKey(), ['status' => BookingAttendeeStatus::NeedsAction->value]);
+
+        $declinedBooking = Booking::factory()->forTeam($team)->confirmed()->create();
+        $declinedBooking->attendees()->attach($member->getKey(), ['status' => BookingAttendeeStatus::Declined->value]);
+
+        $this->actingAs($member);
+        Livewire::test(ListBookings::class)
+            ->assertTableColumnStateSet('attendance', null, $noResponseBooking)
+            ->assertTableColumnStateSet('attendance', BookingAttendeeStatus::Accepted, $acceptedBooking)
+            ->assertSeeText('Can help')
+            ->assertTableColumnStateSet('attendance', BookingAttendeeStatus::Tentative, $maybeBooking)
+            ->assertTableColumnStateSet('attendance', BookingAttendeeStatus::NeedsAction, $invitedBooking)
+            ->assertTableColumnStateSet('attendance', BookingAttendeeStatus::Declined, $declinedBooking);
     }
 }

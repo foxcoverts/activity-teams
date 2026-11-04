@@ -2,6 +2,7 @@
 
 namespace App\Filament\Member\Resources\Bookings;
 
+use App\Enums\BookingAttendeeStatus;
 use App\Enums\BookingStatus;
 use App\Filament\Bookings\LocationMapAction;
 use App\Filament\Member\NavigationGroup;
@@ -19,6 +20,7 @@ use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Contracts\HasTable;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
@@ -54,7 +56,7 @@ class BookingResource extends Resource
     public static function getEloquentQuery(): Builder
     {
         return parent::getEloquentQuery()
-            ->with(['activity', 'audience', 'venue', 'attendees'])
+            ->with(['activity', 'audience', 'team', 'venue', 'attendees'])
             ->forUser(auth()->user())
             ->ordered();
     }
@@ -136,12 +138,20 @@ class BookingResource extends Resource
                                 ->orWhereHas('activity', fn (Builder $activityQuery) => $activityQuery
                                     ->where('name', 'like', "%{$search}%"));
                         })),
-                TextColumn::make('audience.name')->label(__('Audience'))->searchable(),
                 TextColumn::make('venue.name')->searchable(),
-                TextColumn::make('group_name')->placeholder('-')->searchable(),
+                TextColumn::make('team.name')
+                    ->visible(fn (HasTable $livewire): bool => blank($livewire->getTableFilterState('team_id')['value'] ?? null)),
                 TextColumn::make('status')
+                    ->label(__('Booking Status'))
                     ->badge()
                     ->icon(fn (BookingStatus $state): Heroicon => $state->getIcon()),
+                TextColumn::make('attendance')
+                    ->state(fn (Booking $record): ?BookingAttendeeStatus => $record->attendees
+                        ->firstWhere('id', auth()->id())
+                        ?->attendance
+                        ?->status)
+                    ->badge()
+                    ->label(__('Attendance')),
             ])
             ->filters([
                 SelectFilter::make('status')->options(BookingStatus::class),
