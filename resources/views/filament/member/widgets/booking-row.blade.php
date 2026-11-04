@@ -22,7 +22,7 @@
 <li class="relative flex flex-col gap-4 py-4 first:pt-0 last:pb-0 sm:flex-row sm:items-center {{ $booking->isPast() ? 'opacity-60' : '' }}" wire:key="booking-{{ $booking->getKey() }}">
     <div class="min-w-0 flex-1 space-y-2">
         <p class="text-base font-semibold">
-            <a href="{{ BookingResource::getUrl('view', ['record' => $booking]) }}" class="hover:underline after:absolute after:inset-0 after:content-['']">{{ $booking->activityTitle() }}</a>
+            <a href="{{ BookingResource::viewUrl($booking) }}" class="hover:underline after:absolute after:inset-0 after:content-['']">{{ $booking->activityTitle() }}</a>
             @if ($booking->audience)
                 <span class="font-normal text-gray-500 dark:text-gray-400">· {{ $booking->audience->name }}</span>
             @endif

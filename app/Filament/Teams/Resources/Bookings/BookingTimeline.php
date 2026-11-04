@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Filament\Member\Resources\Bookings;
+namespace App\Filament\Teams\Resources\Bookings;
 
 use App\Models\Activity;
 use App\Models\Booking;
@@ -39,6 +39,6 @@ class BookingTimeline
             return null;
         }
 
-        return BookingResource::getUrl('view', ['record' => $booking], panel: 'member');
+        return BookingResource::getUrl('view', ['record' => $booking], panel: 'teams', tenant: $booking->team);
     }
 }

@@ -1,12 +1,12 @@
 <?php
 
-namespace App\Filament\Member\Resources\Bookings\Pages;
+namespace App\Filament\Teams\Resources\Bookings\Pages;
 
 use App\Filament\Bookings\BookingKeysAction;
 use App\Filament\Bookings\BookingRespondAction;
 use App\Filament\Bookings\RefreshesWhenAttendanceChanges;
-use App\Filament\Member\Resources\Bookings\BookingResource;
-use App\Filament\Member\Resources\Bookings\BookingTimeline;
+use App\Filament\Teams\Resources\Bookings\BookingResource;
+use App\Filament\Teams\Resources\Bookings\BookingTimeline;
 use App\Livewire\BookingComments;
 use App\Livewire\RelatedBookings;
 use App\Models\Booking;
@@ -44,7 +44,7 @@ class ViewBooking extends ViewRecord
             if ($visibleRelated->isNotEmpty()) {
                 $sidebar[] = Livewire::make(RelatedBookings::class, [
                     'record' => $record,
-                    'panel' => 'member',
+                    'panel' => 'teams',
                 ]);
             }
         }

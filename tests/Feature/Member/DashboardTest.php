@@ -4,13 +4,13 @@ namespace Tests\Feature\Member;
 
 use App\Enums\BookingAttendeeStatus;
 use App\Filament\Member\Pages\Dashboard;
-use App\Filament\Member\Resources\NewsPosts\Pages\ViewNewsPost;
 use App\Filament\Member\Widgets\AllCaughtUpWidget;
 use App\Filament\Member\Widgets\LatestNewsWidget;
 use App\Filament\Member\Widgets\NeedsResponseWidget;
 use App\Filament\Member\Widgets\NextLedBookingWidget;
 use App\Filament\Member\Widgets\ThisWeekWidget;
 use App\Filament\Member\Widgets\UnreadInboxWidget;
+use App\Filament\Teams\Resources\NewsPosts\Pages\ViewNewsPost;
 use App\Models\Booking;
 use App\Models\NewsPost;
 use App\Models\Team;
@@ -278,7 +278,9 @@ class DashboardTest extends TestCase
 
         $this->assertTrue(Livewire::test(LatestNewsWidget::class)->viewData('isNew'));
 
-        Livewire::test(ViewNewsPost::class, ['team' => $team, 'record' => $post->slug]);
+        Filament::setCurrentPanel(Filament::getPanel('teams'));
+        Filament::setTenant($team);
+        Livewire::test(ViewNewsPost::class, ['record' => $post->slug]);
 
         $this->assertSame(0, $this->member->unreadNotifications()->count());
         $this->assertSame(1, $this->member->notifications()->whereNotNull('digest_notified_at')->count());

@@ -10,7 +10,8 @@ use App\Filament\Member\Pages\Dashboard as MemberDashboard;
 use App\Filament\Member\Pages\Feeds;
 use App\Filament\Member\Pages\NotificationSettings;
 use App\Filament\Pages\ChangePassword;
-use App\Http\Middleware\RememberManageTeam;
+use App\Filament\Teams\Pages\Dashboard as TeamsDashboard;
+use App\Http\Middleware\RememberTenantTeam;
 use App\Http\Middleware\RequireProfileConfirmation;
 use App\Models\Team;
 use Filament\Http\Middleware\Authenticate;
@@ -46,7 +47,7 @@ class ManagePanelProvider extends PanelProvider
             ->plugin(FilamentActivitylog::make())
             ->tenant(Team::class, slugAttribute: 'slug')
             ->tenantMiddleware([
-                RememberManageTeam::class,
+                RememberTenantTeam::class,
             ], isPersistent: true)
             ->navigationGroups(NavigationGroup::class)
             ->discoverResources(in: app_path('Filament/Manage/Resources'), for: 'App\\Filament\\Manage\\Resources')
@@ -62,6 +63,7 @@ class ManagePanelProvider extends PanelProvider
             ])
             ->navigationItems([
                 MemberDashboard::navigationItem(),
+                TeamsDashboard::navigationItem(),
                 AdminDashboard::navigationItem(),
             ])
             ->discoverWidgets(in: app_path('Filament/Manage/Widgets'), for: 'App\\Filament\\Manage\\Widgets')

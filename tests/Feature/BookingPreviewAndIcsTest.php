@@ -9,7 +9,7 @@ use App\Filament\Manage\Resources\Bookings\Pages\ViewBooking as ManageViewBookin
 use App\Filament\Member\Pages\Feeds;
 use App\Filament\Member\Resources\Bookings\BookingResource;
 use App\Filament\Member\Resources\Bookings\Pages\ListBookings as MemberListBookings;
-use App\Filament\Member\Resources\Bookings\Pages\ViewBooking;
+use App\Filament\Teams\Resources\Bookings\Pages\ViewBooking;
 use App\Models\Activity;
 use App\Models\Booking;
 use App\Models\User;
@@ -44,14 +44,14 @@ class BookingPreviewAndIcsTest extends TestCase
             ->assertDontSee('Lead Instructor Person')
             ->assertDontSee('Attendee Person')
             ->assertDontSee('tentative')
-            ->assertSessionHas('url.intended', BookingResource::getUrl('view', ['record' => $booking], panel: 'member'));
+            ->assertSessionHas('url.intended', BookingResource::viewUrl($booking));
     }
 
     public function test_booking_url_shows_public_summary_to_guests(): void
     {
         $booking = $this->sharedBooking();
 
-        $this->get(BookingResource::getUrl('view', ['record' => $booking], panel: 'member'))
+        $this->get(BookingResource::viewUrl($booking))
             ->assertOk()
             ->assertSee('Climbing on Sat, Oct 17, 2026')
             ->assertSee(__('Can you attend this event?'))
@@ -63,7 +63,7 @@ class BookingPreviewAndIcsTest extends TestCase
             ->assertSee('<meta property="og:type" content="website">', false)
             ->assertDontSee('Secret Group Name')
             ->assertDontSee(__('Lead instructor'))
-            ->assertSessionHas('url.intended', BookingResource::getUrl('view', ['record' => $booking], panel: 'member'));
+            ->assertSessionHas('url.intended', BookingResource::viewUrl($booking));
 
         $this->get(BookingResource::getUrl('index', panel: 'member'))
             ->assertRedirect('/login');
@@ -97,7 +97,7 @@ class BookingPreviewAndIcsTest extends TestCase
             ->get(route('booking.preview', $booking))
             ->assertOk()
             ->assertSee(__('View full details'))
-            ->assertSee(BookingResource::getUrl('view', ['record' => $booking], panel: 'member'), false)
+            ->assertSee(BookingResource::viewUrl($booking), false)
             ->assertDontSee(__('Please log in to view full details and to RSVP.'))
             ->assertDontSee('Secret Group Name');
     }
@@ -110,7 +110,7 @@ class BookingPreviewAndIcsTest extends TestCase
         ]);
 
         $this->actingAs($user)
-            ->get(BookingResource::getUrl('view', ['record' => $booking], panel: 'member'))
+            ->get(BookingResource::viewUrl($booking))
             ->assertOk()
             ->assertSee('Member Booking')
             ->assertDontSee(__('Lead instructor'))
@@ -160,6 +160,8 @@ class BookingPreviewAndIcsTest extends TestCase
         Filament::setCurrentPanel(Filament::getPanel('member'));
         $this->actingAs($member);
 
+        Filament::setCurrentPanel(Filament::getPanel('teams'));
+        Filament::setTenant($booking->team);
         Livewire::test(ViewBooking::class, ['record' => $booking->getRouteKey()])
             ->assertSeeText('Tower Maintenance')
             ->assertDontSeeText('Climbing')

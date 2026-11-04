@@ -6,7 +6,7 @@ use App\Enums\MembershipRole;
 use App\Filament\Manage\Resources\Bookings\BookingResource;
 use App\Filament\Manage\Resources\Bookings\Pages\EditBooking as ManageEditBooking;
 use App\Filament\Manage\Resources\Bookings\Pages\ViewBooking as ManageViewBooking;
-use App\Filament\Member\Resources\Bookings\Pages\ViewBooking as MemberViewBooking;
+use App\Filament\Teams\Resources\Bookings\Pages\ViewBooking as MemberViewBooking;
 use App\Livewire\RelatedBookings;
 use App\Mail\BookingChangedMail;
 use App\Mail\BookingInviteMail;
@@ -194,6 +194,8 @@ class RelatedBookingTest extends TestCase
             ->assertDontSee('Leaders only')
             ->assertDontSee('No related bookings.');
 
+        Filament::setCurrentPanel(Filament::getPanel('teams'));
+        Filament::setTenant($saturday->team);
         Livewire::test(MemberViewBooking::class, ['record' => $saturday->getRouteKey()])
             ->assertDontSee('Related bookings')
             ->assertDontSee('Leaders only');
@@ -230,12 +232,10 @@ class RelatedBookingTest extends TestCase
         Filament::setCurrentPanel(Filament::getPanel('member'));
         $this->actingAs($member);
 
-        $memberUrl = \App\Filament\Member\Resources\Bookings\BookingResource::getUrl(
-            'view',
-            ['record' => $sunday],
-            panel: 'member',
-        );
+        $memberUrl = \App\Filament\Member\Resources\Bookings\BookingResource::viewUrl($sunday);
 
+        Filament::setCurrentPanel(Filament::getPanel('teams'));
+        Filament::setTenant($saturday->team);
         Livewire::test(MemberViewBooking::class, ['record' => $saturday->getRouteKey()])
             ->assertSee('Related bookings')
             ->assertSee($sunday->relatedLabel())
@@ -253,6 +253,8 @@ class RelatedBookingTest extends TestCase
         Filament::setCurrentPanel(Filament::getPanel('member'));
         $this->actingAs($member);
 
+        Filament::setCurrentPanel(Filament::getPanel('teams'));
+        Filament::setTenant($saturday->team);
         Livewire::test(MemberViewBooking::class, ['record' => $saturday->getRouteKey()])
             ->assertDontSee('Related bookings');
     }

@@ -3,7 +3,6 @@
 namespace App\Mail;
 
 use App\Enums\MailGroup;
-use App\Filament\Member\Resources\NewsPosts\NewsPostResource;
 use App\Models\NewsPost;
 use App\Models\User;
 use App\Support\MailPreference;
@@ -64,10 +63,7 @@ class NewsPostMail extends Mailable implements ShouldQueue
             with: [
                 'post' => $this->post,
                 'recipient' => $this->recipient,
-                'url' => NewsPostResource::getUrl('view', [
-                    'team' => $this->post->team,
-                    'record' => $this->post,
-                ], panel: 'member'),
+                'url' => $this->post->memberUrl(),
                 ...MailPreference::footerViewData($this->recipient, MailGroup::News),
             ],
         );

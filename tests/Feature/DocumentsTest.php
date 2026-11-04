@@ -2,13 +2,11 @@
 
 namespace Tests\Feature;
 
-use App\Enums\MembershipRole;
 use App\Filament\Manage\Resources\Documents\DocumentResource;
 use App\Filament\Manage\Resources\Documents\Pages\CreateDocument;
 use App\Filament\Manage\Resources\Documents\Pages\EditDocument;
 use App\Filament\Manage\Resources\Documents\Pages\ListDocuments;
-use App\Filament\Member\Resources\Documents\DocumentResource as MemberDocumentResource;
-use App\Filament\Member\Resources\Documents\Pages\ListDocuments as MemberListDocuments;
+use App\Filament\Teams\Resources\Documents\DocumentResource as TeamsDocumentResource;
 use App\Models\Document;
 use App\Models\Team;
 use App\Models\User;
@@ -36,8 +34,10 @@ class DocumentsTest extends TestCase
 
     public function test_guests_are_redirected_from_documents(): void
     {
-        $this->get(MemberDocumentResource::getUrl('index', panel: 'member'))
-            ->assertRedirect('/login');
+        $team = Team::factory()->create();
+
+        $this->get(TeamsDocumentResource::getUrl('index', panel: 'teams', tenant: $team))
+            ->assertRedirect('/teams/login');
     }
 
     public function test_managers_can_create_a_pdf_document_for_their_team(): void
@@ -278,99 +278,6 @@ class DocumentsTest extends TestCase
             ])
             ->call('create')
             ->assertHasFormErrors(['file_path']);
-    }
-
-    public function test_member_documents_are_sorted_by_title_and_can_be_sorted_by_date(): void
-    {
-        $team = Team::factory()->create();
-        $member = User::factory()->teamMember($team)->create();
-        $zebra = Document::factory()->forTeam($team)->create([
-            'title' => 'Zebra',
-            'updated_at' => now()->subDays(2),
-        ]);
-        $alpha = Document::factory()->forTeam($team)->create([
-            'title' => 'Alpha',
-            'updated_at' => now()->subDay(),
-        ]);
-        $middle = Document::factory()->forTeam($team)->create([
-            'title' => 'Middle',
-            'updated_at' => now(),
-        ]);
-
-        Filament::setCurrentPanel(Filament::getPanel('member'));
-        $this->actingAs($member);
-
-        Livewire::test(MemberListDocuments::class)
-            ->assertCanSeeTableRecords([$alpha, $middle, $zebra], inOrder: true)
-            ->sortTable('title', 'desc')
-            ->assertCanSeeTableRecords([$zebra, $middle, $alpha], inOrder: true)
-            ->sortTable('updated_at', 'desc')
-            ->assertCanSeeTableRecords([$middle, $alpha, $zebra], inOrder: true);
-    }
-
-    public function test_members_see_documents_across_their_teams_and_can_filter_by_team(): void
-    {
-        $teamA = Team::factory()->create(['name' => 'Alpha']);
-        $teamB = Team::factory()->create(['name' => 'Bravo']);
-        $member = User::factory()->teamMember($teamA)->create();
-        $teamB->grant($member, MembershipRole::Member);
-
-        $docA = Document::factory()->forTeam($teamA)->create(['title' => 'Alpha risk']);
-        $docB = Document::factory()->forTeam($teamB)->create(['title' => 'Bravo risk']);
-
-        Filament::setCurrentPanel(Filament::getPanel('member'));
-        $this->actingAs($member);
-
-        Livewire::test(MemberListDocuments::class)
-            ->assertSuccessful()
-            ->assertCanSeeTableRecords([$docA, $docB])
-            ->filterTable('team', $teamA->getKey())
-            ->assertCanSeeTableRecords([$docA])
-            ->assertCanNotSeeTableRecords([$docB]);
-    }
-
-    public function test_members_cannot_see_another_teams_documents_or_the_uploader(): void
-    {
-        $teamA = Team::factory()->create();
-        $teamB = Team::factory()->create();
-        $manager = User::factory()->teamManager($teamA)->create(['name' => 'Zelda Uploader']);
-        $memberA = User::factory()->teamMember($teamA)->create();
-        $memberB = User::factory()->teamMember($teamB)->create();
-        $document = Document::factory()->forTeam($teamA)->create([
-            'title' => 'Wall procedure',
-            'notes' => 'Keep this with the kit.',
-            'uploader_id' => $manager->getKey(),
-        ]);
-
-        Filament::setCurrentPanel(Filament::getPanel('member'));
-
-        $this->actingAs($memberA);
-
-        Livewire::test(MemberListDocuments::class)
-            ->assertSuccessful()
-            ->assertCanSeeTableRecords([$document])
-            ->assertSeeText('Keep this with the kit.')
-            ->assertDontSeeText('Zelda Uploader')
-            ->callTableAction('download', $document)
-            ->assertSuccessful();
-
-        $this->actingAs($memberB);
-
-        Livewire::test(MemberListDocuments::class)
-            ->assertCanNotSeeTableRecords([$document]);
-    }
-
-    public function test_a_suspended_member_cannot_open_documents(): void
-    {
-        $member = User::factory()->teamMember()->create(['suspended' => true]);
-        $team = $member->teams()->first();
-        Document::factory()->forTeam($team)->create();
-
-        Filament::setCurrentPanel(Filament::getPanel('member'));
-        $this->actingAs($member);
-
-        $this->get(MemberDocumentResource::getUrl('index', panel: 'member'))
-            ->assertForbidden();
     }
 
     public function test_managers_do_not_see_another_teams_documents_on_manage(): void

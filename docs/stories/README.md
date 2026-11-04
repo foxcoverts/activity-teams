@@ -35,6 +35,7 @@ When an enum is shown in Filament, give it a label, and a color and icon when th
 - [US-47 Multiple Activity Teams](US-47-multiple-activity-teams.md) — `done`
 - [US-49 System Administration](US-49-system-administration.md) — `done`
 - [US-51 Pass a Key Ring](US-51-pass-a-key.md) — `done`
+- [US-75: Participant Per-Team Microsites & Team-Hopping Navigation](US-75-participant-per-team-microsites.md) - `done`
 
 ## Bookings & Scheduling Lifecycle
 

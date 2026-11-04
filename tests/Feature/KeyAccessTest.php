@@ -23,9 +23,9 @@ use App\Filament\Manage\Resources\Members\Pages\ListMembers;
 use App\Filament\Manage\Resources\Members\Pages\ViewMember;
 use App\Filament\Manage\Resources\Members\RelationManagers\LocksRelationManager;
 use App\Filament\Member\Resources\Bookings\BookingResource;
-use App\Filament\Member\Resources\Bookings\Pages\ViewBooking as MemberViewBooking;
-use App\Filament\Member\Resources\Bookings\RelationManagers\AttendeesRelationManager as MemberAttendeesRelationManager;
 use App\Filament\Member\Resources\Keys\KeyResource as MemberKeyResource;
+use App\Filament\Teams\Resources\Bookings\Pages\ViewBooking as MemberViewBooking;
+use App\Filament\Teams\Resources\Bookings\RelationManagers\AttendeesRelationManager as MemberAttendeesRelationManager;
 use App\Models\Activity;
 use App\Models\ActivityAudience;
 use App\Models\Booking;
@@ -428,7 +428,7 @@ class KeyAccessTest extends TestCase
         Filament::setCurrentPanel(Filament::getPanel('member'));
         $this->actingAs($lead);
 
-        $this->get(BookingResource::getUrl('view', ['record' => $booking]))
+        $this->get(BookingResource::viewUrl($booking))
             ->assertOk()
             ->assertSee('Confirmed booking');
 
@@ -473,6 +473,8 @@ class KeyAccessTest extends TestCase
 
         $this->actingAs($lead);
 
+        Filament::setCurrentPanel(Filament::getPanel('teams'));
+        Filament::setTenant($booking->team);
         Livewire::test(MemberViewBooking::class, ['record' => $booking->getRouteKey()])
             ->assertActionHasIcon('keys', Heroicon::Key)
             ->mountAction('keys')
@@ -496,7 +498,7 @@ class KeyAccessTest extends TestCase
 
         $this->actingAs($member);
 
-        $this->get(BookingResource::getUrl('view', ['record' => $booking]))
+        $this->get(BookingResource::viewUrl($booking))
             ->assertOk()
             ->assertDontSee('Key holder')
             ->assertDontSee('No night climbing')

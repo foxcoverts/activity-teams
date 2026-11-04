@@ -4,8 +4,8 @@ namespace Tests\Feature\Member;
 
 use App\Enums\BookingAttendeeStatus;
 use App\Filament\Member\Resources\Bookings\Pages\ListBookings;
-use App\Filament\Member\Resources\Bookings\Pages\ViewBooking;
-use App\Filament\Member\Resources\Bookings\RelationManagers\AttendeesRelationManager;
+use App\Filament\Teams\Resources\Bookings\Pages\ViewBooking;
+use App\Filament\Teams\Resources\Bookings\RelationManagers\AttendeesRelationManager;
 use App\Models\Booking;
 use App\Models\Team;
 use App\Models\User;
@@ -33,10 +33,12 @@ class BookingResourceTest extends TestCase
             'start_at' => '2026-12-02 09:30:00',
             'end_at' => '2026-12-02 11:30:00',
         ]);
+        $later->attendees()->attach($member->getKey(), ['status' => BookingAttendeeStatus::Accepted]);
         $sooner = Booking::factory()->forTeam($team)->confirmed()->create([
             'start_at' => '2026-12-01 09:30:00',
             'end_at' => '2026-12-01 11:30:00',
         ]);
+        $sooner->attendees()->attach($member->getKey(), ['status' => BookingAttendeeStatus::Accepted]);
 
         $this->actingAs($member);
 
@@ -50,6 +52,7 @@ class BookingResourceTest extends TestCase
         $team = $member->teams()->firstOrFail();
         $otherTeam = Team::factory()->create();
         $mine = Booking::factory()->forTeam($team)->confirmed()->create();
+        $mine->attendees()->attach($member->getKey(), ['status' => BookingAttendeeStatus::Accepted]);
 
         $this->actingAs($member);
 
@@ -72,15 +75,21 @@ class BookingResourceTest extends TestCase
         $booking = Booking::factory()->forTeam($team)->confirmed()->create(['lead_instructor_notes' => 'Bring the red rope']);
 
         $this->actingAs($member);
+        Filament::setCurrentPanel(Filament::getPanel('teams'));
+        Filament::setTenant($booking->team);
         Livewire::test(ViewBooking::class, ['record' => $booking->getKey()])
             ->assertDontSee('Lead instructor notes');
 
         $booking->update(['lead_instructor_id' => $member->getKey()]);
+        Filament::setCurrentPanel(Filament::getPanel('teams'));
+        Filament::setTenant($booking->team);
         Livewire::test(ViewBooking::class, ['record' => $booking->getKey()])
             ->assertSee('Bring the red rope');
 
         $booking->update(['lead_instructor_id' => null]);
         $this->actingAs($manager);
+        Filament::setCurrentPanel(Filament::getPanel('teams'));
+        Filament::setTenant($booking->team);
         Livewire::test(ViewBooking::class, ['record' => $booking->getKey()])
             ->assertSee('Lead instructor notes');
     }
@@ -92,6 +101,8 @@ class BookingResourceTest extends TestCase
         $booking = Booking::factory()->forTeam($team)->confirmed()->create(['notes' => null, 'lead_instructor_notes' => null]);
 
         $this->actingAs($manager);
+        Filament::setCurrentPanel(Filament::getPanel('teams'));
+        Filament::setTenant($booking->team);
         Livewire::test(ViewBooking::class, ['record' => $booking->getKey()])
             ->assertDontSee('Lead instructor notes')
             ->assertDontSee('Notes');
@@ -104,6 +115,8 @@ class BookingResourceTest extends TestCase
         $booking->attendees()->attach($member->getKey(), ['status' => BookingAttendeeStatus::NeedsAction->value]);
 
         $this->actingAs($member);
+        Filament::setCurrentPanel(Filament::getPanel('teams'));
+        Filament::setTenant($booking->team);
         $component = Livewire::test(AttendeesRelationManager::class, ['ownerRecord' => $booking, 'pageClass' => ViewBooking::class]);
 
         $booking->attendees()->updateExistingPivot($member->getKey(), ['status' => BookingAttendeeStatus::Accepted->value]);
@@ -132,11 +145,11 @@ class BookingResourceTest extends TestCase
 
         $this->actingAs($member);
         Livewire::test(ListBookings::class)
-            ->assertTableColumnStateSet('attendance', null, $noResponseBooking)
             ->assertTableColumnStateSet('attendance', BookingAttendeeStatus::Accepted, $acceptedBooking)
             ->assertSeeText('Can help')
             ->assertTableColumnStateSet('attendance', BookingAttendeeStatus::Tentative, $maybeBooking)
-            ->assertTableColumnStateSet('attendance', BookingAttendeeStatus::NeedsAction, $invitedBooking)
-            ->assertTableColumnStateSet('attendance', BookingAttendeeStatus::Declined, $declinedBooking);
+            ->set('activeTab', 'invites')
+            ->assertTableColumnStateSet('attendance', BookingAttendeeStatus::Tentative, $maybeBooking)
+            ->assertTableColumnStateSet('attendance', BookingAttendeeStatus::NeedsAction, $invitedBooking);
     }
 }

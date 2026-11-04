@@ -8,7 +8,7 @@ use App\Enums\BookingAttendeeStatus;
 use App\Enums\MembershipRole;
 use App\Filament\Manage\Resources\Bookings\Pages\ViewBooking as ManageViewBooking;
 use App\Filament\Manage\Resources\Members\MemberResource;
-use App\Filament\Member\Resources\Bookings\Pages\ViewBooking as MemberViewBooking;
+use App\Filament\Teams\Resources\Bookings\Pages\ViewBooking as MemberViewBooking;
 use App\Models\Booking;
 use App\Models\User;
 use Filament\Facades\Filament;
@@ -32,6 +32,8 @@ class BookingTimelineTest extends TestCase
         Filament::setCurrentPanel(Filament::getPanel('member'));
         $this->actingAs($member);
 
+        Filament::setCurrentPanel(Filament::getPanel('teams'));
+        Filament::setTenant($booking->team);
         $view = Livewire::test(MemberViewBooking::class, ['record' => $booking->getRouteKey()]);
 
         $view
@@ -39,7 +41,7 @@ class BookingTimelineTest extends TestCase
             ->assertSee('Group')
             ->assertSee('Recent activity')
             ->assertSee($manager->name)
-            ->assertSeeHtml('wire:name="App\\Filament\\Member\\Resources\\Bookings\\RelationManagers\\AttendeesRelationManager"')
+            ->assertSeeHtml('wire:name="App\\Filament\\Teams\\Resources\\Bookings\\RelationManagers\\AttendeesRelationManager"')
             ->assertDontSeeHtml('/manage/');
     }
 
@@ -58,17 +60,21 @@ class BookingTimelineTest extends TestCase
 
         $this->actingAs($member);
 
+        Filament::setCurrentPanel(Filament::getPanel('teams'));
+        Filament::setTenant($booking->team);
         $view = Livewire::test(MemberViewBooking::class, ['record' => $booking->getRouteKey()]);
 
         $view
             ->assertSee('Confirmed booking')
-            ->assertSeeHtml('wire:name="App\\Filament\\Member\\Resources\\Bookings\\RelationManagers\\AttendeesRelationManager"')
+            ->assertSeeHtml('wire:name="App\\Filament\\Teams\\Resources\\Bookings\\RelationManagers\\AttendeesRelationManager"')
             ->assertSeeHtml('--col-span-lg: span 3 / span 3;')
             ->assertSeeHtml('--col-span-lg: span 2 / span 2;');
 
         $outsider = User::factory()->guest()->create();
         $this->actingAs($outsider);
 
+        Filament::setCurrentPanel(Filament::getPanel('teams'));
+        Filament::setTenant($booking->team);
         Livewire::test(MemberViewBooking::class, ['record' => $booking->getRouteKey()])
             ->assertNotFound();
     }
@@ -89,6 +95,8 @@ class BookingTimelineTest extends TestCase
         Filament::setCurrentPanel(Filament::getPanel('member'));
         $this->actingAs($member);
 
+        Filament::setCurrentPanel(Filament::getPanel('teams'));
+        Filament::setTenant($booking->team);
         Livewire::test(MemberViewBooking::class, ['record' => $booking->getRouteKey()])
             ->assertSeeHtml('<strong>Manager A</strong>')
             ->assertSeeHtml('<strong>Can help</strong>')

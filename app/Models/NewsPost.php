@@ -3,7 +3,7 @@
 namespace App\Models;
 
 use App\Enums\NewsPostStatus;
-use App\Filament\Member\Resources\NewsPosts\NewsPostResource;
+use App\Filament\Teams\Resources\NewsPosts\NewsPostResource;
 use App\Jobs\NotifyDueNewsPosts;
 use App\Notifications\NewsPublishedNotification;
 use Database\Factories\NewsPostFactory;
@@ -141,10 +141,7 @@ class NewsPost extends Model
     {
         $this->loadMissing('team');
 
-        return NewsPostResource::getUrl('view', [
-            'team' => $this->team,
-            'record' => $this,
-        ], panel: 'member');
+        return NewsPostResource::getUrl('view', ['record' => $this], panel: 'teams', tenant: $this->team);
     }
 
     public function publishNow(): void

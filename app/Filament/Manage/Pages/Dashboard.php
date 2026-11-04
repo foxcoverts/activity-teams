@@ -7,20 +7,33 @@ use App\Models\Team;
 use App\Models\User;
 use BackedEnum;
 use Closure;
+use Filament\Facades\Filament;
 use Filament\Panel;
 use Filament\Support\Icons\Heroicon;
+use Illuminate\Contracts\Support\Htmlable;
 
 class Dashboard extends BaseDashboard
 {
-    protected static ?string $title = 'Manage Team';
+    protected static ?string $title = 'Manage';
 
     protected static string $panel = 'manage';
 
-    protected static ?int $navigationSort = -4;
+    protected static ?int $navigationSort = -3;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedUserGroup;
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedCog6Tooth;
 
-    protected static string|BackedEnum|null $activeNavigationIcon = Heroicon::UserGroup;
+    protected static string|BackedEnum|null $activeNavigationIcon = Heroicon::Cog6Tooth;
+
+    public function getTitle(): string|Htmlable
+    {
+        $tenant = Filament::getTenant();
+
+        if ($tenant) {
+            return __('Manage :Team', ['team' => $tenant->name]); // Custom dynamic title
+        }
+
+        return __('filament-panels::pages/dashboard.title');
+    }
 
     protected static function isNavigationVisible(): bool|Closure
     {

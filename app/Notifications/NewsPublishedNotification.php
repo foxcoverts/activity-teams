@@ -3,7 +3,6 @@
 namespace App\Notifications;
 
 use App\Enums\MailChannel;
-use App\Filament\Member\Resources\NewsPosts\NewsPostResource;
 use App\Mail\NewsPostMail;
 use App\Models\NewsPost;
 use App\Models\User;
@@ -36,10 +35,7 @@ class NewsPublishedNotification extends Notification
 
     public function inboxUrl(object $notifiable): ?string
     {
-        return NewsPostResource::getUrl('view', [
-            'team' => $this->post->team,
-            'record' => $this->post,
-        ], panel: 'member');
+        return $this->post->memberUrl();
     }
 
     public function inboxChannel(): ?MailChannel

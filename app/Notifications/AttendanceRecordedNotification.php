@@ -3,7 +3,7 @@
 namespace App\Notifications;
 
 use App\Enums\MailChannel;
-use App\Filament\Member\Resources\Bookings\BookingResource;
+use App\Filament\Teams\Resources\Bookings\BookingResource;
 use App\Mail\AttendanceRecordedMail;
 use App\Models\Booking;
 use App\Models\User;
@@ -38,7 +38,7 @@ class AttendanceRecordedNotification extends Notification
 
     public function inboxUrl(object $notifiable): ?string
     {
-        return BookingResource::getUrl('view', ['record' => $this->booking], panel: 'member');
+        return BookingResource::getUrl('view', ['record' => $this->booking], panel: 'teams', tenant: $this->booking->team);
     }
 
     public function inboxChannel(): ?MailChannel

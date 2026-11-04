@@ -12,6 +12,7 @@ use App\Filament\Member\Pages\Dashboard;
 use App\Filament\Member\Pages\Feeds;
 use App\Filament\Member\Pages\NotificationSettings;
 use App\Filament\Pages\ChangePassword;
+use App\Filament\Teams\Pages\Dashboard as TeamsDashboard;
 use App\Http\Middleware\RequireProfileConfirmation;
 use App\Http\Middleware\ShowPublicBookingSummary;
 use Filament\Http\Middleware\Authenticate;
@@ -62,6 +63,7 @@ class MemberPanelProvider extends PanelProvider
                 ChangePassword::userMenuItem(),
             ])
             ->navigationItems([
+                TeamsDashboard::navigationItem(),
                 ManageDashboard::navigationItem(),
                 AdminDashboard::navigationItem(),
             ])

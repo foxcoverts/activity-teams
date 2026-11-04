@@ -483,17 +483,7 @@ class NewsPostsTest extends TestCase
             ->assertSeeInOrder(['News', 'List']);
 
         $this->actingAs($memberA)
-            ->get(MemberNewsPostResource::getUrl('team', ['team' => $teamA], panel: 'member'))
-            ->assertOk()
-            ->assertSee('Alpha News')
-            ->assertSeeInOrder(['News', 'Alpha', 'List'])
-            ->assertDontSee('/news?team=', false);
-
-        $this->actingAs($memberA)
-            ->get(MemberNewsPostResource::getUrl('view', [
-                'team' => $teamA,
-                'record' => $post,
-            ], panel: 'member'))
+            ->get($post->memberUrl())
             ->assertOk()
             ->assertSee('Alpha wall night')
             ->assertSeeHtml('<h2>Office Keys</h2>')
@@ -503,14 +493,7 @@ class NewsPostsTest extends TestCase
             ->assertDontSee('/news?team=', false);
 
         $this->actingAs($memberB)
-            ->get(MemberNewsPostResource::getUrl('view', [
-                'team' => $teamA,
-                'record' => $post,
-            ], panel: 'member'))
-            ->assertNotFound();
-
-        $this->actingAs($memberB)
-            ->get(MemberNewsPostResource::getUrl('team', ['team' => $teamA], panel: 'member'))
+            ->get($post->memberUrl())
             ->assertNotFound();
 
         $this->actingAs($memberA);
@@ -533,53 +516,24 @@ class NewsPostsTest extends TestCase
             ->assertDontSee('Alpha wall night', false);
     }
 
-    public function test_the_news_filter_lists_only_teams_that_have_live_posts(): void
+    public function test_the_member_news_list_has_no_team_filter_and_skips_drafts(): void
     {
-        $alpha = Team::factory()->create(['name' => 'Alpha', 'slug' => 'alpha']);
-        $bravo = Team::factory()->create(['name' => 'Bravo', 'slug' => 'bravo']);
-        $charlie = Team::factory()->create(['name' => 'Charlie', 'slug' => 'charlie']);
+        $alpha = Team::factory()->create(['name' => 'Alpha']);
+        $bravo = Team::factory()->create(['name' => 'Bravo']);
         $member = User::factory()->teamMember($alpha)->create();
         $bravo->grant($member, MembershipRole::Member);
-        $charlie->grant($member, MembershipRole::Member);
 
         NewsPost::factory()->forTeam($alpha)->published()->create(['title' => 'Alpha wall night']);
         NewsPost::factory()->forTeam($bravo)->draft()->create(['title' => 'Bravo draft']);
-        NewsPost::factory()->forTeam($charlie)->published()->create(['title' => 'Charlie climb']);
 
         Filament::setCurrentPanel(Filament::getPanel('member'));
 
         $this->actingAs($member)
             ->get(MemberNewsPostResource::getUrl('index', panel: 'member'))
             ->assertOk()
-            ->assertSee('Filter by team')
-            ->assertSee('Alpha')
-            ->assertSee('Charlie')
-            ->assertDontSee('Bravo')
-            ->assertDontSee('/news/bravo', false)
-            ->assertDontSee(__('All news'));
-
-        $this->actingAs($member)
-            ->get(MemberNewsPostResource::getUrl('team', ['team' => $alpha], panel: 'member'))
-            ->assertOk()
-            ->assertSee('Filter by team')
-            ->assertSee('Alpha News')
-            ->assertSee('Charlie')
-            ->assertSee(__('All news'))
-            ->assertDontSee('Bravo');
-
-        $this->actingAs($member)
-            ->get(MemberNewsPostResource::getUrl('team', ['team' => $bravo], panel: 'member'))
-            ->assertOk()
-            ->assertSee('Bravo News')
-            ->assertSee('Filter by team')
-            ->assertSee('Alpha')
-            ->assertSee('Charlie')
-            ->assertSee(__('All news'))
-            ->assertSee(__('No news has been published yet.'));
-
-        Livewire::test(MemberListNewsPosts::class, ['team' => $alpha])
-            ->call('clearTeamFilter')
-            ->assertRedirect(MemberNewsPostResource::getUrl('index', panel: 'member'));
+            ->assertSee('Alpha wall night')
+            ->assertDontSee('Bravo draft')
+            ->assertDontSee('Filter by team');
     }
 
     public function test_first_publish_writes_inbox_and_opted_out_members_keep_the_row_and_feed(): void

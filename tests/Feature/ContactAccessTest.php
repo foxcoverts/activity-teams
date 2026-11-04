@@ -5,8 +5,8 @@ namespace Tests\Feature;
 use App\Enums\BookingAttendeeStatus;
 use App\Enums\MembershipRole;
 use App\Enums\PersonalDataSection;
-use App\Filament\Member\Resources\Bookings\Pages\ViewBooking as MemberViewBooking;
-use App\Filament\Member\Resources\Bookings\RelationManagers\AttendeesRelationManager as MemberAttendeesRelationManager;
+use App\Filament\Teams\Resources\Bookings\Pages\ViewBooking as MemberViewBooking;
+use App\Filament\Teams\Resources\Bookings\RelationManagers\AttendeesRelationManager as MemberAttendeesRelationManager;
 use App\Livewire\BookingContactDetails;
 use App\Models\Booking;
 use App\Models\PersonalDataAcknowledgement;
@@ -313,6 +313,8 @@ class ContactAccessTest extends TestCase
         Filament::setCurrentPanel(Filament::getPanel('member'));
         $this->actingAs($this->attendee);
 
+        Filament::setCurrentPanel(Filament::getPanel('teams'));
+        Filament::setTenant($this->booking->team);
         Livewire::test(MemberAttendeesRelationManager::class, ['ownerRecord' => $this->booking, 'pageClass' => MemberViewBooking::class])
             ->assertSee('Lee Lead')
             ->assertSee('Emergency')
@@ -320,10 +322,14 @@ class ContactAccessTest extends TestCase
             ->mountTableAction('contactPhone', $this->lead)
             ->assertMountedActionModalSee('legitimate team matters');
 
+        Filament::setCurrentPanel(Filament::getPanel('teams'));
+        Filament::setTenant($this->booking->team);
         Livewire::test(MemberAttendeesRelationManager::class, ['ownerRecord' => $this->booking, 'pageClass' => MemberViewBooking::class])
             ->mountTableAction('contactPhone', $this->maybe)
             ->assertTableActionNotMounted('contactPhone');
 
+        Filament::setCurrentPanel(Filament::getPanel('teams'));
+        Filament::setTenant($this->booking->team);
         Livewire::test(MemberAttendeesRelationManager::class, ['ownerRecord' => $this->booking, 'pageClass' => MemberViewBooking::class])
             ->mountTableAction('emergencyContact', $this->maybe)
             ->assertTableActionNotMounted('emergencyContact');

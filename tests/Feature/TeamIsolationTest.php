@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Enums\BookingAttendeeStatus;
 use App\Enums\MembershipRole;
 use App\Filament\Manage\Resources\Bookings\BookingResource as ManageBookingResource;
 use App\Filament\Manage\Resources\Members\MemberResource;
@@ -135,7 +136,7 @@ class TeamIsolationTest extends TestCase
 
         $this->actingAs($member);
 
-        $this->get(MemberBookingResource::getUrl('view', ['record' => $booking], panel: 'member'))->assertOk();
+        $this->get(MemberBookingResource::viewUrl($booking))->assertOk();
 
         $this->get('/manage')->assertForbidden();
         $this->get('/manage/'.$this->climbing->getKey())->assertForbidden();
@@ -154,7 +155,9 @@ class TeamIsolationTest extends TestCase
         $person = $this->person($this->climbing, MembershipRole::Member);
         $this->person($this->archery, MembershipRole::Member, $person);
         $climbingConfirmed = $this->booking($this->climbing, 'Climbing confirmed');
+        $climbingConfirmed->attendees()->attach($person->getKey(), ['status' => BookingAttendeeStatus::Accepted->value]);
         $archeryConfirmed = $this->booking($this->archery, 'Archery confirmed');
+        $archeryConfirmed->attendees()->attach($person->getKey(), ['status' => BookingAttendeeStatus::Accepted->value]);
         $archeryTentative = $this->booking($this->archery, 'Archery tentative', confirmed: false);
         $otherTeam = Team::factory()->create();
         $otherConfirmed = $this->booking($otherTeam, 'Other confirmed');
@@ -169,22 +172,6 @@ class TeamIsolationTest extends TestCase
             ->assertCanNotSeeTableRecords([$archeryTentative, $otherConfirmed]);
     }
 
-    public function test_a_manager_sees_their_managed_teams_drafts_in_the_members_workspace(): void
-    {
-        $person = $this->person($this->climbing, MembershipRole::Manager);
-        $this->person($this->archery, MembershipRole::Member, $person);
-        $climbingTentative = $this->booking($this->climbing, 'Climbing tentative', confirmed: false);
-        $archeryTentative = $this->booking($this->archery, 'Archery tentative', confirmed: false);
-        $archeryConfirmed = $this->booking($this->archery, 'Archery confirmed');
-
-        $this->actingAs($person);
-        Filament::setCurrentPanel(Filament::getPanel('member'));
-
-        Livewire::test(MemberListBookings::class)
-            ->assertCanSeeTableRecords([$climbingTentative, $archeryConfirmed])
-            ->assertCanNotSeeTableRecords([$archeryTentative]);
-    }
-
     public function test_someone_who_left_the_team_can_still_open_the_bookings_they_attended(): void
     {
         $leaver = $this->person($this->archery, MembershipRole::Member);
@@ -197,7 +184,7 @@ class TeamIsolationTest extends TestCase
 
         $this->actingAs($leaver);
 
-        $this->get(MemberBookingResource::getUrl('view', ['record' => $attended], panel: 'member'))->assertOk();
-        $this->get(MemberBookingResource::getUrl('view', ['record' => $other], panel: 'member'))->assertNotFound();
+        $this->get(MemberBookingResource::viewUrl($attended))->assertOk();
+        $this->get(MemberBookingResource::viewUrl($other))->assertNotFound();
     }
 }

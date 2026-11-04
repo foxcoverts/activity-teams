@@ -150,6 +150,10 @@ class User extends Authenticatable implements FilamentUser, HasAvatar, HasDefaul
 
     public function getTenants(Panel $panel): EloquentCollection
     {
+        if ($panel->getId() === 'teams') {
+            return $this->teamsPanelTenants();
+        }
+
         if ($panel->getId() !== 'manage') {
             return new EloquentCollection;
         }
@@ -161,10 +165,35 @@ class User extends Authenticatable implements FilamentUser, HasAvatar, HasDefaul
         return $this->managedTeams()->orderBy('name')->get();
     }
 
+    /**
+     * Teams the person belongs to, plus teams they have been invited to a booking for,
+     * so bookings they attended stay reachable after they leave.
+     *
+     * @return EloquentCollection<int, Team>
+     */
+    private function teamsPanelTenants(): EloquentCollection
+    {
+        if ($this->isSuspended()) {
+            return new EloquentCollection;
+        }
+
+        return Team::query()
+            ->where(function (Builder $teams): void {
+                $teams->whereIn('teams.id', $this->teams()->select('teams.id'))
+                    ->orWhereIn('teams.id', $this->bookings()->select('bookings.team_id'));
+            })
+            ->orderBy('name')
+            ->get();
+    }
+
     public function canAccessTenant(Model $tenant): bool
     {
         if (! $tenant instanceof Team || $this->isSuspended()) {
             return false;
+        }
+
+        if (Filament::getCurrentPanel()?->getId() === 'teams') {
+            return $this->teamsPanelTenants()->contains('id', $tenant->getKey());
         }
 
         return $this->isSystemAdmin() || $this->manages($tenant);
@@ -173,7 +202,7 @@ class User extends Authenticatable implements FilamentUser, HasAvatar, HasDefaul
     public function getDefaultTenant(Panel $panel): ?Model
     {
         $tenants = $this->getTenants($panel);
-        $remembered = session('manage_team_id');
+        $remembered = session('tenant_team_id');
 
         if (filled($remembered)) {
             $match = $tenants->firstWhere('id', $remembered);

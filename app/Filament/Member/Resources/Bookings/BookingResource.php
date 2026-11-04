@@ -4,20 +4,13 @@ namespace App\Filament\Member\Resources\Bookings;
 
 use App\Enums\BookingAttendeeStatus;
 use App\Enums\BookingStatus;
-use App\Filament\Bookings\LocationMapAction;
 use App\Filament\Member\NavigationGroup;
 use App\Filament\Member\Resources\Bookings\Pages\ListBookings;
-use App\Filament\Member\Resources\Bookings\Pages\ViewBooking;
-use App\Filament\Member\Resources\Bookings\RelationManagers\AttendeesRelationManager;
+use App\Filament\Teams\Resources\Bookings\BookingResource as TeamsBookingResource;
 use App\Models\Booking;
-use App\Models\User;
-use App\Support\BookingWhen;
 use BackedEnum;
 use Filament\Actions\ViewAction;
-use Filament\Infolists\Components\TextEntry;
 use Filament\Resources\Resource;
-use Filament\Schemas\Components\Section;
-use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Contracts\HasTable;
@@ -61,72 +54,16 @@ class BookingResource extends Resource
             ->ordered();
     }
 
-    public static function infolist(Schema $schema): Schema
+    public static function viewUrl(Booking $booking): string
     {
-        return $schema->components(static::infolistComponents());
-    }
-
-    /**
-     * @return array<int, Section>
-     */
-    public static function infolistComponents(): array
-    {
-        return [
-            Section::make(fn (?Booking $record): string => __(':Status booking', [
-                'status' => $record?->status->getLabel() ?? __('Booking'),
-            ]))
-                ->icon(fn (?Booking $record): Heroicon => ($record?->status ?? BookingStatus::Tentative)->getIcon())
-                ->iconColor(fn (?Booking $record): array => ($record?->status ?? BookingStatus::Tentative)->getColor())
-                ->columns(1)
-                ->columnSpanFull()
-                ->schema([
-                    TextEntry::make('when')
-                        ->label(__('When'))
-                        ->state(fn (Booking $record): string => BookingWhen::format($record)),
-                    TextEntry::make('location')
-                        ->label(__('Location'))
-                        ->state(fn (Booking $record): array => array_filter([
-                            $record->location->name,
-                            ...$record->location->addressArray(),
-                        ]))
-                        ->listWithLineBreaks()->limitList(1)->expandableLimitedList()
-                        ->afterLabel([
-                            LocationMapAction::make(),
-                        ]),
-                    TextEntry::make('activity_title')
-                        ->label(__('Activity'))
-                        ->state(fn (Booking $record): string => $record->activityTitle()),
-                    TextEntry::make('audience.name')
-                        ->label(__('Audience'))
-                        ->placeholder('-'),
-                    TextEntry::make('group_name')
-                        ->label(__('Group'))
-                        ->placeholder('-')
-                        ->columnSpanFull(),
-                    TextEntry::make('notes')
-                        ->label(__('Notes'))
-                        ->visible(fn (Booking $record): bool => filled($record->notes))
-                        ->columnSpanFull(),
-                    TextEntry::make('lead_instructor_notes')
-                        ->label(__('Lead instructor notes'))
-                        ->visible(function (Booking $record): bool {
-                            $user = auth()->user();
-                            $record->loadMissing('team');
-
-                            return filled($record->lead_instructor_notes)
-                                && $user instanceof User
-                                && $record->team !== null
-                                && ($record->isLead($user) || $user->manages($record->team));
-                        })
-                        ->columnSpanFull(),
-                ]),
-        ];
+        return TeamsBookingResource::getUrl('view', ['record' => $booking], panel: 'teams', tenant: $booking->team);
     }
 
     public static function table(Table $table): Table
     {
         return $table
             ->recordTitleAttribute('display_name')
+            ->recordUrl(fn (Booking $record): string => static::viewUrl($record))
             ->columns([
                 TextColumn::make('start_at')->dateTime('M j, Y H:i')->sortable(),
                 TextColumn::make('activity.name')
@@ -160,23 +97,16 @@ class BookingResource extends Resource
                     ->options(fn (): array => auth()->user()?->teams()->orderBy('teams.name')->pluck('teams.name', 'teams.id')->all() ?? []),
             ])
             ->recordActions([
-                ViewAction::make(),
+                ViewAction::make()
+                    ->url(fn (Booking $record): string => static::viewUrl($record)),
             ])
             ->defaultSort('start_at');
-    }
-
-    public static function getRelations(): array
-    {
-        return [
-            AttendeesRelationManager::class,
-        ];
     }
 
     public static function getPages(): array
     {
         return [
             'index' => ListBookings::route('/'),
-            'view' => ViewBooking::route('/{record}'),
         ];
     }
 }

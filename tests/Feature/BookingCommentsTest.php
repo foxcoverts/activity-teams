@@ -8,8 +8,8 @@ use App\Enums\MailChannel;
 use App\Enums\MembershipRole;
 use App\Filament\Manage\Resources\Bookings\Pages\ViewBooking as ManageViewBooking;
 use App\Filament\Member\Resources\Bookings\BookingResource as MemberBookingResource;
-use App\Filament\Member\Resources\Bookings\Pages\ViewBooking as MemberViewBooking;
 use App\Filament\Member\Resources\Inbox\InboxResource;
+use App\Filament\Teams\Resources\Bookings\Pages\ViewBooking as MemberViewBooking;
 use App\Livewire\BookingComments;
 use App\Mail\BookingCommentMail;
 use App\Models\Booking;
@@ -522,10 +522,10 @@ class BookingCommentsTest extends TestCase
         ]);
 
         Filament::setCurrentPanel(Filament::getPanel('member'));
-        $url = MemberBookingResource::getUrl('view', ['record' => $booking], panel: 'member')
+        $url = MemberBookingResource::viewUrl($booking)
             .'?comment='.$comment->getKey();
 
-        $this->get($url)->assertRedirect('/login');
+        $this->get($url)->assertRedirect(Filament::getPanel('teams')->getLoginUrl());
         $this->assertStringContainsString('comment='.$comment->getKey(), (string) session('url.intended'));
 
         $this->actingAs($member)
@@ -643,6 +643,8 @@ class BookingCommentsTest extends TestCase
         Filament::setCurrentPanel(Filament::getPanel('member'));
         $this->actingAs($member);
 
+        Filament::setCurrentPanel(Filament::getPanel('teams'));
+        Filament::setTenant($booking->team);
         Livewire::test(MemberViewBooking::class, ['record' => $booking->getRouteKey()])
             ->assertSee('Comments')
             ->assertSee('On the booking')

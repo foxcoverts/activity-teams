@@ -7,13 +7,14 @@ use App\Enums\BookingStatus;
 use App\Models\Booking;
 use App\Models\InboxNotification;
 use App\Models\NewsPost;
+use App\Models\Team;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 
 /**
- * Reads for the member dashboard. Booking days are decided by each booking's own timezone.
+ * Reads for the member and team dashboards; pass a team to limit bookings and news to it. Booking days are decided by each booking's own timezone.
  */
 class MemberDashboard
 {
@@ -25,7 +26,7 @@ class MemberDashboard
 
     public const NEWS_MAX_AGE_DAYS = 30;
 
-    public function __construct(public User $user) {}
+    public function __construct(public User $user, public ?Team $team = null) {}
 
     /**
      * @return array{rows: Collection<int, Booking>, total: int}
@@ -118,6 +119,7 @@ class MemberDashboard
         return NewsPost::query()
             ->with(['team'])
             ->forUserFeeds($this->user)
+            ->when($this->team instanceof Team, fn (Builder $query) => $query->forTeam($this->team))
             ->where('published_at', '>=', now()->subDays(self::NEWS_MAX_AGE_DAYS))
             ->first();
     }
@@ -208,6 +210,7 @@ class MemberDashboard
         return Booking::query()
             ->forUser($this->user)
             ->notCancelled()
+            ->when($this->team instanceof Team, fn (Builder $query) => $query->where('bookings.team_id', $this->team->getKey()))
             ->with([
                 'team',
                 'activity',

@@ -4,7 +4,7 @@ namespace App\Livewire;
 
 use App\Actions\RespondToBookingAction;
 use App\Enums\BookingAttendeeStatus;
-use App\Filament\Member\Resources\Bookings\BookingResource;
+use App\Filament\Teams\Resources\Bookings\BookingResource;
 use App\Models\Booking;
 use App\Models\User;
 use App\Support\LeadAttendanceWarning;
@@ -148,7 +148,7 @@ class RespondToBooking extends Component
 
     public function bookingUrl(): string
     {
-        return BookingResource::getUrl('view', ['record' => $this->booking], panel: 'member');
+        return BookingResource::getUrl('view', ['record' => $this->booking], panel: 'teams', tenant: $this->booking->team);
     }
 
     public function render(): View

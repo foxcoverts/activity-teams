@@ -1,34 +1,11 @@
 @php
-    use App\Filament\Member\Resources\NewsPosts\NewsPostResource;
     use Illuminate\Support\HtmlString;
 @endphp
 
 <div class="space-y-6">
-    @if ($this->teams()->count() > 1 || $this->team instanceof \App\Models\Team)
-        <nav class="news-team-filters flex flex-wrap items-center gap-2" aria-label="{{ __('Filter by team') }}">
-            <span class="text-sm font-medium text-gray-500 dark:text-gray-400">{{ __('Filter by team') }}</span>
-            @foreach ($this->teams() as $item)
-                @if ($this->team?->is($item))
-                    <x-filament::badge :color="\App\Support\Palette::informative()">
-                        {{ $item->name }}
-                        <x-slot name="deleteButton" wire:click="clearTeamFilter" :label="__('All news')"></x-slot>
-                    </x-filament::badge>
-                @else
-                    <x-filament::badge
-                        tag="a"
-                        :href="$this->teamUrl($item)"
-                        :color="\App\Support\Palette::neutral()"
-                    >
-                        {{ $item->name }}
-                    </x-filament::badge>
-                @endif
-            @endforeach
-        </nav>
-    @endif
-
     @forelse ($this->posts() as $post)
         @php
-            $url = NewsPostResource::getUrl('view', ['team' => $post->team, 'record' => $post]);
+            $url = $post->memberUrl();
             $user = auth()->user();
             $publishedAt = $post->published_at?->timezone($user?->timezone ?? config('app.timezone'));
             $description = implode(' · ', array_filter([

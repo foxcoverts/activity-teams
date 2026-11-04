@@ -4,6 +4,7 @@ namespace App\Filament\Member\Widgets;
 
 use App\Filament\Bookings\BookingRespondAction;
 use App\Filament\Member\Resources\Bookings\BookingResource;
+use App\Filament\Teams\Resources\Bookings\BookingResource as TeamsBookingResource;
 use App\Models\Booking;
 use Filament\Actions\Action;
 
@@ -11,7 +12,7 @@ trait RespondsFromDashboard
 {
     public function respondAction(): Action
     {
-        return BookingRespondAction::make(BookingResource::infolistComponents())
+        return BookingRespondAction::make(TeamsBookingResource::infolistComponents())
             ->record(fn (array $arguments): ?Booking => $this->bookingForResponse($arguments['booking'] ?? null))
             ->modalHeading(fn (Booking $record): string => $record->activityTitle())
             ->modalSubmitActionLabel(__('Save response'))
@@ -19,7 +20,7 @@ trait RespondsFromDashboard
                 Action::make('openBooking')
                     ->label(__('Open booking'))
                     ->color('gray')
-                    ->url(BookingResource::getUrl('view', ['record' => $record])),
+                    ->url(BookingResource::viewUrl($record)),
             ]);
     }
 

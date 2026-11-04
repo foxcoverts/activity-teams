@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Filament\Member\Resources\Bookings\RelationManagers;
+namespace App\Filament\Teams\Resources\Bookings\RelationManagers;
 
 use App\Enums\BookingAttendeeStatus;
 use App\Models\Booking;

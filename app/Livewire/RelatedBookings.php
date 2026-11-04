@@ -3,7 +3,7 @@
 namespace App\Livewire;
 
 use App\Filament\Manage\Resources\Bookings\BookingResource as ManageBookingResource;
-use App\Filament\Member\Resources\Bookings\BookingResource as MemberBookingResource;
+use App\Filament\Teams\Resources\Bookings\BookingResource as TeamsBookingResource;
 use App\Models\Booking;
 use App\Models\Team;
 use App\Models\User;
@@ -28,9 +28,9 @@ class RelatedBookings extends Component implements HasActions, HasSchemas
     public ?Booking $record = null;
 
     #[Locked]
-    public string $panel = 'member';
+    public string $panel = 'teams';
 
-    public function mount(?Booking $record = null, string $panel = 'member'): void
+    public function mount(?Booking $record = null, string $panel = 'teams'): void
     {
         abort_unless($record instanceof Booking, 404);
 
@@ -181,6 +181,6 @@ class RelatedBookings extends Component implements HasActions, HasSchemas
             return ManageBookingResource::getUrl('view', ['record' => $related], panel: 'manage', tenant: $team);
         }
 
-        return MemberBookingResource::getUrl('view', ['record' => $related], panel: 'member');
+        return TeamsBookingResource::getUrl('view', ['record' => $related], panel: 'teams', tenant: $related->team ?? $current->team);
     }
 }

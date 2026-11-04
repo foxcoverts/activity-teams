@@ -29,7 +29,7 @@
 
             <div class="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-gray-200 pt-4 dark:border-white/10">
                 <x-filament::link :href="$url">{{ __('Read more...') }}</x-filament::link>
-                <x-filament::link :href="\App\Filament\Member\Resources\NewsPosts\NewsPostResource::getUrl('index')" :icon="\Filament\Support\Icons\Heroicon::OutlinedArrowRight" icon-position="after">{{ __('All news') }}</x-filament::link>
+                <x-filament::link :href="$newsUrl ?? \App\Filament\Member\Resources\NewsPosts\NewsPostResource::getUrl('index')" :icon="\Filament\Support\Icons\Heroicon::OutlinedArrowRight" icon-position="after">{{ __('All news') }}</x-filament::link>
             </div>
         </x-filament::section>
     @endif

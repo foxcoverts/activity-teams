@@ -8,14 +8,14 @@ use Filament\Facades\Filament;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
-class RememberManageTeam
+class RememberTenantTeam
 {
     public function handle(Request $request, Closure $next): Response
     {
         $tenant = Filament::getTenant();
 
         if ($tenant instanceof Team) {
-            session(['manage_team_id' => $tenant->getKey()]);
+            session(['tenant_team_id' => $tenant->getKey()]);
         }
 
         return $next($request);

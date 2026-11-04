@@ -51,7 +51,7 @@ class AuthenticationTest extends TestCase
 
         $this->get('/bookings')
             ->assertOk()
-            ->assertSeeTextInOrder(['Dashboard', 'Manage Team', 'Team'])
+            ->assertSeeTextInOrder(['Dashboard', 'Manage', 'Team'])
             ->assertSee('/manage/'.$managedTeam->slug, false);
     }
 
@@ -66,11 +66,10 @@ class AuthenticationTest extends TestCase
                 'Dashboard',
                 'Team',
                 'Bookings',
-                'Documents',
                 'News',
-                'Keys',
                 'Personal',
                 'Inbox',
+                'Keys',
                 'Qualifications',
             ])
             ->assertDontSee('Manage')
@@ -213,7 +212,7 @@ class AuthenticationTest extends TestCase
 
         $this->get('/bookings')
             ->assertOk()
-            ->assertSee('Manage Team')
+            ->assertSee('Manage')
             ->assertDontSee('Admin')
             ->assertDontSee(Filament::getPanel('admin')->getUrl(), false);
     }
@@ -317,14 +316,14 @@ class AuthenticationTest extends TestCase
         $this->actingAs($manager)
             ->get('/manage/'.$team->slug)
             ->assertOk()
-            ->assertSeeTextInOrder(['Dashboard', 'Manage Team', 'Team', 'Members'])
+            ->assertSeeTextInOrder(['Dashboard', 'Manage', 'Team', 'Members'])
             ->assertDontSee('Admin', false)
             ->assertSee('href="'.$membersUrl.'"', false);
 
         $this->actingAs($admin)
             ->get('/manage/'.$team->slug)
             ->assertOk()
-            ->assertSeeTextInOrder(['Dashboard', 'Manage Team', 'Admin', 'Team'])
+            ->assertSeeTextInOrder(['Dashboard', 'Manage', 'Admin', 'Team'])
             ->assertSee('href="'.$membersUrl.'"', false);
     }
 
@@ -337,13 +336,13 @@ class AuthenticationTest extends TestCase
             ->get('/dashboard')
             ->assertOk()
             ->assertSee('Admin')
-            ->assertDontSee('Manage Team');
+            ->assertDontSee('Manage');
 
         Filament::setCurrentPanel(Filament::getPanel('admin'));
         $this->actingAs($admin)
             ->get('/admin')
             ->assertOk()
-            ->assertDontSee('Manage Team', false);
+            ->assertDontSee('Manage', false);
     }
 
     public function test_admin_sidebar_links_back_to_members_panel(): void
@@ -356,14 +355,14 @@ class AuthenticationTest extends TestCase
         $this->actingAs($admin)
             ->get('/admin')
             ->assertOk()
-            ->assertSeeTextInOrder(['Dashboard', 'Manage Team', 'Admin', 'Organisation'])
+            ->assertSeeTextInOrder(['Dashboard', 'Manage', 'Admin', 'Organisation'])
             ->assertSee('href="'.$membersUrl.'"', false);
 
         $this->actingAs($oversight)
             ->get('/admin')
             ->assertOk()
             ->assertSeeTextInOrder(['Dashboard', 'Admin', 'Organisation'])
-            ->assertDontSee('Manage Team', false)
+            ->assertDontSee('Manage', false)
             ->assertSee('href="'.$membersUrl.'"', false);
     }
 }

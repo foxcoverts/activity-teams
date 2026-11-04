@@ -9,7 +9,7 @@ use App\Filament\Manage\Resources\Bookings\BookingResource;
 use App\Filament\Manage\Resources\Bookings\Pages\ViewBooking as ManageViewBooking;
 use App\Filament\Manage\Resources\Venues\Pages\CreateVenue as ManageCreateVenue;
 use App\Filament\Manage\Resources\Venues\VenueResource as ManageVenueResource;
-use App\Filament\Member\Resources\Bookings\Pages\ViewBooking as MemberViewBooking;
+use App\Filament\Teams\Resources\Bookings\Pages\ViewBooking as MemberViewBooking;
 use App\Models\Booking;
 use App\Models\User;
 use App\Models\Venue;
@@ -550,6 +550,8 @@ class VenueTest extends TestCase
         $this->actingAs($member);
         Filament::setCurrentPanel(Filament::getPanel('member'));
 
+        Filament::setCurrentPanel(Filament::getPanel('teams'));
+        Filament::setTenant($booking->team);
         Livewire::test(MemberViewBooking::class, ['record' => $booking->getRouteKey()])
             ->assertSee('View Map')
             ->assertInfolistActionVisible('location', 'map')
@@ -581,6 +583,8 @@ class VenueTest extends TestCase
         $this->actingAs($member);
         Filament::setCurrentPanel(Filament::getPanel('member'));
 
+        Filament::setCurrentPanel(Filament::getPanel('teams'));
+        Filament::setTenant($booking->team);
         Livewire::test(MemberViewBooking::class, ['record' => $booking->getRouteKey()])
             ->assertDontSee('View Map')
             ->assertInfolistActionDoesNotExist('location', 'map');

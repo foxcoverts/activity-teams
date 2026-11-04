@@ -3,7 +3,7 @@
 namespace App\Models;
 
 use App\Contracts\Commentable;
-use App\Filament\Member\Resources\Bookings\BookingResource;
+use App\Filament\Teams\Resources\Bookings\BookingResource;
 use Database\Factories\CommentFactory;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -46,7 +46,7 @@ class Comment extends Model
             return null;
         }
 
-        return BookingResource::getUrl('view', ['record' => $commentable], panel: 'member')
+        return BookingResource::getUrl('view', ['record' => $commentable], panel: 'teams', tenant: $commentable->team)
             .'?comment='.$this->getKey();
     }
 

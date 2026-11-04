@@ -12,8 +12,8 @@ use App\Filament\Manage\Resources\Members\MemberResource;
 use App\Filament\Manage\Resources\Members\Pages\EditMember;
 use App\Filament\Manage\Resources\Members\Pages\ViewMember;
 use App\Filament\Member\Resources\Bookings\BookingResource as MemberBookingResource;
-use App\Filament\Member\Resources\Bookings\Pages\ViewBooking as MemberViewBooking;
-use App\Filament\Member\Resources\Bookings\RelationManagers\AttendeesRelationManager as MemberAttendeesRelationManager;
+use App\Filament\Teams\Resources\Bookings\Pages\ViewBooking as MemberViewBooking;
+use App\Filament\Teams\Resources\Bookings\RelationManagers\AttendeesRelationManager as MemberAttendeesRelationManager;
 use App\Models\Booking;
 use App\Models\Team;
 use App\Models\User;
@@ -273,11 +273,11 @@ class SuspensionTest extends TestCase
         $booking = Booking::factory()->confirmed()->create(['team_id' => $this->team->getKey()]);
         $this->actAs($this->member);
 
-        $this->get(MemberBookingResource::getUrl('view', ['record' => $booking], panel: 'member'))->assertOk();
+        $this->get(MemberBookingResource::viewUrl($booking))->assertOk();
 
         $this->member->forceFill(['suspended' => true])->save();
 
-        $this->get(MemberBookingResource::getUrl('view', ['record' => $booking], panel: 'member'))->assertForbidden();
+        $this->get(MemberBookingResource::viewUrl($booking))->assertForbidden();
         $this->get(MemberBookingResource::getUrl('index', panel: 'member'))->assertForbidden();
     }
 
@@ -346,10 +346,14 @@ class SuspensionTest extends TestCase
         $this->member->forceFill(['suspended' => true])->save();
 
         $this->actAs($teammate);
+        Filament::setCurrentPanel(Filament::getPanel('teams'));
+        Filament::setTenant($booking->team);
         Livewire::test(MemberAttendeesRelationManager::class, ['ownerRecord' => $booking, 'pageClass' => MemberViewBooking::class])
             ->assertDontSee('Alex Member');
 
         $this->actAs($this->manager);
+        Filament::setCurrentPanel(Filament::getPanel('teams'));
+        Filament::setTenant($booking->team);
         Livewire::test(MemberAttendeesRelationManager::class, ['ownerRecord' => $booking, 'pageClass' => MemberViewBooking::class])
             ->assertSee('Alex Member');
     }

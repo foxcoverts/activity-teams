@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Filament\Member\Resources\Documents\Pages;
+namespace App\Filament\Teams\Resources\Documents\Pages;
 
-use App\Filament\Member\Resources\Documents\DocumentResource;
+use App\Filament\Teams\Resources\Documents\DocumentResource;
 use Filament\Resources\Pages\ListRecords;
 
 class ListDocuments extends ListRecords

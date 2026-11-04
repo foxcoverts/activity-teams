@@ -14,7 +14,7 @@ class ShowPublicBookingSummary
     {
         if (
             $request->user()
-            || ! $request->routeIs('filament.member.resources.bookings.view')
+            || ! $request->routeIs('filament.teams.resources.bookings.view')
             || filled($request->query('comment'))
         ) {
             return $next($request);

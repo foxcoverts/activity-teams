@@ -4,7 +4,6 @@ namespace App\Filament\Member\Resources\NewsPosts;
 
 use App\Filament\Member\NavigationGroup;
 use App\Filament\Member\Resources\NewsPosts\Pages\ListNewsPosts;
-use App\Filament\Member\Resources\NewsPosts\Pages\ViewNewsPost;
 use App\Models\NewsPost;
 use App\Models\User;
 use BackedEnum;
@@ -65,8 +64,6 @@ class NewsPostResource extends Resource
     {
         return [
             'index' => ListNewsPosts::route('/'),
-            'team' => ListNewsPosts::route('/{team}'),
-            'view' => ViewNewsPost::route('/{team}/{record}'),
         ];
     }
 }

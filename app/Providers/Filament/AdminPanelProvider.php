@@ -10,6 +10,7 @@ use App\Filament\Member\Pages\Dashboard as MemberDashboard;
 use App\Filament\Member\Pages\Feeds;
 use App\Filament\Member\Pages\NotificationSettings;
 use App\Filament\Pages\ChangePassword;
+use App\Filament\Teams\Pages\Dashboard as TeamsDashboard;
 use App\Http\Middleware\RequireProfileConfirmation;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
@@ -56,6 +57,7 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->navigationItems([
                 MemberDashboard::navigationItem(),
+                TeamsDashboard::navigationItem(),
                 ManageDashboard::navigationItem(),
             ])
             ->discoverWidgets(in: app_path('Filament/Admin/Widgets'), for: 'App\Filament\Admin\Widgets')
