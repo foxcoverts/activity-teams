@@ -1,12 +1,12 @@
 <?php
 
-namespace App\Filament\Manage\Resources\Venues;
+namespace App\Filament\Teams\Resources\Venues;
 
-use App\Filament\Manage\NavigationGroup;
-use App\Filament\Manage\Resources\Venues\Pages\CreateVenue;
-use App\Filament\Manage\Resources\Venues\Pages\EditVenue;
-use App\Filament\Manage\Resources\Venues\Pages\ListVenues;
-use App\Filament\Manage\Resources\Venues\Pages\ViewVenue;
+use App\Filament\Teams\NavigationGroup;
+use App\Filament\Teams\Resources\Venues\Pages\CreateVenue;
+use App\Filament\Teams\Resources\Venues\Pages\EditVenue;
+use App\Filament\Teams\Resources\Venues\Pages\ListVenues;
+use App\Filament\Teams\Resources\Venues\Pages\ViewVenue;
 use App\Filament\Venues\VenueLocationSchema;
 use App\Models\Team;
 use App\Models\User;

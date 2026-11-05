@@ -21,8 +21,8 @@ use App\Filament\Manage\Resources\Keys\KeyResource;
 use App\Filament\Manage\Resources\Members\MemberResource;
 use App\Filament\Manage\Resources\Members\Pages\ListMembers;
 use App\Filament\Manage\Resources\Members\Pages\ViewMember;
-use App\Filament\Manage\Resources\Venues\Pages\ListVenues;
 use App\Filament\RelationManagers\QualificationsRelationManager;
+use App\Filament\Teams\Resources\Venues\Pages\ListVenues;
 use App\Models\Activity;
 use App\Models\Booking;
 use App\Models\BookingAttendance;
@@ -334,7 +334,6 @@ class ActivityTeamsTest extends TestCase
                 'Bookings',
                 'Setup',
                 'Activities',
-                'Venues',
             ]);
     }
 
@@ -514,12 +513,15 @@ class ActivityTeamsTest extends TestCase
         $venue = Venue::factory()->create(['name' => 'Campsite']);
 
         $this->actingAs($admin);
-        Filament::setTenant($team);
+        Filament::setTenant($team->fresh());
+        Filament::setCurrentPanel('manage');
 
         Livewire::test(ListActivities::class)
             ->callAction('give', data: [
                 'activity_id' => $activity->getKey(),
             ]);
+
+        Filament::setCurrentPanel('teams');
 
         Livewire::test(ListVenues::class)
             ->callAction('give', data: [
@@ -538,6 +540,8 @@ class ActivityTeamsTest extends TestCase
         $keyRing = Key::factory()->create(['name' => 'Climbing keys']);
         $keyRing->locks()->attach($key);
 
+        Filament::setCurrentPanel('manage');
+
         $this->get(KeyResource::getUrl('index'))
             ->assertOk()
             ->assertSee('Climbing keys');
@@ -545,11 +549,15 @@ class ActivityTeamsTest extends TestCase
         Livewire::test(ListActivities::class)
             ->callTableAction('remove', $activity);
 
+        Filament::setCurrentPanel('teams');
+
         Livewire::test(ListVenues::class)
             ->callTableAction('remove', $venue);
 
         $this->assertFalse($team->fresh()->activities()->whereKey($activity->getKey())->exists());
         $this->assertFalse($team->fresh()->venues()->whereKey($venue->getKey())->exists());
+
+        Filament::setCurrentPanel('manage');
 
         $this->get(MemberResource::getUrl('index'))
             ->assertOk()

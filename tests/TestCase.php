@@ -22,6 +22,10 @@ abstract class TestCase extends BaseTestCase
             }
 
             Filament::setTenant($team instanceof Team ? $team : null);
+        } elseif ($user instanceof User && Filament::getCurrentPanel()?->getId() === 'teams') {
+            $team = $user->teams()->first();
+
+            Filament::setTenant($team instanceof Team ? $team : null);
         }
 
         return $result;

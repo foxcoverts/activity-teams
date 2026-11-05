@@ -1,10 +1,10 @@
 <?php
 
-namespace Tests\Feature\Manage;
+namespace Tests\Feature\Teams;
 
-use App\Filament\Manage\Resources\Venues\Pages\CreateVenue;
-use App\Filament\Manage\Resources\Venues\Pages\EditVenue;
-use App\Filament\Manage\Resources\Venues\Pages\ListVenues;
+use App\Filament\Teams\Resources\Venues\Pages\CreateVenue;
+use App\Filament\Teams\Resources\Venues\Pages\EditVenue;
+use App\Filament\Teams\Resources\Venues\Pages\ListVenues;
 use App\Models\Team;
 use App\Models\User;
 use App\Models\Venue;
@@ -24,17 +24,19 @@ class VenueResourceTest extends TestCase
     {
         parent::setUp();
 
-        Filament::setCurrentPanel(Filament::getPanel('manage'));
+        Filament::setCurrentPanel(Filament::getPanel('teams'));
     }
 
     public function test_the_venue_list_is_sorted_by_name(): void
     {
         $manager = User::factory()->teamManager()->create();
+        $team = $manager->managedTeams()->firstOrFail();
         $zebra = Venue::factory()->create(['name' => 'Zebra']);
         $archery = Venue::factory()->create(['name' => 'Archery']);
         $climbing = Venue::factory()->create(['name' => 'Climbing']);
 
         $this->actingAs($manager);
+        Filament::setTenant($team);
 
         Livewire::test(ListVenues::class)
             ->assertCanSeeTableRecords([$archery, $climbing, $zebra], inOrder: true);
@@ -142,8 +144,10 @@ class VenueResourceTest extends TestCase
     public function test_a_manager_creates_venues_through_the_wizard_without_the_give_action(): void
     {
         $manager = User::factory()->teamManager()->create();
+        $team = $manager->managedTeams()->firstOrFail();
 
         $this->actingAs($manager);
+        Filament::setTenant($team);
 
         Livewire::test(ListVenues::class)
             ->assertActionVisible('create')

@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Filament\Manage\Resources\Venues\Pages;
+namespace App\Filament\Teams\Resources\Venues\Pages;
 
-use App\Filament\Manage\Resources\Venues\VenueResource;
+use App\Filament\Teams\Resources\Venues\VenueResource;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\ViewAction;
 use Filament\Resources\Pages\EditRecord;

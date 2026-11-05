@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Filament\Manage\Resources\Venues\Pages;
+namespace App\Filament\Teams\Resources\Venues\Pages;
 
-use App\Filament\Manage\Resources\Venues\VenueResource;
+use App\Filament\Teams\Resources\Venues\VenueResource;
 use Filament\Resources\Pages\ViewRecord;
 
 class ViewVenue extends ViewRecord

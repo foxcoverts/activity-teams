@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Filament\Manage\Resources\Venues\Actions;
+namespace App\Filament\Teams\Resources\Venues\Actions;
 
-use App\Filament\Manage\Resources\Venues\VenueResource;
+use App\Filament\Teams\Resources\Venues\VenueResource;
 use App\Models\Venue;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Select;

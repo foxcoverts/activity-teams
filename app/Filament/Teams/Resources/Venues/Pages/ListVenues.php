@@ -1,9 +1,9 @@
 <?php
 
-namespace App\Filament\Manage\Resources\Venues\Pages;
+namespace App\Filament\Teams\Resources\Venues\Pages;
 
-use App\Filament\Manage\Resources\Venues\Actions\GiveVenueAction;
-use App\Filament\Manage\Resources\Venues\VenueResource;
+use App\Filament\Teams\Resources\Venues\Actions\GiveVenueAction;
+use App\Filament\Teams\Resources\Venues\VenueResource;
 use Filament\Actions\CreateAction;
 use Filament\Resources\Pages\ListRecords;
 

@@ -3,7 +3,7 @@
 namespace Tests\Feature;
 
 use App\Filament\Manage\Resources\Activities\Pages\ListActivities;
-use App\Filament\Manage\Resources\Venues\Pages\ListVenues;
+use App\Filament\Teams\Resources\Venues\Pages\ListVenues;
 use App\Models\Activity;
 use App\Models\User;
 use App\Models\Venue;
@@ -74,6 +74,8 @@ class TeamCatalogDefaultsTest extends TestCase
         $this->assertSame($campsite->getKey(), $team->fresh()->default_venue_id);
 
         $this->actingAs($user);
+        Filament::setTenant($team->fresh());
+        Filament::setCurrentPanel('teams');
 
         Livewire::test(ListVenues::class)
             ->assertSee('Default')
