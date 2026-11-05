@@ -56,9 +56,8 @@ class UserUnder18Test extends TestCase
         $team->grant($youngPerson, MembershipRole::Member);
         $team->grant($adult, MembershipRole::Member);
 
-        Filament::setCurrentPanel(Filament::getPanel('manage'));
+        Filament::setCurrentPanel('manage');
         $this->actingAs($manager);
-        Filament::setTenant($team);
 
         Livewire::test(ViewMember::class, ['record' => $youngPerson->getKey()])
             ->assertSee('Under 18');
@@ -66,7 +65,7 @@ class UserUnder18Test extends TestCase
             ->assertDontSee('Under 18');
 
         $admin = User::factory()->systemAdmin()->create();
-        Filament::setCurrentPanel(Filament::getPanel('admin'));
+        Filament::setCurrentPanel('admin');
         $this->actingAs($admin);
 
         Livewire::test(ViewUser::class, ['record' => $youngPerson->getKey()])

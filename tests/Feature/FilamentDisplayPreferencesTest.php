@@ -46,11 +46,9 @@ class FilamentDisplayPreferencesTest extends TestCase
 
         $booking->attendees()->attach($user->getKey(), ['status' => BookingAttendeeStatus::Accepted]);
 
+        Filament::setCurrentPanel('manage');
         $this->travelTo('2026-10-20 12:00:00');
         $this->actingAs($user);
-
-        Filament::setCurrentPanel(Filament::getPanel('manage'));
-        Filament::setTenant($team);
 
         Livewire::test(ManageListBookings::class)
             ->assertSee('Oct 24, 2026 10:30')
@@ -67,13 +65,13 @@ class FilamentDisplayPreferencesTest extends TestCase
         Livewire::test(ManageViewBooking::class, ['record' => $cancelledBooking->getKey()])
             ->assertSee('Cancelled booking');
 
-        Filament::setCurrentPanel(Filament::getPanel('member'));
+        Filament::setCurrentPanel('member');
         Filament::setTenant($team);
-
         Livewire::test(MemberListBookings::class)
             ->assertSee('Oct 24, 2026 10:30')
             ->assertDontSee('Oct 24, 2026 10:30:00');
-        Filament::setCurrentPanel(Filament::getPanel('teams'));
+
+        Filament::setCurrentPanel('teams');
         Filament::setTenant($booking->team);
         Livewire::test(TeamsViewBooking::class, ['record' => $booking->getKey()])
             ->assertSee('Confirmed booking')
@@ -82,11 +80,13 @@ class FilamentDisplayPreferencesTest extends TestCase
             ->assertDontSee('Timezone')
             ->assertDontSee('Created at')
             ->assertDontSee('Updated at');
-        Filament::setCurrentPanel(Filament::getPanel('teams'));
+
+        Filament::setCurrentPanel('teams');
         Filament::setTenant($tentativeBooking->team);
         Livewire::test(TeamsViewBooking::class, ['record' => $tentativeBooking->getKey()])
             ->assertSee('Tentative booking');
-        Filament::setCurrentPanel(Filament::getPanel('teams'));
+
+        Filament::setCurrentPanel('teams');
         Filament::setTenant($cancelledBooking->team);
         Livewire::test(TeamsViewBooking::class, ['record' => $cancelledBooking->getKey()])
             ->assertSee('Cancelled booking');
@@ -104,18 +104,13 @@ class FilamentDisplayPreferencesTest extends TestCase
             'status' => BookingStatus::Confirmed,
         ]);
 
+        Filament::setCurrentPanel('manage');
         $this->actingAs($user);
-        Filament::setCurrentPanel(Filament::getPanel('manage'));
-        Filament::setTenant($team);
 
         Livewire::test(ManageViewBooking::class, ['record' => $booking->getKey()])
             ->assertSee('Tue 20 Oct 2026 11:30 to Wed 21 Oct 2026 11:30 (1 day)');
 
-        Filament::setCurrentPanel(Filament::getPanel('member'));
-        Filament::setTenant($team);
-
-        Filament::setCurrentPanel(Filament::getPanel('teams'));
-        Filament::setTenant($booking->team);
+        Filament::setCurrentPanel('teams');
         Livewire::test(TeamsViewBooking::class, ['record' => $booking->getKey()])
             ->assertSee('Tue 20 Oct 2026 11:30 to Wed 21 Oct 2026 11:30 (1 day)');
     }
@@ -134,26 +129,19 @@ class FilamentDisplayPreferencesTest extends TestCase
             'lead_instructor_notes' => 'Private lead arrangements',
         ]);
 
+        Filament::setCurrentPanel('manage');
         $this->actingAs($manager);
-        Filament::setCurrentPanel(Filament::getPanel('manage'));
-        Filament::setTenant($team);
 
         Livewire::test(ManageViewBooking::class, ['record' => $booking->getKey()])
             ->assertSee('Private lead arrangements');
 
-        Filament::setCurrentPanel(Filament::getPanel('member'));
-        Filament::setTenant($team);
+        Filament::setCurrentPanel('teams');
         $this->actingAs($lead);
 
-        Filament::setCurrentPanel(Filament::getPanel('teams'));
-        Filament::setTenant($booking->team);
         Livewire::test(TeamsViewBooking::class, ['record' => $booking->getKey()])
             ->assertSee('Private lead arrangements');
 
         $this->actingAs($member);
-
-        Filament::setCurrentPanel(Filament::getPanel('teams'));
-        Filament::setTenant($booking->team);
         Livewire::test(TeamsViewBooking::class, ['record' => $booking->getKey()])
             ->assertDontSee('Private lead arrangements');
     }
@@ -166,8 +154,8 @@ class FilamentDisplayPreferencesTest extends TestCase
             'slug' => 'hidden-team-slug',
         ]);
 
+        Filament::setCurrentPanel('admin');
         $this->actingAs($admin);
-        Filament::setCurrentPanel(Filament::getPanel('admin'));
 
         Livewire::test(ListTeams::class)
             ->assertTableColumnDoesNotExist('id')
@@ -182,8 +170,8 @@ class FilamentDisplayPreferencesTest extends TestCase
         $admin = User::factory()->systemAdmin()->create();
         $team = Team::factory()->create();
 
+        Filament::setCurrentPanel('admin');
         $this->actingAs($admin);
-        Filament::setCurrentPanel(Filament::getPanel('admin'));
 
         Livewire::test(CreateTeam::class)
             ->assertFormFieldHidden('slug');
@@ -196,8 +184,8 @@ class FilamentDisplayPreferencesTest extends TestCase
         $admin = User::factory()->systemAdmin()->create();
         $team = Team::factory()->create(['slug' => 'kept-team']);
 
+        Filament::setCurrentPanel('admin');
         $this->actingAs($admin);
-        Filament::setCurrentPanel(Filament::getPanel('admin'));
 
         Livewire::test(EditTeam::class, ['record' => $team->slug])
             ->fillForm(['slug' => 'not/a slug'])

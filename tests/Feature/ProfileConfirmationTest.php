@@ -83,7 +83,7 @@ class ProfileConfirmationTest extends TestCase
             'created_at' => now()->subYear()->subDay(),
         ]);
 
-        Filament::setCurrentPanel(Filament::getPanel('member'));
+        Filament::setCurrentPanel('member');
         $this->actingAs($user);
         $user->deferProfileConfirmation();
 

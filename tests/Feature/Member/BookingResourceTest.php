@@ -22,7 +22,7 @@ class BookingResourceTest extends TestCase
     {
         parent::setUp();
 
-        Filament::setCurrentPanel(Filament::getPanel('member'));
+        Filament::setCurrentPanel('member');
     }
 
     public function test_the_booking_list_is_sorted_by_start_time(): void
@@ -74,22 +74,17 @@ class BookingResourceTest extends TestCase
         $manager = User::factory()->teamManager($team)->create();
         $booking = Booking::factory()->forTeam($team)->confirmed()->create(['lead_instructor_notes' => 'Bring the red rope']);
 
+        Filament::setCurrentPanel('teams');
         $this->actingAs($member);
-        Filament::setCurrentPanel(Filament::getPanel('teams'));
-        Filament::setTenant($booking->team);
         Livewire::test(ViewBooking::class, ['record' => $booking->getKey()])
             ->assertDontSee('Lead instructor notes');
 
         $booking->update(['lead_instructor_id' => $member->getKey()]);
-        Filament::setCurrentPanel(Filament::getPanel('teams'));
-        Filament::setTenant($booking->team);
         Livewire::test(ViewBooking::class, ['record' => $booking->getKey()])
             ->assertSee('Bring the red rope');
 
         $booking->update(['lead_instructor_id' => null]);
         $this->actingAs($manager);
-        Filament::setCurrentPanel(Filament::getPanel('teams'));
-        Filament::setTenant($booking->team);
         Livewire::test(ViewBooking::class, ['record' => $booking->getKey()])
             ->assertSee('Lead instructor notes');
     }
@@ -100,9 +95,9 @@ class BookingResourceTest extends TestCase
         $team = $manager->managedTeams()->firstOrFail();
         $booking = Booking::factory()->forTeam($team)->confirmed()->create(['notes' => null, 'lead_instructor_notes' => null]);
 
+        Filament::setCurrentPanel('teams');
         $this->actingAs($manager);
-        Filament::setCurrentPanel(Filament::getPanel('teams'));
-        Filament::setTenant($booking->team);
+
         Livewire::test(ViewBooking::class, ['record' => $booking->getKey()])
             ->assertDontSee('Lead instructor notes')
             ->assertDontSee('Notes');
@@ -114,9 +109,9 @@ class BookingResourceTest extends TestCase
         $booking = Booking::factory()->forTeam($member->teams()->firstOrFail())->confirmed()->create();
         $booking->attendees()->attach($member->getKey(), ['status' => BookingAttendeeStatus::NeedsAction->value]);
 
+        Filament::setCurrentPanel('teams');
         $this->actingAs($member);
-        Filament::setCurrentPanel(Filament::getPanel('teams'));
-        Filament::setTenant($booking->team);
+
         $component = Livewire::test(AttendeesRelationManager::class, ['ownerRecord' => $booking, 'pageClass' => ViewBooking::class]);
 
         $booking->attendees()->updateExistingPivot($member->getKey(), ['status' => BookingAttendeeStatus::Accepted->value]);

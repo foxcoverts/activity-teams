@@ -29,11 +29,9 @@ class BookingTimelineTest extends TestCase
         $booking = Booking::factory()->confirmed()->create();
         $booking->attendees()->attach($member->id);
 
-        Filament::setCurrentPanel(Filament::getPanel('member'));
+        Filament::setCurrentPanel('teams');
         $this->actingAs($member);
 
-        Filament::setCurrentPanel(Filament::getPanel('teams'));
-        Filament::setTenant($booking->team);
         $view = Livewire::test(MemberViewBooking::class, ['record' => $booking->getRouteKey()]);
 
         $view
@@ -56,12 +54,9 @@ class BookingTimelineTest extends TestCase
             'team_id' => $team->getKey(),
         ]);
 
-        Filament::setCurrentPanel(Filament::getPanel('member'));
-
+        Filament::setCurrentPanel('teams');
         $this->actingAs($member);
 
-        Filament::setCurrentPanel(Filament::getPanel('teams'));
-        Filament::setTenant($booking->team);
         $view = Livewire::test(MemberViewBooking::class, ['record' => $booking->getRouteKey()]);
 
         $view
@@ -72,9 +67,8 @@ class BookingTimelineTest extends TestCase
 
         $outsider = User::factory()->guest()->create();
         $this->actingAs($outsider);
-
-        Filament::setCurrentPanel(Filament::getPanel('teams'));
         Filament::setTenant($booking->team);
+
         Livewire::test(MemberViewBooking::class, ['record' => $booking->getRouteKey()])
             ->assertNotFound();
     }
@@ -92,11 +86,9 @@ class BookingTimelineTest extends TestCase
 
         app(OverrideAttendanceAction::class)($booking, $member, $manager, BookingAttendeeStatus::Accepted);
 
-        Filament::setCurrentPanel(Filament::getPanel('member'));
+        Filament::setCurrentPanel('teams');
         $this->actingAs($member);
 
-        Filament::setCurrentPanel(Filament::getPanel('teams'));
-        Filament::setTenant($booking->team);
         Livewire::test(MemberViewBooking::class, ['record' => $booking->getRouteKey()])
             ->assertSeeHtml('<strong>Manager A</strong>')
             ->assertSeeHtml('<strong>Can help</strong>')
@@ -106,7 +98,7 @@ class BookingTimelineTest extends TestCase
 
     public function test_the_manage_timeline_links_a_teammate_to_the_member_page(): void
     {
-        Filament::setCurrentPanel(Filament::getPanel('manage'));
+        Filament::setCurrentPanel('manage');
 
         $manager = User::factory()->teamManager()->create();
         $team = $manager->managedTeams()->first();
@@ -127,7 +119,7 @@ class BookingTimelineTest extends TestCase
 
     public function test_the_manage_timeline_links_the_person_a_change_is_about(): void
     {
-        Filament::setCurrentPanel(Filament::getPanel('manage'));
+        Filament::setCurrentPanel('manage');
 
         $manager = User::factory()->teamManager()->create();
         $member = User::factory()->teamMember()->create(['name' => 'Casey']);
@@ -147,7 +139,7 @@ class BookingTimelineTest extends TestCase
 
     public function test_recording_your_own_attendance_does_not_name_you_twice(): void
     {
-        Filament::setCurrentPanel(Filament::getPanel('manage'));
+        Filament::setCurrentPanel('manage');
 
         $manager = User::factory()->teamManager()->create();
         $member = User::factory()->teamMember()->create(['name' => 'Casey']);
@@ -169,7 +161,7 @@ class BookingTimelineTest extends TestCase
 
     public function test_several_field_changes_are_listed_under_one_intro(): void
     {
-        Filament::setCurrentPanel(Filament::getPanel('manage'));
+        Filament::setCurrentPanel('manage');
 
         $manager = User::factory()->teamManager()->create();
 

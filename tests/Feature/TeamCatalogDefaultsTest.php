@@ -20,7 +20,7 @@ class TeamCatalogDefaultsTest extends TestCase
     {
         parent::setUp();
 
-        Filament::setCurrentPanel(Filament::getPanel('manage'));
+        Filament::setCurrentPanel('manage');
     }
 
     public function test_activity_list_marks_the_default_and_replaces_it_when_another_is_selected(): void

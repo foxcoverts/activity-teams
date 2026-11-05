@@ -48,7 +48,7 @@ class BookingStatusTest extends TestCase
     {
         parent::setUp();
 
-        Filament::setCurrentPanel(Filament::getPanel('manage'));
+        Filament::setCurrentPanel('manage');
     }
 
     public function test_a_new_booking_is_tentative_and_cannot_be_created_confirmed(): void

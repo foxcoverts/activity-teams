@@ -18,7 +18,7 @@ class VenueResourceTest extends TestCase
     {
         parent::setUp();
 
-        Filament::setCurrentPanel(Filament::getPanel('admin'));
+        Filament::setCurrentPanel('admin');
     }
 
     public function test_the_venue_list_is_sorted_by_name(): void

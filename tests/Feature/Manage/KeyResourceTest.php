@@ -22,7 +22,7 @@ class KeyResourceTest extends TestCase
     {
         parent::setUp();
 
-        Filament::setCurrentPanel(Filament::getPanel('manage'));
+        Filament::setCurrentPanel('manage');
     }
 
     public function test_the_key_ring_list_is_sorted_by_name(): void
@@ -82,7 +82,6 @@ class KeyResourceTest extends TestCase
         $suspendedKey->locks()->attach($lock);
 
         $this->actingAs($manager);
-        Filament::setTenant($team);
 
         $names = Livewire::test(ListKeys::class)
             ->instance()

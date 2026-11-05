@@ -31,7 +31,7 @@ class InvitePickerTest extends TestCase
     {
         parent::setUp();
 
-        Filament::setCurrentPanel(Filament::getPanel('manage'));
+        Filament::setCurrentPanel('manage');
     }
 
     public function test_qualified_people_start_queued_and_everyone_else_stays_in_the_picker(): void

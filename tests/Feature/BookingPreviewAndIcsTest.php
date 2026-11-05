@@ -137,9 +137,8 @@ class BookingPreviewAndIcsTest extends TestCase
             ->assertSee('Tower Maintenance on Sat, Oct 17, 2026')
             ->assertDontSee('Climbing on Sat, Oct 17, 2026');
 
-        Filament::setCurrentPanel(Filament::getPanel('manage'));
+        Filament::setCurrentPanel('manage');
         $this->actingAs($manager);
-        Filament::setTenant($manager->managedTeams()->firstOrFail());
 
         Livewire::test(ManageViewBooking::class, ['record' => $booking->getRouteKey()])
             ->assertSeeText('Tower Maintenance')
@@ -157,10 +156,10 @@ class BookingPreviewAndIcsTest extends TestCase
             ->assertSeeText('Tower Maintenance')
             ->assertDontSeeText('Climbing');
 
-        Filament::setCurrentPanel(Filament::getPanel('member'));
+        Filament::setCurrentPanel('member');
         $this->actingAs($member);
 
-        Filament::setCurrentPanel(Filament::getPanel('teams'));
+        Filament::setCurrentPanel('teams');
         Filament::setTenant($booking->team);
         Livewire::test(ViewBooking::class, ['record' => $booking->getRouteKey()])
             ->assertSeeText('Tower Maintenance')
@@ -233,7 +232,7 @@ class BookingPreviewAndIcsTest extends TestCase
         ]);
         $oldUrl = route('booking.ics', $user);
 
-        Filament::setCurrentPanel(Filament::getPanel('member'));
+        Filament::setCurrentPanel('member');
         $this->actingAs($user);
 
         $this->get($oldUrl)->assertOk();

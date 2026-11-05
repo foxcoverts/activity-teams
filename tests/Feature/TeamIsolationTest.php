@@ -78,8 +78,8 @@ class TeamIsolationTest extends TestCase
         $archeryBooking = $this->booking($this->archery, 'Archery group', confirmed: false);
         $cancelled = Booking::factory()->cancelled()->create(['team_id' => $this->archery->getKey()]);
 
+        Filament::setCurrentPanel('manage');
         $this->actingAs($manager);
-        Filament::setCurrentPanel(Filament::getPanel('manage'));
 
         foreach (['view', 'edit'] as $page) {
             $this->get(ManageBookingResource::getUrl($page, ['record' => $archeryBooking], panel: 'manage', tenant: $this->climbing))
@@ -115,9 +115,8 @@ class TeamIsolationTest extends TestCase
         $both = $this->person($this->climbing, MembershipRole::Member);
         $this->person($this->archery, MembershipRole::Member, $both);
 
+        Filament::setCurrentPanel('manage');
         $this->actingAs($manager);
-        Filament::setCurrentPanel(Filament::getPanel('manage'));
-        Filament::setTenant($this->climbing);
 
         Livewire::test(ListMembers::class)
             ->assertCanSeeTableRecords([$climber, $both])
@@ -162,8 +161,8 @@ class TeamIsolationTest extends TestCase
         $otherTeam = Team::factory()->create();
         $otherConfirmed = $this->booking($otherTeam, 'Other confirmed');
 
+        Filament::setCurrentPanel('member');
         $this->actingAs($person);
-        Filament::setCurrentPanel(Filament::getPanel('member'));
 
         $this->assertFalse(Filament::getCurrentPanel()->hasTenancy());
 

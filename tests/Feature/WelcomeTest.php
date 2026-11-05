@@ -34,7 +34,7 @@ class WelcomeTest extends TestCase
     {
         $member = User::factory()->teamMember()->create();
 
-        Filament::setCurrentPanel(Filament::getPanel('member'));
+        Filament::setCurrentPanel('member');
         $this->actingAs($member);
 
         $this->get(Dashboard::getUrl())

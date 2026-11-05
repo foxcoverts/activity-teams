@@ -58,7 +58,6 @@ class VenueTest extends TestCase
     public function test_manage_venue_shows_address(): void
     {
         $manager = User::factory()->teamManager()->create();
-        $team = $manager->teams()->first();
         $venue = Venue::factory()->create([
             'name' => 'Sample Venue',
             'street' => '123 Main St',
@@ -68,9 +67,8 @@ class VenueTest extends TestCase
             'country' => 'GB',
         ]);
 
-        $this->actingAs($manager);
-        Filament::setTenant($team->fresh());
         Filament::setCurrentPanel('teams');
+        $this->actingAs($manager);
 
         $this->get(TeamsVenueResource::getUrl('index'))
             ->assertOk()
@@ -91,7 +89,6 @@ class VenueTest extends TestCase
     public function test_booking_shows_venue(): void
     {
         $manager = User::factory()->teamManager()->create();
-        $team = $manager->teams()->first();
         $venue = Venue::factory()->create([
             'name' => 'Sample Venue',
             'street' => '123 Main St',
@@ -105,9 +102,8 @@ class VenueTest extends TestCase
             'venue_id' => $venue->getKey(),
         ]);
 
-        $this->actingAs($manager);
-        Filament::setTenant($team);
         Filament::setCurrentPanel('manage');
+        $this->actingAs($manager);
 
         $this->get(BookingResource::getUrl('view', ['record' => $booking->getKey()]))
             ->assertOk()
@@ -150,16 +146,14 @@ class VenueTest extends TestCase
     public function test_manager_cannot_create_a_catalog_venue_with_the_same_name_and_no_postcode(): void
     {
         $manager = User::factory()->teamManager()->create();
-        $team = $manager->managedTeams()->firstOrFail();
         Venue::factory()->create([
             'name' => 'Fox Hall',
             'postcode' => 'AB1 2CD',
             'city' => 'Anytown',
         ]);
 
-        $this->actingAs($manager);
-        Filament::setTenant($team->fresh());
         Filament::setCurrentPanel('teams');
+        $this->actingAs($manager);
 
         Livewire::test(TeamsCreateVenue::class)
             ->assertSeeText('Venue details')
@@ -176,16 +170,14 @@ class VenueTest extends TestCase
     public function test_catalog_name_conflict_stops_the_wizard_on_venue_details(): void
     {
         $manager = User::factory()->teamManager()->create();
-        $team = $manager->managedTeams()->firstOrFail();
         Venue::factory()->create([
             'name' => 'Fox Hall',
             'postcode' => 'AB1 2CD',
             'city' => 'Anytown',
         ]);
 
-        $this->actingAs($manager);
-        Filament::setTenant($team->fresh());
         Filament::setCurrentPanel('teams');
+        $this->actingAs($manager);
 
         Livewire::test(TeamsCreateVenue::class)
             ->fillForm(['name' => 'Fox Hall'])
@@ -206,9 +198,8 @@ class VenueTest extends TestCase
             'postcode' => 'AB1 2CD',
         ]);
 
-        $this->actingAs($manager);
-        Filament::setTenant($team->fresh());
         Filament::setCurrentPanel('teams');
+        $this->actingAs($manager);
 
         Livewire::test(TeamsCreateVenue::class)
             ->fillForm([
@@ -233,9 +224,8 @@ class VenueTest extends TestCase
             'city' => 'Anytown',
         ]);
 
-        $this->actingAs($manager);
-        Filament::setTenant($team->fresh());
         Filament::setCurrentPanel('teams');
+        $this->actingAs($manager);
 
         Livewire::test(TeamsCreateVenue::class)
             ->fillForm([
@@ -536,9 +526,8 @@ class VenueTest extends TestCase
             'venue_id' => $venue->getKey(),
         ]);
 
+        Filament::setCurrentPanel('manage');
         $this->actingAs($manager);
-        Filament::setTenant($team);
-        Filament::setCurrentPanel(Filament::getPanel('manage'));
 
         Livewire::test(ManageViewBooking::class, ['record' => $booking->getRouteKey()])
             ->assertSee('Pinned Hall')
@@ -547,11 +536,9 @@ class VenueTest extends TestCase
             ->mountInfolistAction('location', 'map')
             ->assertMountedActionModalSee('Pinned Hall');
 
+        Filament::setCurrentPanel('teams');
         $this->actingAs($member);
-        Filament::setCurrentPanel(Filament::getPanel('member'));
 
-        Filament::setCurrentPanel(Filament::getPanel('teams'));
-        Filament::setTenant($booking->team);
         Livewire::test(TeamsViewBooking::class, ['record' => $booking->getRouteKey()])
             ->assertSee('View Map')
             ->assertInfolistActionVisible('location', 'map')
@@ -571,20 +558,17 @@ class VenueTest extends TestCase
             'venue_id' => $venue->getKey(),
         ]);
 
+        Filament::setCurrentPanel('manage');
         $this->actingAs($manager);
-        Filament::setTenant($team);
-        Filament::setCurrentPanel(Filament::getPanel('manage'));
 
         Livewire::test(ManageViewBooking::class, ['record' => $booking->getRouteKey()])
             ->assertSee('Unpinned Hall')
             ->assertDontSee('View Map')
             ->assertInfolistActionDoesNotExist('location', 'map');
 
+        Filament::setCurrentPanel('teams');
         $this->actingAs($member);
-        Filament::setCurrentPanel(Filament::getPanel('member'));
 
-        Filament::setCurrentPanel(Filament::getPanel('teams'));
-        Filament::setTenant($booking->team);
         Livewire::test(TeamsViewBooking::class, ['record' => $booking->getRouteKey()])
             ->assertDontSee('View Map')
             ->assertInfolistActionDoesNotExist('location', 'map');

@@ -18,7 +18,7 @@ class KeyResourceTest extends TestCase
     {
         parent::setUp();
 
-        Filament::setCurrentPanel(Filament::getPanel('member'));
+        Filament::setCurrentPanel('member');
     }
 
     public function test_the_key_ring_list_is_sorted_by_name(): void

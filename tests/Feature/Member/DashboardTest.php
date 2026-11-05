@@ -36,7 +36,7 @@ class DashboardTest extends TestCase
         parent::setUp();
 
         Carbon::setTestNow('2026-11-03 12:00:00');
-        Filament::setCurrentPanel(Filament::getPanel('member'));
+        Filament::setCurrentPanel('member');
 
         $this->member = User::factory()->teamMember()->create();
         $this->actingAs($this->member);
@@ -278,7 +278,7 @@ class DashboardTest extends TestCase
 
         $this->assertTrue(Livewire::test(LatestNewsWidget::class)->viewData('isNew'));
 
-        Filament::setCurrentPanel(Filament::getPanel('teams'));
+        Filament::setCurrentPanel('teams');
         Filament::setTenant($team);
         Livewire::test(ViewNewsPost::class, ['record' => $post->slug]);
 

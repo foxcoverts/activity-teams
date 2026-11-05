@@ -113,7 +113,7 @@ class NotificationSettingsTest extends TestCase
     {
         $user = User::factory()->teamMember()->create();
 
-        Filament::setCurrentPanel(Filament::getPanel('member'));
+        Filament::setCurrentPanel('member');
         $this->actingAs($user);
 
         Livewire::test(NotificationSettings::class)
@@ -325,7 +325,7 @@ class NotificationSettingsTest extends TestCase
     {
         $user = User::factory()->teamMember()->create();
 
-        Filament::setCurrentPanel(Filament::getPanel('member'));
+        Filament::setCurrentPanel('member');
         $this->actingAs($user);
 
         $this->assertFalse(NotificationSettings::shouldRegisterNavigation());
@@ -361,7 +361,7 @@ class NotificationSettingsTest extends TestCase
             MailChannel::BookingsMail->value => '0',
         ], $booking);
 
-        Filament::setCurrentPanel(Filament::getPanel('member'));
+        Filament::setCurrentPanel('member');
         $this->actingAs($attendee);
 
         $setting = NotificationSetting::query()->where('user_id', $attendee->getKey())->first();
@@ -382,7 +382,7 @@ class NotificationSettingsTest extends TestCase
     {
         $user = User::factory()->teamMember()->create();
 
-        Filament::setCurrentPanel(Filament::getPanel('member'));
+        Filament::setCurrentPanel('member');
         $this->actingAs($user);
 
         $menuItem = Filament::getCurrentOrDefaultPanel()->getUserMenuItems()['notificationSettings'] ?? null;

@@ -265,7 +265,7 @@ class AdminInvitationTest extends TestCase
     public function test_oversight_does_not_see_the_users_add_action(): void
     {
         $oversight = User::factory()->oversight()->create();
-        Filament::setCurrentPanel(Filament::getPanel('admin'));
+        Filament::setCurrentPanel('admin');
         $this->actingAs($oversight);
 
         Livewire::test(ListUsers::class)
@@ -394,7 +394,7 @@ class AdminInvitationTest extends TestCase
 
     private function actAsAdmin(): void
     {
-        Filament::setCurrentPanel(Filament::getPanel('admin'));
+        Filament::setCurrentPanel('admin');
         $this->actingAs($this->admin);
     }
 }

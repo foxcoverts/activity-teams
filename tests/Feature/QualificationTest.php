@@ -28,7 +28,7 @@ class QualificationTest extends TestCase
     {
         parent::setUp();
 
-        Filament::setCurrentPanel(Filament::getPanel('manage'));
+        Filament::setCurrentPanel('manage');
     }
 
     public function test_the_expiry_date_is_the_last_day_the_qualification_is_current(): void
@@ -187,7 +187,6 @@ class QualificationTest extends TestCase
         $oversight = User::factory()->oversight()->create();
 
         $this->actingAs($manager);
-        Filament::setTenant($team);
 
         $relationManager = Livewire::test(QualificationsRelationManager::class, [
             'ownerRecord' => $member,
@@ -245,8 +244,8 @@ class QualificationTest extends TestCase
         $member->update(['suspended' => true]);
         $this->assertFalse(Qualification::canMaintain($manager, $member->fresh()));
 
+        Filament::setCurrentPanel('admin');
         $this->actingAs($oversight);
-        Filament::setCurrentPanel(Filament::getPanel('admin'));
 
         Livewire::test(QualificationsRelationManager::class, [
             'ownerRecord' => $member->fresh(),
@@ -256,9 +255,8 @@ class QualificationTest extends TestCase
             ->assertTableActionHidden('delete', $qualification)
             ->assertSee('Natural Lead Climbing');
 
+        Filament::setCurrentPanel('manage');
         $this->actingAs($manager);
-        Filament::setCurrentPanel(Filament::getPanel('manage'));
-        Filament::setTenant($team);
 
         Livewire::test(QualificationsRelationManager::class, [
             'ownerRecord' => $member->fresh(),
@@ -266,9 +264,6 @@ class QualificationTest extends TestCase
         ])->assertTableActionHidden('create');
 
         $member->update(['suspended' => false]);
-
-        $this->actingAs($manager);
-        Filament::setTenant($team);
 
         Livewire::test(QualificationsRelationManager::class, [
             'ownerRecord' => $member->fresh(),
@@ -398,7 +393,7 @@ class QualificationTest extends TestCase
         $award = Qualification::factory()->forMember($member)->mountainTraining()->create();
         $other = Qualification::factory()->forMember($manager)->mountainTraining('Mountain Leader')->create();
 
-        Filament::setCurrentPanel(Filament::getPanel('member'));
+        Filament::setCurrentPanel('member');
         $this->actingAs($member);
 
         $this->get(QualificationResource::getUrl('index'))

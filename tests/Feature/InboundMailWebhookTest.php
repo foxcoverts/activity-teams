@@ -45,7 +45,7 @@ class InboundMailWebhookTest extends TestCase
         $admin = User::factory()->systemAdmin()->create();
         $mail = InboundMail::factory()->create();
 
-        Filament::setCurrentPanel(Filament::getPanel('admin'));
+        Filament::setCurrentPanel('admin');
 
         Livewire::actingAs($admin)
             ->test(ListInboundMails::class)

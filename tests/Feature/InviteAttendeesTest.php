@@ -25,7 +25,7 @@ class InviteAttendeesTest extends TestCase
     {
         parent::setUp();
 
-        Filament::setCurrentPanel(Filament::getPanel('manage'));
+        Filament::setCurrentPanel('manage');
     }
 
     public function test_upcoming_bookings_can_be_invited_to(): void

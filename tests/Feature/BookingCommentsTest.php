@@ -32,7 +32,7 @@ class BookingCommentsTest extends TestCase
     {
         [$manager, $member, $booking] = $this->party();
 
-        Filament::setCurrentPanel(Filament::getPanel('member'));
+        Filament::setCurrentPanel('member');
         $this->actingAs($member);
 
         Livewire::test(BookingComments::class, ['record' => $booking])
@@ -56,7 +56,7 @@ class BookingCommentsTest extends TestCase
         $onlooker = User::factory()->create();
         $team->grant($onlooker, MembershipRole::Member);
 
-        Filament::setCurrentPanel(Filament::getPanel('member'));
+        Filament::setCurrentPanel('member');
 
         $this->actingAs($guest);
         Livewire::test(BookingComments::class, ['record' => $booking])->assertForbidden();
@@ -86,7 +86,7 @@ class BookingCommentsTest extends TestCase
             $member->getKey() => ['status' => BookingAttendeeStatus::Declined->value],
         ]);
 
-        Filament::setCurrentPanel(Filament::getPanel('member'));
+        Filament::setCurrentPanel('member');
         $this->actingAs($member);
 
         Livewire::test(BookingComments::class, ['record' => $booking])
@@ -112,7 +112,7 @@ class BookingCommentsTest extends TestCase
         $past->attendees()->attach($member->id, ['status' => BookingAttendeeStatus::Accepted->value]);
         $cancelled->attendees()->attach($member->id, ['status' => BookingAttendeeStatus::Accepted->value]);
 
-        Filament::setCurrentPanel(Filament::getPanel('member'));
+        Filament::setCurrentPanel('member');
         $this->actingAs($member);
 
         Livewire::test(BookingComments::class, ['record' => $past])
@@ -139,7 +139,7 @@ class BookingCommentsTest extends TestCase
             'body' => 'Please ignore this.',
         ]);
 
-        Filament::setCurrentPanel(Filament::getPanel('member'));
+        Filament::setCurrentPanel('member');
         $this->actingAs($member);
 
         Livewire::test(BookingComments::class, ['record' => $booking])
@@ -170,7 +170,7 @@ class BookingCommentsTest extends TestCase
             'body' => 'Hold this.',
         ]);
 
-        Filament::setCurrentPanel(Filament::getPanel('member'));
+        Filament::setCurrentPanel('member');
         $this->actingAs($member);
 
         Livewire::test(BookingComments::class, ['record' => $booking])
@@ -200,7 +200,7 @@ class BookingCommentsTest extends TestCase
 
         $this->travelTo('2026-11-01 17:00:00');
 
-        Filament::setCurrentPanel(Filament::getPanel('member'));
+        Filament::setCurrentPanel('member');
         $this->actingAs($member);
 
         Livewire::test(BookingComments::class, ['record' => $booking])
@@ -234,7 +234,7 @@ class BookingCommentsTest extends TestCase
             'body' => 'Manager trash',
         ]);
 
-        Filament::setCurrentPanel(Filament::getPanel('member'));
+        Filament::setCurrentPanel('member');
         $this->actingAs($member);
 
         Livewire::test(BookingComments::class, ['record' => $booking])
@@ -260,7 +260,7 @@ class BookingCommentsTest extends TestCase
             'body' => 'Mine',
         ]);
 
-        Filament::setCurrentPanel(Filament::getPanel('member'));
+        Filament::setCurrentPanel('member');
         $this->actingAs($other);
 
         Livewire::test(BookingComments::class, ['record' => $booking])
@@ -283,7 +283,7 @@ class BookingCommentsTest extends TestCase
             'updated_at' => '2026-11-01 15:32:00',
         ]);
 
-        Filament::setCurrentPanel(Filament::getPanel('member'));
+        Filament::setCurrentPanel('member');
         $this->actingAs($member);
 
         Livewire::test(BookingComments::class, ['record' => $booking])
@@ -309,7 +309,7 @@ class BookingCommentsTest extends TestCase
 
         $this->travelTo('2026-11-01 15:05:00');
 
-        Filament::setCurrentPanel(Filament::getPanel('member'));
+        Filament::setCurrentPanel('member');
         $this->actingAs($member);
 
         Livewire::test(BookingComments::class, ['record' => $booking])
@@ -343,7 +343,7 @@ class BookingCommentsTest extends TestCase
             'team_id' => $otherTeam->getKey(),
         ]);
 
-        Filament::setCurrentPanel(Filament::getPanel('member'));
+        Filament::setCurrentPanel('member');
         $this->actingAs($member);
 
         Livewire::test(BookingComments::class, ['record' => $otherBooking])->assertForbidden();
@@ -379,7 +379,7 @@ class BookingCommentsTest extends TestCase
         $absentManager = User::factory()->create();
         $team->grant($absentManager, MembershipRole::Manager);
 
-        Filament::setCurrentPanel(Filament::getPanel('member'));
+        Filament::setCurrentPanel('member');
         $comment = (new PostCommentAction)($booking, $member, 'See you at the hut.');
 
         $this->assertSame(0, $member->notifications()->count());
@@ -406,7 +406,7 @@ class BookingCommentsTest extends TestCase
 
         [$manager, $member, $booking] = $this->party();
 
-        Filament::setCurrentPanel(Filament::getPanel('member'));
+        Filament::setCurrentPanel('member');
         (new PostCommentAction)($booking, $member, 'Helmets in the porch.');
 
         Mail::assertQueued(BookingCommentMail::class, function (BookingCommentMail $mail) use ($manager): bool {
@@ -489,7 +489,7 @@ class BookingCommentsTest extends TestCase
             'created_at' => now()->subMinute(),
         ]);
 
-        Filament::setCurrentPanel(Filament::getPanel('member'));
+        Filament::setCurrentPanel('member');
         $this->actingAs($member);
 
         Livewire::test(BookingComments::class, [
@@ -521,7 +521,7 @@ class BookingCommentsTest extends TestCase
             'body' => 'From the email',
         ]);
 
-        Filament::setCurrentPanel(Filament::getPanel('member'));
+        Filament::setCurrentPanel('member');
         $url = MemberBookingResource::viewUrl($booking)
             .'?comment='.$comment->getKey();
 
@@ -547,7 +547,7 @@ class BookingCommentsTest extends TestCase
             'body' => 'Manager note',
         ]);
 
-        Filament::setCurrentPanel(Filament::getPanel('member'));
+        Filament::setCurrentPanel('member');
         $this->actingAs($member);
 
         Livewire::test(BookingComments::class, ['record' => $booking])
@@ -564,7 +564,7 @@ class BookingCommentsTest extends TestCase
     {
         [$manager, $member, $booking] = $this->party();
 
-        Filament::setCurrentPanel(Filament::getPanel('member'));
+        Filament::setCurrentPanel('member');
         $this->actingAs($member);
 
         Livewire::test(BookingComments::class, ['record' => $booking])
@@ -593,7 +593,7 @@ class BookingCommentsTest extends TestCase
             'body' => 'We left the mats out.',
         ]);
 
-        Filament::setCurrentPanel(Filament::getPanel('member'));
+        Filament::setCurrentPanel('member');
         $this->actingAs($member);
 
         Livewire::test(BookingComments::class, ['record' => $past])
@@ -611,7 +611,7 @@ class BookingCommentsTest extends TestCase
             'body' => 'Bring helmets.',
         ]);
 
-        Filament::setCurrentPanel(Filament::getPanel('member'));
+        Filament::setCurrentPanel('member');
         $this->actingAs($member);
 
         Livewire::test(BookingComments::class, ['record' => $booking])
@@ -632,7 +632,7 @@ class BookingCommentsTest extends TestCase
             'body' => 'On the booking',
         ]);
 
-        Filament::setCurrentPanel(Filament::getPanel('manage'));
+        Filament::setCurrentPanel('manage');
         $this->actingAs($manager);
 
         Livewire::test(ManageViewBooking::class, ['record' => $booking->getRouteKey()])
@@ -640,10 +640,10 @@ class BookingCommentsTest extends TestCase
             ->assertSee('On the booking')
             ->assertSee('Recent activity');
 
-        Filament::setCurrentPanel(Filament::getPanel('member'));
+        Filament::setCurrentPanel('member');
         $this->actingAs($member);
 
-        Filament::setCurrentPanel(Filament::getPanel('teams'));
+        Filament::setCurrentPanel('teams');
         Filament::setTenant($booking->team);
         Livewire::test(MemberViewBooking::class, ['record' => $booking->getRouteKey()])
             ->assertSee('Comments')

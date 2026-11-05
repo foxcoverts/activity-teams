@@ -28,10 +28,9 @@ class ViewBookingResponseTest extends TestCase
             'status' => BookingAttendeeStatus::Accepted->value,
         ]);
 
+        Filament::setCurrentPanel('teams');
         $this->actingAs($member);
 
-        Filament::setCurrentPanel(Filament::getPanel('teams'));
-        Filament::setTenant($booking->team);
         Livewire::test(ViewBooking::class, ['record' => $booking->getRouteKey()])
             ->mountAction('respond')
             ->assertActionDataSet([
@@ -39,8 +38,6 @@ class ViewBookingResponseTest extends TestCase
             ])
             ->assertMountedActionModalDontSee('Awaiting response');
 
-        Filament::setCurrentPanel(Filament::getPanel('teams'));
-        Filament::setTenant($booking->team);
         Livewire::test(ViewBooking::class, ['record' => $booking->getRouteKey()])
             ->callAction('respond', data: [
                 'response' => BookingAttendeeStatus::NeedsAction->value,
@@ -67,21 +64,18 @@ class ViewBookingResponseTest extends TestCase
             'status' => BookingAttendeeStatus::NeedsAction->value,
         ]);
 
+        Filament::setCurrentPanel('teams');
         $this->actingAs($invited);
-        Filament::setCurrentPanel(Filament::getPanel('teams'));
-        Filament::setTenant($booking->team);
         Livewire::test(ViewBooking::class, ['record' => $booking->getRouteKey()])
             ->assertActionVisible('respond');
 
+        Filament::setCurrentPanel('teams');
         $this->actingAs($uninvited);
-        Filament::setCurrentPanel(Filament::getPanel('teams'));
-        Filament::setTenant($booking->team);
         Livewire::test(ViewBooking::class, ['record' => $booking->getRouteKey()])
             ->assertActionHidden('respond');
 
+        Filament::setCurrentPanel('teams');
         $this->actingAs($manager);
-        Filament::setCurrentPanel(Filament::getPanel('teams'));
-        Filament::setTenant($booking->team);
         Livewire::test(ViewBooking::class, ['record' => $booking->getRouteKey()])
             ->assertActionVisible('respond');
     }
@@ -91,10 +85,8 @@ class ViewBookingResponseTest extends TestCase
         $booking = Booking::factory()->confirmed()->create();
         $manager = User::factory()->teamManager()->create();
 
+        Filament::setCurrentPanel('teams');
         $this->actingAs($manager);
-
-        Filament::setCurrentPanel(Filament::getPanel('teams'));
-        Filament::setTenant($booking->team);
         Livewire::test(ViewBooking::class, ['record' => $booking->getRouteKey()])
             ->callAction('respond', data: [
                 'response' => BookingAttendeeResponse::Yes->value,
@@ -124,12 +116,11 @@ class ViewBookingResponseTest extends TestCase
             'token' => BookingAttendance::generateToken(),
         ]);
 
+        Filament::setCurrentPanel('teams');
         $this->actingAs($lead);
 
         $this->assertTrue($lead->can('update', $booking->attendees()->find($lead)->attendance));
 
-        Filament::setCurrentPanel(Filament::getPanel('teams'));
-        Filament::setTenant($booking->team);
         Livewire::test(ViewBooking::class, ['record' => $booking->getRouteKey()])
             ->assertActionVisible('respond')
             ->callAction('respond', data: [

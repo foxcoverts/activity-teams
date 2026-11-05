@@ -18,7 +18,7 @@ class QualificationResourceTest extends TestCase
     {
         parent::setUp();
 
-        Filament::setCurrentPanel(Filament::getPanel('member'));
+        Filament::setCurrentPanel('member');
     }
 
     public function test_the_qualification_list_is_sorted_by_expiry(): void

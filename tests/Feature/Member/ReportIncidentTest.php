@@ -30,7 +30,7 @@ class ReportIncidentTest extends TestCase
     {
         parent::setUp();
 
-        Filament::setCurrentPanel(Filament::getPanel('member'));
+        Filament::setCurrentPanel('member');
     }
 
     public function test_a_single_team_member_queues_one_report_to_their_team_managers_with_the_reporter_copied(): void

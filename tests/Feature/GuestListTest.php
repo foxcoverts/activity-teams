@@ -36,7 +36,7 @@ class GuestListTest extends TestCase
 
     private function memberGuestList(Booking $booking): Testable
     {
-        Filament::setCurrentPanel(Filament::getPanel('member'));
+        Filament::setCurrentPanel('member');
 
         return Livewire::test(MemberAttendeesRelationManager::class, [
             'ownerRecord' => $booking,
@@ -178,7 +178,7 @@ class GuestListTest extends TestCase
             'token' => BookingAttendance::generateToken(),
         ]);
 
-        Filament::setCurrentPanel(Filament::getPanel('member'));
+        Filament::setCurrentPanel('member');
         $this->actingAs($member);
 
         Livewire::test(MemberAttendeesRelationManager::class, [
@@ -199,7 +199,7 @@ class GuestListTest extends TestCase
         $manager = User::factory()->teamManager()->create();
         $booking = Booking::factory()->confirmed()->create();
 
-        Filament::setCurrentPanel(Filament::getPanel('member'));
+        Filament::setCurrentPanel('member');
         $this->actingAs(User::factory()->guest()->create());
 
         Livewire::test(MemberAttendeesRelationManager::class, [
@@ -210,7 +210,7 @@ class GuestListTest extends TestCase
 
     public function test_manage_guest_list_is_grouped_and_retains_attendance_actions(): void
     {
-        Filament::setCurrentPanel(Filament::getPanel('manage'));
+        Filament::setCurrentPanel('manage');
 
         $manager = User::factory()->teamManager()->create();
         $team = $manager->managedTeams()->firstOrFail();

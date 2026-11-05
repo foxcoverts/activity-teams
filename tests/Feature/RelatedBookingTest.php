@@ -30,7 +30,7 @@ class RelatedBookingTest extends TestCase
     {
         [$manager, $saturday, $sunday] = $this->weekend();
 
-        Filament::setCurrentPanel(Filament::getPanel('manage'));
+        Filament::setCurrentPanel('manage');
         $this->actingAs($manager);
 
         Livewire::test(RelatedBookings::class, [
@@ -51,7 +51,7 @@ class RelatedBookingTest extends TestCase
         [$manager, $saturday, $sunday] = $this->weekend();
         $saturday->relate($sunday);
 
-        Filament::setCurrentPanel(Filament::getPanel('manage'));
+        Filament::setCurrentPanel('manage');
         $this->actingAs($manager);
 
         Livewire::test(RelatedBookings::class, [
@@ -82,7 +82,7 @@ class RelatedBookingTest extends TestCase
             'timezone' => 'Europe/London',
         ]);
 
-        Filament::setCurrentPanel(Filament::getPanel('manage'));
+        Filament::setCurrentPanel('manage');
         $this->actingAs($manager);
 
         Livewire::test(RelatedBookings::class, [
@@ -113,7 +113,7 @@ class RelatedBookingTest extends TestCase
             'group_name' => 'Archery camp',
         ]);
 
-        Filament::setCurrentPanel(Filament::getPanel('manage'));
+        Filament::setCurrentPanel('manage');
         $this->actingAs($manager);
 
         $this->assertFalse($manager->can('relate', [$saturday, $foreign]));
@@ -147,7 +147,7 @@ class RelatedBookingTest extends TestCase
 
         $this->assertFalse($member->can('relate', [$saturday, $sunday]));
 
-        Filament::setCurrentPanel(Filament::getPanel('member'));
+        Filament::setCurrentPanel('member');
         $this->actingAs($member);
 
         Livewire::test(RelatedBookings::class, [
@@ -183,7 +183,7 @@ class RelatedBookingTest extends TestCase
         ]);
         $saturday->relate($hidden);
 
-        Filament::setCurrentPanel(Filament::getPanel('member'));
+        Filament::setCurrentPanel('member');
         $this->actingAs($member);
 
         Livewire::test(RelatedBookings::class, [
@@ -194,7 +194,7 @@ class RelatedBookingTest extends TestCase
             ->assertDontSee('Leaders only')
             ->assertDontSee('No related bookings.');
 
-        Filament::setCurrentPanel(Filament::getPanel('teams'));
+        Filament::setCurrentPanel('teams');
         Filament::setTenant($saturday->team);
         Livewire::test(MemberViewBooking::class, ['record' => $saturday->getRouteKey()])
             ->assertDontSee('Related bookings')
@@ -209,7 +209,7 @@ class RelatedBookingTest extends TestCase
         $team->grant($member, MembershipRole::Member);
         $saturday->relate($sunday);
 
-        Filament::setCurrentPanel(Filament::getPanel('manage'));
+        Filament::setCurrentPanel('manage');
         $this->actingAs($manager);
 
         $manageUrl = BookingResource::getUrl(
@@ -229,13 +229,11 @@ class RelatedBookingTest extends TestCase
         Livewire::test(ManageEditBooking::class, ['record' => $saturday->getRouteKey()])
             ->assertDontSee('Related bookings');
 
-        Filament::setCurrentPanel(Filament::getPanel('member'));
+        Filament::setCurrentPanel('teams');
         $this->actingAs($member);
 
         $memberUrl = \App\Filament\Member\Resources\Bookings\BookingResource::viewUrl($sunday);
 
-        Filament::setCurrentPanel(Filament::getPanel('teams'));
-        Filament::setTenant($saturday->team);
         Livewire::test(MemberViewBooking::class, ['record' => $saturday->getRouteKey()])
             ->assertSee('Related bookings')
             ->assertSee($sunday->relatedLabel())
@@ -250,11 +248,9 @@ class RelatedBookingTest extends TestCase
         $member = User::factory()->create();
         $team->grant($member, MembershipRole::Member);
 
-        Filament::setCurrentPanel(Filament::getPanel('member'));
+        Filament::setCurrentPanel('teams');
         $this->actingAs($member);
 
-        Filament::setCurrentPanel(Filament::getPanel('teams'));
-        Filament::setTenant($saturday->team);
         Livewire::test(MemberViewBooking::class, ['record' => $saturday->getRouteKey()])
             ->assertDontSee('Related bookings');
     }

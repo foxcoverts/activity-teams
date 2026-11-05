@@ -38,7 +38,7 @@ class OverrideAttendanceTest extends TestCase
     {
         parent::setUp();
 
-        Filament::setCurrentPanel(Filament::getPanel('manage'));
+        Filament::setCurrentPanel('manage');
     }
 
     public function test_a_manager_can_record_attendance_from_the_roster(): void

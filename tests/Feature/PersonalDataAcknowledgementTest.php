@@ -46,7 +46,7 @@ class PersonalDataAcknowledgementTest extends TestCase
 
     public function test_details_are_not_in_the_page_until_acknowledged(): void
     {
-        Filament::setCurrentPanel(Filament::getPanel('manage'));
+        Filament::setCurrentPanel('manage');
         $this->actingAs($this->leader);
 
         $this->get(MemberResource::getUrl('view', ['record' => $this->member]))
@@ -57,7 +57,7 @@ class PersonalDataAcknowledgementTest extends TestCase
             ->assertDontSee('Sam Emergency')
             ->assertDontSee('07000333444');
 
-        Filament::setCurrentPanel(Filament::getPanel('admin'));
+        Filament::setCurrentPanel('admin');
         $this->actingAs(User::factory()->oversight()->create());
 
         $this->get(UserResource::getUrl('view', ['record' => $this->member]))
@@ -71,7 +71,7 @@ class PersonalDataAcknowledgementTest extends TestCase
 
     public function test_each_section_is_acknowledged_separately(): void
     {
-        Filament::setCurrentPanel(Filament::getPanel('manage'));
+        Filament::setCurrentPanel('manage');
         $this->actingAs($this->leader);
 
         Livewire::test(ViewMember::class, ['record' => $this->member->getKey()])
@@ -98,7 +98,7 @@ class PersonalDataAcknowledgementTest extends TestCase
     {
         $other = User::factory()->teamMember()->create(['email' => 'other@example.test']);
 
-        Filament::setCurrentPanel(Filament::getPanel('admin'));
+        Filament::setCurrentPanel('admin');
         $this->actingAs(User::factory()->oversight()->create());
 
         Livewire::test(ViewUser::class, ['record' => $this->member->getKey()])
@@ -110,7 +110,7 @@ class PersonalDataAcknowledgementTest extends TestCase
 
     public function test_an_acknowledgement_lasts_thirty_minutes_then_expires(): void
     {
-        Filament::setCurrentPanel(Filament::getPanel('manage'));
+        Filament::setCurrentPanel('manage');
         $this->actingAs($this->leader);
 
         Livewire::test(ViewMember::class, ['record' => $this->member->getKey()])
@@ -132,7 +132,7 @@ class PersonalDataAcknowledgementTest extends TestCase
         $managerTeam = $this->leader->managedTeams()->first();
         $deputy = User::factory()->teamManager($managerTeam)->create();
 
-        Filament::setCurrentPanel(Filament::getPanel('manage'));
+        Filament::setCurrentPanel('manage');
         $this->actingAs($deputy);
         Livewire::test(ViewMember::class, ['record' => $this->member->getKey()])
             ->call('acknowledgePersonalData', PersonalDataSection::ContactDetails->value);
@@ -146,7 +146,7 @@ class PersonalDataAcknowledgementTest extends TestCase
     {
         $this->leader->update(['email' => 'leader@example.test', 'emergency_name' => 'Lee Emergency']);
 
-        Filament::setCurrentPanel(Filament::getPanel('manage'));
+        Filament::setCurrentPanel('manage');
         $this->actingAs($this->leader);
 
         Livewire::test(ViewMember::class, ['record' => $this->leader->getKey()])
@@ -164,7 +164,7 @@ class PersonalDataAcknowledgementTest extends TestCase
 
         $this->assertFalse($outsider->can('view', $this->member));
 
-        Filament::setCurrentPanel(Filament::getPanel('manage'));
+        Filament::setCurrentPanel('manage');
         $this->actingAs($outsider);
 
         $this->get(MemberResource::getUrl('view', ['record' => $this->member], tenant: $outsiderTeam))
@@ -177,7 +177,7 @@ class PersonalDataAcknowledgementTest extends TestCase
     {
         $admin = User::factory()->systemAdmin()->create();
 
-        Filament::setCurrentPanel(Filament::getPanel('admin'));
+        Filament::setCurrentPanel('admin');
         $this->actingAs($admin);
 
         $this->get(UserResource::getUrl('index'))
@@ -200,9 +200,8 @@ class PersonalDataAcknowledgementTest extends TestCase
 
     public function test_the_member_edit_form_hides_details_until_acknowledged(): void
     {
-        Filament::setCurrentPanel(Filament::getPanel('manage'));
+        Filament::setCurrentPanel('manage');
         $this->actingAs($this->leader);
-        Filament::setTenant($this->leader->teams()->first());
 
         Livewire::test(EditMember::class, ['record' => $this->member->getKey()])
             ->assertSee('I have a legitimate reason to view these details')
@@ -234,7 +233,7 @@ class PersonalDataAcknowledgementTest extends TestCase
 
     public function test_only_system_admins_can_set_access_flags(): void
     {
-        Filament::setCurrentPanel(Filament::getPanel('admin'));
+        Filament::setCurrentPanel('admin');
         $this->actingAs(User::factory()->oversight()->create());
 
         Livewire::test(EditUser::class, ['record' => $this->member->getKey()])
@@ -288,7 +287,7 @@ class PersonalDataAcknowledgementTest extends TestCase
             'email_verified_at' => now(),
         ])->save();
 
-        Filament::setCurrentPanel(Filament::getPanel('admin'));
+        Filament::setCurrentPanel('admin');
         $this->actingAs(User::factory()->oversight()->create());
 
         Livewire::test(ViewUser::class, ['record' => $this->member->getKey()])
@@ -333,7 +332,7 @@ class PersonalDataAcknowledgementTest extends TestCase
 
     public function test_the_member_screen_shows_whether_their_email_is_verified(): void
     {
-        Filament::setCurrentPanel(Filament::getPanel('manage'));
+        Filament::setCurrentPanel('manage');
         $this->actingAs($this->leader);
 
         Livewire::test(ViewMember::class, ['record' => $this->member->getKey()])
@@ -349,7 +348,7 @@ class PersonalDataAcknowledgementTest extends TestCase
 
     public function test_an_unknown_section_is_rejected(): void
     {
-        Filament::setCurrentPanel(Filament::getPanel('manage'));
+        Filament::setCurrentPanel('manage');
         $this->actingAs($this->leader);
 
         Livewire::test(ViewMember::class, ['record' => $this->member->getKey()])

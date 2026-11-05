@@ -41,7 +41,7 @@ class AddBookingTest extends TestCase
     {
         parent::setUp();
 
-        Filament::setCurrentPanel(Filament::getPanel('manage'));
+        Filament::setCurrentPanel('manage');
     }
 
     public function test_team_leader_can_create_a_booking(): void
@@ -111,7 +111,6 @@ class AddBookingTest extends TestCase
         Activity::factory()->create();
 
         $this->actingAs($manager);
-        Filament::setTenant($team);
 
         Livewire::test(CreateBooking::class)
             ->fillForm([
@@ -195,7 +194,6 @@ class AddBookingTest extends TestCase
         Activity::factory()->create();
 
         $this->actingAs($manager);
-        Filament::setTenant($team);
 
         foreach (['24', '25'] as $day) {
             Livewire::test(CreateBooking::class)
@@ -278,7 +276,6 @@ class AddBookingTest extends TestCase
         $originalSequence = $booking->sequence;
 
         $this->actingAs($manager);
-        Filament::setTenant($team);
         Event::fake([BookingChanged::class]);
 
         Livewire::test(EditBooking::class, ['record' => $booking->getRouteKey()])
@@ -384,7 +381,6 @@ class AddBookingTest extends TestCase
         $team = $manager->managedTeams()->firstOrFail();
 
         $this->actingAs($manager);
-        Filament::setTenant($team);
 
         Livewire::test(ListBookings::class)
             ->assertActionEnabled('create');
@@ -441,7 +437,6 @@ class AddBookingTest extends TestCase
         $otherTeam->addVenue($venue);
 
         $this->actingAs($manager);
-        Filament::setTenant($team);
 
         Livewire::test(CreateBooking::class)
             ->callFormComponentAction('venue_id', 'createOption', [
@@ -462,7 +457,6 @@ class AddBookingTest extends TestCase
         Activity::factory()->create();
 
         $this->actingAs($manager);
-        Filament::setTenant($team);
 
         Livewire::test(CreateBooking::class)
             ->callFormComponentAction('venue_id', 'createOption', [
@@ -489,7 +483,6 @@ class AddBookingTest extends TestCase
         $otherTeam->addVenue($venue);
 
         $this->actingAs($manager);
-        Filament::setTenant($team);
 
         Livewire::test(CreateBooking::class)
             ->fillForm([

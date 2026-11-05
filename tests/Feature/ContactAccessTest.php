@@ -310,11 +310,10 @@ class ContactAccessTest extends TestCase
     public function test_the_guest_list_offers_contact_details_only_where_they_may_be_viewed(): void
     {
         Carbon::setTestNow('2026-11-10 12:00:00');
-        Filament::setCurrentPanel(Filament::getPanel('member'));
+
+        Filament::setCurrentPanel('teams');
         $this->actingAs($this->attendee);
 
-        Filament::setCurrentPanel(Filament::getPanel('teams'));
-        Filament::setTenant($this->booking->team);
         Livewire::test(MemberAttendeesRelationManager::class, ['ownerRecord' => $this->booking, 'pageClass' => MemberViewBooking::class])
             ->assertSee('Lee Lead')
             ->assertSee('Emergency')
@@ -322,14 +321,10 @@ class ContactAccessTest extends TestCase
             ->mountTableAction('contactPhone', $this->lead)
             ->assertMountedActionModalSee('legitimate team matters');
 
-        Filament::setCurrentPanel(Filament::getPanel('teams'));
-        Filament::setTenant($this->booking->team);
         Livewire::test(MemberAttendeesRelationManager::class, ['ownerRecord' => $this->booking, 'pageClass' => MemberViewBooking::class])
             ->mountTableAction('contactPhone', $this->maybe)
             ->assertTableActionNotMounted('contactPhone');
 
-        Filament::setCurrentPanel(Filament::getPanel('teams'));
-        Filament::setTenant($this->booking->team);
         Livewire::test(MemberAttendeesRelationManager::class, ['ownerRecord' => $this->booking, 'pageClass' => MemberViewBooking::class])
             ->mountTableAction('emergencyContact', $this->maybe)
             ->assertTableActionNotMounted('emergencyContact');
@@ -338,7 +333,7 @@ class ContactAccessTest extends TestCase
     public function test_no_button_is_offered_for_a_detail_the_person_has_not_shared(): void
     {
         Carbon::setTestNow('2026-11-10 12:00:00');
-        Filament::setCurrentPanel(Filament::getPanel('member'));
+        Filament::setCurrentPanel('member');
         $this->lead->forceFill(['phone' => null, 'emergency_phone' => null])->save();
         $this->actingAs($this->attendee);
 

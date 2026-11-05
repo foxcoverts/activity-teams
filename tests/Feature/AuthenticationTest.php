@@ -46,7 +46,7 @@ class AuthenticationTest extends TestCase
         $managedTeam = Team::factory()->create(['name' => 'Archery']);
         $managedTeam->grant($manager, MembershipRole::Manager);
 
-        Filament::setCurrentPanel(Filament::getPanel('member'));
+        Filament::setCurrentPanel('member');
         $this->actingAs($manager);
 
         $this->get('/bookings')
@@ -175,7 +175,7 @@ class AuthenticationTest extends TestCase
     {
         $oversight = User::factory()->oversight()->create();
 
-        Filament::setCurrentPanel(Filament::getPanel('member'));
+        Filament::setCurrentPanel('member');
         $this->actingAs($oversight);
 
         $this->get('/dashboard')
@@ -191,7 +191,7 @@ class AuthenticationTest extends TestCase
             'email' => 'Ada@Example.COM',
         ]);
 
-        Filament::setCurrentPanel(Filament::getPanel('member'));
+        Filament::setCurrentPanel('member');
         $this->actingAs($user);
 
         $this->get('/dashboard')
@@ -207,7 +207,7 @@ class AuthenticationTest extends TestCase
     {
         $manager = User::factory()->teamManager()->create();
 
-        Filament::setCurrentPanel(Filament::getPanel('member'));
+        Filament::setCurrentPanel('member');
         $this->actingAs($manager);
 
         $this->get('/bookings')
@@ -234,7 +234,7 @@ class AuthenticationTest extends TestCase
         $zebra = Team::factory()->create(['name' => 'Zebra']);
         $admin = User::factory()->systemAdmin()->teamManager($zebra)->create();
 
-        Filament::setCurrentPanel(Filament::getPanel('member'));
+        Filament::setCurrentPanel('member');
         $this->actingAs($admin);
 
         $this->get('/bookings')
@@ -258,7 +258,7 @@ class AuthenticationTest extends TestCase
         $this->get('/manage')
             ->assertRedirect('/manage/'.$alpha->slug);
 
-        Filament::setCurrentPanel(Filament::getPanel('member'));
+        Filament::setCurrentPanel('member');
 
         $this->get('/bookings')
             ->assertOk()
@@ -271,7 +271,7 @@ class AuthenticationTest extends TestCase
         $team = Team::factory()->create();
         $membersUrl = Filament::getPanel('member')->getUrl();
 
-        Filament::setCurrentPanel(Filament::getPanel('admin'));
+        Filament::setCurrentPanel('admin');
         $this->actingAs($admin)
             ->get('/admin')
             ->assertOk()
@@ -331,14 +331,14 @@ class AuthenticationTest extends TestCase
     {
         $admin = User::factory()->systemAdmin()->create();
 
-        Filament::setCurrentPanel(Filament::getPanel('member'));
+        Filament::setCurrentPanel('member');
         $this->actingAs($admin)
             ->get('/dashboard')
             ->assertOk()
             ->assertSee('Admin')
             ->assertDontSee('Manage');
 
-        Filament::setCurrentPanel(Filament::getPanel('admin'));
+        Filament::setCurrentPanel('admin');
         $this->actingAs($admin)
             ->get('/admin')
             ->assertOk()

@@ -34,7 +34,7 @@ class NewsPostsTest extends TestCase
     {
         parent::setUp();
 
-        Filament::setCurrentPanel(Filament::getPanel('manage'));
+        Filament::setCurrentPanel('manage');
     }
 
     public function test_manage_news_posts_table_can_be_accessed(): void
@@ -43,7 +43,6 @@ class NewsPostsTest extends TestCase
         $team = $manager->managedTeams()->first();
 
         $this->actingAs($manager);
-        Filament::setTenant($team);
 
         $posts = NewsPost::factory()->forTeam($team)->count(4)->create();
         $trashedPosts = NewsPost::factory()->forTeam($team)->trashed()->count(3)->create();
@@ -78,7 +77,6 @@ class NewsPostsTest extends TestCase
         $team = $manager->managedTeams()->first();
 
         $this->actingAs($manager);
-        Filament::setTenant($team);
 
         $post = NewsPost::factory()->forTeam($team)->{$status}()->create([
             'title' => $label.' News Post',
@@ -105,7 +103,6 @@ class NewsPostsTest extends TestCase
         $team = $manager->managedTeams()->first();
 
         $this->actingAs($manager);
-        Filament::setTenant($team);
 
         // Sort: published_at
 
@@ -150,7 +147,6 @@ class NewsPostsTest extends TestCase
         $team = $manager->managedTeams()->first();
 
         $this->actingAs($manager);
-        Filament::setTenant($team);
 
         $draftPosts = NewsPost::factory()->forTeam($team)->draft()->count(5)->create();
         $publishedPosts = NewsPost::factory()->forTeam($team)->published()->count(5)->create();
@@ -178,7 +174,6 @@ class NewsPostsTest extends TestCase
         $team = $manager->managedTeams()->first();
 
         $this->actingAs($manager);
-        Filament::setTenant($team);
 
         $draftPost = NewsPost::factory()->forTeam($team)->draft()->create();
         $this->freezeTime();
@@ -201,7 +196,6 @@ class NewsPostsTest extends TestCase
         $team = $manager->managedTeams()->first();
 
         $this->actingAs($manager);
-        Filament::setTenant($team);
 
         $draftPost = NewsPost::factory()->forTeam($team)->draft()->create();
         $this->freezeTime();
@@ -229,7 +223,6 @@ class NewsPostsTest extends TestCase
         $team = $manager->managedTeams()->first();
 
         $this->actingAs($manager);
-        Filament::setTenant($team);
 
         $publishedPost = NewsPost::factory()->forTeam($team)->published()->create();
         $this->freezeTime();
@@ -249,7 +242,6 @@ class NewsPostsTest extends TestCase
         $team = $manager->managedTeams()->first();
 
         $this->actingAs($manager);
-        Filament::setTenant($team);
 
         $scheduledPost = NewsPost::factory()->forTeam($team)->scheduled()->create();
         $this->freezeTime();
@@ -269,7 +261,6 @@ class NewsPostsTest extends TestCase
         $team = $manager->managedTeams()->first();
 
         $this->actingAs($manager);
-        Filament::setTenant($team);
 
         $post = NewsPost::factory()->forTeam($team)->published()->create([
             'body' => "Meet at the **wall**.\n\n- Bring shoes",
@@ -287,7 +278,6 @@ class NewsPostsTest extends TestCase
         $team = $manager->managedTeams()->first();
 
         $this->actingAs($manager);
-        Filament::setTenant($team);
 
         $draft = NewsPost::factory()->forTeam($team)->draft()->create();
 
@@ -329,7 +319,6 @@ class NewsPostsTest extends TestCase
         $member = User::factory()->teamMember($team)->create();
 
         $this->actingAs($manager);
-        Filament::setTenant($team);
 
         $scheduled = NewsPost::factory()->forTeam($team)->scheduled()->create();
         $this->freezeTime();
@@ -349,7 +338,6 @@ class NewsPostsTest extends TestCase
         $post = NewsPost::factory()->forTeam($team)->draft()->create();
 
         $this->actingAs($manager);
-        Filament::setTenant($team);
         $this->freezeTime();
 
         Livewire::test(ViewNewsPost::class, ['record' => $post->slug])
@@ -374,7 +362,6 @@ class NewsPostsTest extends TestCase
         $post = NewsPost::factory()->forTeam($team)->draft()->create();
 
         $this->actingAs($manager);
-        Filament::setTenant($team);
         $this->freezeTime();
 
         Livewire::test(ViewNewsPost::class, ['record' => $post->slug])
@@ -395,7 +382,6 @@ class NewsPostsTest extends TestCase
         ]);
 
         $this->actingAs($manager);
-        Filament::setTenant($team);
         $this->freezeTime();
         $publishedAt = now()->subDays(3)->seconds(0);
 
@@ -413,7 +399,7 @@ class NewsPostsTest extends TestCase
 
         $this->assertSame(0, $member->notifications()->count());
 
-        Filament::setCurrentPanel(Filament::getPanel('member'));
+        Filament::setCurrentPanel('member');
         $this->actingAs($member)
             ->get(MemberNewsPostResource::getUrl('index', panel: 'member'))
             ->assertOk()
@@ -428,7 +414,6 @@ class NewsPostsTest extends TestCase
         ]);
 
         $this->actingAs($manager);
-        Filament::setTenant($team);
         $this->freezeTime();
         $scheduledAt = now()->addDays(2)->seconds(0);
 
@@ -437,7 +422,7 @@ class NewsPostsTest extends TestCase
                 'published_at' => $scheduledAt,
             ]);
 
-        Filament::setCurrentPanel(Filament::getPanel('member'));
+        Filament::setCurrentPanel('member');
         $this->actingAs($member)
             ->get(MemberNewsPostResource::getUrl('index', panel: 'member'))
             ->assertOk()
@@ -467,7 +452,7 @@ class NewsPostsTest extends TestCase
             'author_id' => $managerA->getKey(),
         ]);
 
-        Filament::setCurrentPanel(Filament::getPanel('member'));
+        Filament::setCurrentPanel('member');
 
         $this->actingAs($memberA)
             ->get(MemberNewsPostResource::getUrl('index', panel: 'member'))
@@ -526,7 +511,7 @@ class NewsPostsTest extends TestCase
         NewsPost::factory()->forTeam($alpha)->published()->create(['title' => 'Alpha wall night']);
         NewsPost::factory()->forTeam($bravo)->draft()->create(['title' => 'Bravo draft']);
 
-        Filament::setCurrentPanel(Filament::getPanel('member'));
+        Filament::setCurrentPanel('member');
 
         $this->actingAs($member)
             ->get(MemberNewsPostResource::getUrl('index', panel: 'member'))
@@ -547,7 +532,6 @@ class NewsPostsTest extends TestCase
         ]);
 
         $this->actingAs($manager);
-        Filament::setTenant($team);
         $this->freezeTime();
 
         Livewire::test(ViewNewsPost::class, ['record' => $post->slug])
@@ -564,7 +548,7 @@ class NewsPostsTest extends TestCase
         app(CombinedDigest::class)->send($member);
         Mail::assertNothingOutgoing();
 
-        Filament::setCurrentPanel(Filament::getPanel('member'));
+        Filament::setCurrentPanel('member');
         $member->forceFill(['feed_token' => User::generateToken()])->save();
 
         $this->actingAs($member)
@@ -584,7 +568,6 @@ class NewsPostsTest extends TestCase
         ]);
 
         $this->actingAs($manager);
-        Filament::setTenant($team);
         Livewire::test(ViewNewsPost::class, ['record' => $post->slug])
             ->callAction('publish');
 
@@ -633,7 +616,7 @@ class NewsPostsTest extends TestCase
         $this->get($rss)->assertOk();
         $this->get($ics)->assertOk();
 
-        Filament::setCurrentPanel(Filament::getPanel('member'));
+        Filament::setCurrentPanel('member');
         $this->actingAs($member);
 
         Livewire::test(Feeds::class)
@@ -654,7 +637,7 @@ class NewsPostsTest extends TestCase
             'feed_token' => User::generateToken(),
         ]);
 
-        Filament::setCurrentPanel(Filament::getPanel('member'));
+        Filament::setCurrentPanel('member');
         $this->actingAs($member);
 
         $this->get('/dashboard')

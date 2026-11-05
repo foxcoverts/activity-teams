@@ -200,7 +200,7 @@ class AudienceQualificationTest extends TestCase
 
     public function test_a_new_booking_uses_the_team_activity_default_audience(): void
     {
-        Filament::setCurrentPanel(Filament::getPanel('manage'));
+        Filament::setCurrentPanel('manage');
 
         $manager = User::factory()->teamManager()->create();
         $team = $manager->managedTeams()->firstOrFail();

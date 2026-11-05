@@ -28,7 +28,7 @@ class ActivityQualificationRequirementTest extends TestCase
     {
         parent::setUp();
 
-        Filament::setCurrentPanel(Filament::getPanel('admin'));
+        Filament::setCurrentPanel('admin');
     }
 
     public function test_an_activity_with_no_rows_accepts_a_member_with_no_qualifications(): void

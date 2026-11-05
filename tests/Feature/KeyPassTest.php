@@ -10,16 +10,16 @@ use App\Filament\Manage\Resources\Keys\Pages\ListKeys as ManageListKeys;
 use App\Filament\Member\Resources\Keys\KeyResource as MemberKeyResource;
 use App\Filament\Member\Resources\Keys\Pages\ListKeys as MemberListKeys;
 use App\Models\Activity;
-use App\Models\Lock;
 use App\Models\Key;
+use App\Models\Lock;
 use App\Models\Team;
 use App\Models\TeamInvitation;
 use App\Models\User;
 use App\Models\Venue;
 use App\Notifications\KeyPassedFromNotification;
-use App\Support\InboundMailAddress;
 use App\Notifications\KeyPassedToNotification;
 use App\Notifications\KeyReturnedToCupboardNotification;
+use App\Support\InboundMailAddress;
 use Filament\Actions\Testing\TestAction;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\Select;
@@ -43,7 +43,7 @@ class KeyPassTest extends TestCase
         $receiver = User::factory()->teamMember($team)->create(['name' => 'Alex Receiver']);
         $ring = $this->heldRing($holder, $key, 'Shared climbing');
 
-        Filament::setCurrentPanel(Filament::getPanel('member'));
+        Filament::setCurrentPanel('member');
         $this->actingAs($holder);
 
         Livewire::test(MemberListKeys::class)
@@ -314,7 +314,7 @@ class KeyPassTest extends TestCase
         ]);
         $ring = $this->heldRing($holder, $key);
 
-        Filament::setCurrentPanel(Filament::getPanel('manage'));
+        Filament::setCurrentPanel('manage');
         $this->actingAs($manager);
 
         Livewire::test(ManageListKeys::class)
@@ -373,13 +373,13 @@ class KeyPassTest extends TestCase
         $member = User::factory()->teamMember($team)->create();
         $ring = $this->heldRing($holder, $key);
 
-        Filament::setCurrentPanel(Filament::getPanel('member'));
+        Filament::setCurrentPanel('member');
         $this->actingAs($member);
 
         $this->get(MemberKeyResource::getUrl('view', ['record' => $ring]))
             ->assertNotFound();
 
-        Filament::setCurrentPanel(Filament::getPanel('manage'));
+        Filament::setCurrentPanel('manage');
         $this->actingAs($member);
 
         $this->get(ManageKeyResource::getUrl('index', tenant: $team))

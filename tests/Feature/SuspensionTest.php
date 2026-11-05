@@ -50,13 +50,7 @@ class SuspensionTest extends TestCase
         $this->member = User::factory()->create(['name' => 'Alex Member']);
         $this->team->grant($this->member, MembershipRole::Member);
 
-        Filament::setCurrentPanel(Filament::getPanel('manage'));
-    }
-
-    private function actAs(User $user): void
-    {
-        $this->actingAs($user);
-        Filament::setTenant($this->team);
+        Filament::setCurrentPanel('manage');
     }
 
     public function test_a_manager_suspends_and_restores_a_member_from_the_edit_page(): void
@@ -66,7 +60,7 @@ class SuspensionTest extends TestCase
         $booking = Booking::factory()->confirmed()->create(['team_id' => $this->team->getKey()]);
         $booking->attendees()->attach($this->member->getKey(), ['status' => BookingAttendeeStatus::Accepted->value]);
 
-        $this->actAs($this->manager);
+        $this->actingAs($this->manager);
 
         Livewire::test(EditMember::class, ['record' => $this->member->getKey()])
             ->assertActionVisible(TestAction::make('suspend'))
@@ -98,7 +92,7 @@ class SuspensionTest extends TestCase
 
     public function test_suspending_is_separate_from_leaving_and_keeps_the_record(): void
     {
-        $this->actAs($this->manager);
+        $this->actingAs($this->manager);
 
         Livewire::test(EditMember::class, ['record' => $this->member->getKey()])
             ->callAction(TestAction::make('suspend'));
@@ -112,7 +106,7 @@ class SuspensionTest extends TestCase
 
     public function test_suspension_is_recorded_in_the_activity_log_with_who_did_it(): void
     {
-        $this->actAs($this->manager);
+        $this->actingAs($this->manager);
 
         Livewire::test(EditMember::class, ['record' => $this->member->getKey()])
             ->callAction(TestAction::make('suspend'));
@@ -143,7 +137,7 @@ class SuspensionTest extends TestCase
             SuspensionActions::suspend($this->member)->getModalDescription(),
         );
 
-        $this->actAs($this->manager);
+        $this->actingAs($this->manager);
         Livewire::test(EditMember::class, ['record' => $this->member->getKey()])
             ->callAction(TestAction::make('suspend'));
 
@@ -219,7 +213,7 @@ class SuspensionTest extends TestCase
         $plainMember = User::factory()->systemAdmin()->create();
         $this->team->grant($plainMember, MembershipRole::Member);
 
-        $this->actAs($this->manager);
+        $this->actingAs($this->manager);
 
         Livewire::test(EditMember::class, ['record' => $this->manager->getKey()])
             ->assertActionHidden(TestAction::make('suspend'));
@@ -229,8 +223,8 @@ class SuspensionTest extends TestCase
     {
         $admin = User::factory()->systemAdmin()->create();
 
-        Filament::setCurrentPanel(Filament::getPanel('admin'));
-        $this->actAs($admin);
+        Filament::setCurrentPanel('admin');
+        $this->actingAs($admin);
 
         Livewire::test(EditUser::class, ['record' => $this->member->getKey()])
             ->callAction(TestAction::make('suspend'))
@@ -256,7 +250,7 @@ class SuspensionTest extends TestCase
             $this->manager->teamsLeftWithoutActiveManager()->pluck('name')->all(),
         );
 
-        $this->actAs($admin);
+        $this->actingAs($admin);
 
         $this->assertStringContainsString(
             'would have no active manager',
@@ -271,7 +265,7 @@ class SuspensionTest extends TestCase
     public function test_a_suspended_person_has_no_access_even_when_already_signed_in(): void
     {
         $booking = Booking::factory()->confirmed()->create(['team_id' => $this->team->getKey()]);
-        $this->actAs($this->member);
+        $this->actingAs($this->member);
 
         $this->get(MemberBookingResource::viewUrl($booking))->assertOk();
 
@@ -285,7 +279,7 @@ class SuspensionTest extends TestCase
     {
         $this->manager->forceFill(['suspended' => true])->save();
 
-        $this->actAs($this->manager);
+        $this->actingAs($this->manager);
 
         $this->get('/manage')->assertForbidden();
         $this->assertFalse($this->manager->manages($this->team));
@@ -300,7 +294,7 @@ class SuspensionTest extends TestCase
         $booking->attendees()->attach($this->member->getKey(), ['status' => BookingAttendeeStatus::Accepted->value]);
         $this->member->forceFill(['suspended' => true])->save();
 
-        $this->actAs($this->manager);
+        $this->actingAs($this->manager);
 
         $this->assertTrue($this->manager->can('view', $this->member));
         $this->assertTrue($this->manager->can('update', $this->member));
@@ -345,22 +339,19 @@ class SuspensionTest extends TestCase
         $this->team->grant($teammate, MembershipRole::Member);
         $this->member->forceFill(['suspended' => true])->save();
 
-        $this->actAs($teammate);
-        Filament::setCurrentPanel(Filament::getPanel('teams'));
-        Filament::setTenant($booking->team);
+        Filament::setCurrentPanel('teams');
+        $this->actingAs($teammate);
         Livewire::test(MemberAttendeesRelationManager::class, ['ownerRecord' => $booking, 'pageClass' => MemberViewBooking::class])
             ->assertDontSee('Alex Member');
 
-        $this->actAs($this->manager);
-        Filament::setCurrentPanel(Filament::getPanel('teams'));
-        Filament::setTenant($booking->team);
+        $this->actingAs($this->manager);
         Livewire::test(MemberAttendeesRelationManager::class, ['ownerRecord' => $booking, 'pageClass' => MemberViewBooking::class])
             ->assertSee('Alex Member');
     }
 
     public function test_the_member_list_does_not_offer_suspension(): void
     {
-        $this->actAs($this->manager);
+        $this->actingAs($this->manager);
 
         $this->get(MemberResource::getUrl('index', panel: 'manage', tenant: $this->team))
             ->assertOk()

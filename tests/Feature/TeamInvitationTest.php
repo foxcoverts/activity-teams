@@ -98,9 +98,8 @@ class TeamInvitationTest extends TestCase
     public function test_a_system_admin_can_invite_without_managing_the_team(): void
     {
         $admin = User::factory()->systemAdmin()->create();
-        Filament::setCurrentPanel(Filament::getPanel('manage'));
+        Filament::setCurrentPanel('manage');
         $this->actingAs($admin);
-        Filament::setTenant($this->team);
 
         Livewire::test(ListMembers::class)
             ->assertActionVisible('add')
@@ -138,14 +137,13 @@ class TeamInvitationTest extends TestCase
     public function test_an_oversight_account_cannot_invite(): void
     {
         $oversight = User::factory()->oversight()->create();
-        Filament::setCurrentPanel(Filament::getPanel('manage'));
+        Filament::setCurrentPanel('manage');
         $this->actingAs($oversight);
-        Filament::setTenant($this->team);
 
         Livewire::test(ListMembers::class)
             ->assertForbidden();
 
-        Filament::setCurrentPanel(Filament::getPanel('admin'));
+        Filament::setCurrentPanel('admin');
 
         Livewire::test(ListUsers::class)
             ->assertActionHidden('add');
@@ -511,7 +509,7 @@ class TeamInvitationTest extends TestCase
 
     private function actAsManager(): void
     {
-        Filament::setCurrentPanel(Filament::getPanel('manage'));
+        Filament::setCurrentPanel('manage');
         $this->actingAs($this->manager);
         Filament::setTenant($this->team);
     }

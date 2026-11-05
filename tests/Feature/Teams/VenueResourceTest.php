@@ -24,19 +24,17 @@ class VenueResourceTest extends TestCase
     {
         parent::setUp();
 
-        Filament::setCurrentPanel(Filament::getPanel('teams'));
+        Filament::setCurrentPanel('teams');
     }
 
     public function test_the_venue_list_is_sorted_by_name(): void
     {
         $manager = User::factory()->teamManager()->create();
-        $team = $manager->managedTeams()->firstOrFail();
         $zebra = Venue::factory()->create(['name' => 'Zebra']);
         $archery = Venue::factory()->create(['name' => 'Archery']);
         $climbing = Venue::factory()->create(['name' => 'Climbing']);
 
         $this->actingAs($manager);
-        Filament::setTenant($team);
 
         Livewire::test(ListVenues::class)
             ->assertCanSeeTableRecords([$archery, $climbing, $zebra], inOrder: true);
@@ -48,7 +46,6 @@ class VenueResourceTest extends TestCase
         $team = $manager->managedTeams()->firstOrFail();
 
         $this->actingAs($manager);
-        Filament::setTenant($team);
 
         Livewire::test(CreateVenue::class)
             ->fillForm([
@@ -73,7 +70,6 @@ class VenueResourceTest extends TestCase
     public function test_the_venue_creation_wizard_can_review_and_return_to_a_similar_venue(): void
     {
         $manager = User::factory()->teamManager()->create();
-        $team = $manager->managedTeams()->firstOrFail();
         $venue = Venue::factory()->create([
             'name' => 'Similar Hall',
             'street' => '1 Example Road',
@@ -81,7 +77,6 @@ class VenueResourceTest extends TestCase
         ]);
 
         $this->actingAs($manager);
-        Filament::setTenant($team);
 
         Livewire::test(CreateVenue::class)
             ->assertSeeText('Create venue')
@@ -113,14 +108,12 @@ class VenueResourceTest extends TestCase
     public function test_choosing_the_new_venue_option_clears_a_selected_similar_venue_and_creates_it(): void
     {
         $manager = User::factory()->teamManager()->create();
-        $team = $manager->managedTeams()->firstOrFail();
         $venue = Venue::factory()->create([
             'name' => 'Similar Hall',
             'postcode' => 'AB1 2CD',
         ]);
 
         $this->actingAs($manager);
-        Filament::setTenant($team);
 
         Livewire::test(CreateVenue::class)
             ->fillForm([
@@ -144,10 +137,8 @@ class VenueResourceTest extends TestCase
     public function test_a_manager_creates_venues_through_the_wizard_without_the_give_action(): void
     {
         $manager = User::factory()->teamManager()->create();
-        $team = $manager->managedTeams()->firstOrFail();
 
         $this->actingAs($manager);
-        Filament::setTenant($team);
 
         Livewire::test(ListVenues::class)
             ->assertActionVisible('create')
@@ -182,7 +173,6 @@ class VenueResourceTest extends TestCase
         $team->addVenue($venue);
 
         $this->actingAs($manager);
-        Filament::setTenant($team);
 
         Livewire::test(EditVenue::class, ['record' => $venue->getKey()])
             ->fillForm(['name' => 'Updated Team Hall'])
@@ -198,13 +188,11 @@ class VenueResourceTest extends TestCase
     public function test_shared_catalog_venue_cannot_be_edited_by_a_manager(): void
     {
         $manager = User::factory()->teamManager()->create();
-        $team = $manager->managedTeams()->firstOrFail();
         $venue = Venue::factory()->create(['name' => 'Shared Hall']);
         $otherTeam = Team::factory()->create();
         $otherTeam->addVenue($venue);
 
         $this->actingAs($manager);
-        Filament::setTenant($team);
 
         $this->assertFalse($manager->can('update', $venue));
 
@@ -226,7 +214,6 @@ class VenueResourceTest extends TestCase
         $venue = Venue::factory()->create(['name' => 'Removed Team Hall']);
 
         $this->actingAs($manager);
-        Filament::setTenant($team);
 
         Livewire::test(ListVenues::class)
             ->callTableAction('remove', $venue);

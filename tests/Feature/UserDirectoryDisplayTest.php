@@ -30,7 +30,7 @@ class UserDirectoryDisplayTest extends TestCase
         $declined = TeamInvitation::factory()->siteAccess(false, false)->declined()->create()->user;
         $notInvited = User::factory()->placeholder()->create();
 
-        Filament::setCurrentPanel(Filament::getPanel('admin'));
+        Filament::setCurrentPanel('admin');
         $this->actingAs($admin);
 
         Livewire::test(ListUsers::class)
@@ -52,7 +52,7 @@ class UserDirectoryDisplayTest extends TestCase
         $member = User::factory()->create();
         $suspendedAdmin = User::factory()->systemAdmin()->suspended()->create();
 
-        Filament::setCurrentPanel(Filament::getPanel('admin'));
+        Filament::setCurrentPanel('admin');
         $this->actingAs($admin);
 
         Livewire::test(ListUsers::class)
@@ -69,7 +69,7 @@ class UserDirectoryDisplayTest extends TestCase
         $archery = Team::factory()->create();
         $admin = User::factory()->systemAdmin()->oversight()->teamManager($climbing)->teamMember($archery)->create();
 
-        Filament::setCurrentPanel(Filament::getPanel('admin'));
+        Filament::setCurrentPanel('admin');
         $this->actingAs($admin);
 
         Livewire::test(ViewUser::class, ['record' => $admin->getKey()])
@@ -88,7 +88,7 @@ class UserDirectoryDisplayTest extends TestCase
         $admin = User::factory()->systemAdmin()->create();
         $member = User::factory()->teamMember()->create();
 
-        Filament::setCurrentPanel(Filament::getPanel('admin'));
+        Filament::setCurrentPanel('admin');
         $this->actingAs($admin);
 
         Livewire::test(ViewUser::class, ['record' => $member->getKey()])
@@ -104,7 +104,7 @@ class UserDirectoryDisplayTest extends TestCase
     {
         $admin = User::factory()->systemAdmin()->create();
 
-        Filament::setCurrentPanel(Filament::getPanel('admin'));
+        Filament::setCurrentPanel('admin');
         $this->actingAs($admin);
 
         Livewire::test(ViewUser::class, ['record' => $admin->getKey()])
@@ -121,7 +121,7 @@ class UserDirectoryDisplayTest extends TestCase
         $admin = User::factory()->systemAdmin()->create();
         $suspended = User::factory()->suspended()->create();
 
-        Filament::setCurrentPanel(Filament::getPanel('admin'));
+        Filament::setCurrentPanel('admin');
         $this->actingAs($admin);
 
         Livewire::test(ViewUser::class, ['record' => $suspended->getKey()])

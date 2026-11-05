@@ -129,7 +129,7 @@ class KeyAccessTest extends TestCase
 
     public function test_a_system_admin_configures_keys_and_rings_and_a_manager_cannot(): void
     {
-        Filament::setCurrentPanel(Filament::getPanel('admin'));
+        Filament::setCurrentPanel('admin');
 
         $admin = User::factory()->systemAdmin()->create();
         $manager = User::factory()->teamManager()->create();
@@ -215,7 +215,7 @@ class KeyAccessTest extends TestCase
 
     public function test_a_manager_sees_every_holder_of_the_keys_their_team_needs(): void
     {
-        Filament::setCurrentPanel(Filament::getPanel('manage'));
+        Filament::setCurrentPanel('manage');
 
         $team = Team::factory()->create();
         $manager = User::factory()->create();
@@ -288,7 +288,7 @@ class KeyAccessTest extends TestCase
         $own->locks()->attach($wardenKey);
         Key::factory()->heldBy($other)->create(['name' => 'Someone else']);
 
-        Filament::setCurrentPanel(Filament::getPanel('member'));
+        Filament::setCurrentPanel('member');
         $this->actingAs($member);
 
         $this->get(MemberKeyResource::getUrl('index'))
@@ -336,7 +336,7 @@ class KeyAccessTest extends TestCase
         $door = Lock::factory()->create(['name' => 'Front door']);
         Key::factory()->heldBy($other)->create(['name' => 'Door ring'])->locks()->attach($door);
 
-        Filament::setCurrentPanel(Filament::getPanel('manage'));
+        Filament::setCurrentPanel('manage');
         $this->actingAs($manager);
 
         Livewire::test(ManageViewBooking::class, ['record' => $booking->getRouteKey()])
@@ -425,7 +425,7 @@ class KeyAccessTest extends TestCase
             ]);
         }
 
-        Filament::setCurrentPanel(Filament::getPanel('member'));
+        Filament::setCurrentPanel('member');
         $this->actingAs($lead);
 
         $this->get(BookingResource::viewUrl($booking))
@@ -471,10 +471,9 @@ class KeyAccessTest extends TestCase
             ->mountTableAction('qualifications', $holder)
             ->assertTableActionNotMounted('qualifications');
 
+        Filament::setCurrentPanel('teams');
         $this->actingAs($lead);
 
-        Filament::setCurrentPanel(Filament::getPanel('teams'));
-        Filament::setTenant($booking->team);
         Livewire::test(MemberViewBooking::class, ['record' => $booking->getRouteKey()])
             ->assertActionHasIcon('keys', Heroicon::Key)
             ->mountAction('keys')
@@ -507,7 +506,7 @@ class KeyAccessTest extends TestCase
 
     public function test_the_members_list_shows_and_filters_the_keys_the_team_needs(): void
     {
-        Filament::setCurrentPanel(Filament::getPanel('manage'));
+        Filament::setCurrentPanel('manage');
 
         $team = Team::factory()->create();
         $manager = User::factory()->create();
@@ -548,7 +547,6 @@ class KeyAccessTest extends TestCase
         Key::factory()->heldBy($shooter)->create(['name' => 'Shooting ring'])->locks()->attach($guns);
 
         $this->actingAs($manager);
-        Filament::setTenant($team);
 
         Livewire::test(ListMembers::class)
             ->assertCanSeeTableRecords([$climber, $warden, $shooter])
@@ -619,7 +617,7 @@ class KeyAccessTest extends TestCase
             'token' => BookingAttendance::generateToken(),
         ]);
 
-        Filament::setCurrentPanel(Filament::getPanel('manage'));
+        Filament::setCurrentPanel('manage');
         $this->actingAs($manager);
 
         $memberUrl = MemberResource::getUrl('view', ['record' => $uninvited], tenant: $team);
@@ -679,7 +677,7 @@ class KeyAccessTest extends TestCase
         ]);
         Key::factory()->heldBy($holder)->create(['name' => 'Shared climbing'])->locks()->attach($store);
 
-        Filament::setCurrentPanel(Filament::getPanel('manage'));
+        Filament::setCurrentPanel('manage');
         $this->actingAs($manager);
 
         $page = Livewire::test(ManageViewBooking::class, ['record' => $booking->getRouteKey()])

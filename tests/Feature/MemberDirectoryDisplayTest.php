@@ -3,8 +3,8 @@
 namespace Tests\Feature;
 
 use App\Enums\AccountStatus;
-use App\Enums\MembershipRole;
 use App\Enums\AgeGroup;
+use App\Enums\MembershipRole;
 use App\Filament\Manage\Resources\Members\Pages\ListMembers;
 use App\Filament\Manage\Resources\Members\Pages\ViewMember;
 use App\Models\TeamInvitation;
@@ -33,7 +33,7 @@ class MemberDirectoryDisplayTest extends TestCase
             'user_id' => $invited->getKey(),
         ]);
 
-        Filament::setCurrentPanel(Filament::getPanel('manage'));
+        Filament::setCurrentPanel('manage');
         $this->actingAs($manager);
 
         Livewire::test(ListMembers::class)
@@ -50,7 +50,7 @@ class MemberDirectoryDisplayTest extends TestCase
     {
         $manager = User::factory()->teamManager()->create();
 
-        Filament::setCurrentPanel(Filament::getPanel('manage'));
+        Filament::setCurrentPanel('manage');
         $this->actingAs($manager);
 
         Livewire::test(ViewMember::class, ['record' => $manager->getKey()])
@@ -66,7 +66,7 @@ class MemberDirectoryDisplayTest extends TestCase
         $team = $manager->managedTeams()->first();
         $suspended = User::factory()->teamMember($team)->create(['suspended' => true]);
 
-        Filament::setCurrentPanel(Filament::getPanel('manage'));
+        Filament::setCurrentPanel('manage');
         $this->actingAs($manager);
 
         Livewire::test(ViewMember::class, ['record' => $suspended->getKey()])
@@ -83,7 +83,7 @@ class MemberDirectoryDisplayTest extends TestCase
 
         $under18 = User::factory()->teamMember($team)->underEighteen()->create();
 
-        Filament::setCurrentPanel(Filament::getPanel('manage'));
+        Filament::setCurrentPanel('manage');
         $this->actingAs($manager);
 
         Livewire::test(ViewMember::class, ['record' => $under18->getKey()])

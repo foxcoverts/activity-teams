@@ -43,9 +43,8 @@ class TeamsPanelResourcesTest extends TestCase
         $this->climbing->grant($this->member, MembershipRole::Member);
         $this->archery->grant($this->member, MembershipRole::Member);
 
+        Filament::setCurrentPanel('teams');
         $this->actingAs($this->member);
-        Filament::setCurrentPanel(Filament::getPanel('teams'));
-        Filament::setTenant($this->climbing);
     }
 
     public function test_bookings_are_scoped_to_the_active_team(): void

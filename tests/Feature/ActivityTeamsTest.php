@@ -48,7 +48,7 @@ class ActivityTeamsTest extends TestCase
     {
         parent::setUp();
 
-        Filament::setCurrentPanel(Filament::getPanel('manage'));
+        Filament::setCurrentPanel('manage');
     }
 
     public function test_a_person_can_belong_to_more_than_one_team(): void
@@ -91,7 +91,7 @@ class ActivityTeamsTest extends TestCase
         $admin = User::factory()->systemAdmin()->teamManager($climbing)->teamMember($archery)->create();
         $member = User::factory()->teamMember($climbing)->create();
 
-        Filament::setCurrentPanel(Filament::getPanel('admin'));
+        Filament::setCurrentPanel('admin');
         $this->actingAs($admin);
 
         Livewire::test(ListUsers::class)
@@ -127,7 +127,7 @@ class ActivityTeamsTest extends TestCase
         $member = User::factory()->teamMember($team)->create();
         $membership = $manager->memberships()->first();
 
-        Filament::setCurrentPanel(Filament::getPanel('manage'));
+        Filament::setCurrentPanel('manage');
         $this->actingAs($manager);
 
         Livewire::test(ListMembers::class)
@@ -139,7 +139,7 @@ class ActivityTeamsTest extends TestCase
 
         $oversight = User::factory()->oversight()->create();
 
-        Filament::setCurrentPanel(Filament::getPanel('admin'));
+        Filament::setCurrentPanel('admin');
         $this->actingAs($oversight);
 
         Livewire::test(MembershipsRelationManager::class, [
@@ -152,7 +152,7 @@ class ActivityTeamsTest extends TestCase
 
         $team->grant($member, MembershipRole::Manager);
 
-        Filament::setCurrentPanel(Filament::getPanel('manage'));
+        Filament::setCurrentPanel('manage');
         $this->actingAs($manager);
 
         Livewire::test(ListMembers::class)
@@ -282,7 +282,7 @@ class ActivityTeamsTest extends TestCase
             'emergency_phone' => '07000333444',
         ]);
 
-        Filament::setCurrentPanel(Filament::getPanel('admin'));
+        Filament::setCurrentPanel('admin');
         $this->actingAs($oversight);
 
         $this->get(UserResource::getUrl('index'))
@@ -357,7 +357,7 @@ class ActivityTeamsTest extends TestCase
         $admin = User::factory()->systemAdmin()->create();
         $manager = User::factory()->create();
 
-        Filament::setCurrentPanel(Filament::getPanel('admin'));
+        Filament::setCurrentPanel('admin');
         $this->actingAs($admin);
 
         Livewire::test(CreateTeam::class)
@@ -380,7 +380,7 @@ class ActivityTeamsTest extends TestCase
         $admin = User::factory()->systemAdmin()->create();
         $team = Team::factory()->create();
 
-        Filament::setCurrentPanel(Filament::getPanel('admin'));
+        Filament::setCurrentPanel('admin');
         $this->actingAs($admin);
 
         Livewire::test(EditTeam::class, ['record' => $team->slug])
@@ -402,7 +402,7 @@ class ActivityTeamsTest extends TestCase
         $team = Team::factory()->create();
         Team::factory()->create(['slug' => 'taken-slug']);
 
-        Filament::setCurrentPanel(Filament::getPanel('admin'));
+        Filament::setCurrentPanel('admin');
         $this->actingAs($admin);
 
         Livewire::test(EditTeam::class, ['record' => $team->slug])
@@ -423,7 +423,7 @@ class ActivityTeamsTest extends TestCase
         $admin = User::factory()->systemAdmin()->create();
         $team = Team::factory()->create(['slug' => 'kept-team']);
 
-        Filament::setCurrentPanel(Filament::getPanel('admin'));
+        Filament::setCurrentPanel('admin');
         $this->actingAs($admin);
 
         Livewire::test(EditTeam::class, ['record' => $team->slug])
@@ -444,7 +444,7 @@ class ActivityTeamsTest extends TestCase
         $admin = User::factory()->systemAdmin()->create();
         $team = Team::factory()->create();
 
-        Filament::setCurrentPanel(Filament::getPanel('admin'));
+        Filament::setCurrentPanel('admin');
         $this->actingAs($admin);
 
         Livewire::test(ListTeams::class)
@@ -483,7 +483,7 @@ class ActivityTeamsTest extends TestCase
 
         $this->assertTrue($team->activities()->whereKey($activity->getKey())->exists());
 
-        Filament::setCurrentPanel(Filament::getPanel('admin'));
+        Filament::setCurrentPanel('admin');
         $this->actingAs($admin);
 
         Livewire::test(CreateActivity::class)
@@ -512,9 +512,8 @@ class ActivityTeamsTest extends TestCase
         $activity = Activity::factory()->create(['name' => 'Scout climbing']);
         $venue = Venue::factory()->create(['name' => 'Campsite']);
 
-        $this->actingAs($admin);
-        Filament::setTenant($team->fresh());
         Filament::setCurrentPanel('manage');
+        $this->actingAs($admin);
 
         Livewire::test(ListActivities::class)
             ->callAction('give', data: [
@@ -607,7 +606,7 @@ class ActivityTeamsTest extends TestCase
         $this->assertFalse($admin->can('update', $attendance));
         $this->assertFalse($admin->can('create', [BookingAttendance::class, $booking]));
 
-        Filament::setCurrentPanel(Filament::getPanel('admin'));
+        Filament::setCurrentPanel('admin');
 
         Livewire::test(ListTeams::class)
             ->assertSee('Casey Manager')
@@ -619,13 +618,12 @@ class ActivityTeamsTest extends TestCase
         $outsideTeam = Team::factory()->create();
         $outsider = User::factory()->teamManager($outsideTeam)->create();
 
-        Filament::setCurrentPanel(Filament::getPanel('manage'));
+        Filament::setCurrentPanel('manage');
         $this->actingAs($outsider);
         $this->get(ActivityResource::getUrl('index', tenant: $team))->assertNotFound();
         $this->get(MemberResource::getUrl('index', tenant: $team))->assertNotFound();
 
         $this->actingAs($manager);
-        Filament::setTenant($team);
 
         Livewire::test(ListActivities::class)
             ->callAction('give', data: [

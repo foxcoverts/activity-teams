@@ -18,7 +18,7 @@ class InboundMailResourceTest extends TestCase
     {
         parent::setUp();
 
-        Filament::setCurrentPanel(Filament::getPanel('admin'));
+        Filament::setCurrentPanel('admin');
     }
 
     public function test_the_inbound_mail_list_shows_the_newest_message_first(): void

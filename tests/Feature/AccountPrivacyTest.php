@@ -109,7 +109,7 @@ class AccountPrivacyTest extends TestCase
         $this->assertFalse($admin->can('suspend', $manager));
         $this->assertFalse(Qualification::canMaintain($admin, $manager));
 
-        Filament::setCurrentPanel(Filament::getPanel('admin'));
+        Filament::setCurrentPanel('admin');
         $this->actingAs($admin);
 
         Livewire::test(EditUser::class, ['record' => $manager->getKey()])
@@ -120,7 +120,7 @@ class AccountPrivacyTest extends TestCase
             ->assertActionHidden('edit')
             ->assertActionVisible('restore');
 
-        Filament::setCurrentPanel(Filament::getPanel('manage'));
+        Filament::setCurrentPanel('manage');
         Filament::setTenant($team);
 
         Livewire::test(ViewMember::class, ['record' => $manager->getKey()])
@@ -155,7 +155,7 @@ class AccountPrivacyTest extends TestCase
         $admin = User::factory()->systemAdmin()->create();
         $member = User::factory()->deleted()->create(['name' => 'Deleted Holder']);
 
-        Filament::setCurrentPanel(Filament::getPanel('admin'));
+        Filament::setCurrentPanel('admin');
         $this->actingAs($admin);
 
         Livewire::test(CreateKey::class)
@@ -176,7 +176,7 @@ class AccountPrivacyTest extends TestCase
         $ring = Key::factory()->heldBy($holder)->create(['name' => 'Store keys']);
         $holder->delete();
 
-        Filament::setCurrentPanel(Filament::getPanel('admin'));
+        Filament::setCurrentPanel('admin');
         $this->actingAs($admin);
 
         Livewire::test(EditKey::class, ['record' => $ring->getKey()])
@@ -237,7 +237,7 @@ class AccountPrivacyTest extends TestCase
         $this->assertTrue($placeholder->trashed());
         $this->assertFalse($placeholder->isPlaceholder());
 
-        Filament::setCurrentPanel(Filament::getPanel('admin'));
+        Filament::setCurrentPanel('admin');
         $this->actingAs($oversight);
 
         Livewire::test(ListUsers::class)
@@ -274,7 +274,7 @@ class AccountPrivacyTest extends TestCase
 
     public function test_first_user_register_requires_privacy_acknowledgement(): void
     {
-        Filament::setCurrentPanel(Filament::getPanel('member'));
+        Filament::setCurrentPanel('member');
 
         Livewire::test(Register::class)
             ->fillForm([
@@ -293,7 +293,7 @@ class AccountPrivacyTest extends TestCase
     {
         $user = User::factory()->teamMember()->create();
 
-        Filament::setCurrentPanel(Filament::getPanel('member'));
+        Filament::setCurrentPanel('member');
         $this->actingAs($user);
 
         Livewire::test(EditProfile::class)

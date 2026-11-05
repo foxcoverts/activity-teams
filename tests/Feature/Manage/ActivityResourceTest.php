@@ -18,7 +18,7 @@ class ActivityResourceTest extends TestCase
     {
         parent::setUp();
 
-        Filament::setCurrentPanel(Filament::getPanel('manage'));
+        Filament::setCurrentPanel('manage');
     }
 
     public function test_the_activity_list_is_sorted_by_name(): void

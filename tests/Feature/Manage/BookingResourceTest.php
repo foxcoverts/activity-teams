@@ -18,7 +18,7 @@ class BookingResourceTest extends TestCase
     {
         parent::setUp();
 
-        Filament::setCurrentPanel(Filament::getPanel('manage'));
+        Filament::setCurrentPanel('manage');
     }
 
     public function test_the_booking_list_is_sorted_by_start_time(): void

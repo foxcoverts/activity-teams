@@ -36,7 +36,7 @@ class InboxTest extends TestCase
         $this->assertStringContainsString($booking->activity->name, $mail);
         $this->assertNotSame($row->data['body'], trim(strip_tags($mail)));
 
-        Filament::setCurrentPanel(Filament::getPanel('member'));
+        Filament::setCurrentPanel('member');
         $this->actingAs($manager);
 
         $this->assertSame(1, InboxResource::unreadCount());
@@ -74,7 +74,7 @@ class InboxTest extends TestCase
         ]);
         $manager->notify(new LeadNeededNotification($booking, null));
 
-        Filament::setCurrentPanel(Filament::getPanel('manage'));
+        Filament::setCurrentPanel('manage');
         $this->actingAs($manager);
 
         Livewire::test(Topbar::class)
@@ -102,7 +102,7 @@ class InboxTest extends TestCase
         $row = $manager->notifications()->first();
         $row->forceFill(['created_at' => '2026-11-01 15:32:00'])->save();
 
-        Filament::setCurrentPanel(Filament::getPanel('member'));
+        Filament::setCurrentPanel('member');
         $this->actingAs($manager);
 
         Livewire::test(ListNotifications::class)
@@ -125,7 +125,7 @@ class InboxTest extends TestCase
         $newer = $manager->notifications()->whereKeyNot($older->getKey())->first();
         $newer->markReadForDelivery();
 
-        Filament::setCurrentPanel(Filament::getPanel('member'));
+        Filament::setCurrentPanel('member');
         $this->actingAs($manager);
 
         Livewire::test(ListNotifications::class)
@@ -149,7 +149,7 @@ class InboxTest extends TestCase
         $read = $manager->notifications()->whereKeyNot($unread->getKey())->first();
         $read->markReadForDelivery();
 
-        Filament::setCurrentPanel(Filament::getPanel('member'));
+        Filament::setCurrentPanel('member');
         $this->actingAs($manager);
 
         Livewire::test(ListNotifications::class)
@@ -181,7 +181,7 @@ class InboxTest extends TestCase
         $selected = $manager->notifications()->oldest()->first();
         $other = $manager->notifications()->whereKeyNot($selected->getKey())->first();
 
-        Filament::setCurrentPanel(Filament::getPanel('member'));
+        Filament::setCurrentPanel('member');
         $this->actingAs($manager);
 
         Livewire::test(ListNotifications::class)
@@ -204,7 +204,7 @@ class InboxTest extends TestCase
         $selected = $manager->notifications()->oldest()->first();
         $other = $manager->notifications()->whereKeyNot($selected->getKey())->first();
 
-        Filament::setCurrentPanel(Filament::getPanel('member'));
+        Filament::setCurrentPanel('member');
         $this->actingAs($manager);
 
         Livewire::test(ListNotifications::class)
@@ -225,7 +225,7 @@ class InboxTest extends TestCase
         $manager->notify(new LeadNeededNotification($booking, null));
         $rows = $manager->notifications()->get();
 
-        Filament::setCurrentPanel(Filament::getPanel('member'));
+        Filament::setCurrentPanel('member');
         $this->actingAs($manager);
 
         Livewire::test(ListNotifications::class)
@@ -248,7 +248,7 @@ class InboxTest extends TestCase
         $row = $manager->notifications()->first();
         $other = User::factory()->teamMember()->create();
 
-        Filament::setCurrentPanel(Filament::getPanel('member'));
+        Filament::setCurrentPanel('member');
         $this->actingAs($other);
 
         Livewire::test(ListNotifications::class)
@@ -265,7 +265,7 @@ class InboxTest extends TestCase
         $row = $manager->notifications()->first();
         $other = User::factory()->teamMember()->create();
 
-        Filament::setCurrentPanel(Filament::getPanel('member'));
+        Filament::setCurrentPanel('member');
         $this->actingAs($other);
 
         $this->get(InboxResource::getUrl('view', ['record' => $row], panel: 'member'))

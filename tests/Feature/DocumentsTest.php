@@ -29,7 +29,7 @@ class DocumentsTest extends TestCase
         parent::setUp();
 
         Storage::fake('local');
-        Filament::setCurrentPanel(Filament::getPanel('manage'));
+        Filament::setCurrentPanel('manage');
     }
 
     public function test_guests_are_redirected_from_documents(): void
@@ -46,7 +46,6 @@ class DocumentsTest extends TestCase
         $team = $manager->managedTeams()->first();
 
         $this->actingAs($manager);
-        Filament::setTenant($team);
 
         Livewire::test(CreateDocument::class)
             ->fillForm([
@@ -75,7 +74,6 @@ class DocumentsTest extends TestCase
         $team = $manager->managedTeams()->first();
 
         $this->actingAs($manager);
-        Filament::setTenant($team);
 
         Livewire::test(CreateDocument::class)
             ->fillForm([
@@ -96,7 +94,6 @@ class DocumentsTest extends TestCase
         ]);
 
         $this->actingAs($manager);
-        Filament::setTenant($team);
 
         Livewire::test(EditDocument::class, ['record' => $document->getKey()])
             ->fillForm([
@@ -126,7 +123,6 @@ class DocumentsTest extends TestCase
         $oldPath = $document->file_path;
 
         $this->actingAs($manager);
-        Filament::setTenant($team);
 
         Livewire::test(EditDocument::class, ['record' => $document->getKey()])
             ->fillForm([
@@ -160,7 +156,6 @@ class DocumentsTest extends TestCase
         $path = $document->file_path;
 
         $this->actingAs($manager);
-        Filament::setTenant($team);
 
         Livewire::test(EditDocument::class, ['record' => $document->getKey()])
             ->callAction(DeleteAction::class);
@@ -199,7 +194,6 @@ class DocumentsTest extends TestCase
         ]);
 
         $this->actingAs($manager);
-        Filament::setTenant($team);
 
         Livewire::test(ListDocuments::class)
             ->assertCanSeeTableRecords([$alpha, $middle, $zebra], inOrder: true)
@@ -215,7 +209,6 @@ class DocumentsTest extends TestCase
         $team = $manager->managedTeams()->first();
 
         $this->actingAs($manager);
-        Filament::setTenant($team);
 
         $documents = Document::factory()->forTeam($team)->count(3)->create([
             'uploader_id' => $manager->getKey(),
@@ -242,7 +235,6 @@ class DocumentsTest extends TestCase
         $document = Document::factory()->forTeam($team)->create();
 
         $this->actingAs($admin);
-        Filament::setTenant($team);
 
         Livewire::test(ListDocuments::class)
             ->assertSuccessful()
@@ -261,7 +253,6 @@ class DocumentsTest extends TestCase
         $team = $manager->managedTeams()->first();
 
         $this->actingAs($manager);
-        Filament::setTenant($team);
 
         Livewire::test(CreateDocument::class)
             ->fillForm([
@@ -289,7 +280,6 @@ class DocumentsTest extends TestCase
         $other = Document::factory()->forTeam($otherTeam)->create();
 
         $this->actingAs($manager);
-        Filament::setTenant($team);
 
         Livewire::test(ListDocuments::class)
             ->assertCanSeeTableRecords([$own])

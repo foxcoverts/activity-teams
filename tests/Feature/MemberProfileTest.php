@@ -23,7 +23,7 @@ class MemberProfileTest extends TestCase
             'phone' => '+447700900000',
         ]);
 
-        Filament::setCurrentPanel(Filament::getPanel('member'));
+        Filament::setCurrentPanel('member');
         $this->actingAs($user);
 
         Livewire::test(EditProfile::class)
@@ -51,7 +51,7 @@ class MemberProfileTest extends TestCase
     {
         $user = User::factory()->teamMember()->create(['email' => 'old@example.com']);
 
-        Filament::setCurrentPanel(Filament::getPanel('member'));
+        Filament::setCurrentPanel('member');
         $this->actingAs($user);
 
         Livewire::test(EditProfile::class)
@@ -75,7 +75,7 @@ class MemberProfileTest extends TestCase
             'email' => 'Ada@Example.COM',
         ]);
 
-        Filament::setCurrentPanel(Filament::getPanel('member'));
+        Filament::setCurrentPanel('member');
         $this->actingAs($user);
 
         Livewire::test(EditProfile::class)
@@ -96,7 +96,7 @@ class MemberProfileTest extends TestCase
     {
         $admin = User::factory()->systemAdmin()->create();
 
-        Filament::setCurrentPanel(Filament::getPanel('member'));
+        Filament::setCurrentPanel('member');
         $this->actingAs($admin);
 
         Livewire::test(EditProfile::class)
@@ -142,7 +142,7 @@ class MemberProfileTest extends TestCase
     {
         $user = User::factory()->teamMember()->create();
 
-        Filament::setCurrentPanel(Filament::getPanel('member'));
+        Filament::setCurrentPanel('member');
         $this->actingAs($user);
 
         $this->assertFalse(ChangePassword::shouldRegisterNavigation());
@@ -158,7 +158,7 @@ class MemberProfileTest extends TestCase
     {
         $user = User::factory()->teamMember()->create();
 
-        Filament::setCurrentPanel(Filament::getPanel('member'));
+        Filament::setCurrentPanel('member');
         $this->actingAs($user);
 
         Livewire::test(ChangePassword::class)
@@ -179,8 +179,8 @@ class MemberProfileTest extends TestCase
         $admin = User::factory()->systemAdmin()->create();
         $member = User::factory()->teamMember()->create(['name' => 'Alex Member']);
 
+        Filament::setCurrentPanel('admin');
         $this->actingAs($admin);
-        Filament::setCurrentPanel(Filament::getPanel('admin'));
 
         Livewire::test(EditUser::class, ['record' => $member->getKey()])
             ->assertSee('Only the user can change their own password.');
