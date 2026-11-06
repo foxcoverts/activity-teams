@@ -15,13 +15,13 @@ use App\Filament\Admin\Resources\Users\Pages\ViewUser;
 use App\Filament\Admin\Resources\Users\RelationManagers\MembershipsRelationManager;
 use App\Filament\Admin\Resources\Users\UserResource;
 use App\Filament\Manage\Resources\Bookings\BookingResource;
-use App\Filament\Manage\Resources\Members\MemberResource;
-use App\Filament\Manage\Resources\Members\Pages\ListMembers;
-use App\Filament\Manage\Resources\Members\Pages\ViewMember;
 use App\Filament\RelationManagers\QualificationsRelationManager;
 use App\Filament\Teams\Resources\Activities\ActivityResource;
 use App\Filament\Teams\Resources\Activities\Pages\ListActivities;
 use App\Filament\Teams\Resources\Keys\KeyResource;
+use App\Filament\Teams\Resources\Members\MemberResource;
+use App\Filament\Teams\Resources\Members\Pages\ListMembers;
+use App\Filament\Teams\Resources\Members\Pages\ViewMember;
 use App\Filament\Teams\Resources\Venues\Pages\ListVenues;
 use App\Models\Activity;
 use App\Models\Booking;
@@ -127,7 +127,7 @@ class ActivityTeamsTest extends TestCase
         $member = User::factory()->teamMember($team)->create();
         $membership = $manager->memberships()->first();
 
-        Filament::setCurrentPanel('manage');
+        Filament::setCurrentPanel('teams');
         $this->actingAs($manager);
 
         Livewire::test(ListMembers::class)
@@ -152,7 +152,7 @@ class ActivityTeamsTest extends TestCase
 
         $team->grant($member, MembershipRole::Manager);
 
-        Filament::setCurrentPanel('manage');
+        Filament::setCurrentPanel('teams');
         $this->actingAs($manager);
 
         Livewire::test(ListMembers::class)
@@ -244,6 +244,7 @@ class ActivityTeamsTest extends TestCase
         $this->assertFalse($member->can('viewAny', User::class));
         $this->assertTrue($manager->can('view', $member));
 
+        Filament::setCurrentPanel('teams');
         $this->actingAs($manager);
 
         Livewire::test(ListMembers::class)
@@ -538,8 +539,6 @@ class ActivityTeamsTest extends TestCase
             ->assertOk()
             ->assertSee('Climbing keys');
 
-        Filament::setCurrentPanel('teams');
-
         Livewire::test(ListActivities::class)
             ->callTableAction('remove', $activity);
 
@@ -548,8 +547,6 @@ class ActivityTeamsTest extends TestCase
 
         $this->assertFalse($team->fresh()->activities()->whereKey($activity->getKey())->exists());
         $this->assertFalse($team->fresh()->venues()->whereKey($venue->getKey())->exists());
-
-        Filament::setCurrentPanel('manage');
 
         $this->get(MemberResource::getUrl('index'))
             ->assertOk()
@@ -587,6 +584,8 @@ class ActivityTeamsTest extends TestCase
 
         $this->assertInstanceOf(Qualification::class, $member->qualifications()->first());
 
+        Filament::setCurrentPanel('manage');
+
         $booking = Booking::factory()->forTeam($team)->create();
         $booking->attendees()->attach($member->getKey(), [
             'status' => BookingAttendeeStatus::Accepted->value,
@@ -605,20 +604,18 @@ class ActivityTeamsTest extends TestCase
             ->assertSee('Casey Manager')
             ->assertSee('No managers')
             ->assertSeeHtml('fi-ta-placeholder')
-            ->assertSeeHtml(MemberResource::getUrl('index', panel: 'manage', tenant: $team))
-            ->assertDontSeeHtml(MemberResource::getUrl('index', panel: 'manage', tenant: $empty));
+            ->assertSeeHtml(MemberResource::getUrl('index', panel: 'teams', tenant: $team))
+            ->assertDontSeeHtml(MemberResource::getUrl('index', panel: 'teams', tenant: $empty));
 
         $outsideTeam = Team::factory()->create();
         $outsider = User::factory()->teamManager($outsideTeam)->create();
 
-        Filament::setCurrentPanel('manage');
+        Filament::setCurrentPanel('teams');
         $this->actingAs($outsider);
         $this->get(MemberResource::getUrl('index', tenant: $team))->assertNotFound();
 
-        Filament::setCurrentPanel('teams');
         $this->get(ActivityResource::getUrl('index', tenant: $team))->assertNotFound();
 
-        Filament::setCurrentPanel('teams');
         $this->actingAs($manager);
 
         Livewire::test(ListActivities::class)

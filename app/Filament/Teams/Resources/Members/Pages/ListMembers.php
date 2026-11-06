@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Filament\Manage\Resources\Members\Pages;
+namespace App\Filament\Teams\Resources\Members\Pages;
 
 use App\Actions\SendTeamInvitationAction;
 use App\Enums\MembershipRole;
-use App\Filament\Manage\Resources\Members\MemberResource;
+use App\Filament\Teams\Resources\Members\MemberResource;
 use Filament\Actions\Action;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;

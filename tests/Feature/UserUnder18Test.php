@@ -4,7 +4,7 @@ namespace Tests\Feature;
 
 use App\Enums\MembershipRole;
 use App\Filament\Admin\Resources\Users\Pages\ViewUser;
-use App\Filament\Manage\Resources\Members\Pages\ViewMember;
+use App\Filament\Teams\Resources\Members\Pages\ViewMember;
 use App\Models\Team;
 use App\Models\User;
 use Filament\Facades\Filament;
@@ -56,7 +56,7 @@ class UserUnder18Test extends TestCase
         $team->grant($youngPerson, MembershipRole::Member);
         $team->grant($adult, MembershipRole::Member);
 
-        Filament::setCurrentPanel('manage');
+        Filament::setCurrentPanel('teams');
         $this->actingAs($manager);
 
         Livewire::test(ViewMember::class, ['record' => $youngPerson->getKey()])

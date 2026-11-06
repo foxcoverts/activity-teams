@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Filament\Manage\Resources\Members\Pages;
+namespace App\Filament\Teams\Resources\Members\Pages;
 
 use App\Filament\Concerns\AcknowledgesPersonalData;
 use App\Filament\Manage\Actions\SuspensionActions;
-use App\Filament\Manage\Resources\Members\MemberResource;
+use App\Filament\Teams\Resources\Members\MemberResource;
 use Filament\Actions\ActionGroup;
 use Filament\Actions\ViewAction;
 use Filament\Resources\Pages\EditRecord;

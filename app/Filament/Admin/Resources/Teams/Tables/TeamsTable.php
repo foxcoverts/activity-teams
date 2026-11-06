@@ -3,7 +3,7 @@
 namespace App\Filament\Admin\Resources\Teams\Tables;
 
 use App\Filament\Manage\Pages\Dashboard as ManageDashboard;
-use App\Filament\Manage\Resources\Members\MemberResource;
+use App\Filament\Teams\Resources\Members\MemberResource;
 use App\Models\Team;
 use App\Support\Palette;
 use Filament\Actions\Action;
@@ -27,7 +27,7 @@ class TeamsTable
                     ->label('Managers')
                     ->listWithLineBreaks()
                     ->placeholder('No managers')
-                    ->url(fn (Team $record, mixed $state): string => MemberResource::getUrl('index', panel: 'manage', tenant: $record)),
+                    ->url(fn (Team $record, mixed $state): string => MemberResource::getUrl('index', panel: 'teams', tenant: $record)),
             ])
             ->filters([
                 SelectFilter::make('managers.id')

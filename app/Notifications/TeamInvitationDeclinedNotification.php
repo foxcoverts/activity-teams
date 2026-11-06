@@ -3,7 +3,7 @@
 namespace App\Notifications;
 
 use App\Filament\Admin\Resources\Users\UserResource;
-use App\Filament\Manage\Resources\Members\MemberResource;
+use App\Filament\Teams\Resources\Members\MemberResource;
 use App\Models\TeamInvitation;
 use App\Notifications\Concerns\RecordsInbox;
 use Illuminate\Bus\Queueable;
@@ -47,7 +47,7 @@ class TeamInvitationDeclinedNotification extends Notification
             return UserResource::getUrl('view', ['record' => $invitation->user], panel: 'admin');
         }
 
-        return MemberResource::getUrl('view', ['record' => $invitation->user], panel: 'manage', tenant: $invitation->team);
+        return MemberResource::getUrl('view', ['record' => $invitation->user], panel: 'teams', tenant: $invitation->team);
     }
 
     public function inboxAlwaysEmailable(): bool

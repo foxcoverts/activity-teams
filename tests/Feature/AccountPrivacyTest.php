@@ -15,7 +15,7 @@ use App\Filament\Admin\Resources\Users\Pages\ViewUser;
 use App\Filament\Admin\Resources\Users\RelationManagers\MembershipsRelationManager;
 use App\Filament\Auth\EditProfile;
 use App\Filament\Auth\Register;
-use App\Filament\Manage\Resources\Members\Pages\ViewMember;
+use App\Filament\Teams\Resources\Members\Pages\ViewMember;
 use App\Livewire\AcceptInvitation;
 use App\Models\Key;
 use App\Models\Qualification;
@@ -120,7 +120,7 @@ class AccountPrivacyTest extends TestCase
             ->assertActionHidden('edit')
             ->assertActionVisible('restore');
 
-        Filament::setCurrentPanel('manage');
+        Filament::setCurrentPanel('teams');
         Filament::setTenant($team);
 
         Livewire::test(ViewMember::class, ['record' => $manager->getKey()])

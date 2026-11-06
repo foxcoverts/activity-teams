@@ -7,8 +7,8 @@ use App\Actions\RespondToBookingAction;
 use App\Enums\BookingAttendeeStatus;
 use App\Enums\MembershipRole;
 use App\Filament\Manage\Resources\Bookings\Pages\ViewBooking as ManageViewBooking;
-use App\Filament\Manage\Resources\Members\MemberResource;
 use App\Filament\Teams\Resources\Bookings\Pages\ViewBooking as MemberViewBooking;
+use App\Filament\Teams\Resources\Members\MemberResource;
 use App\Models\Booking;
 use App\Models\User;
 use Filament\Facades\Filament;
@@ -106,7 +106,7 @@ class BookingTimelineTest extends TestCase
         $this->actingAs($manager);
         $booking = Booking::factory()->confirmed()->create();
 
-        $memberUrl = MemberResource::getUrl('view', ['record' => $manager], panel: 'manage', tenant: $team);
+        $memberUrl = MemberResource::getUrl('view', ['record' => $manager], panel: 'teams', tenant: $team);
 
         Livewire::test(ManageViewBooking::class, ['record' => $booking->getRouteKey()])
             ->assertSee('Confirmed booking')
@@ -133,7 +133,7 @@ class BookingTimelineTest extends TestCase
 
         Livewire::test(ManageViewBooking::class, ['record' => $booking->getRouteKey()])
             ->assertSee('Casey')
-            ->assertSeeHtml(MemberResource::getUrl('view', ['record' => $member], panel: 'manage', tenant: $team))
+            ->assertSeeHtml(MemberResource::getUrl('view', ['record' => $member], panel: 'teams', tenant: $team))
             ->assertDontSeeHtml('/users/'.$member->getKey());
     }
 

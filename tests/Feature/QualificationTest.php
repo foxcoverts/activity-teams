@@ -4,7 +4,7 @@ namespace Tests\Feature;
 
 use App\Enums\MembershipRole;
 use App\Filament\Admin\Resources\Users\Pages\ViewUser;
-use App\Filament\Manage\Resources\Members\Pages\ViewMember;
+use App\Filament\Teams\Resources\Members\Pages\ViewMember;
 use App\Filament\Member\Resources\Qualifications\Pages\ListQualifications;
 use App\Filament\Member\Resources\Qualifications\QualificationResource;
 use App\Filament\RelationManagers\QualificationsRelationManager;

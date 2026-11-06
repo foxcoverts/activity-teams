@@ -1,9 +1,9 @@
 <?php
 
-namespace App\Filament\Manage\Resources\Members\Pages;
+namespace App\Filament\Teams\Resources\Members\Pages;
 
 use App\Filament\Concerns\AcknowledgesPersonalData;
-use App\Filament\Manage\Resources\Members\MemberResource;
+use App\Filament\Teams\Resources\Members\MemberResource;
 use App\Models\User;
 use Filament\Actions\EditAction;
 use Filament\Resources\Pages\ViewRecord;

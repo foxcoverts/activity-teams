@@ -316,14 +316,14 @@ class AuthenticationTest extends TestCase
         $this->actingAs($manager)
             ->get('/manage/'.$team->slug)
             ->assertOk()
-            ->assertSeeTextInOrder(['Dashboard', 'Manage', 'Team', 'Members'])
+            ->assertSeeTextInOrder(['Dashboard', 'Teams', 'Manage'])
             ->assertDontSee('Admin', false)
             ->assertSee('href="'.$membersUrl.'"', false);
 
         $this->actingAs($admin)
             ->get('/manage/'.$team->slug)
             ->assertOk()
-            ->assertSeeTextInOrder(['Dashboard', 'Manage', 'Admin', 'Team'])
+            ->assertSeeTextInOrder(['Dashboard', 'Teams', 'Manage', 'Admin'])
             ->assertSee('href="'.$membersUrl.'"', false);
     }
 

@@ -1,6 +1,6 @@
 <?php
 
-namespace Tests\Feature\Manage;
+namespace Tests\Feature\Teams;
 
 use App\Filament\Teams\Resources\Activities\Pages\ListActivities;
 use App\Models\Activity;

@@ -1,12 +1,12 @@
 <?php
 
-namespace Tests\Feature;
+namespace Tests\Feature\Teams;
 
 use App\Enums\AccountStatus;
 use App\Enums\AgeGroup;
 use App\Enums\MembershipRole;
-use App\Filament\Manage\Resources\Members\Pages\ListMembers;
-use App\Filament\Manage\Resources\Members\Pages\ViewMember;
+use App\Filament\Teams\Resources\Members\Pages\ListMembers;
+use App\Filament\Teams\Resources\Members\Pages\ViewMember;
 use App\Models\TeamInvitation;
 use App\Models\User;
 use Filament\Facades\Filament;
@@ -17,6 +17,13 @@ use Tests\TestCase;
 class MemberDirectoryDisplayTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        Filament::setCurrentPanel('teams');
+    }
 
     public function test_the_members_list_shows_account_status_and_team_roles(): void
     {
@@ -33,7 +40,6 @@ class MemberDirectoryDisplayTest extends TestCase
             'user_id' => $invited->getKey(),
         ]);
 
-        Filament::setCurrentPanel('manage');
         $this->actingAs($manager);
 
         Livewire::test(ListMembers::class)
@@ -50,7 +56,6 @@ class MemberDirectoryDisplayTest extends TestCase
     {
         $manager = User::factory()->teamManager()->create();
 
-        Filament::setCurrentPanel('manage');
         $this->actingAs($manager);
 
         Livewire::test(ViewMember::class, ['record' => $manager->getKey()])
@@ -66,7 +71,6 @@ class MemberDirectoryDisplayTest extends TestCase
         $team = $manager->managedTeams()->first();
         $suspended = User::factory()->teamMember($team)->create(['suspended' => true]);
 
-        Filament::setCurrentPanel('manage');
         $this->actingAs($manager);
 
         Livewire::test(ViewMember::class, ['record' => $suspended->getKey()])
@@ -83,7 +87,6 @@ class MemberDirectoryDisplayTest extends TestCase
 
         $under18 = User::factory()->teamMember($team)->underEighteen()->create();
 
-        Filament::setCurrentPanel('manage');
         $this->actingAs($manager);
 
         Livewire::test(ViewMember::class, ['record' => $under18->getKey()])

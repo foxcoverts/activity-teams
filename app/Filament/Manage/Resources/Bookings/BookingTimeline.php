@@ -2,7 +2,7 @@
 
 namespace App\Filament\Manage\Resources\Bookings;
 
-use App\Filament\Manage\Resources\Members\MemberResource;
+use App\Filament\Teams\Resources\Members\MemberResource;
 use App\Models\Activity;
 use App\Models\Booking;
 use App\Models\Team;
@@ -68,7 +68,7 @@ class BookingTimeline
             return null;
         }
 
-        return MemberResource::getUrl('view', ['record' => $causer], panel: 'manage', tenant: $team);
+        return MemberResource::getUrl('view', ['record' => $causer], panel: 'teams', tenant: $team);
     }
 
     protected static function teamFor(ActivityLog $activity): ?Team

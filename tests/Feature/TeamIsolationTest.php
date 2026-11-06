@@ -5,10 +5,10 @@ namespace Tests\Feature;
 use App\Enums\BookingAttendeeStatus;
 use App\Enums\MembershipRole;
 use App\Filament\Manage\Resources\Bookings\BookingResource as ManageBookingResource;
-use App\Filament\Manage\Resources\Members\MemberResource;
-use App\Filament\Manage\Resources\Members\Pages\ListMembers;
 use App\Filament\Member\Resources\Bookings\BookingResource as MemberBookingResource;
 use App\Filament\Member\Resources\Bookings\Pages\ListBookings as MemberListBookings;
+use App\Filament\Teams\Resources\Members\MemberResource;
+use App\Filament\Teams\Resources\Members\Pages\ListMembers;
 use App\Models\Booking;
 use App\Models\Team;
 use App\Models\User;
@@ -115,16 +115,16 @@ class TeamIsolationTest extends TestCase
         $both = $this->person($this->climbing, MembershipRole::Member);
         $this->person($this->archery, MembershipRole::Member, $both);
 
-        Filament::setCurrentPanel('manage');
+        Filament::setCurrentPanel('teams');
         $this->actingAs($manager);
 
         Livewire::test(ListMembers::class)
             ->assertCanSeeTableRecords([$climber, $both])
             ->assertCanNotSeeTableRecords([$archer]);
 
-        $this->get(MemberResource::getUrl('view', ['record' => $climber], panel: 'manage', tenant: $this->climbing))->assertOk();
-        $this->get(MemberResource::getUrl('view', ['record' => $archer], panel: 'manage', tenant: $this->climbing))->assertNotFound();
-        $this->get(MemberResource::getUrl('index', panel: 'manage', tenant: $this->archery))->assertNotFound();
+        $this->get(MemberResource::getUrl('view', ['record' => $climber], panel: 'teams', tenant: $this->climbing))->assertOk();
+        $this->get(MemberResource::getUrl('view', ['record' => $archer], panel: 'teams', tenant: $this->climbing))->assertNotFound();
+        $this->get(MemberResource::getUrl('index', panel: 'teams', tenant: $this->archery))->assertNotFound();
     }
 
     public function test_a_member_cannot_reach_manage_pages_for_what_they_can_see_in_members(): void
@@ -146,7 +146,7 @@ class TeamIsolationTest extends TestCase
                 ->assertForbidden();
         }
 
-        $this->get(MemberResource::getUrl('index', panel: 'manage', tenant: $this->climbing))->assertForbidden();
+        $this->get(MemberResource::getUrl('index', panel: 'teams', tenant: $this->climbing))->assertForbidden();
     }
 
     public function test_the_members_workspace_combines_every_team_a_person_belongs_to(): void

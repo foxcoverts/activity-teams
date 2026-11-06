@@ -8,10 +8,10 @@ use App\Enums\BookingAttendeeStatus;
 use App\Enums\InvitationStatus;
 use App\Enums\MembershipRole;
 use App\Filament\Admin\Resources\Users\Pages\ListUsers;
-use App\Filament\Manage\Resources\Members\MemberResource;
-use App\Filament\Manage\Resources\Members\Pages\EditMember;
-use App\Filament\Manage\Resources\Members\Pages\ListMembers;
-use App\Filament\Manage\Resources\Members\Pages\ViewMember;
+use App\Filament\Teams\Resources\Members\MemberResource;
+use App\Filament\Teams\Resources\Members\Pages\EditMember;
+use App\Filament\Teams\Resources\Members\Pages\ListMembers;
+use App\Filament\Teams\Resources\Members\Pages\ViewMember;
 use App\Livewire\AcceptInvitation;
 use App\Models\Booking;
 use App\Models\Team;
@@ -98,7 +98,7 @@ class TeamInvitationTest extends TestCase
     public function test_a_system_admin_can_invite_without_managing_the_team(): void
     {
         $admin = User::factory()->systemAdmin()->create();
-        Filament::setCurrentPanel('manage');
+        Filament::setCurrentPanel('teams');
         $this->actingAs($admin);
 
         Livewire::test(ListMembers::class)
@@ -509,7 +509,7 @@ class TeamInvitationTest extends TestCase
 
     private function actAsManager(): void
     {
-        Filament::setCurrentPanel('manage');
+        Filament::setCurrentPanel('teams');
         $this->actingAs($this->manager);
         Filament::setTenant($this->team);
     }

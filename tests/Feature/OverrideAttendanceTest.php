@@ -11,7 +11,7 @@ use App\Enums\BookingStatus;
 use App\Enums\MembershipRole;
 use App\Filament\Manage\Resources\Bookings\Pages\ViewBooking;
 use App\Filament\Manage\Resources\Bookings\RelationManagers\AttendeesRelationManager;
-use App\Filament\Manage\Resources\Members\MemberResource;
+use App\Filament\Teams\Resources\Members\MemberResource;
 use App\Mail\AttendanceRecordedMail;
 use App\Mail\BookingInviteMail;
 use App\Models\Booking;
@@ -101,8 +101,8 @@ class OverrideAttendanceTest extends TestCase
             ->assertSeeHtml('<strong>Can help</strong>')
             ->assertSee('Casey')
             ->assertSee('Alex Leader')
-            ->assertSeeHtml(MemberResource::getUrl('view', ['record' => $manager], panel: 'manage', tenant: $team))
-            ->assertSeeHtml(MemberResource::getUrl('view', ['record' => $member], panel: 'manage', tenant: $team));
+            ->assertSeeHtml(MemberResource::getUrl('view', ['record' => $manager], panel: 'teams', tenant: $team))
+            ->assertSeeHtml(MemberResource::getUrl('view', ['record' => $member], panel: 'teams', tenant: $team));
 
         $this->assertTrue($member->notifications()->where('type', AttendanceRecordedNotification::class)->exists());
         $this->assertFalse($other->notifications()->where('type', AttendanceRecordedNotification::class)->exists());

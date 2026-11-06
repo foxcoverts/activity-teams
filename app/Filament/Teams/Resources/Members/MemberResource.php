@@ -1,19 +1,19 @@
 <?php
 
-namespace App\Filament\Manage\Resources\Members;
+namespace App\Filament\Teams\Resources\Members;
 
 use App\Actions\SendTeamInvitationAction;
 use App\Enums\InvitationStatus;
 use App\Enums\MembershipRole;
-use App\Filament\Manage\NavigationGroup;
-use App\Filament\Manage\Resources\Members\Pages\EditMember;
-use App\Filament\Manage\Resources\Members\Pages\ListMembers;
-use App\Filament\Manage\Resources\Members\Pages\ViewMember;
-use App\Filament\Manage\Resources\Members\RelationManagers\LocksRelationManager;
-use App\Filament\Manage\Resources\Members\Schemas\MemberForm;
-use App\Filament\Manage\Resources\Members\Schemas\MemberInfolist;
-use App\Filament\Manage\Resources\Members\Tables\MembersTable;
 use App\Filament\RelationManagers\QualificationsRelationManager;
+use App\Filament\Teams\NavigationGroup;
+use App\Filament\Teams\Resources\Members\Pages\EditMember;
+use App\Filament\Teams\Resources\Members\Pages\ListMembers;
+use App\Filament\Teams\Resources\Members\Pages\ViewMember;
+use App\Filament\Teams\Resources\Members\RelationManagers\LocksRelationManager;
+use App\Filament\Teams\Resources\Members\Schemas\MemberForm;
+use App\Filament\Teams\Resources\Members\Schemas\MemberInfolist;
+use App\Filament\Teams\Resources\Members\Tables\MembersTable;
 use App\Models\Lock;
 use App\Models\Team;
 use App\Models\User;

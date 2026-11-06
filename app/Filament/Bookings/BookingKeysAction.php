@@ -4,7 +4,7 @@ namespace App\Filament\Bookings;
 
 use App\Enums\KeyHolderAttendance;
 use App\Enums\KeySituation;
-use App\Filament\Manage\Resources\Members\MemberResource;
+use App\Filament\Teams\Resources\Members\MemberResource;
 use App\Models\Booking;
 use App\Models\Team;
 use App\Support\BookingPeople;
@@ -48,7 +48,7 @@ class BookingKeysAction
                                 $ring['url'] = $linkMembers
                                     && filled($ring['holder_id'])
                                     && isset($memberIds[$ring['holder_id']])
-                                    ? MemberResource::getUrl('view', ['record' => $ring['holder_id']], tenant: $booking->team)
+                                    ? MemberResource::getUrl('view', ['record' => $ring['holder_id']], panel: 'teams', tenant: $booking->team)
                                     : null;
 
                                 return $ring;

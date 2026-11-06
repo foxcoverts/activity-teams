@@ -1,14 +1,14 @@
 <?php
 
-namespace App\Filament\Manage\Resources\Members\Schemas;
+namespace App\Filament\Teams\Resources\Members\Schemas;
 
 use App\Enums\AccountStatus;
 use App\Enums\AgeGroup;
 use App\Enums\MembershipRole;
 use App\Enums\PersonalDataSection as PersonalDataSectionEnum;
-use App\Filament\Manage\Resources\Members\MemberResource;
 use App\Filament\Schemas\ContactFields;
 use App\Filament\Schemas\PersonalDataSection;
+use App\Filament\Teams\Resources\Members\MemberResource;
 use App\Models\User;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Schemas\Components\Section;

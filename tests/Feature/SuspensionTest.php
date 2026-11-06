@@ -8,12 +8,12 @@ use App\Enums\BookingAttendeeStatus;
 use App\Enums\MembershipRole;
 use App\Filament\Admin\Resources\Users\Pages\EditUser;
 use App\Filament\Manage\Actions\SuspensionActions;
-use App\Filament\Manage\Resources\Members\MemberResource;
-use App\Filament\Manage\Resources\Members\Pages\EditMember;
-use App\Filament\Manage\Resources\Members\Pages\ViewMember;
 use App\Filament\Member\Resources\Bookings\BookingResource as MemberBookingResource;
 use App\Filament\Teams\Resources\Bookings\Pages\ViewBooking as MemberViewBooking;
 use App\Filament\Teams\Resources\Bookings\RelationManagers\AttendeesRelationManager as MemberAttendeesRelationManager;
+use App\Filament\Teams\Resources\Members\MemberResource;
+use App\Filament\Teams\Resources\Members\Pages\EditMember;
+use App\Filament\Teams\Resources\Members\Pages\ViewMember;
 use App\Models\Booking;
 use App\Models\Team;
 use App\Models\User;
@@ -50,7 +50,7 @@ class SuspensionTest extends TestCase
         $this->member = User::factory()->create(['name' => 'Alex Member']);
         $this->team->grant($this->member, MembershipRole::Member);
 
-        Filament::setCurrentPanel('manage');
+        Filament::setCurrentPanel('teams');
     }
 
     public function test_a_manager_suspends_and_restores_a_member_from_the_edit_page(): void
@@ -353,7 +353,7 @@ class SuspensionTest extends TestCase
     {
         $this->actingAs($this->manager);
 
-        $this->get(MemberResource::getUrl('index', panel: 'manage', tenant: $this->team))
+        $this->get(MemberResource::getUrl('index', panel: 'teams', tenant: $this->team))
             ->assertOk()
             ->assertDontSee('Suspend');
     }

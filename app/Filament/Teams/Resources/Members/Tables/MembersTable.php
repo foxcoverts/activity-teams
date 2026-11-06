@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Filament\Manage\Resources\Members\Tables;
+namespace App\Filament\Teams\Resources\Members\Tables;
 
 use App\Enums\AccountStatus;
 use App\Enums\MembershipRole;
-use App\Filament\Manage\Resources\Members\MemberResource;
+use App\Filament\Teams\Resources\Members\MemberResource;
 use App\Models\Lock;
 use App\Models\User;
 use App\Support\Palette;

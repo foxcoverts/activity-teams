@@ -1,8 +1,8 @@
 <?php
 
-namespace Tests\Feature\Manage;
+namespace Tests\Feature\Teams;
 
-use App\Filament\Manage\Resources\Members\Pages\ListMembers;
+use App\Filament\Teams\Resources\Members\Pages\ListMembers;
 use App\Models\User;
 use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -17,7 +17,7 @@ class MemberResourceTest extends TestCase
     {
         parent::setUp();
 
-        Filament::setCurrentPanel('manage');
+        Filament::setCurrentPanel('teams');
     }
 
     public function test_the_member_list_is_sorted_by_name(): void

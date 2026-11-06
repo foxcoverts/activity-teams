@@ -17,15 +17,15 @@ use App\Filament\Admin\Resources\Locks\RelationManagers\KeysRelationManager;
 use App\Filament\Bookings\BookingKeysAction;
 use App\Filament\Manage\Resources\Bookings\Pages\ViewBooking as ManageViewBooking;
 use App\Filament\Manage\Resources\Bookings\RelationManagers\AttendeesRelationManager;
-use App\Filament\Manage\Resources\Members\MemberResource;
-use App\Filament\Manage\Resources\Members\Pages\ListMembers;
-use App\Filament\Manage\Resources\Members\Pages\ViewMember;
-use App\Filament\Manage\Resources\Members\RelationManagers\LocksRelationManager;
 use App\Filament\Member\Resources\Bookings\BookingResource;
 use App\Filament\Member\Resources\Keys\KeyResource as MemberKeyResource;
 use App\Filament\Teams\Resources\Bookings\Pages\ViewBooking as MemberViewBooking;
 use App\Filament\Teams\Resources\Bookings\RelationManagers\AttendeesRelationManager as MemberAttendeesRelationManager;
 use App\Filament\Teams\Resources\Keys\KeyResource as TeamKeyResource;
+use App\Filament\Teams\Resources\Members\MemberResource;
+use App\Filament\Teams\Resources\Members\Pages\ListMembers;
+use App\Filament\Teams\Resources\Members\Pages\ViewMember;
+use App\Filament\Teams\Resources\Members\RelationManagers\LocksRelationManager;
 use App\Models\Activity;
 use App\Models\ActivityAudience;
 use App\Models\Booking;
@@ -506,7 +506,7 @@ class KeyAccessTest extends TestCase
 
     public function test_the_members_list_shows_and_filters_the_keys_the_team_needs(): void
     {
-        Filament::setCurrentPanel('manage');
+        Filament::setCurrentPanel('teams');
 
         $team = Team::factory()->create();
         $manager = User::factory()->create();
@@ -620,7 +620,7 @@ class KeyAccessTest extends TestCase
         Filament::setCurrentPanel('manage');
         $this->actingAs($manager);
 
-        $memberUrl = MemberResource::getUrl('view', ['record' => $uninvited], tenant: $team);
+        $memberUrl = MemberResource::getUrl('view', ['record' => $uninvited], panel: 'teams', tenant: $team);
 
         Livewire::test(ManageViewBooking::class, ['record' => $booking->getRouteKey()])
             ->assertActionVisible('keys')

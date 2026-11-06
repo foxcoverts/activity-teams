@@ -10,9 +10,9 @@ use App\Enums\PersonalDataSection;
 use App\Filament\Admin\Resources\Users\Pages\EditUser;
 use App\Filament\Admin\Resources\Users\Pages\ViewUser;
 use App\Filament\Admin\Resources\Users\UserResource;
-use App\Filament\Manage\Resources\Members\MemberResource;
-use App\Filament\Manage\Resources\Members\Pages\EditMember;
-use App\Filament\Manage\Resources\Members\Pages\ViewMember;
+use App\Filament\Teams\Resources\Members\MemberResource;
+use App\Filament\Teams\Resources\Members\Pages\EditMember;
+use App\Filament\Teams\Resources\Members\Pages\ViewMember;
 use App\Models\PersonalDataAcknowledgement;
 use App\Models\Team;
 use App\Models\User;
@@ -34,7 +34,7 @@ class PersonalDataAcknowledgementTest extends TestCase
     {
         parent::setUp();
 
-        $this->leader = User::factory()->teamManager()->create();
+        $this->manager = User::factory()->teamManager()->create();
         $this->member = User::factory()->teamMember()->create([
             'name' => 'Alex Member',
             'email' => 'alex@example.test',
@@ -46,8 +46,8 @@ class PersonalDataAcknowledgementTest extends TestCase
 
     public function test_details_are_not_in_the_page_until_acknowledged(): void
     {
-        Filament::setCurrentPanel('manage');
-        $this->actingAs($this->leader);
+        Filament::setCurrentPanel('teams');
+        $this->actingAs($this->manager);
 
         $this->get(MemberResource::getUrl('view', ['record' => $this->member]))
             ->assertOk()
@@ -71,8 +71,8 @@ class PersonalDataAcknowledgementTest extends TestCase
 
     public function test_each_section_is_acknowledged_separately(): void
     {
-        Filament::setCurrentPanel('manage');
-        $this->actingAs($this->leader);
+        Filament::setCurrentPanel('teams');
+        $this->actingAs($this->manager);
 
         Livewire::test(ViewMember::class, ['record' => $this->member->getKey()])
             ->call('acknowledgePersonalData', PersonalDataSection::ContactDetails->value)
@@ -85,8 +85,8 @@ class PersonalDataAcknowledgementTest extends TestCase
             ->assertSee('+44 70 0033 3444');
 
         $this->assertDatabaseHas('personal_data_acknowledgements', [
-            'viewer_id' => $this->leader->getKey(),
-            'viewer_name' => $this->leader->name,
+            'viewer_id' => $this->manager->getKey(),
+            'viewer_name' => $this->manager->name,
             'subject_id' => $this->member->getKey(),
             'subject_name' => 'Alex Member',
             'section' => PersonalDataSection::ContactDetails->value,
@@ -110,8 +110,8 @@ class PersonalDataAcknowledgementTest extends TestCase
 
     public function test_an_acknowledgement_lasts_thirty_minutes_then_expires(): void
     {
-        Filament::setCurrentPanel('manage');
-        $this->actingAs($this->leader);
+        Filament::setCurrentPanel('teams');
+        $this->actingAs($this->manager);
 
         Livewire::test(ViewMember::class, ['record' => $this->member->getKey()])
             ->call('acknowledgePersonalData', PersonalDataSection::ContactDetails->value);
@@ -129,27 +129,27 @@ class PersonalDataAcknowledgementTest extends TestCase
 
     public function test_an_acknowledgement_by_someone_else_does_not_count(): void
     {
-        $managerTeam = $this->leader->managedTeams()->first();
+        $managerTeam = $this->manager->managedTeams()->first();
         $deputy = User::factory()->teamManager($managerTeam)->create();
 
-        Filament::setCurrentPanel('manage');
+        Filament::setCurrentPanel('teams');
         $this->actingAs($deputy);
         Livewire::test(ViewMember::class, ['record' => $this->member->getKey()])
             ->call('acknowledgePersonalData', PersonalDataSection::ContactDetails->value);
 
-        $this->actingAs($this->leader);
+        $this->actingAs($this->manager);
         Livewire::test(ViewMember::class, ['record' => $this->member->getKey()])
             ->assertDontSee('alex@example.test');
     }
 
     public function test_people_can_view_their_own_details_without_acknowledging(): void
     {
-        $this->leader->update(['email' => 'leader@example.test', 'emergency_name' => 'Lee Emergency']);
+        $this->manager->update(['email' => 'leader@example.test', 'emergency_name' => 'Lee Emergency']);
 
-        Filament::setCurrentPanel('manage');
-        $this->actingAs($this->leader);
+        Filament::setCurrentPanel('teams');
+        $this->actingAs($this->manager);
 
-        Livewire::test(ViewMember::class, ['record' => $this->leader->getKey()])
+        Livewire::test(ViewMember::class, ['record' => $this->manager->getKey()])
             ->assertSee('leader@example.test')
             ->assertSee('Lee Emergency')
             ->assertDontSee('I have a legitimate reason to view these details');
@@ -164,7 +164,7 @@ class PersonalDataAcknowledgementTest extends TestCase
 
         $this->assertFalse($outsider->can('view', $this->member));
 
-        Filament::setCurrentPanel('manage');
+        Filament::setCurrentPanel('teams');
         $this->actingAs($outsider);
 
         $this->get(MemberResource::getUrl('view', ['record' => $this->member], tenant: $outsiderTeam))
@@ -200,8 +200,8 @@ class PersonalDataAcknowledgementTest extends TestCase
 
     public function test_the_member_edit_form_hides_details_until_acknowledged(): void
     {
-        Filament::setCurrentPanel('manage');
-        $this->actingAs($this->leader);
+        Filament::setCurrentPanel('teams');
+        $this->actingAs($this->manager);
 
         Livewire::test(EditMember::class, ['record' => $this->member->getKey()])
             ->assertSee('I have a legitimate reason to view these details')
@@ -332,8 +332,8 @@ class PersonalDataAcknowledgementTest extends TestCase
 
     public function test_the_member_screen_shows_whether_their_email_is_verified(): void
     {
-        Filament::setCurrentPanel('manage');
-        $this->actingAs($this->leader);
+        Filament::setCurrentPanel('teams');
+        $this->actingAs($this->manager);
 
         Livewire::test(ViewMember::class, ['record' => $this->member->getKey()])
             ->assertSee('Email verified')
@@ -348,8 +348,8 @@ class PersonalDataAcknowledgementTest extends TestCase
 
     public function test_an_unknown_section_is_rejected(): void
     {
-        Filament::setCurrentPanel('manage');
-        $this->actingAs($this->leader);
+        Filament::setCurrentPanel('teams');
+        $this->actingAs($this->manager);
 
         Livewire::test(ViewMember::class, ['record' => $this->member->getKey()])
             ->call('acknowledgePersonalData', 'everything');
@@ -359,21 +359,21 @@ class PersonalDataAcknowledgementTest extends TestCase
 
     public function test_repeating_a_current_acknowledgement_does_not_add_a_record(): void
     {
-        app(AcknowledgePersonalDataAction::class)($this->leader, $this->member, PersonalDataSection::ContactDetails);
-        app(AcknowledgePersonalDataAction::class)($this->leader, $this->member, PersonalDataSection::ContactDetails);
+        app(AcknowledgePersonalDataAction::class)($this->manager, $this->member, PersonalDataSection::ContactDetails);
+        app(AcknowledgePersonalDataAction::class)($this->manager, $this->member, PersonalDataSection::ContactDetails);
 
         $this->assertDatabaseCount('personal_data_acknowledgements', 1);
     }
 
     public function test_records_survive_account_deletion_and_are_pruned_after_six_months(): void
     {
-        app(AcknowledgePersonalDataAction::class)($this->leader, $this->member, PersonalDataSection::ContactDetails);
+        app(AcknowledgePersonalDataAction::class)($this->manager, $this->member, PersonalDataSection::ContactDetails);
 
         $this->member->delete();
-        $this->leader->delete();
+        $this->manager->delete();
 
         $this->assertDatabaseHas('personal_data_acknowledgements', [
-            'viewer_name' => $this->leader->name,
+            'viewer_name' => $this->manager->name,
             'subject_name' => 'Alex Member',
         ]);
 

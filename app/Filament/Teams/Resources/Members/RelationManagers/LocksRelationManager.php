@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Filament\Manage\Resources\Members\RelationManagers;
+namespace App\Filament\Teams\Resources\Members\RelationManagers;
 
-use App\Filament\Manage\Resources\Members\MemberResource;
+use App\Filament\Teams\Resources\Members\MemberResource;
 use App\Models\Lock;
 use App\Models\Team;
 use App\Models\User;

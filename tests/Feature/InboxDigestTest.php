@@ -12,8 +12,8 @@ use App\Enums\MembershipRole;
 use App\Events\BookingInvite;
 use App\Filament\Admin\Resources\Teams\TeamResource;
 use App\Filament\Admin\Resources\Users\UserResource;
-use App\Filament\Manage\Resources\Members\MemberResource;
 use App\Filament\Teams\Resources\Keys\KeyResource;
+use App\Filament\Teams\Resources\Members\MemberResource;
 use App\Jobs\SendBookingNotification;
 use App\Mail\BookingInviteMail;
 use App\Mail\CombinedDigestMail;
@@ -353,7 +353,7 @@ class InboxDigestTest extends TestCase
         $row = $manager->notifications()->first();
 
         $this->assertSame(
-            MemberResource::getUrl('view', ['record' => $invitation->user], panel: 'manage', tenant: $invitation->team),
+            MemberResource::getUrl('view', ['record' => $invitation->user], panel: 'teams', tenant: $invitation->team),
             $row->data['url'],
         );
         $this->assertStringContainsString($invitation->user->name, $row->data['body']);
