@@ -77,7 +77,7 @@ class Document extends Model
 
     public function scopeForTeam(Builder $query, Team $team): void
     {
-        $query->where('team_id', $team->getKey());
+        $query->whereBelongsTo($team);
     }
 
     public function scopeForUser(Builder $query, User $user): void

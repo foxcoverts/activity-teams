@@ -26,9 +26,9 @@ class Leaders extends Page implements HasActions
 
     protected static string|\UnitEnum|null $navigationGroup = NavigationGroup::Team;
 
-    protected static ?int $navigationSort = 4;
-
     protected static ?string $title = 'Team Leaders';
+
+    protected static ?int $navigationSort = 4;
 
     protected static ?string $navigationLabel = 'Leaders';
 

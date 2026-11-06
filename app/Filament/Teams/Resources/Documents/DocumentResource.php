@@ -3,22 +3,23 @@
 namespace App\Filament\Teams\Resources\Documents;
 
 use App\Filament\Teams\NavigationGroup;
+use App\Filament\Teams\Resources\Documents\Pages\CreateDocument;
+use App\Filament\Teams\Resources\Documents\Pages\EditDocument;
 use App\Filament\Teams\Resources\Documents\Pages\ListDocuments;
 use App\Filament\Teams\Resources\Documents\Pages\ViewDocument;
+use App\Filament\Teams\Resources\Documents\Schemas\DocumentForm;
+use App\Filament\Teams\Resources\Documents\Schemas\DocumentInfolist;
 use App\Filament\Teams\Resources\Documents\Tables\DocumentsTable;
 use App\Models\Document;
-use App\Models\User;
+use App\Models\Team;
 use BackedEnum;
-use Filament\Infolists\Components\TextEntry;
+use Filament\Facades\Filament;
 use Filament\Resources\Resource;
-use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\HtmlString;
-use Illuminate\Support\Str;
+use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 class DocumentResource extends Resource
 {
@@ -40,53 +41,9 @@ class DocumentResource extends Resource
 
     protected static ?string $slug = 'documents';
 
-    public static function canCreate(): bool
+    public static function form(Schema $schema): Schema
     {
-        return false;
-    }
-
-    public static function canEdit(Model $record): bool
-    {
-        return false;
-    }
-
-    public static function canDelete(Model $record): bool
-    {
-        return false;
-    }
-
-    public static function getEloquentQuery(): Builder
-    {
-        $user = auth()->user();
-
-        return parent::getEloquentQuery()
-            ->when(
-                $user instanceof User,
-                fn (Builder $query): Builder => $query->forUser($user),
-                fn (Builder $query): Builder => $query->whereRaw('0 = 1'),
-            );
-    }
-
-    public static function infolist(Schema $schema): Schema
-    {
-        return $schema->components([
-            Section::make(__('Document'))
-                ->icon(Heroicon::OutlinedDocument)
-                ->columns(1)
-                ->columnSpanFull()
-                ->schema([
-                    TextEntry::make('title'),
-                    TextEntry::make('notes')
-                        ->state(fn (Document $record): ?HtmlString => filled($record->notes)
-                            ? new HtmlString(Str::inlineMarkdown($record->notes))
-                            : null)
-                        ->placeholder('-'),
-                    TextEntry::make('updated_at')
-                        ->label(__('Updated'))
-                        ->timezone(fn (): string => auth()->user()?->timezoneName() ?? (string) config('app.timezone'))
-                        ->dateTime('j M Y, H:i'),
-                ]),
-        ]);
+        return DocumentForm::configure($schema);
     }
 
     public static function table(Table $table): Table
@@ -94,11 +51,39 @@ class DocumentResource extends Resource
         return DocumentsTable::configure($table);
     }
 
+    public static function infolist(Schema $schema): Schema
+    {
+        return DocumentInfolist::configure($schema);
+    }
+
+    public static function getEloquentQuery(): Builder
+    {
+        $query = parent::getEloquentQuery()
+            ->with(['team', 'uploader']);
+
+        $tenant = Filament::getTenant();
+        if ($tenant instanceof Team) {
+            $query->whereBelongsTo($tenant);
+        }
+
+        return $query;
+    }
+
     public static function getPages(): array
     {
         return [
             'index' => ListDocuments::route('/'),
+            'create' => CreateDocument::route('/create'),
             'view' => ViewDocument::route('/{record}'),
+            'edit' => EditDocument::route('/{record}/edit'),
         ];
+    }
+
+    public static function getRecordRouteBindingEloquentQuery(): Builder
+    {
+        return parent::getRecordRouteBindingEloquentQuery()
+            ->withoutGlobalScopes([
+                SoftDeletingScope::class,
+            ]);
     }
 }

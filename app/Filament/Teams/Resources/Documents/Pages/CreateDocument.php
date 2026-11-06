@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Filament\Manage\Resources\Documents\Pages;
+namespace App\Filament\Teams\Resources\Documents\Pages;
 
-use App\Filament\Manage\Resources\Documents\DocumentResource;
+use App\Filament\Teams\Resources\Documents\DocumentResource;
 use Filament\Facades\Filament;
 use Filament\Resources\Pages\CreateRecord;
 

@@ -1,12 +1,12 @@
 <?php
 
-namespace Tests\Feature;
+namespace Tests\Feature\Teams;
 
-use App\Filament\Manage\Resources\Documents\DocumentResource;
-use App\Filament\Manage\Resources\Documents\Pages\CreateDocument;
-use App\Filament\Manage\Resources\Documents\Pages\EditDocument;
-use App\Filament\Manage\Resources\Documents\Pages\ListDocuments;
+use App\Filament\Teams\Resources\Documents\DocumentResource;
 use App\Filament\Teams\Resources\Documents\DocumentResource as TeamsDocumentResource;
+use App\Filament\Teams\Resources\Documents\Pages\CreateDocument;
+use App\Filament\Teams\Resources\Documents\Pages\EditDocument;
+use App\Filament\Teams\Resources\Documents\Pages\ListDocuments;
 use App\Models\Document;
 use App\Models\Team;
 use App\Models\User;
@@ -20,7 +20,7 @@ use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
 use Tests\TestCase;
 
-class DocumentsTest extends TestCase
+class DocumentResourceTest extends TestCase
 {
     use RefreshDatabase;
 
@@ -29,7 +29,7 @@ class DocumentsTest extends TestCase
         parent::setUp();
 
         Storage::fake('local');
-        Filament::setCurrentPanel('manage');
+        Filament::setCurrentPanel('teams');
     }
 
     public function test_guests_are_redirected_from_documents(): void
@@ -38,6 +38,61 @@ class DocumentsTest extends TestCase
 
         $this->get(TeamsDocumentResource::getUrl('index', panel: 'teams', tenant: $team))
             ->assertRedirect('/teams/login');
+    }
+
+    public function test_a_suspended_member_cannot_open_team_documents(): void
+    {
+        $member = User::factory()->teamMember()->suspended()->create();
+        $team = $member->teams()->first();
+
+        Document::factory()->forTeam($team)->create();
+
+        $this->actingAs($member);
+
+        $this->get(DocumentResource::getUrl('index', tenant: $team))->assertForbidden();
+    }
+
+    public function test_documents_are_scoped_to_the_active_team(): void
+    {
+        $climbing = Team::factory()->create(['name' => 'Climbing']);
+        $archery = Team::factory()->create(['name' => 'Archery']);
+
+        $climbingDocument = Document::factory()->forTeam($climbing)->create(['title' => 'Climbing rules']);
+        $archeryDocument = Document::factory()->forTeam($archery)->create(['title' => 'Archery rules']);
+
+        $this->actingAs(User::factory()->teamMember($climbing)->create());
+
+        $this->get(DocumentResource::getUrl('index', tenant: $climbing))
+            ->assertOk()
+            ->assertSee('Climbing rules')
+            ->assertDontSee('Archery rules');
+
+        $this->get(DocumentResource::getUrl('view', ['record' => $climbingDocument], tenant: $climbing))->assertSuccessful();
+        $this->get(DocumentResource::getUrl('view', ['record' => $archeryDocument], tenant: $climbing))->assertNotFound();
+    }
+
+    public function test_documents_show_notes_and_can_be_downloaded_without_naming_the_uploader(): void
+    {
+        $climbing = Team::factory()->create(['name' => 'Climbing']);
+        $manager = User::factory()->teamManager($climbing)->create(['name' => 'Zelda Uploader']);
+        $document = Document::factory()->forTeam($climbing)->create([
+            'title' => 'Wall procedure',
+            'notes' => 'Keep this with the kit.',
+            'uploader_id' => $manager->getKey(),
+        ]);
+
+        $this->actingAs(User::factory()->teamMember($climbing)->create());
+
+        Livewire::test(ListDocuments::class)
+            ->assertCanSeeTableRecords([$document])
+            ->assertSeeText('Keep this with the kit.')
+            ->assertDontSeeText('Zelda Uploader')
+            ->callTableAction('download', $document)
+            ->assertSuccessful();
+
+        $this->get(DocumentResource::getUrl('view', ['record' => $document], tenant: $climbing))
+            ->assertOk()
+            ->assertDontSee('Zelda Uploader');
     }
 
     public function test_managers_can_create_a_pdf_document_for_their_team(): void
@@ -176,7 +231,7 @@ class DocumentsTest extends TestCase
         Storage::disk('local')->assertMissing($path);
     }
 
-    public function test_manage_documents_are_sorted_by_title_and_can_be_sorted_by_date(): void
+    public function test_teams_documents_are_sorted_by_title_and_can_be_sorted_by_date(): void
     {
         $manager = User::factory()->teamManager()->create();
         $team = $manager->managedTeams()->first();
@@ -203,7 +258,7 @@ class DocumentsTest extends TestCase
             ->assertCanSeeTableRecords([$middle, $alpha, $zebra], inOrder: true);
     }
 
-    public function test_manage_documents_table_shows_the_uploader_and_hides_trashed_rows_by_default(): void
+    public function test_teams_documents_table_hides_trashed_rows_by_default(): void
     {
         $manager = User::factory()->teamManager()->create(['name' => 'Zelda Uploader']);
         $team = $manager->managedTeams()->first();
@@ -221,13 +276,11 @@ class DocumentsTest extends TestCase
             ->assertSuccessful()
             ->assertCanSeeTableRecords($documents)
             ->assertCanNotSeeTableRecords($trashed)
-            ->assertSeeText('Zelda Uploader')
             ->assertCanRenderTableColumn('title')
-            ->assertCanRenderTableColumn('uploader.name')
             ->assertCanRenderTableColumn('updated_at');
     }
 
-    public function test_a_system_admin_can_view_manage_documents_but_cannot_create_unless_they_manage_the_team(): void
+    public function test_a_system_admin_can_view_documents_but_cannot_create_unless_they_manage_the_team(): void
     {
         $manager = User::factory()->teamManager()->create();
         $team = $manager->managedTeams()->first();

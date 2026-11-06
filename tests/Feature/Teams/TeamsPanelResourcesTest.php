@@ -7,7 +7,6 @@ use App\Enums\MembershipRole;
 use App\Filament\Teams\Pages\Leaders;
 use App\Filament\Teams\Resources\Bookings\BookingResource;
 use App\Filament\Teams\Resources\Bookings\Pages\ListBookings;
-use App\Filament\Teams\Resources\Documents\DocumentResource;
 use App\Filament\Teams\Resources\Documents\Pages\ListDocuments;
 use App\Filament\Teams\Resources\NewsPosts\NewsPostResource;
 use App\Filament\Teams\Widgets\LatestNewsWidget;
@@ -59,19 +58,6 @@ class TeamsPanelResourcesTest extends TestCase
 
         $this->get(BookingResource::getUrl('view', ['record' => $climbing], tenant: $this->climbing))->assertOk();
         $this->get(BookingResource::getUrl('view', ['record' => $archery], tenant: $this->climbing))->assertNotFound();
-    }
-
-    public function test_documents_are_scoped_to_the_active_team(): void
-    {
-        $climbing = Document::factory()->forTeam($this->climbing)->create(['title' => 'Climbing rules']);
-        Document::factory()->forTeam($this->archery)->create(['title' => 'Archery rules']);
-
-        $this->get(DocumentResource::getUrl('index', tenant: $this->climbing))
-            ->assertOk()
-            ->assertSee('Climbing rules')
-            ->assertDontSee('Archery rules');
-
-        $this->get(DocumentResource::getUrl('view', ['record' => $climbing], tenant: $this->climbing))->assertOk();
     }
 
     public function test_news_is_scoped_to_the_active_team_and_hides_drafts(): void
@@ -131,35 +117,6 @@ class TeamsPanelResourcesTest extends TestCase
             ->assertCanSeeTableRecords([$zebra, $middle, $alpha], inOrder: true)
             ->sortTable('updated_at', 'desc')
             ->assertCanSeeTableRecords([$middle, $alpha, $zebra], inOrder: true);
-    }
-
-    public function test_documents_show_notes_and_can_be_downloaded_without_naming_the_uploader(): void
-    {
-        $manager = User::factory()->teamManager($this->climbing)->create(['name' => 'Zelda Uploader']);
-        $document = Document::factory()->forTeam($this->climbing)->create([
-            'title' => 'Wall procedure',
-            'notes' => 'Keep this with the kit.',
-            'uploader_id' => $manager->getKey(),
-        ]);
-
-        Livewire::test(ListDocuments::class)
-            ->assertCanSeeTableRecords([$document])
-            ->assertSeeText('Keep this with the kit.')
-            ->assertDontSeeText('Zelda Uploader')
-            ->callTableAction('download', $document)
-            ->assertSuccessful();
-
-        $this->get(DocumentResource::getUrl('view', ['record' => $document], tenant: $this->climbing))
-            ->assertOk()
-            ->assertDontSee('Zelda Uploader');
-    }
-
-    public function test_a_suspended_member_cannot_open_team_documents(): void
-    {
-        $this->member->update(['suspended' => true]);
-        Document::factory()->forTeam($this->climbing)->create();
-
-        $this->get(DocumentResource::getUrl('index', tenant: $this->climbing))->assertForbidden();
     }
 
     public function test_the_booking_list_is_sorted_by_start_time_and_has_invites_and_rota_tabs(): void

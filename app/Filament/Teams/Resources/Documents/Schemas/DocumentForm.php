@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Filament\Manage\Resources\Documents\Schemas;
+namespace App\Filament\Teams\Resources\Documents\Schemas;
 
 use App\Models\Document;
 use Filament\Facades\Filament;

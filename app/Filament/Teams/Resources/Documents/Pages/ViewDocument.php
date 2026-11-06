@@ -4,6 +4,7 @@ namespace App\Filament\Teams\Resources\Documents\Pages;
 
 use App\Filament\Documents\DownloadDocumentAction;
 use App\Filament\Teams\Resources\Documents\DocumentResource;
+use Filament\Actions\EditAction;
 use Filament\Resources\Pages\ViewRecord;
 
 class ViewDocument extends ViewRecord
@@ -13,6 +14,7 @@ class ViewDocument extends ViewRecord
     protected function getHeaderActions(): array
     {
         return [
+            EditAction::make(),
             DownloadDocumentAction::make(),
         ];
     }
