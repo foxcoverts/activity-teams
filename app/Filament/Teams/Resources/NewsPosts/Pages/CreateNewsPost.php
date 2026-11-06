@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Filament\Manage\Resources\NewsPosts\Pages;
+namespace App\Filament\Teams\Resources\NewsPosts\Pages;
 
-use App\Filament\Manage\Resources\NewsPosts\NewsPostResource;
+use App\Filament\Teams\Resources\NewsPosts\NewsPostResource;
 use Filament\Resources\Pages\CreateRecord;
 
 class CreateNewsPost extends CreateRecord

@@ -2,14 +2,16 @@
 
 namespace App\Filament\Teams\Resources\NewsPosts\Pages;
 
+use App\Filament\Teams\Resources\NewsPosts\Actions\PublishAction;
+use App\Filament\Teams\Resources\NewsPosts\Actions\RepublishAction;
+use App\Filament\Teams\Resources\NewsPosts\Actions\ScheduleAction;
+use App\Filament\Teams\Resources\NewsPosts\Actions\UnpublishAction;
 use App\Filament\Teams\Resources\NewsPosts\NewsPostResource;
 use App\Models\InboxNotification;
 use App\Models\NewsPost;
 use App\Models\User;
+use Filament\Actions\EditAction;
 use Filament\Resources\Pages\ViewRecord;
-use Filament\Schemas\Components\View as SchemaView;
-use Filament\Schemas\Schema;
-use Illuminate\Contracts\Support\Htmlable;
 
 class ViewNewsPost extends ViewRecord
 {
@@ -30,27 +32,19 @@ class ViewNewsPost extends ViewRecord
         }
     }
 
-    protected function authorizeAccess(): void
+    public function getTitle(): string
     {
-        abort_unless(static::getResource()::canView($this->getRecord()), 404);
-    }
-
-    public function getTitle(): string|Htmlable
-    {
-        return $this->getRecord()->title;
-    }
-
-    public function content(Schema $schema): Schema
-    {
-        return $schema
-            ->components([
-                SchemaView::make('filament.teams.resources.news-posts.article')
-                    ->columnSpanFull(),
-            ]);
+        return $this->getRecordTitle();
     }
 
     protected function getHeaderActions(): array
     {
-        return [];
+        return [
+            EditAction::make(),
+            ScheduleAction::make(),
+            PublishAction::make(),
+            RepublishAction::make(),
+            UnpublishAction::make(),
+        ];
     }
 }

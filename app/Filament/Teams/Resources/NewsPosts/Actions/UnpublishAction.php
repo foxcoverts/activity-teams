@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Filament\Manage\Resources\NewsPosts\Actions;
+namespace App\Filament\Teams\Resources\NewsPosts\Actions;
 
 use App\Models\NewsPost;
 use App\Support\Palette;
@@ -15,7 +15,9 @@ class UnpublishAction
             ->label(__('Unpublish'))
             ->color(Palette::uncertain())
             ->icon(Heroicon::ArrowUturnLeft)
-            ->visible(fn (NewsPost $record): bool => is_null($record->deleted_at) && filled($record->published_at))
+            ->visible(fn (NewsPost $record): bool => is_null($record->deleted_at)
+                && filled($record->published_at)
+                && auth()->user()->can('update', $record))
             ->action(function (NewsPost $record): void {
                 $record->unpublish();
             });

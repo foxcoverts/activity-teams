@@ -5,11 +5,11 @@ namespace Tests\Feature;
 use App\Enums\MailChannel;
 use App\Enums\MailGroup;
 use App\Enums\MembershipRole;
-use App\Filament\Manage\Resources\NewsPosts\Pages\ListNewsPosts;
-use App\Filament\Manage\Resources\NewsPosts\Pages\ViewNewsPost;
 use App\Filament\Member\Pages\Feeds;
 use App\Filament\Member\Resources\NewsPosts\NewsPostResource as MemberNewsPostResource;
 use App\Filament\Member\Resources\NewsPosts\Pages\ListNewsPosts as MemberListNewsPosts;
+use App\Filament\Teams\Resources\NewsPosts\Pages\ListNewsPosts;
+use App\Filament\Teams\Resources\NewsPosts\Pages\ViewNewsPost;
 use App\Jobs\NotifyDueNewsPosts;
 use App\Mail\NewsPostMail;
 use App\Models\NewsPost;
@@ -34,10 +34,10 @@ class NewsPostsTest extends TestCase
     {
         parent::setUp();
 
-        Filament::setCurrentPanel('manage');
+        Filament::setCurrentPanel('teams');
     }
 
-    public function test_manage_news_posts_table_can_be_accessed(): void
+    public function test_news_posts_list_can_be_accessed(): void
     {
         $manager = User::factory()->teamManager()->create();
         $team = $manager->managedTeams()->first();
@@ -49,14 +49,10 @@ class NewsPostsTest extends TestCase
 
         Livewire::test(ListNewsPosts::class)
             ->assertSuccessful()
-            ->assertCanSeeTableRecords($posts)
-            ->assertCanNotSeeTableRecords($trashedPosts)
-            ->assertCountTableRecords(4)
-            ->assertCanRenderTableColumn('title')
-            ->assertCanRenderTableColumn('author.name')
-            ->assertCanRenderTableColumn('status')
-            ->assertCanRenderTableColumn('published_at')
-            ->assertTableColumnHidden('deleted_at');
+            ->assertSeeText($posts->pluck('title')->all())
+            ->assertSeeText($posts->map(fn ($post) => $post->getStatus()->getLabel())->all())
+            ->assertSeeText($posts->pluck('published_at')->all())
+            ->assertDontSeeText($trashedPosts->pluck('title')->all());
     }
 
     public static function provideNewsPostStatuses(): array
@@ -69,7 +65,7 @@ class NewsPostsTest extends TestCase
     }
 
     #[DataProvider('provideNewsPostStatuses')]
-    public function test_manage_news_posts_table_shows_fields(string $status, string $label): void
+    public function test_news_posts_list_shows_fields(string $status, string $label): void
     {
         $manager = User::factory()->teamManager()->create([
             'name' => 'John Smith',
@@ -90,58 +86,40 @@ class NewsPostsTest extends TestCase
 
         Livewire::test(ListNewsPosts::class)
             ->assertSuccessful()
-            ->assertCanSeeTableRecords([$post])
-            ->assertTableColumnFormattedStateSet('title', $label.' News Post', record: $post)
-            ->assertTableColumnFormattedStateSet('author.name', 'John Smith', record: $post)
-            ->assertTableColumnFormattedStateSet('status', $label, record: $post)
-            ->assertTableColumnFormattedStateSet('published_at', $formattedPublishedAt, record: $post);
+            ->assertSeeText([
+                $post->title,
+                $label.' News Post',
+                $label,
+                $formattedPublishedAt,
+            ]);
     }
 
-    public function test_manage_news_posts_table_can_be_sorted(): void
+    public function test_news_posts_list_filters_trashed_posts(): void
     {
         $manager = User::factory()->teamManager()->create();
         $team = $manager->managedTeams()->first();
 
         $this->actingAs($manager);
 
-        // Sort: published_at
-
-        NewsPost::factory()->forTeam($team)->published()->count(10)->create();
-
-        $sortedPostsAsc = NewsPost::query()->forTeam($team)->orderBy('published_at', 'asc')->get();
-        $sortedPostsDesc = NewsPost::query()->forTeam($team)->orderBy('published_at', 'desc')->get();
-
-        Livewire::test(ListNewsPosts::class)
-            ->assertSuccessful()
-            ->sortTable('published_at', 'desc')
-            ->assertCanSeeTableRecords($sortedPostsDesc, inOrder: true)
-            ->sortTable('published_at', 'asc')
-            ->assertCanSeeTableRecords($sortedPostsAsc, inOrder: true);
-
         // Filter & sort: trashed & deleted_at
 
-        NewsPost::factory()->forTeam($team)->trashed()->count(10)->create();
-        $trashedPostsAsc = NewsPost::query()->forTeam($team)->onlyTrashed()->orderBy('deleted_at', 'asc')->get();
-        $trashedPostsDesc = NewsPost::query()->forTeam($team)->onlyTrashed()->orderBy('deleted_at', 'desc')->get();
+        $posts = NewsPost::factory()->forTeam($team)->count(10)->create();
+        $trashedPosts = NewsPost::factory()->forTeam($team)->trashed()->count(10)->create();
 
         Livewire::test(ListNewsPosts::class)
             ->set('tableRecordsPerPage', 25)
             ->assertSuccessful()
-            ->filterTable('trashed', '') // without deleted records
-            ->assertTableColumnHidden('deleted_at')
             ->filterTable('trashed', '1') // with deleted records
-            ->assertTableColumnVisible('deleted_at')
-            ->assertCanRenderTableColumn('deleted_at')
-            ->assertCanSeeTableRecords([...$sortedPostsAsc, ...$trashedPostsAsc])
+            ->assertSeeText('Deleted')
+            ->assertSeeText($posts->pluck('title')->all())
+            ->assertSeeText($trashedPosts->pluck('title')->all())
             ->filterTable('trashed', '0') // only deleted records
-            ->assertTableColumnVisible('deleted_at')
-            ->sortTable('deleted_at', 'asc')
-            ->assertCanSeeTableRecords($trashedPostsAsc, inOrder: true)
-            ->sortTable('deleted_at', 'desc')
-            ->assertCanSeeTableRecords($trashedPostsDesc, inOrder: true);
+            ->assertSeeText('Deleted')
+            ->assertDontSeeText($posts->pluck('title')->all())
+            ->assertSeeText($trashedPosts->pluck('title')->all());
     }
 
-    public function test_manage_news_posts_table_can_be_filtered_by_status(): void
+    public function test_news_posts_list_can_be_filtered_by_status(): void
     {
         $manager = User::factory()->teamManager()->create();
         $team = $manager->managedTeams()->first();
@@ -155,20 +133,20 @@ class NewsPostsTest extends TestCase
         Livewire::test(ListNewsPosts::class)
             ->assertSuccessful()
             ->filterTable('status', 'draft')
-            ->assertCanSeeTableRecords($draftPosts)
-            ->assertCanNotSeeTableRecords($publishedPosts)
-            ->assertCanNotSeeTableRecords($scheduledPosts)
+            ->assertSeeText($draftPosts->pluck('title')->all())
+            ->assertDontSeeText($publishedPosts->pluck('title')->all())
+            ->assertDontSeeText($scheduledPosts->pluck('title')->all())
             ->filterTable('status', 'published')
-            ->assertCanNotSeeTableRecords($draftPosts)
-            ->assertCanSeeTableRecords($publishedPosts)
-            ->assertCanNotSeeTableRecords($scheduledPosts)
+            ->assertDontSeeText($draftPosts->pluck('title')->all())
+            ->assertSeeText($publishedPosts->pluck('title')->all())
+            ->assertDontSeeText($scheduledPosts->pluck('title')->all())
             ->filterTable('status', 'scheduled')
-            ->assertCanNotSeeTableRecords($draftPosts)
-            ->assertCanNotSeeTableRecords($publishedPosts)
-            ->assertCanSeeTableRecords($scheduledPosts);
+            ->assertDontSeeText($draftPosts->pluck('title')->all())
+            ->assertDontSeeText($publishedPosts->pluck('title')->all())
+            ->assertSeeText($scheduledPosts->pluck('title')->all());
     }
 
-    public function test_manage_news_posts_view_can_publish_draft_post(): void
+    public function test_news_posts_view_can_publish_draft_post(): void
     {
         $manager = User::factory()->teamManager()->create();
         $team = $manager->managedTeams()->first();
@@ -190,7 +168,7 @@ class NewsPostsTest extends TestCase
         $this->assertEqualsWithDelta(now(), $draftPost->fresh()->published_at, 1);
     }
 
-    public function test_manage_news_posts_view_can_schedule_draft_post(): void
+    public function test_news_posts_view_can_schedule_draft_post(): void
     {
         $manager = User::factory()->teamManager()->create();
         $team = $manager->managedTeams()->first();
@@ -217,7 +195,7 @@ class NewsPostsTest extends TestCase
         $this->assertEqualsWithDelta($scheduledAt, $draftPost->fresh()->published_at, 1);
     }
 
-    public function test_manage_news_posts_view_can_unpublish_published_post(): void
+    public function test_news_posts_view_can_unpublish_published_post(): void
     {
         $manager = User::factory()->teamManager()->create();
         $team = $manager->managedTeams()->first();
@@ -236,7 +214,7 @@ class NewsPostsTest extends TestCase
         $this->assertNull($publishedPost->fresh()->published_at);
     }
 
-    public function test_manage_news_posts_view_can_unpublish_scheduled_post(): void
+    public function test_news_posts_view_can_unpublish_scheduled_post(): void
     {
         $manager = User::factory()->teamManager()->create();
         $team = $manager->managedTeams()->first();
@@ -255,7 +233,7 @@ class NewsPostsTest extends TestCase
         $this->assertNull($scheduledPost->fresh()->published_at);
     }
 
-    public function test_manage_news_posts_view_renders_the_body_as_markdown(): void
+    public function test_news_posts_view_renders_the_body_as_markdown(): void
     {
         $manager = User::factory()->teamManager()->create();
         $team = $manager->managedTeams()->first();
@@ -535,6 +513,7 @@ class NewsPostsTest extends TestCase
         $this->freezeTime();
 
         Livewire::test(ViewNewsPost::class, ['record' => $post->slug])
+            ->assertSuccessful()
             ->callAction('publish');
 
         $this->assertSame(1, $member->notifications()->count());

@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Filament\Manage\Resources\NewsPosts\Pages;
+namespace App\Filament\Teams\Resources\NewsPosts\Pages;
 
-use App\Filament\Manage\Resources\NewsPosts\NewsPostResource;
+use App\Filament\Teams\Resources\NewsPosts\NewsPostResource;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\ForceDeleteAction;
 use Filament\Actions\RestoreAction;

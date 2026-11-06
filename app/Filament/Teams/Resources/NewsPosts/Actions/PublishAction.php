@@ -1,11 +1,10 @@
 <?php
 
-namespace App\Filament\Manage\Resources\NewsPosts\Actions;
+namespace App\Filament\Teams\Resources\NewsPosts\Actions;
 
+use App\Enums\NewsPostStatus;
 use App\Models\NewsPost;
-use App\Support\Palette;
 use Filament\Actions\Action;
-use Filament\Support\Icons\Heroicon;
 
 class PublishAction
 {
@@ -13,11 +12,12 @@ class PublishAction
     {
         return Action::make('publish')
             ->label(__('Publish'))
-            ->color(Palette::positive())
-            ->icon(Heroicon::Check)
+            ->color(NewsPostStatus::Published->getColor())
+            ->icon(NewsPostStatus::Published->getIcon())
             ->visible(fn (NewsPost $record): bool => is_null($record->deleted_at)
                 && is_null($record->published_at)
-                && is_null($record->notified_at))
+                && is_null($record->notified_at)
+                && auth()->user()->can('update', $record))
             ->action(function (NewsPost $record): void {
                 $record->publishNow();
             });

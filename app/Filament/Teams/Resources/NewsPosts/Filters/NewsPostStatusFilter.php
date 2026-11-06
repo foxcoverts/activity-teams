@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Filament\Manage\Resources\NewsPosts\Filters;
+namespace App\Filament\Teams\Resources\NewsPosts\Filters;
 
 use App\Enums\NewsPostStatus;
 use Filament\Tables\Filters\Indicator;

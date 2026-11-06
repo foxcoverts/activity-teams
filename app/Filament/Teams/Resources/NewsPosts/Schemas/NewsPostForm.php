@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Filament\Manage\Resources\NewsPosts\Schemas;
+namespace App\Filament\Teams\Resources\NewsPosts\Schemas;
 
 use App\Models\NewsPost;
 use Filament\Facades\Filament;

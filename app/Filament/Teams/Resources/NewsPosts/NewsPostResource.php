@@ -3,15 +3,22 @@
 namespace App\Filament\Teams\Resources\NewsPosts;
 
 use App\Filament\Teams\NavigationGroup;
+use App\Filament\Teams\Resources\NewsPosts\Pages\CreateNewsPost;
+use App\Filament\Teams\Resources\NewsPosts\Pages\EditNewsPost;
 use App\Filament\Teams\Resources\NewsPosts\Pages\ListNewsPosts;
 use App\Filament\Teams\Resources\NewsPosts\Pages\ViewNewsPost;
+use App\Filament\Teams\Resources\NewsPosts\Schemas\NewsPostForm;
+use App\Filament\Teams\Resources\NewsPosts\Schemas\NewsPostInfolist;
+use App\Filament\Teams\Resources\NewsPosts\Tables\NewsPostsTable;
 use App\Models\NewsPost;
-use App\Models\User;
 use BackedEnum;
+use Filament\Facades\Filament;
 use Filament\Resources\Resource;
+use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
+use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 class NewsPostResource extends Resource
 {
@@ -33,39 +40,51 @@ class NewsPostResource extends Resource
 
     protected static ?string $slug = 'news';
 
-    public static function canCreate(): bool
+    public static function form(Schema $schema): Schema
     {
-        return false;
+        return NewsPostForm::configure($schema);
     }
 
-    public static function canEdit(Model $record): bool
+    public static function infolist(Schema $schema): Schema
     {
-        return false;
+        return NewsPostInfolist::configure($schema);
     }
 
-    public static function canDelete(Model $record): bool
+    public static function table(Table $table): Table
     {
-        return false;
+        return NewsPostsTable::configure($table);
     }
 
     public static function getEloquentQuery(): Builder
     {
+        $query = parent::getEloquentQuery()
+            ->with(['team', 'author']);
+
+        $team = Filament::getTenant();
         $user = auth()->user();
 
-        return parent::getEloquentQuery()
-            ->with(['team', 'author'])
-            ->when(
-                $user instanceof User,
-                fn (Builder $query): Builder => $query->live()->whereIn('team_id', $user->teams()->pluck('teams.id')),
-                fn (Builder $query): Builder => $query->whereRaw('0 = 1'),
-            );
+        if (! $user?->manages($team)) {
+            $query->whereNowOrPast('published_at');
+        }
+
+        return $query;
     }
 
     public static function getPages(): array
     {
         return [
             'index' => ListNewsPosts::route('/'),
+            'create' => CreateNewsPost::route('/create'),
             'view' => ViewNewsPost::route('/{record}'),
+            'edit' => EditNewsPost::route('/{record}/edit'),
         ];
+    }
+
+    public static function getRecordRouteBindingEloquentQuery(): Builder
+    {
+        return parent::getRecordRouteBindingEloquentQuery()
+            ->withoutGlobalScopes([
+                SoftDeletingScope::class,
+            ]);
     }
 }

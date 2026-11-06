@@ -1,15 +1,14 @@
 <?php
 
-namespace App\Filament\Manage\Resources\NewsPosts\Actions;
+namespace App\Filament\Teams\Resources\NewsPosts\Actions;
 
+use App\Enums\NewsPostStatus;
 use App\Models\NewsPost;
-use App\Support\Palette;
 use Filament\Actions\Action;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Toggle;
 use Filament\Notifications\Notification;
 use Filament\Schemas\Components\Utilities\Get;
-use Filament\Support\Icons\Heroicon;
 use Illuminate\Support\Carbon;
 
 class ScheduleAction
@@ -18,9 +17,11 @@ class ScheduleAction
     {
         return Action::make('schedule')
             ->label(__('Schedule'))
-            ->color(Palette::positive())
-            ->icon(Heroicon::Clock)
-            ->visible(fn (NewsPost $record): bool => is_null($record->deleted_at) && is_null($record->published_at))
+            ->color(NewsPostStatus::Scheduled->getColor())
+            ->icon(NewsPostStatus::Scheduled->getIcon())
+            ->visible(fn (NewsPost $record): bool => is_null($record->deleted_at)
+                && is_null($record->published_at)
+                && auth()->user()->can('update', $record))
             ->schema([
                 DateTimePicker::make('published_at')
                     ->label(__('Publish at'))

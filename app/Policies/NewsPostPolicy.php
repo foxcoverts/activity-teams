@@ -15,13 +15,9 @@ class NewsPostPolicy
             return false;
         }
 
-        if (Filament::getCurrentPanel()?->getId() === 'manage') {
-            $tenant = Filament::getTenant();
+        $tenant = Filament::getTenant();
 
-            return $tenant instanceof Team && ($user->manages($tenant) || $user->isSystemAdmin());
-        }
-
-        return true;
+        return ! $tenant || $user->isCurrentMemberOf($tenant);
     }
 
     public function view(User $user, NewsPost $newsPost): bool
@@ -30,13 +26,11 @@ class NewsPostPolicy
             return false;
         }
 
-        if (Filament::getCurrentPanel()?->getId() === 'manage') {
-            $newsPost->loadMissing('team');
-
-            return $user->manages($newsPost->team) || $user->isSystemAdmin();
+        if ($newsPost->isLive() && $user->isCurrentMemberOf($newsPost->team)) {
+            return true;
         }
 
-        return $user->isCurrentMemberOf($newsPost->team) && $newsPost->isLive();
+        return $user->manages($newsPost->team);
     }
 
     public function create(User $user): bool
