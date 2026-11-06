@@ -54,6 +54,7 @@ class InboxTest extends TestCase
         $link = InboxResource::getUrl('view', ['record' => $second], panel: 'member');
 
         Livewire::test(ListNotifications::class)
+            ->assertSuccessful()
             ->assertSee($second->data['body'])
             ->assertSeeHtml('href="'.e($link).'"');
 
@@ -62,8 +63,9 @@ class InboxTest extends TestCase
         $this->get($link)
             ->assertRedirect($second->data['url']);
 
-        $this->assertNotNull($second->fresh()->read_at);
-        $this->assertNotNull($second->fresh()->digest_notified_at);
+        $second = $second->fresh();
+        $this->assertNotNull($second->read_at);
+        $this->assertNotNull($second->digest_notified_at);
     }
 
     public function test_the_top_bar_shows_an_inbox_envelope_beside_the_user_menu(): void

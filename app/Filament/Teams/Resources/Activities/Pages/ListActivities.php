@@ -1,9 +1,9 @@
 <?php
 
-namespace App\Filament\Manage\Resources\Activities\Pages;
+namespace App\Filament\Teams\Resources\Activities\Pages;
 
-use App\Filament\Manage\Resources\Activities\Actions\GiveActivityAction;
-use App\Filament\Manage\Resources\Activities\ActivityResource;
+use App\Filament\Teams\Resources\Activities\Actions\GiveActivityAction;
+use App\Filament\Teams\Resources\Activities\ActivityResource;
 use Filament\Resources\Pages\ListRecords;
 
 class ListActivities extends ListRecords

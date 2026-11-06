@@ -3,7 +3,6 @@
 namespace Tests;
 
 use App\Models\Team;
-use App\Models\User;
 use Filament\Facades\Filament;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
@@ -14,16 +13,16 @@ abstract class TestCase extends BaseTestCase
     {
         $result = parent::actingAs($user, $guard);
 
-        if ($user instanceof User && Filament::getCurrentPanel()?->getId() === 'manage') {
+        if (in_array(Filament::getCurrentPanel()?->getId(), ['manage', 'teams'])) {
             $team = $user->managedTeams()->first();
 
-            if ($team === null && $user->isSystemAdmin()) {
-                $team = $user->getTenants(Filament::getCurrentPanel())->first();
+            if ($team === null) {
+                $team = $user->teams()->first();
             }
 
-            Filament::setTenant($team instanceof Team ? $team : null);
-        } elseif ($user instanceof User && Filament::getCurrentPanel()?->getId() === 'teams') {
-            $team = $user->teams()->first();
+            if ($team === null && $user->isSystemAdmin()) {
+                $team = Team::first();
+            }
 
             Filament::setTenant($team instanceof Team ? $team : null);
         }

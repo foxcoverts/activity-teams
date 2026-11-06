@@ -14,14 +14,14 @@ use App\Filament\Admin\Resources\Users\Pages\ListUsers;
 use App\Filament\Admin\Resources\Users\Pages\ViewUser;
 use App\Filament\Admin\Resources\Users\RelationManagers\MembershipsRelationManager;
 use App\Filament\Admin\Resources\Users\UserResource;
-use App\Filament\Manage\Resources\Activities\ActivityResource;
-use App\Filament\Manage\Resources\Activities\Pages\ListActivities;
 use App\Filament\Manage\Resources\Bookings\BookingResource;
 use App\Filament\Manage\Resources\Keys\KeyResource;
 use App\Filament\Manage\Resources\Members\MemberResource;
 use App\Filament\Manage\Resources\Members\Pages\ListMembers;
 use App\Filament\Manage\Resources\Members\Pages\ViewMember;
 use App\Filament\RelationManagers\QualificationsRelationManager;
+use App\Filament\Teams\Resources\Activities\ActivityResource;
+use App\Filament\Teams\Resources\Activities\Pages\ListActivities;
 use App\Filament\Teams\Resources\Venues\Pages\ListVenues;
 use App\Models\Activity;
 use App\Models\Booking;
@@ -332,8 +332,6 @@ class ActivityTeamsTest extends TestCase
             ->assertSeeTextInOrder([
                 'Team',
                 'Bookings',
-                'Setup',
-                'Activities',
             ]);
     }
 
@@ -344,12 +342,10 @@ class ActivityTeamsTest extends TestCase
         $this->actingAs($manager)
             ->get('/manage/'.$manager->managedTeams()->first()->slug)
             ->assertOk()
-            ->assertSee('Team')
-            ->assertSee('Activities')
             ->assertDontSee('Organisation')
-            ->assertDontSee('Catalog')
-            ->assertDontSee('Mail')
-            ->assertDontSee('Activity catalog');
+            ->assertDontSee('Audiences')
+            ->assertDontSee('Locks')
+            ->assertDontSee('Inbound mail');
     }
 
     public function test_system_admin_creates_a_team_and_its_first_manager(): void
@@ -512,15 +508,14 @@ class ActivityTeamsTest extends TestCase
         $activity = Activity::factory()->create(['name' => 'Scout climbing']);
         $venue = Venue::factory()->create(['name' => 'Campsite']);
 
-        Filament::setCurrentPanel('manage');
+        Filament::setCurrentPanel('teams');
         $this->actingAs($admin);
 
         Livewire::test(ListActivities::class)
+            ->assertSuccessful()
             ->callAction('give', data: [
                 'activity_id' => $activity->getKey(),
             ]);
-
-        Filament::setCurrentPanel('teams');
 
         Livewire::test(ListVenues::class)
             ->callAction('give', data: [
@@ -545,10 +540,10 @@ class ActivityTeamsTest extends TestCase
             ->assertOk()
             ->assertSee('Climbing keys');
 
+        Filament::setCurrentPanel('teams');
+
         Livewire::test(ListActivities::class)
             ->callTableAction('remove', $activity);
-
-        Filament::setCurrentPanel('teams');
 
         Livewire::test(ListVenues::class)
             ->callTableAction('remove', $venue);
@@ -620,9 +615,12 @@ class ActivityTeamsTest extends TestCase
 
         Filament::setCurrentPanel('manage');
         $this->actingAs($outsider);
-        $this->get(ActivityResource::getUrl('index', tenant: $team))->assertNotFound();
         $this->get(MemberResource::getUrl('index', tenant: $team))->assertNotFound();
 
+        Filament::setCurrentPanel('teams');
+        $this->get(ActivityResource::getUrl('index', tenant: $team))->assertNotFound();
+
+        Filament::setCurrentPanel('teams');
         $this->actingAs($manager);
 
         Livewire::test(ListActivities::class)

@@ -150,16 +150,20 @@ class User extends Authenticatable implements FilamentUser, HasAvatar, HasDefaul
 
     public function getTenants(Panel $panel): EloquentCollection
     {
+        if ($this->isSuspended()) {
+            return new EloquentCollection;
+        }
+
+        if ($this->isSystemAdmin()) {
+            return Team::query()->orderBy('name')->get();
+        }
+
         if ($panel->getId() === 'teams') {
             return $this->teamsPanelTenants();
         }
 
         if ($panel->getId() !== 'manage') {
             return new EloquentCollection;
-        }
-
-        if ($this->isSystemAdmin()) {
-            return Team::query()->orderBy('name')->get();
         }
 
         return $this->managedTeams()->orderBy('name')->get();
@@ -192,11 +196,15 @@ class User extends Authenticatable implements FilamentUser, HasAvatar, HasDefaul
             return false;
         }
 
+        if ($this->isSystemAdmin()) {
+            return true;
+        }
+
         if (Filament::getCurrentPanel()?->getId() === 'teams') {
             return $this->teamsPanelTenants()->contains('id', $tenant->getKey());
         }
 
-        return $this->isSystemAdmin() || $this->manages($tenant);
+        return $this->manages($tenant);
     }
 
     public function getDefaultTenant(Panel $panel): ?Model
@@ -212,12 +220,19 @@ class User extends Authenticatable implements FilamentUser, HasAvatar, HasDefaul
             }
         }
 
+        // Managed teams take precedence over regular teams
         $managed = $this->managedTeams()->orderBy('name')->first();
-
         if ($managed instanceof Team && $tenants->contains('id', $managed->getKey())) {
             return $managed;
         }
 
+        // Regular teams come after managed teams
+        $team = $this->teams()->orderBy('name')->first();
+        if ($team instanceof Team && $tenants->contains('id', $team->getKey())) {
+            return $team;
+        }
+
+        // If no managed or regular teams are available, fall back to any tenant available
         return $tenants->first();
     }
 

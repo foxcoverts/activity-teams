@@ -1,9 +1,9 @@
 <?php
 
-namespace App\Filament\Manage\Resources\Activities;
+namespace App\Filament\Teams\Resources\Activities;
 
-use App\Filament\Manage\NavigationGroup;
-use App\Filament\Manage\Resources\Activities\Pages\ListActivities;
+use App\Filament\Teams\NavigationGroup;
+use App\Filament\Teams\Resources\Activities\Pages\ListActivities;
 use App\Models\Activity;
 use App\Models\Audience;
 use App\Models\Team;

@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Filament\Manage\Resources\Activities\Actions;
+namespace App\Filament\Teams\Resources\Activities\Actions;
 
-use App\Filament\Manage\Resources\Activities\ActivityResource;
+use App\Filament\Teams\Resources\Activities\ActivityResource;
 use App\Models\Activity;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Select;

@@ -2,8 +2,8 @@
 
 namespace Tests\Feature;
 
-use App\Filament\Manage\Resources\Activities\Pages\ListActivities;
 use App\Filament\Manage\Resources\Bookings\Pages\CreateBooking;
+use App\Filament\Teams\Resources\Activities\Pages\ListActivities;
 use App\Mail\BookingInviteMail;
 use App\Models\Activity;
 use App\Models\ActivityAudience;
@@ -242,6 +242,8 @@ class AudienceQualificationTest extends TestCase
             ->assertFormSet([
                 'audience_id' => $public->getKey(),
             ]);
+
+        Filament::setCurrentPanel('teams');
 
         Livewire::test(ListActivities::class)
             ->assertSee('Scouts')

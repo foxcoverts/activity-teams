@@ -2,7 +2,7 @@
 
 namespace Tests\Feature;
 
-use App\Filament\Manage\Resources\Activities\Pages\ListActivities;
+use App\Filament\Teams\Resources\Activities\Pages\ListActivities;
 use App\Filament\Teams\Resources\Venues\Pages\ListVenues;
 use App\Models\Activity;
 use App\Models\User;
@@ -20,7 +20,7 @@ class TeamCatalogDefaultsTest extends TestCase
     {
         parent::setUp();
 
-        Filament::setCurrentPanel('manage');
+        Filament::setCurrentPanel('teams');
     }
 
     public function test_activity_list_marks_the_default_and_replaces_it_when_another_is_selected(): void
@@ -74,8 +74,6 @@ class TeamCatalogDefaultsTest extends TestCase
         $this->assertSame($campsite->getKey(), $team->fresh()->default_venue_id);
 
         $this->actingAs($user);
-        Filament::setTenant($team->fresh());
-        Filament::setCurrentPanel('teams');
 
         Livewire::test(ListVenues::class)
             ->assertSee('Default')
@@ -154,7 +152,6 @@ class TeamCatalogDefaultsTest extends TestCase
             ->assertDontSee('Give an activity');
 
         $this->actingAs(User::factory()->systemAdmin()->create());
-        Filament::setTenant($manager->managedTeams()->firstOrFail());
         Livewire::test(ListActivities::class)->assertSee('Give an activity');
     }
 }

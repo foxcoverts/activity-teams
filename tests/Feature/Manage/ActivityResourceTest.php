@@ -2,7 +2,7 @@
 
 namespace Tests\Feature\Manage;
 
-use App\Filament\Manage\Resources\Activities\Pages\ListActivities;
+use App\Filament\Teams\Resources\Activities\Pages\ListActivities;
 use App\Models\Activity;
 use App\Models\User;
 use Filament\Facades\Filament;
@@ -18,7 +18,7 @@ class ActivityResourceTest extends TestCase
     {
         parent::setUp();
 
-        Filament::setCurrentPanel('manage');
+        Filament::setCurrentPanel('teams');
     }
 
     public function test_the_activity_list_is_sorted_by_name(): void
