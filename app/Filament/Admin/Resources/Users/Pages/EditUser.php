@@ -5,7 +5,7 @@ namespace App\Filament\Admin\Resources\Users\Pages;
 use App\Actions\DeleteUserAction;
 use App\Filament\Admin\Resources\Users\UserResource;
 use App\Filament\Concerns\AcknowledgesPersonalData;
-use App\Filament\Manage\Actions\SuspensionActions;
+use App\Filament\Teams\Actions\SuspensionActions;
 use App\Models\User;
 use App\Support\Palette;
 use Filament\Actions\ActionGroup;

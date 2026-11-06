@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Filament\Manage\Actions;
+namespace App\Filament\Teams\Actions;
 
 use App\Actions\SetSuspensionAction;
 use App\Models\Team;

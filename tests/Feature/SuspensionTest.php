@@ -7,7 +7,7 @@ use App\Actions\UpdateBookingStatusAction;
 use App\Enums\BookingAttendeeStatus;
 use App\Enums\MembershipRole;
 use App\Filament\Admin\Resources\Users\Pages\EditUser;
-use App\Filament\Manage\Actions\SuspensionActions;
+use App\Filament\Teams\Actions\SuspensionActions;
 use App\Filament\Member\Resources\Bookings\BookingResource as MemberBookingResource;
 use App\Filament\Teams\Resources\Bookings\Pages\ViewBooking as MemberViewBooking;
 use App\Filament\Teams\Resources\Bookings\RelationManagers\AttendeesRelationManager as MemberAttendeesRelationManager;

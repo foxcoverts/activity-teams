@@ -3,7 +3,7 @@
 namespace App\Filament\Teams\Resources\Members\Pages;
 
 use App\Filament\Concerns\AcknowledgesPersonalData;
-use App\Filament\Manage\Actions\SuspensionActions;
+use App\Filament\Teams\Actions\SuspensionActions;
 use App\Filament\Teams\Resources\Members\MemberResource;
 use Filament\Actions\ActionGroup;
 use Filament\Actions\ViewAction;
