@@ -7,13 +7,11 @@ use App\Enums\MembershipRole;
 use App\Filament\Teams\Pages\Leaders;
 use App\Filament\Teams\Resources\Bookings\BookingResource;
 use App\Filament\Teams\Resources\Bookings\Pages\ListBookings;
-use App\Filament\Teams\Resources\Documents\Pages\ListDocuments;
 use App\Filament\Teams\Resources\NewsPosts\NewsPostResource;
 use App\Filament\Teams\Widgets\LatestNewsWidget;
 use App\Filament\Teams\Widgets\ThisWeekWidget;
 use App\Livewire\TeamLeaderContactDetails;
 use App\Models\Booking;
-use App\Models\Document;
 use App\Models\NewsPost;
 use App\Models\Team;
 use App\Models\User;
@@ -103,20 +101,6 @@ class TeamsPanelResourcesTest extends TestCase
         Livewire::test(LatestNewsWidget::class)
             ->assertSee('Climbing news')
             ->assertDontSee('Archery news');
-    }
-
-    public function test_documents_are_sorted_by_title_and_can_be_sorted_by_date(): void
-    {
-        $zebra = Document::factory()->forTeam($this->climbing)->create(['title' => 'Zebra', 'updated_at' => now()->subDays(2)]);
-        $alpha = Document::factory()->forTeam($this->climbing)->create(['title' => 'Alpha', 'updated_at' => now()->subDay()]);
-        $middle = Document::factory()->forTeam($this->climbing)->create(['title' => 'Middle', 'updated_at' => now()]);
-
-        Livewire::test(ListDocuments::class)
-            ->assertCanSeeTableRecords([$alpha, $middle, $zebra], inOrder: true)
-            ->sortTable('title', 'desc')
-            ->assertCanSeeTableRecords([$zebra, $middle, $alpha], inOrder: true)
-            ->sortTable('updated_at', 'desc')
-            ->assertCanSeeTableRecords([$middle, $alpha, $zebra], inOrder: true);
     }
 
     public function test_the_booking_list_is_sorted_by_start_time_and_has_invites_and_rota_tabs(): void

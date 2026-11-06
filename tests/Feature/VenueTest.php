@@ -55,7 +55,7 @@ class VenueTest extends TestCase
             ]);
     }
 
-    public function test_manage_venue_shows_address(): void
+    public function test_teams_venue_shows_address(): void
     {
         $manager = User::factory()->teamManager()->create();
         $venue = Venue::factory()->create([

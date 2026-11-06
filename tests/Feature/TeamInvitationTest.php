@@ -137,7 +137,7 @@ class TeamInvitationTest extends TestCase
     public function test_an_oversight_account_cannot_invite(): void
     {
         $oversight = User::factory()->oversight()->create();
-        Filament::setCurrentPanel('manage');
+        Filament::setCurrentPanel('teams');
         $this->actingAs($oversight);
 
         Livewire::test(ListMembers::class)

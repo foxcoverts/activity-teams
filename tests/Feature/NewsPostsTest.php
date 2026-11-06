@@ -37,7 +37,7 @@ class NewsPostsTest extends TestCase
         Filament::setCurrentPanel('teams');
     }
 
-    public function test_news_posts_list_can_be_accessed(): void
+    public function test_news_posts_list_shows_posts_and_hides_trashed_by_default(): void
     {
         $manager = User::factory()->teamManager()->create();
         $team = $manager->managedTeams()->first();

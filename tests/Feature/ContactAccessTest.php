@@ -5,8 +5,8 @@ namespace Tests\Feature;
 use App\Enums\BookingAttendeeStatus;
 use App\Enums\MembershipRole;
 use App\Enums\PersonalDataSection;
-use App\Filament\Teams\Resources\Bookings\Pages\ViewBooking as MemberViewBooking;
-use App\Filament\Teams\Resources\Bookings\RelationManagers\AttendeesRelationManager as MemberAttendeesRelationManager;
+use App\Filament\Teams\Resources\Bookings\Pages\ViewBooking as TeamsViewBooking;
+use App\Filament\Teams\Resources\Bookings\RelationManagers\AttendeesRelationManager as TeamsAttendeesRelationManager;
 use App\Livewire\BookingContactDetails;
 use App\Models\Booking;
 use App\Models\PersonalDataAcknowledgement;
@@ -314,18 +314,18 @@ class ContactAccessTest extends TestCase
         Filament::setCurrentPanel('teams');
         $this->actingAs($this->attendee);
 
-        Livewire::test(MemberAttendeesRelationManager::class, ['ownerRecord' => $this->booking, 'pageClass' => MemberViewBooking::class])
+        Livewire::test(TeamsAttendeesRelationManager::class, ['ownerRecord' => $this->booking, 'pageClass' => TeamsViewBooking::class])
             ->assertSee('Lee Lead')
             ->assertSee('Emergency')
             ->assertDontSee($this->lead->phone)
             ->mountTableAction('contactPhone', $this->lead)
             ->assertMountedActionModalSee('legitimate team matters');
 
-        Livewire::test(MemberAttendeesRelationManager::class, ['ownerRecord' => $this->booking, 'pageClass' => MemberViewBooking::class])
+        Livewire::test(TeamsAttendeesRelationManager::class, ['ownerRecord' => $this->booking, 'pageClass' => TeamsViewBooking::class])
             ->mountTableAction('contactPhone', $this->maybe)
             ->assertTableActionNotMounted('contactPhone');
 
-        Livewire::test(MemberAttendeesRelationManager::class, ['ownerRecord' => $this->booking, 'pageClass' => MemberViewBooking::class])
+        Livewire::test(TeamsAttendeesRelationManager::class, ['ownerRecord' => $this->booking, 'pageClass' => TeamsViewBooking::class])
             ->mountTableAction('emergencyContact', $this->maybe)
             ->assertTableActionNotMounted('emergencyContact');
     }
@@ -337,9 +337,9 @@ class ContactAccessTest extends TestCase
         $this->lead->forceFill(['phone' => null, 'emergency_phone' => null])->save();
         $this->actingAs($this->attendee);
 
-        $page = fn (): array => ['ownerRecord' => $this->booking->fresh(), 'pageClass' => MemberViewBooking::class];
+        $page = fn (): array => ['ownerRecord' => $this->booking->fresh(), 'pageClass' => TeamsViewBooking::class];
 
-        Livewire::test(MemberAttendeesRelationManager::class, $page())
+        Livewire::test(TeamsAttendeesRelationManager::class, $page())
             ->assertDontSee('contactPhone')
             ->assertDontSee('emergencyContact')
             ->mountTableAction('contactPhone', $this->lead)
@@ -347,7 +347,7 @@ class ContactAccessTest extends TestCase
 
         $this->lead->forceFill(['phone' => '07000111222'])->save();
 
-        Livewire::test(MemberAttendeesRelationManager::class, $page())
+        Livewire::test(TeamsAttendeesRelationManager::class, $page())
             ->assertSee('contactPhone')
             ->assertDontSee('emergencyContact');
     }

@@ -9,8 +9,8 @@ use App\Enums\MembershipRole;
 use App\Filament\Admin\Resources\Users\Pages\EditUser;
 use App\Filament\Teams\Actions\SuspensionActions;
 use App\Filament\Member\Resources\Bookings\BookingResource as MemberBookingResource;
-use App\Filament\Teams\Resources\Bookings\Pages\ViewBooking as MemberViewBooking;
-use App\Filament\Teams\Resources\Bookings\RelationManagers\AttendeesRelationManager as MemberAttendeesRelationManager;
+use App\Filament\Teams\Resources\Bookings\Pages\ViewBooking as TeamsViewBooking;
+use App\Filament\Teams\Resources\Bookings\RelationManagers\AttendeesRelationManager as TeamsAttendeesRelationManager;
 use App\Filament\Teams\Resources\Members\MemberResource;
 use App\Filament\Teams\Resources\Members\Pages\EditMember;
 use App\Filament\Teams\Resources\Members\Pages\ViewMember;
@@ -341,11 +341,11 @@ class SuspensionTest extends TestCase
 
         Filament::setCurrentPanel('teams');
         $this->actingAs($teammate);
-        Livewire::test(MemberAttendeesRelationManager::class, ['ownerRecord' => $booking, 'pageClass' => MemberViewBooking::class])
+        Livewire::test(TeamsAttendeesRelationManager::class, ['ownerRecord' => $booking, 'pageClass' => TeamsViewBooking::class])
             ->assertDontSee('Alex Member');
 
         $this->actingAs($this->manager);
-        Livewire::test(MemberAttendeesRelationManager::class, ['ownerRecord' => $booking, 'pageClass' => MemberViewBooking::class])
+        Livewire::test(TeamsAttendeesRelationManager::class, ['ownerRecord' => $booking, 'pageClass' => TeamsViewBooking::class])
             ->assertSee('Alex Member');
     }
 

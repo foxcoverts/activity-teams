@@ -5,7 +5,7 @@ namespace Tests\Feature;
 use App\Enums\BookingAttendeeResponse;
 use App\Enums\BookingAttendeeStatus;
 use App\Enums\MembershipRole;
-use App\Filament\Admin\Resources\Keys\KeyResource as ManageKeyResource;
+use App\Filament\Admin\Resources\Keys\KeyResource as AdminKeyResource;
 use App\Filament\Admin\Resources\Keys\Pages\CreateKey;
 use App\Filament\Admin\Resources\Keys\Pages\ViewKey;
 use App\Filament\Admin\Resources\Keys\RelationManagers\LocksRelationManager as KeyLocksRelationManager;
@@ -19,8 +19,8 @@ use App\Filament\Manage\Resources\Bookings\Pages\ViewBooking as ManageViewBookin
 use App\Filament\Manage\Resources\Bookings\RelationManagers\AttendeesRelationManager;
 use App\Filament\Member\Resources\Bookings\BookingResource;
 use App\Filament\Member\Resources\Keys\KeyResource as MemberKeyResource;
-use App\Filament\Teams\Resources\Bookings\Pages\ViewBooking as MemberViewBooking;
-use App\Filament\Teams\Resources\Bookings\RelationManagers\AttendeesRelationManager as MemberAttendeesRelationManager;
+use App\Filament\Teams\Resources\Bookings\Pages\ViewBooking as TeamsViewBooking;
+use App\Filament\Teams\Resources\Bookings\RelationManagers\AttendeesRelationManager as TeamsAttendeesRelationManager;
 use App\Filament\Teams\Resources\Keys\KeyResource as TeamKeyResource;
 use App\Filament\Teams\Resources\Members\MemberResource;
 use App\Filament\Teams\Resources\Members\Pages\ListMembers;
@@ -139,7 +139,7 @@ class KeyAccessTest extends TestCase
 
         $this->actingAs($manager);
         $this->get(LockResource::getUrl('create'))->assertForbidden();
-        $this->get(ManageKeyResource::getUrl('create'))->assertForbidden();
+        $this->get(AdminKeyResource::getUrl('create'))->assertForbidden();
 
         $this->actingAs($admin);
 
@@ -179,7 +179,7 @@ class KeyAccessTest extends TestCase
         $this->assertTrue($ring->locks()->whereKey($store->getKey())->exists());
 
         $this->get(LockResource::getUrl('view', ['record' => $store]))->assertOk();
-        $this->get(ManageKeyResource::getUrl('view', ['record' => $ring]))->assertOk();
+        $this->get(AdminKeyResource::getUrl('view', ['record' => $ring]))->assertOk();
 
         Livewire::test(ViewLock::class, ['record' => $store->getKey()])
             ->assertOk()
@@ -432,41 +432,41 @@ class KeyAccessTest extends TestCase
             ->assertOk()
             ->assertSee('Confirmed booking');
 
-        Livewire::test(MemberAttendeesRelationManager::class, [
+        Livewire::test(TeamsAttendeesRelationManager::class, [
             'ownerRecord' => $booking,
-            'pageClass' => MemberViewBooking::class,
+            'pageClass' => TeamsViewBooking::class,
         ])
             ->assertSee('Key holder')
             ->assertSee('Sam Holder')
             ->assertDontSee('07000999888');
 
-        Livewire::test(MemberAttendeesRelationManager::class, [
+        Livewire::test(TeamsAttendeesRelationManager::class, [
             'ownerRecord' => $booking,
-            'pageClass' => MemberViewBooking::class,
+            'pageClass' => TeamsViewBooking::class,
         ])
             ->mountTableAction('heldKeys', $holder)
             ->assertMountedActionModalSee('Shared climbing')
             ->assertMountedActionModalSee('Climbing store');
 
-        Livewire::test(MemberAttendeesRelationManager::class, [
+        Livewire::test(TeamsAttendeesRelationManager::class, [
             'ownerRecord' => $booking,
-            'pageClass' => MemberViewBooking::class,
+            'pageClass' => TeamsViewBooking::class,
         ])
             ->mountTableAction('qualifications', $holder)
             ->assertMountedActionModalSee('Climbing and Abseiling — Artificial Top Rope — Leadership');
 
         $this->actingAs($member);
 
-        Livewire::test(MemberAttendeesRelationManager::class, [
+        Livewire::test(TeamsAttendeesRelationManager::class, [
             'ownerRecord' => $booking,
-            'pageClass' => MemberViewBooking::class,
+            'pageClass' => TeamsViewBooking::class,
         ])
             ->mountTableAction('heldKeys', $holder)
             ->assertTableActionNotMounted('heldKeys');
 
-        Livewire::test(MemberAttendeesRelationManager::class, [
+        Livewire::test(TeamsAttendeesRelationManager::class, [
             'ownerRecord' => $booking,
-            'pageClass' => MemberViewBooking::class,
+            'pageClass' => TeamsViewBooking::class,
         ])
             ->mountTableAction('qualifications', $holder)
             ->assertTableActionNotMounted('qualifications');
@@ -474,7 +474,7 @@ class KeyAccessTest extends TestCase
         Filament::setCurrentPanel('teams');
         $this->actingAs($lead);
 
-        Livewire::test(MemberViewBooking::class, ['record' => $booking->getRouteKey()])
+        Livewire::test(TeamsViewBooking::class, ['record' => $booking->getRouteKey()])
             ->assertActionHasIcon('keys', Heroicon::Key)
             ->mountAction('keys')
             ->assertMountedActionModalSee('Attending')

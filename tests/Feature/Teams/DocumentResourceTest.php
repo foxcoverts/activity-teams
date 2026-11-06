@@ -3,7 +3,6 @@
 namespace Tests\Feature\Teams;
 
 use App\Filament\Teams\Resources\Documents\DocumentResource;
-use App\Filament\Teams\Resources\Documents\DocumentResource as TeamsDocumentResource;
 use App\Filament\Teams\Resources\Documents\Pages\CreateDocument;
 use App\Filament\Teams\Resources\Documents\Pages\EditDocument;
 use App\Filament\Teams\Resources\Documents\Pages\ListDocuments;
@@ -36,7 +35,7 @@ class DocumentResourceTest extends TestCase
     {
         $team = Team::factory()->create();
 
-        $this->get(TeamsDocumentResource::getUrl('index', panel: 'teams', tenant: $team))
+        $this->get(DocumentResource::getUrl('index', panel: 'teams', tenant: $team))
             ->assertRedirect('/teams/login');
     }
 
@@ -231,7 +230,7 @@ class DocumentResourceTest extends TestCase
         Storage::disk('local')->assertMissing($path);
     }
 
-    public function test_teams_documents_are_sorted_by_title_and_can_be_sorted_by_date(): void
+    public function test_documents_are_sorted_by_title_and_can_be_sorted_by_date(): void
     {
         $manager = User::factory()->teamManager()->create();
         $team = $manager->managedTeams()->first();
@@ -258,7 +257,7 @@ class DocumentResourceTest extends TestCase
             ->assertCanSeeTableRecords([$middle, $alpha, $zebra], inOrder: true);
     }
 
-    public function test_teams_documents_table_hides_trashed_rows_by_default(): void
+    public function test_documents_table_hides_trashed_rows_by_default(): void
     {
         $manager = User::factory()->teamManager()->create(['name' => 'Zelda Uploader']);
         $team = $manager->managedTeams()->first();
@@ -324,7 +323,7 @@ class DocumentResourceTest extends TestCase
             ->assertHasFormErrors(['file_path']);
     }
 
-    public function test_managers_do_not_see_another_teams_documents_on_manage(): void
+    public function test_managers_do_not_see_another_teams_documents(): void
     {
         $manager = User::factory()->teamManager()->create();
         $team = $manager->managedTeams()->first();
