@@ -1,8 +1,8 @@
 <?php
 
-namespace Tests\Feature\Manage;
+namespace Tests\Feature\Teams;
 
-use App\Filament\Manage\Resources\Keys\Pages\ListKeys;
+use App\Filament\Teams\Resources\Keys\Pages\ListKeys;
 use App\Models\Activity;
 use App\Models\Key;
 use App\Models\Lock;
@@ -22,7 +22,7 @@ class KeyResourceTest extends TestCase
     {
         parent::setUp();
 
-        Filament::setCurrentPanel('manage');
+        Filament::setCurrentPanel('teams');
     }
 
     public function test_the_key_ring_list_is_sorted_by_name(): void

@@ -2,7 +2,7 @@
 
 namespace App\Notifications;
 
-use App\Filament\Manage\Resources\Keys\KeyResource;
+use App\Filament\Teams\Resources\Keys\KeyResource;
 use App\Models\Key;
 use App\Models\Team;
 use App\Models\User;
@@ -48,7 +48,7 @@ class KeyHolderLeavingNotification extends Notification
             'filters' => [
                 'holder_id' => ['value' => $this->member->getKey()],
             ],
-        ], panel: 'manage', tenant: $this->team);
+        ], panel: 'teams', tenant: $this->team);
     }
 
     public function inboxAlwaysEmailable(): bool

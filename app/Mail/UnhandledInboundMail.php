@@ -5,7 +5,7 @@ namespace App\Mail;
 use App\Filament\Admin\Resources\InboundMails\InboundMailResource;
 use App\Filament\Admin\Resources\Teams\TeamResource;
 use App\Filament\Manage\Resources\Bookings\BookingResource;
-use App\Filament\Manage\Resources\Keys\KeyResource;
+use App\Filament\Teams\Resources\Keys\KeyResource;
 use App\Models\Booking;
 use App\Models\InboundMail;
 use App\Models\Key;

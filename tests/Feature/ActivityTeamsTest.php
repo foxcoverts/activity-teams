@@ -15,13 +15,13 @@ use App\Filament\Admin\Resources\Users\Pages\ViewUser;
 use App\Filament\Admin\Resources\Users\RelationManagers\MembershipsRelationManager;
 use App\Filament\Admin\Resources\Users\UserResource;
 use App\Filament\Manage\Resources\Bookings\BookingResource;
-use App\Filament\Manage\Resources\Keys\KeyResource;
 use App\Filament\Manage\Resources\Members\MemberResource;
 use App\Filament\Manage\Resources\Members\Pages\ListMembers;
 use App\Filament\Manage\Resources\Members\Pages\ViewMember;
 use App\Filament\RelationManagers\QualificationsRelationManager;
 use App\Filament\Teams\Resources\Activities\ActivityResource;
 use App\Filament\Teams\Resources\Activities\Pages\ListActivities;
+use App\Filament\Teams\Resources\Keys\KeyResource;
 use App\Filament\Teams\Resources\Venues\Pages\ListVenues;
 use App\Models\Activity;
 use App\Models\Booking;
@@ -533,8 +533,6 @@ class ActivityTeamsTest extends TestCase
 
         $keyRing = Key::factory()->create(['name' => 'Climbing keys']);
         $keyRing->locks()->attach($key);
-
-        Filament::setCurrentPanel('manage');
 
         $this->get(KeyResource::getUrl('index'))
             ->assertOk()

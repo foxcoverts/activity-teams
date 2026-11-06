@@ -1,12 +1,12 @@
 <?php
 
-namespace App\Filament\Manage\Resources\Keys;
+namespace App\Filament\Teams\Resources\Keys;
 
-use App\Filament\Manage\NavigationGroup;
-use App\Filament\Manage\Resources\Keys\Pages\ListKeys;
-use App\Filament\Manage\Resources\Keys\Pages\ViewKey;
-use App\Filament\Manage\Resources\Keys\Schemas\KeyInfolist;
-use App\Filament\Manage\Resources\Keys\Tables\KeysTable;
+use App\Filament\Teams\NavigationGroup;
+use App\Filament\Teams\Resources\Keys\Pages\ListKeys;
+use App\Filament\Teams\Resources\Keys\Pages\ViewKey;
+use App\Filament\Teams\Resources\Keys\Schemas\KeyInfolist;
+use App\Filament\Teams\Resources\Keys\Tables\KeysTable;
 use App\Models\Key;
 use App\Models\Team;
 use App\Models\User;

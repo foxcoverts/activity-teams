@@ -5,10 +5,10 @@ namespace Tests\Feature;
 use App\Actions\AcceptTeamInvitationAction;
 use App\Actions\PassKeyAction;
 use App\Enums\MembershipRole;
-use App\Filament\Manage\Resources\Keys\KeyResource as ManageKeyResource;
-use App\Filament\Manage\Resources\Keys\Pages\ListKeys as ManageListKeys;
 use App\Filament\Member\Resources\Keys\KeyResource as MemberKeyResource;
 use App\Filament\Member\Resources\Keys\Pages\ListKeys as MemberListKeys;
+use App\Filament\Teams\Resources\Keys\KeyResource as TeamsKeyResource;
+use App\Filament\Teams\Resources\Keys\Pages\ListKeys as TeamsListKeys;
 use App\Models\Activity;
 use App\Models\Key;
 use App\Models\Lock;
@@ -314,10 +314,10 @@ class KeyPassTest extends TestCase
         ]);
         $ring = $this->heldRing($holder, $key);
 
-        Filament::setCurrentPanel('manage');
+        Filament::setCurrentPanel('teams');
         $this->actingAs($manager);
 
-        Livewire::test(ManageListKeys::class)
+        Livewire::test(TeamsListKeys::class)
             ->mountTableAction('pass', $ring)
             ->assertSchemaComponentExists('holder_id', checkComponentUsing: function (Select $select) use ($receiver, $holder): bool {
                 $options = $select->getOptions();
@@ -379,10 +379,10 @@ class KeyPassTest extends TestCase
         $this->get(MemberKeyResource::getUrl('view', ['record' => $ring]))
             ->assertNotFound();
 
-        Filament::setCurrentPanel('manage');
+        Filament::setCurrentPanel('teams');
         $this->actingAs($member);
 
-        $this->get(ManageKeyResource::getUrl('index', tenant: $team))
+        $this->get(TeamsKeyResource::getUrl('index', tenant: $team))
             ->assertForbidden();
     }
 

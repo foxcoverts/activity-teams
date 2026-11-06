@@ -12,8 +12,8 @@ use App\Enums\MembershipRole;
 use App\Events\BookingInvite;
 use App\Filament\Admin\Resources\Teams\TeamResource;
 use App\Filament\Admin\Resources\Users\UserResource;
-use App\Filament\Manage\Resources\Keys\KeyResource;
 use App\Filament\Manage\Resources\Members\MemberResource;
+use App\Filament\Teams\Resources\Keys\KeyResource;
 use App\Jobs\SendBookingNotification;
 use App\Mail\BookingInviteMail;
 use App\Mail\CombinedDigestMail;
@@ -333,12 +333,12 @@ class InboxDigestTest extends TestCase
             'filters' => [
                 'holder_id' => ['value' => $holder->getKey()],
             ],
-        ], panel: 'manage', tenant: $first), $urls);
+        ], panel: 'teams', tenant: $first), $urls);
         $this->assertContains(KeyResource::getUrl('index', [
             'filters' => [
                 'holder_id' => ['value' => $holder->getKey()],
             ],
-        ], panel: 'manage', tenant: $second), $urls);
+        ], panel: 'teams', tenant: $second), $urls);
         $this->assertStringContainsString('Store keys', $rows->first()->data['body']);
         $this->assertStringContainsString('Key Holder', $rows->first()->data['body']);
     }

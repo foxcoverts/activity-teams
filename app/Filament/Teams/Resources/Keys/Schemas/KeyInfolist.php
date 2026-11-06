@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Filament\Manage\Resources\Keys\Schemas;
+namespace App\Filament\Teams\Resources\Keys\Schemas;
 
 use App\Models\Key;
 use App\Models\Team;

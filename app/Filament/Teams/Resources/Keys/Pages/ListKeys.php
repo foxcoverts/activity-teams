@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Filament\Manage\Resources\Keys\Pages;
+namespace App\Filament\Teams\Resources\Keys\Pages;
 
-use App\Filament\Manage\Resources\Keys\KeyResource;
+use App\Filament\Teams\Resources\Keys\KeyResource;
 use Filament\Resources\Pages\ListRecords;
 use Illuminate\Contracts\Support\Htmlable;
 

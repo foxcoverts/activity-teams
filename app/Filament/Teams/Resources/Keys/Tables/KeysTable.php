@@ -1,9 +1,9 @@
 <?php
 
-namespace App\Filament\Manage\Resources\Keys\Tables;
+namespace App\Filament\Teams\Resources\Keys\Tables;
 
 use App\Filament\Keys\PassKeyAction;
-use App\Filament\Manage\Resources\Keys\KeyResource;
+use App\Filament\Teams\Resources\Keys\KeyResource;
 use App\Models\Key;
 use App\Models\Team;
 use Filament\Actions\ViewAction;

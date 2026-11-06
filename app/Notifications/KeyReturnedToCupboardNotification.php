@@ -3,7 +3,7 @@
 namespace App\Notifications;
 
 use App\Enums\MailChannel;
-use App\Filament\Manage\Resources\Keys\KeyResource;
+use App\Filament\Teams\Resources\Keys\KeyResource;
 use App\Models\Key;
 use App\Models\Team;
 use App\Models\User;
