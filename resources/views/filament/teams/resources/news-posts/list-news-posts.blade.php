@@ -7,6 +7,7 @@
     
     $table = $this->getTable();
     $activeFiltersCount = $table->getActiveFiltersCount();
+    $filterCount = collect($table->getFilters())->filter(fn($filter) => ! $filter->isHidden())->count();
 
     $filtersApplyAction = $table->getFiltersApplyAction();
     $filtersResetAction = $table->getFiltersResetAction();
@@ -14,9 +15,11 @@
 @endphp
 <x-filament-panels::page>
 
+@if($filterCount)
 <x-filament::section collapsible collapsed>
     <x-slot name="heading">
         {{ __('Filters') }}
+        <x-filament::badge color="amber" size="sm">{{  $filterCount }}</x-filament::badge>
         @if ($activeFiltersCount)
             <x-filament::badge size="sm">
                 {{ $activeFiltersCount }}
@@ -34,6 +37,7 @@
 
     {{ $filtersForm }}
 </x-filament::section>
+@endif
 
 <div class="space-y-6">
     @forelse ($this->getTableRecords() as $post)
