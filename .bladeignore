@@ -1,0 +1,6 @@
+# Markdown mail bodies: 4-space indent becomes a code block, and
+# trailing double-spaces are hard line breaks that formatters strip.
+resources/views/mail/**/*
+resources/views/components/mail/**/*
+resources/views/components/booking/schedule.blade.php
+resources/views/vendor/mail/**/*

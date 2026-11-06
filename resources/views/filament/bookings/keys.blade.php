@@ -21,7 +21,8 @@
                                 @if (filled($ring['holder']))
                                     —
                                     @if (filled($ring['url']))
-                                        <a href="{{ $ring['url'] }}" class="font-medium text-primary-600 hover:underline dark:text-primary-400">{{ $ring['holder'] }}</a>
+                                        <a href="{{ $ring['url'] }}"
+                                            class="font-medium text-primary-600 hover:underline dark:text-primary-400">{{ $ring['holder'] }}</a>
                                     @else
                                         {{ $ring['holder'] }}
                                     @endif

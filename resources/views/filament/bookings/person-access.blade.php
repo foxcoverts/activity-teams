@@ -2,23 +2,18 @@
     @php($alpine = $alpine ?? false)
     @php($framed = $framed ?? true)
 
-    <div
-        @class([
-            'flex flex-col gap-3 text-sm',
-            'rounded-xl border border-gray-200 p-4 dark:border-white/10' => ! $alpine && $framed,
-        ])
-        @if ($alpine) x-data="{ showOther: false, qualification: null }" @endif
-    >
+    <div @class([
+        'flex flex-col gap-3 text-sm',
+        'rounded-xl border border-gray-200 p-4 dark:border-white/10' =>
+            !$alpine && $framed,
+    ])
+        @if ($alpine) x-data="{ showOther: false, qualification: null }" @endif>
         @unless ($alpine)
             <div class="flex items-center justify-between gap-3">
                 <h3 class="font-semibold text-gray-950 dark:text-white">{{ $access['name'] }}</h3>
-                <x-filament::button
-                    size="sm"
-                    color="gray"
-                    outlined
-                    wire:click="{{ filled($access['detail'] ?? null) ? 'closeQualification' : 'closeAccess' }}"
-                >
-                    {{ filled($access['detail'] ?? null) ? __('Back') : ($dismiss ?? __('Close')) }}
+                <x-filament::button size="sm" color="gray" outlined
+                    wire:click="{{ filled($access['detail'] ?? null) ? 'closeQualification' : 'closeAccess' }}">
+                    {{ filled($access['detail'] ?? null) ? __('Back') : $dismiss ?? __('Close') }}
                 </x-filament::button>
             </div>
         @endunless
@@ -39,17 +34,15 @@
         @elseif ($alpine)
             <div x-show="qualification === null" class="flex flex-col gap-2">
                 @forelse ($access['relevant'] as $qualification)
-                    <x-filament::button
-                        color="gray"
-                        outlined
-                        class="w-full justify-start"
+                    <x-filament::button color="gray" outlined class="w-full justify-start"
                         data-qualification="{{ $qualification['id'] }}"
-                        x-on:click="qualification = $el.dataset.qualification"
-                    >
+                        x-on:click="qualification = $el.dataset.qualification">
                         <span class="flex flex-col items-start gap-0.5 text-start">
                             <span>{{ $qualification['type'] }} — {{ $qualification['summary'] }}</span>
                             @if ($qualification['expires'])
-                                <span class="text-xs font-normal {{ $qualification['expires_class'] }}">{{ __('Expires') }} {{ $qualification['expires'] }}</span>
+                                <span
+                                    class="text-xs font-normal {{ $qualification['expires_class'] }}">{{ __('Expires') }}
+                                    {{ $qualification['expires'] }}</span>
                             @endif
                         </span>
                     </x-filament::button>
@@ -67,17 +60,15 @@
 
                     <div x-show="showOther" x-cloak class="flex flex-col gap-2">
                         @foreach ($access['other'] as $qualification)
-                            <x-filament::button
-                                color="gray"
-                                outlined
-                                class="w-full justify-start"
+                            <x-filament::button color="gray" outlined class="w-full justify-start"
                                 data-qualification="{{ $qualification['id'] }}"
-                                x-on:click="qualification = $el.dataset.qualification"
-                            >
+                                x-on:click="qualification = $el.dataset.qualification">
                                 <span class="flex flex-col items-start gap-0.5 text-start">
                                     <span>{{ $qualification['type'] }} — {{ $qualification['summary'] }}</span>
                                     @if ($qualification['expires'])
-                                        <span class="text-xs font-normal {{ $qualification['expires_class'] }}">{{ __('Expires') }} {{ $qualification['expires'] }}</span>
+                                        <span
+                                            class="text-xs font-normal {{ $qualification['expires_class'] }}">{{ __('Expires') }}
+                                            {{ $qualification['expires'] }}</span>
                                     @endif
                                 </span>
                             </x-filament::button>
@@ -87,8 +78,10 @@
             </div>
 
             @foreach ([...$access['relevant'], ...$access['other']] as $qualification)
-                <div x-show="qualification === $el.dataset.qualification" data-qualification="{{ $qualification['id'] }}" x-cloak class="flex flex-col gap-3">
-                    <x-filament::button color="gray" outlined size="sm" class="self-start" x-on:click="qualification = null">
+                <div x-show="qualification === $el.dataset.qualification"
+                    data-qualification="{{ $qualification['id'] }}" x-cloak class="flex flex-col gap-3">
+                    <x-filament::button color="gray" outlined size="sm" class="self-start"
+                        x-on:click="qualification = null">
                         {{ __('Back') }}
                     </x-filament::button>
 
@@ -127,16 +120,14 @@
         @else
             <div class="flex flex-col gap-2">
                 @forelse ($access['relevant'] as $qualification)
-                    <x-filament::button
-                        color="gray"
-                        outlined
-                        class="w-full justify-start"
-                        wire:click="openQualification('{{ $qualification['id'] }}')"
-                    >
+                    <x-filament::button color="gray" outlined class="w-full justify-start"
+                        wire:click="openQualification('{{ $qualification['id'] }}')">
                         <span class="flex flex-col items-start gap-0.5 text-start">
                             <span>{{ $qualification['type'] }} — {{ $qualification['summary'] }}</span>
                             @if ($qualification['expires'])
-                                <span class="text-xs font-normal {{ $qualification['expires_class'] }}">{{ __('Expires') }} {{ $qualification['expires'] }}</span>
+                                <span
+                                    class="text-xs font-normal {{ $qualification['expires_class'] }}">{{ __('Expires') }}
+                                    {{ $qualification['expires'] }}</span>
                             @endif
                         </span>
                     </x-filament::button>
@@ -156,16 +147,14 @@
             @if ($access['other'] !== [])
                 <div class="flex flex-col gap-2">
                     @foreach ($access['other'] as $qualification)
-                        <x-filament::button
-                            color="gray"
-                            outlined
-                            class="w-full justify-start"
-                            wire:click="openQualification('{{ $qualification['id'] }}')"
-                        >
+                        <x-filament::button color="gray" outlined class="w-full justify-start"
+                            wire:click="openQualification('{{ $qualification['id'] }}')">
                             <span class="flex flex-col items-start gap-0.5 text-start">
                                 <span>{{ $qualification['type'] }} — {{ $qualification['summary'] }}</span>
                                 @if ($qualification['expires'])
-                                    <span class="text-xs font-normal {{ $qualification['expires_class'] }}">{{ __('Expires') }} {{ $qualification['expires'] }}</span>
+                                    <span
+                                        class="text-xs font-normal {{ $qualification['expires_class'] }}">{{ __('Expires') }}
+                                        {{ $qualification['expires'] }}</span>
                                 @endif
                             </span>
                         </x-filament::button>

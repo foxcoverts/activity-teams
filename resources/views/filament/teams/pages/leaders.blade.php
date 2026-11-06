@@ -11,7 +11,8 @@
                         <div class="flex items-center gap-4">
                             <x-filament::avatar :src="$leader->getFilamentAvatarUrl()" :alt="$leader->name" size="lg" />
                             <div class="flex flex-col items-start gap-1">
-                                <span class="text-base font-semibold text-gray-950 dark:text-white">{{ $leader->name }}</span>
+                                <span
+                                    class="text-base font-semibold text-gray-950 dark:text-white">{{ $leader->name }}</span>
                                 <x-filament::badge :color="\App\Enums\MembershipRole::Manager->getColor()" :icon="\App\Enums\MembershipRole::Manager->getIcon()">
                                     {{ \App\Enums\MembershipRole::Manager->getLabel() }}
                                 </x-filament::badge>

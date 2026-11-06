@@ -10,7 +10,8 @@
 		"vscode": {
 			"extensions": [
 				"bmewburn.vscode-intelephense-client",
-				"laravel.vscode-laravel"
+				"laravel.vscode-laravel",
+				"shufo.vscode-blade-formatter"
 			],
 			"settings": {}
 		}

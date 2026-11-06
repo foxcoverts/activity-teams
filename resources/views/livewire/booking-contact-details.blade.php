@@ -1,7 +1,7 @@
 <div class="space-y-4 text-sm">
-    @if (! $allowed)
+    @if (!$allowed)
         <p class="text-gray-500 dark:text-gray-400">{{ __('These details are not available.') }}</p>
-    @elseif (! $acknowledged)
+    @elseif (!$acknowledged)
         <p>
             <strong>{{ __('Notice:') }}</strong>
             {{ __('You may only use these details to contact team members regarding legitimate team matters. Any other use of these contact details, no matter how well intended, will be in breach of UK data protection laws.') }}
@@ -20,7 +20,7 @@
                         @if (blank($detail['value']))
                             {{ __('Not provided') }}
                         @elseif ($detail['tel'])
-                            <x-filament::link :href="'tel:'.preg_replace('/[^\d+]/', '', $detail['value'])" :icon="\Filament\Support\Icons\Heroicon::Phone">
+                            <x-filament::link :href="'tel:' . preg_replace('/[^\d+]/', '', $detail['value'])" :icon="\Filament\Support\Icons\Heroicon::Phone">
                                 {{ $detail['value'] }}
                             </x-filament::link>
                         @else

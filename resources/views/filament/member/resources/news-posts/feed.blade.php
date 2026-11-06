@@ -8,20 +8,18 @@
             $url = $post->memberUrl();
             $user = auth()->user();
             $publishedAt = $post->published_at?->timezone($user?->timezone ?? config('app.timezone'));
-            $description = implode(' · ', array_filter([
-                $post->author?->name ? __('By :author', ['author' => $post->author->name]) : null,
-                $publishedAt ? __('Posted :when', ['when' => $publishedAt->diffForHumans()]) : null,
-            ]));
-            $heading = new HtmlString(
-                '<a href="'.e($url).'" class="hover:underline">'.e($post->title).'</a>'
+            $description = implode(
+                ' · ',
+                array_filter([
+                    $post->author?->name ? __('By :author', ['author' => $post->author->name]) : null,
+                    $publishedAt ? __('Posted :when', ['when' => $publishedAt->diffForHumans()]) : null,
+                ]),
             );
+            $heading = new HtmlString('<a href="' . e($url) . '" class="hover:underline">' . e($post->title) . '</a>');
         @endphp
 
         <article>
-            <x-filament::section
-                :heading="$heading"
-                :description="$description"
-            >
+            <x-filament::section :heading="$heading" :description="$description">
                 <x-slot name="afterHeader">
                     <x-filament::badge :color="\App\Support\Palette::neutral()">
                         {{ $post->team->name }}

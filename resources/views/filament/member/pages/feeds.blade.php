@@ -1,6 +1,7 @@
 <x-filament-panels::page>
     <x-filament::section>
-        <p class="mb-4 text-sm text-gray-600 dark:text-gray-400">{{ __('Subscribe to these feeds in your calendar app or news reader. Treat them like passwords.') }}</p>
+        <p class="mb-4 text-sm text-gray-600 dark:text-gray-400">
+            {{ __('Subscribe to these feeds in your calendar app or news reader. Treat them like passwords.') }}</p>
         <dl class="space-y-4">
             <div>
                 <dt class="font-medium">{{ __('All bookings') }}</dt>

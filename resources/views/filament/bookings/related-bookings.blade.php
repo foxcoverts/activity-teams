@@ -1,10 +1,6 @@
 <div>
     @if ($showPanel)
-        <x-filament::section
-            class="related-bookings-panel"
-            :heading="__('Related bookings')"
-            :has-content-el="false"
-        >
+        <x-filament::section class="related-bookings-panel" :heading="__('Related bookings')" :has-content-el="false">
             @if ($canManage)
                 <x-slot name="afterHeader">
                     {{ $this->addAction }}
@@ -18,12 +14,8 @@
                     </a>
 
                     @if ($canManage)
-                        <x-filament::button
-                            size="sm"
-                            color="danger"
-                            outlined
-                            wire:click="remove('{{ $item['id'] }}')"
-                        >
+                        <x-filament::button size="sm" color="danger" outlined
+                            wire:click="remove('{{ $item['id'] }}')">
                             {{ __('Remove') }}
                         </x-filament::button>
                     @endif

@@ -16,7 +16,7 @@
                     {{ __('You have declined this invitation. Your team manager has been told.') }}
                 @endif
             </p>
-        @elseif (! $valid)
+        @elseif (!$valid)
             <p class="mt-2">
                 @if ($invitation->isSiteInvitation())
                     {{ __('This invitation is no longer valid. Ask a system administrator to send you a new one.') }}
@@ -47,15 +47,19 @@
                     @endif
                 </p>
                 <p class="text-sm">
-                    <a href="{{ $privacyNoticeUrl }}" target="_blank" rel="noopener noreferrer" class="text-sky-700 underline">{{ __('Privacy notice') }}</a>
+                    <a href="{{ $privacyNoticeUrl }}" target="_blank" rel="noopener noreferrer"
+                        class="text-sky-700 underline">{{ __('Privacy notice') }}</a>
                 </p>
-                <button type="button" wire:click="useMyAccount" class="w-full rounded bg-sky-600 px-4 py-3 text-white">{{ __('Accept with this account') }}</button>
-                <button type="button" wire:click="signOutAndCreateAccount" class="w-full rounded border px-4 py-3">{{ __('Sign out and create a new account') }}</button>
+                <button type="button" wire:click="useMyAccount"
+                    class="w-full rounded bg-sky-600 px-4 py-3 text-white">{{ __('Accept with this account') }}</button>
+                <button type="button" wire:click="signOutAndCreateAccount"
+                    class="w-full rounded border px-4 py-3">{{ __('Sign out and create a new account') }}</button>
             </div>
         @else
             <div class="space-y-2 rounded-xl bg-white p-6 shadow">
                 <h2 class="font-semibold">{{ __('Already have an account?') }}</h2>
-                <a href="{{ route('filament.member.auth.login') }}" class="text-sky-700 underline">{{ __('Sign in to accept with your existing account') }}</a>
+                <a href="{{ route('filament.member.auth.login') }}"
+                    class="text-sky-700 underline">{{ __('Sign in to accept with your existing account') }}</a>
             </div>
         @endif
 
@@ -66,20 +70,27 @@
                 <label class="block text-sm font-medium">
                     {{ __('Name') }}
                     <x-form.input type="text" wire:model="name" />
-                    @error('name') <span class="text-red-600">{{ $message }}</span> @enderror
+                    @error('name')
+                        <span class="text-red-600">{{ $message }}</span>
+                    @enderror
                 </label>
 
                 <label class="block text-sm font-medium">
                     {{ __('Email address') }}
                     <x-form.input type="email" wire:model="email" />
-                    <span class="block text-xs font-normal">{{ __('You can use a different address from the one invited. If you do, you will need to verify it.') }}</span>
-                    @error('email') <span class="text-red-600">{{ $message }}</span> @enderror
+                    <span
+                        class="block text-xs font-normal">{{ __('You can use a different address from the one invited. If you do, you will need to verify it.') }}</span>
+                    @error('email')
+                        <span class="text-red-600">{{ $message }}</span>
+                    @enderror
                 </label>
 
                 <label class="block text-sm font-medium">
                     {{ __('Password') }}
                     <x-form.input type="password" wire:model="password" />
-                    @error('password') <span class="text-red-600">{{ $message }}</span> @enderror
+                    @error('password')
+                        <span class="text-red-600">{{ $message }}</span>
+                    @enderror
                 </label>
 
                 <label class="block text-sm font-medium">
@@ -89,11 +100,8 @@
 
                 <label class="block text-sm font-medium">
                     {{ __('Timezone') }}
-                    <x-form.select
-                        wire:model="timezone"
-                        x-init="const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-                            if (tz && $el.querySelector(`option[value='${tz}']`)) { $wire.timezone = tz }"
-                    >
+                    <x-form.select wire:model="timezone" x-init="const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+                    if (tz && $el.querySelector(`option[value='${tz}']`)) { $wire.timezone = tz }">
                         @foreach ($this->timezoneGroups() as $region => $zones)
                             <optgroup label="{{ $region }}">
                                 @foreach ($zones as $value => $label)
@@ -102,7 +110,9 @@
                             </optgroup>
                         @endforeach
                     </x-form.select>
-                    @error('timezone') <span class="text-red-600">{{ $message }}</span> @enderror
+                    @error('timezone')
+                        <span class="text-red-600">{{ $message }}</span>
+                    @enderror
                 </label>
 
                 <div class="space-y-3 rounded border p-4">
@@ -111,20 +121,25 @@
                 </div>
 
                 <p class="text-sm">
-                    <a href="{{ $privacyNoticeUrl }}" target="_blank" rel="noopener noreferrer" class="text-sky-700 underline">{{ __('Privacy notice') }}</a>
+                    <a href="{{ $privacyNoticeUrl }}" target="_blank" rel="noopener noreferrer"
+                        class="text-sky-700 underline">{{ __('Privacy notice') }}</a>
                 </p>
                 <label class="flex items-start gap-2 text-sm">
                     <input type="checkbox" wire:model="privacy_notice_accepted" class="mt-1">
                     <span>{{ __('I have read the privacy notice') }}</span>
                 </label>
-                @error('privacy_notice_accepted') <span class="text-red-600">{{ $message }}</span> @enderror
+                @error('privacy_notice_accepted')
+                    <span class="text-red-600">{{ $message }}</span>
+                @enderror
 
-                <button type="submit" class="w-full rounded bg-sky-600 px-4 py-3 text-white">{{ __('Create account') }}</button>
+                <button type="submit"
+                    class="w-full rounded bg-sky-600 px-4 py-3 text-white">{{ __('Create account') }}</button>
             </form>
         @endunless
 
         <div class="rounded-xl bg-white p-6 shadow">
-            <button type="button" wire:click="decline" wire:confirm="{{ __('Decline this invitation?') }}" class="w-full rounded border px-4 py-3">{{ __('Decline invitation') }}</button>
+            <button type="button" wire:click="decline" wire:confirm="{{ __('Decline this invitation?') }}"
+                class="w-full rounded border px-4 py-3">{{ __('Decline invitation') }}</button>
         </div>
     @endif
 </div>

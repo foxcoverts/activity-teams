@@ -11,14 +11,18 @@
     <meta property="twitter:title" content="{{ __('Fox Coverts Climbing') }}" />
     <meta property="og:title" content="{{ __('Fox Coverts Climbing') }}" />
     <meta property="og:url" content="{{ route('home') }}" />
-    <meta name="description" content="{{ __('Climbing and Abseiling sessions at Fox Coverts Campsite are run by our team of qualified climbing instructors.') }}" />
-    <meta property="og:description" content="{{ __('Climbing and Abseiling sessions at Fox Coverts Campsite are run by our team of qualified climbing instructors.') }}" />
-    <meta name="twitter:description" content="{{ __('Climbing and Abseiling sessions at Fox Coverts Campsite are run by our team of qualified climbing instructors.') }}" />
+    <meta name="description"
+        content="{{ __('Climbing and Abseiling sessions at Fox Coverts Campsite are run by our team of qualified climbing instructors.') }}" />
+    <meta property="og:description"
+        content="{{ __('Climbing and Abseiling sessions at Fox Coverts Campsite are run by our team of qualified climbing instructors.') }}" />
+    <meta name="twitter:description"
+        content="{{ __('Climbing and Abseiling sessions at Fox Coverts Campsite are run by our team of qualified climbing instructors.') }}" />
     <meta property="og:image" content="{{ asset('images/about/climber@2x.jpg') }}" />
     <meta name="twitter:image" content="{{ asset('images/about/climber@2x.jpg') }}" />
     <meta property="og:image:width" content="576" />
     <meta property="og:image:height" content="296" />
-    <meta property="og:updated_time" content="{{ \Illuminate\Support\Carbon::parse('2024-04-01T00:00:00Z')->toIso8601String() }}" />
+    <meta property="og:updated_time"
+        content="{{ \Illuminate\Support\Carbon::parse('2024-04-01T00:00:00Z')->toIso8601String() }}" />
     <meta property="og:type" content="website" />
     <meta property="og:locale" content="{{ config('app.locale', 'en') }}" />
     <meta name="twitter:card" content="summary" />
@@ -40,7 +44,8 @@
                 alt="{{ __('Child climbing') }}" width="576" height="296" class="w-full max-w-full" />
 
             <div class="px-6 py-4 space-y-4">
-                <p>{{ __('Climbing and Abseiling sessions at Fox Coverts Campsite are run by our team of qualified climbing instructors. Groups with their own instructors and equipment wishing to hire the climbing tower should contact the Climbing Manager for advice.') }}</p>
+                <p>{{ __('Climbing and Abseiling sessions at Fox Coverts Campsite are run by our team of qualified climbing instructors. Groups with their own instructors and equipment wishing to hire the climbing tower should contact the Climbing Manager for advice.') }}
+                </p>
 
                 <div class="grid grid-cols-2 gap-4">
                     <div>
@@ -62,7 +67,8 @@
                     <div class="col-span-2">
                         <dfn class="not-italic font-medium block">{{ __('Number of participants per hour') }}</dfn>
                         {{ __('12 aged 8 or older.') }}
-                        <em class="not-italic text-gray-500">{{ __('Please ask for advice about younger groups.') }}</em>
+                        <em
+                            class="not-italic text-gray-500">{{ __('Please ask for advice about younger groups.') }}</em>
                     </div>
                 </div>
 
@@ -71,9 +77,14 @@
                         class="inline-flex items-center gap-1 rounded-md bg-sky-600 px-4 py-2 text-sm font-medium text-white hover:bg-sky-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2">
                         <span>{{ __('Prices and Booking') }}</span>
                         <span class="sr-only">({{ __('external link') }})</span>
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="h-4 w-4" aria-hidden="true">
-                            <path fill-rule="evenodd" d="M4.25 5.5a.75.75 0 0 0-.75.75v8.5c0 .414.336.75.75.75h8.5a.75.75 0 0 0 .75-.75v-4a.75.75 0 0 1 1.5 0v4A2.25 2.25 0 0 1 12.75 17h-8.5A2.25 2.25 0 0 1 2 14.75v-8.5A2.25 2.25 0 0 1 4.25 4h5a.75.75 0 0 1 0 1.5h-5Z" clip-rule="evenodd" />
-                            <path fill-rule="evenodd" d="M6.194 12.753a.75.75 0 0 0 1.06.053L16.5 4.44v2.81a.75.75 0 0 0 1.5 0v-4.5a.75.75 0 0 0-.75-.75h-4.5a.75.75 0 0 0 0 1.5h2.553l-9.056 8.194a.75.75 0 0 0-.053 1.06Z" clip-rule="evenodd" />
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="h-4 w-4"
+                            aria-hidden="true">
+                            <path fill-rule="evenodd"
+                                d="M4.25 5.5a.75.75 0 0 0-.75.75v8.5c0 .414.336.75.75.75h8.5a.75.75 0 0 0 .75-.75v-4a.75.75 0 0 1 1.5 0v4A2.25 2.25 0 0 1 12.75 17h-8.5A2.25 2.25 0 0 1 2 14.75v-8.5A2.25 2.25 0 0 1 4.25 4h5a.75.75 0 0 1 0 1.5h-5Z"
+                                clip-rule="evenodd" />
+                            <path fill-rule="evenodd"
+                                d="M6.194 12.753a.75.75 0 0 0 1.06.053L16.5 4.44v2.81a.75.75 0 0 0 1.5 0v-4.5a.75.75 0 0 0-.75-.75h-4.5a.75.75 0 0 0 0 1.5h2.553l-9.056 8.194a.75.75 0 0 0-.053 1.06Z"
+                                clip-rule="evenodd" />
                         </svg>
                     </a>
                 </div>
@@ -81,7 +92,8 @@
                 <p class="text-center group">
                     <a href="https://foxcoverts.org.uk/activities/climbing/">
                         {{ __('Please visit') }}
-                        <em class="not-italic text-sky-500 dark:text-sky-400 underline group-hover:text-sky-400 dark:group-hover:text-sky-300">foxcoverts.org.uk</em>
+                        <em
+                            class="not-italic text-sky-500 dark:text-sky-400 underline group-hover:text-sky-400 dark:group-hover:text-sky-300">foxcoverts.org.uk</em>
                         {{ __('for prices and to book.') }}
                     </a>
                 </p>

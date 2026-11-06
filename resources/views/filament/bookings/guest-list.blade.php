@@ -4,23 +4,12 @@
     @endif
 
     @forelse ($groups as $group)
-        <div
-            class="invite-list guest-roster-group"
-            wire:key="guest-group-{{ $group['key'] }}"
-            x-data="{ expanded: @js($group['open']) }"
-        >
-            <button
-                type="button"
-                class="invite-group-heading"
-                x-on:click="expanded = ! expanded"
-                x-bind:aria-expanded="expanded"
-            >
+        <div class="invite-list guest-roster-group" wire:key="guest-group-{{ $group['key'] }}" x-data="{ expanded: @js($group['open']) }">
+            <button type="button" class="invite-group-heading" x-on:click="expanded = ! expanded"
+                x-bind:aria-expanded="expanded">
                 <span class="flex items-center gap-2">
-                    <x-filament::icon
-                        :icon="\Filament\Support\Icons\Heroicon::ChevronRight"
-                        class="size-4 shrink-0 transition-transform"
-                        x-bind:class="{ 'rotate-90': expanded }"
-                    />
+                    <x-filament::icon :icon="\Filament\Support\Icons\Heroicon::ChevronRight" class="size-4 shrink-0 transition-transform"
+                        x-bind:class="{ 'rotate-90': expanded }" />
                     <span>{{ $group['label'] }}</span>
                 </span>
                 <span class="text-xs font-normal text-gray-500 dark:text-gray-400">{{ count($group['people']) }}</span>
@@ -49,23 +38,15 @@
                         @if ($panel === 'member-relation-manager' && (($person['can_phone'] ?? false) || ($person['can_emergency'] ?? false)))
                             <div class="flex items-center gap-2">
                                 @if ($person['can_phone'])
-                                    <x-filament::button
-                                        size="sm"
-                                        color="gray"
-                                        outlined
-                                        wire:click="mountTableAction('contactPhone', '{{ $person['id'] }}')"
-                                    >
+                                    <x-filament::button size="sm" color="gray" outlined
+                                        wire:click="mountTableAction('contactPhone', '{{ $person['id'] }}')">
                                         {{ __('Phone') }}
                                     </x-filament::button>
                                 @endif
 
                                 @if ($person['can_emergency'])
-                                    <x-filament::button
-                                        size="sm"
-                                        color="gray"
-                                        outlined
-                                        wire:click="mountTableAction('emergencyContact', '{{ $person['id'] }}')"
-                                    >
+                                    <x-filament::button size="sm" color="gray" outlined
+                                        wire:click="mountTableAction('emergencyContact', '{{ $person['id'] }}')">
                                         {{ __('Emergency') }}
                                     </x-filament::button>
                                 @endif
@@ -75,23 +56,15 @@
                         @if ($panel === 'manage')
                             <div class="flex items-center gap-2">
                                 @if ($person['can_edit'])
-                                    <x-filament::button
-                                        size="sm"
-                                        color="gray"
-                                        outlined
-                                        wire:click="mountTableAction('editAttendance', '{{ $person['id'] }}')"
-                                    >
+                                    <x-filament::button size="sm" color="gray" outlined
+                                        wire:click="mountTableAction('editAttendance', '{{ $person['id'] }}')">
                                         {{ __('Edit') }}
                                     </x-filament::button>
                                 @endif
 
                                 @if ($person['can_remove'])
-                                    <x-filament::button
-                                        size="sm"
-                                        color="danger"
-                                        outlined
-                                        wire:click="mountTableAction('detach', '{{ $person['id'] }}')"
-                                    >
+                                    <x-filament::button size="sm" color="danger" outlined
+                                        wire:click="mountTableAction('detach', '{{ $person['id'] }}')">
                                         {{ __('Remove') }}
                                     </x-filament::button>
                                 @endif
