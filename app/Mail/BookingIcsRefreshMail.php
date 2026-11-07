@@ -3,90 +3,60 @@
 namespace App\Mail;
 
 use App\Enums\CalendarMethod;
-use App\Enums\MailGroup;
 use App\Models\Booking;
 use App\Models\User;
-use App\Support\BookingMailThread;
-use App\Support\MailPreference;
-use App\Support\MailReplyTo;
-use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
-use Illuminate\Mail\Mailable;
-use Illuminate\Mail\Mailables\Content;
-use Illuminate\Mail\Mailables\Envelope;
-use Illuminate\Mail\Mailables\Headers;
-use Illuminate\Queue\SerializesModels;
-use Symfony\Component\Mime\Email;
-use Symfony\Component\Mime\Part\DataPart;
 
-class BookingIcsRefreshMail extends Mailable implements ShouldQueue
+class BookingIcsRefreshMail extends BookingStatusMail implements ShouldQueue
 {
-    use Queueable, SerializesModels;
-
     public bool $deleteWhenMissingModels = true;
 
     public function __construct(
-        public Booking $booking,
-        public User $attendee,
-        public string $ics,
-        public CalendarMethod $method,
+        Booking $booking,
+        User $attendee,
+        public CalendarMethod $method = CalendarMethod::Request,
     ) {
+        parent::__construct($booking, $attendee);
         $this->afterCommit();
-        $this->booking->loadMissing(['activity', 'venue']);
     }
 
-    public function envelope(): Envelope
+    protected function subjectKind(): string
     {
-        return new Envelope(
-            subject: BookingMailThread::subject(
-                $this->booking,
-                $this->method === CalendarMethod::Cancel ? __('Cancelled') : __('Updated'),
-            ),
-            replyTo: [MailReplyTo::booking($this->booking)],
-            using: [
-                fn (Email $message) => $this->attachCalendarData($message),
-            ],
-        );
+        return $this->method === CalendarMethod::Cancel
+            ? __('Cancelled')
+            : __('Updated');
     }
 
-    public function headers(): Headers
+    protected function calendarMethod(): CalendarMethod
     {
-        return BookingMailThread::headers($this->booking);
+        return $this->method;
     }
 
-    public function content(): Content
+    protected function calendarNeedsRsvp(): bool
     {
-        return new Content(
-            markdown: 'mail.booking.ics-refresh',
-            with: [
-                'booking' => $this->booking,
-                'attendee' => $this->attendee,
-                'cancelled' => $this->method === CalendarMethod::Cancel,
-                ...MailPreference::footerViewData($this->attendee, MailGroup::Bookings, $this->booking),
-            ],
-        );
+        if ($this->method === CalendarMethod::Cancel) {
+            return false;
+        }
+
+        return parent::calendarNeedsRsvp();
     }
 
-    protected function attachCalendarData(Email $message): void
+    protected function heading(): string
     {
-        $method = $this->method->value;
+        return $this->method === CalendarMethod::Cancel
+            ? __('Booking cancelled')
+            : __('Booking details');
+    }
 
-        $inline = new DataPart($this->ics, filename: 'invite', contentType: 'text/calendar');
-        $inline->asInline();
-        $inline->getHeaders()->addParameterizedHeader('Content-Type', 'text/calendar', [
-            'method' => $method,
-            'charset' => 'utf-8',
-            'component' => 'vevent',
-        ]);
-        $message->addPart($inline);
+    protected function intro(): string
+    {
+        return $this->method === CalendarMethod::Cancel
+            ? __('Here are the current details for this cancelled booking.')
+            : __('Here are the current details for this booking.');
+    }
 
-        $download = new DataPart($this->ics, filename: 'invite.ics', contentType: 'text/calendar');
-        $download->getHeaders()->addParameterizedHeader('Content-Type', 'text/calendar', [
-            'method' => $method,
-            'charset' => 'utf-8',
-            'component' => 'vevent',
-            'name' => 'invite.ics',
-        ]);
-        $message->addPart($download);
+    protected function shouldAnnounceLeadResponsibility(): bool
+    {
+        return false;
     }
 }

@@ -92,10 +92,11 @@ class ProcessInboundMailAction
 
                 // Ignore VEVENT COMMENT / X-RESPONSE-COMMENT this slice (climbing-team#142).
                 $respond($user, $status, via: 'imip');
+                $booking->markCalendarChannel($user);
                 $applied++;
 
                 if ($this->isStale($booking, $event)) {
-                    (new ResendBookingIcsAction)($booking, $user);
+                    (new ResendBookingIcsAction)($booking, $user, force: true);
                     $resent++;
                 }
             }
@@ -148,7 +149,8 @@ class ProcessInboundMailAction
                     continue;
                 }
 
-                (new ResendBookingIcsAction)($booking, $user);
+                $booking->markCalendarChannel($user);
+                (new ResendBookingIcsAction)($booking, $user, force: true);
                 $resent++;
             }
 
@@ -156,7 +158,8 @@ class ProcessInboundMailAction
                 $user = User::query()->where('email', $mail->from_address)->first();
 
                 if ($user instanceof User && $booking->attendees()->whereKey($user->getKey())->exists()) {
-                    (new ResendBookingIcsAction)($booking, $user);
+                    $booking->markCalendarChannel($user);
+                    (new ResendBookingIcsAction)($booking, $user, force: true);
                     $resent++;
                 }
             }

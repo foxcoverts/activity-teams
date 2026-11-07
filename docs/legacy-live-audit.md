@@ -123,6 +123,7 @@ Started: 2026-11-03. Findings appended during an authenticated Cursor browser wa
 **Mapping:**
 
 - Core booking lifecycle / guest list / related / ICS: **done**
+- Guest-list download menu (Add to Calendar / Send to Email) was easy to miss under the RSVP row in legacy; covered in Activity Teams as [US-76](stories/US-76-booking-calendar-channel-and-force-send.md) (header action groups + calendar channel).
 - Share copy UI (link + social post helpers): **extra / not-started** — US-29. Public booking URL / OG already **done** (US-12/30/31). Facebook Group deep-link is legacy-specific chrome, not a separate AT story.
 
 ---

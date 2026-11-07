@@ -17,6 +17,7 @@ class BookingAttendance extends Pivot
         'status',
         'comment',
         'token',
+        'calendar_imip_at',
     ];
 
     protected $attributes = [
@@ -37,7 +38,13 @@ class BookingAttendance extends Pivot
     {
         return [
             'status' => BookingAttendeeStatus::class,
+            'calendar_imip_at' => 'datetime',
         ];
+    }
+
+    public function hasCalendarChannel(): bool
+    {
+        return $this->calendar_imip_at !== null;
     }
 
     public static function build(Booking $booking, User $user): static

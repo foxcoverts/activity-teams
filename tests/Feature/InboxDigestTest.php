@@ -15,6 +15,7 @@ use App\Filament\Admin\Resources\Users\UserResource;
 use App\Filament\Teams\Resources\Keys\KeyResource;
 use App\Filament\Teams\Resources\Members\MemberResource;
 use App\Jobs\SendBookingNotification;
+use App\Mail\BookingIcsRefreshMail;
 use App\Mail\BookingInviteMail;
 use App\Mail\CombinedDigestMail;
 use App\Models\Booking;
@@ -247,6 +248,24 @@ class InboxDigestTest extends TestCase
 
         Mail::assertNothingOutgoing();
         $this->assertTrue($attendee->notifications()->where('type', BookingHeldNotification::class)->exists());
+    }
+
+    public function test_a_forced_calendar_refresh_sends_ics_when_mail_is_off(): void
+    {
+        Mail::fake();
+
+        $attendee = User::factory()->teamMember()->create();
+        $booking = Booking::factory()->create();
+        $this->accept($booking, $attendee);
+
+        MailPreference::save($attendee, MailGroup::Bookings, [
+            MailChannel::BookingsMail->value => '0',
+        ], $booking);
+
+        app(ResendBookingIcsAction::class)($booking, $attendee, force: true);
+
+        Mail::assertQueued(BookingIcsRefreshMail::class);
+        $this->assertFalse($attendee->notifications()->where('type', BookingHeldNotification::class)->exists());
     }
 
     public function test_an_allowed_invite_still_sends_immediately(): void

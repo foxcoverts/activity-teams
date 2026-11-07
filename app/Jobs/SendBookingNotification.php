@@ -101,7 +101,9 @@ class SendBookingNotification implements ShouldQueue
                 continue;
             }
 
-            if (! MailPreference::allows($attendee, MailChannel::BookingsUpdates, $booking)) {
+            $channelActive = $booking->attendeeHasCalendarChannel($attendee);
+
+            if (! $channelActive && ! MailPreference::allows($attendee, MailChannel::BookingsUpdates, $booking)) {
                 $attendee->notify(new BookingHeldNotification(
                     $booking,
                     __('An update to :activity is in your inbox.', [
@@ -113,6 +115,10 @@ class SendBookingNotification implements ShouldQueue
             }
 
             Mail::to($attendee)->send($message($attendee));
+
+            if ($booking->isCancelled()) {
+                $booking->clearCalendarChannel($attendee);
+            }
         }
     }
 
@@ -132,7 +138,9 @@ class SendBookingNotification implements ShouldQueue
                 continue;
             }
 
-            if (! MailPreference::allows($attendee, MailChannel::BookingsMail, $booking)) {
+            $channelActive = $booking->attendeeHasCalendarChannel($attendee);
+
+            if (! $channelActive && ! MailPreference::allows($attendee, MailChannel::BookingsMail, $booking)) {
                 $attendee->notify(new BookingHeldNotification(
                     $booking,
                     __('You were invited to :activity.', [

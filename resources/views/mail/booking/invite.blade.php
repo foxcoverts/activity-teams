@@ -5,10 +5,8 @@
 
 **{{ __('Activity') }}:** {{ $booking->activityTitle() }}<br>
 **{{ __('Audience') }}:** {{ $booking->audience?->name }}  
-**{{ __('Venue') }}:** {{ $booking->venue->name }}  
-@if (filled($booking->group_name))
-**{{ __('Group') }}:** {{ $booking->group_name }}  
-@endif  
+**{{ __('Venue') }}:** {{ $booking->venue->name }}@if (filled($booking->group_name))  
+**{{ __('Group') }}:** {{ $booking->group_name }}@endif  
 <x-booking.schedule :booking="$booking" variant="mail" />
 
 <x-mail.choices :urls="$choiceUrls" />

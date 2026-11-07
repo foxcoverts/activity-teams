@@ -27,10 +27,8 @@
 
 **{{ __('Activity') }}:** {{ $booking->activityTitle() }}{{ $changeList->suffix('activity_id') }}<br>
 **{{ __('Audience') }}:** {{ $booking->audience?->name }}{{ $changeList->suffix('audience_id') }}  
-**{{ __('Venue') }}:** {{ $booking->venue->name }}{{ $changeList->suffix('venue_id') }}  
-@if (filled($booking->group_name) || $changeList->has('group_name'))
-**{{ __('Group') }}:** {{ filled($booking->group_name) ? $booking->group_name : '-' }}{{ $changeList->suffix('group_name') }}  
-@endif  
+**{{ __('Venue') }}:** {{ $booking->venue->name }}{{ $changeList->suffix('venue_id') }}@if (filled($booking->group_name) || $changeList->has('group_name'))  
+**{{ __('Group') }}:** {{ filled($booking->group_name) ? $booking->group_name : '-' }}{{ $changeList->suffix('group_name') }}@endif  
 <x-booking.schedule :booking="$booking" variant="mail" :changed="$changeList->scheduleLabels()" />
 @if ($changeList->has('notes'))
 **{{ __('Notes') }}:** {{ $booking->notes }} {{ __('(changed)') }}  

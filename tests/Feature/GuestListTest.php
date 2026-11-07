@@ -189,8 +189,10 @@ class GuestListTest extends TestCase
             ->assertDontSee('Declined attendee')
             ->assertDontSee('Edit')
             ->assertDontSee('Remove')
-            ->assertDontSee('Add')
-            ->assertDontSee('Invite');
+            ->assertTableActionHidden('add')
+            ->assertTableActionHidden('invite')
+            ->assertTableActionVisible('addToCalendar')
+            ->assertTableActionVisible('sendToEmail');
     }
 
     public function test_non_members_cannot_mount_the_member_guest_list_relation_manager(): void

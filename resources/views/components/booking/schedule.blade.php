@@ -13,7 +13,6 @@
             __('End') => $end->isoFormat('ddd D MMM YYYY HH:mm'),
         ];
 @endphp
-
 @if ($variant === 'mail')
 @foreach ($lines as $label => $value)
 **{{ $label }}:** {{ $value }}@if (in_array($label, $changed, true)) {{ __('(changed)') }}@endif  

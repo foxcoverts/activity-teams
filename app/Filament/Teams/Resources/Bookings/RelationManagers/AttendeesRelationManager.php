@@ -4,6 +4,7 @@ namespace App\Filament\Teams\Resources\Bookings\RelationManagers;
 
 use App\Actions\AddAttendeeAction;
 use App\Actions\OverrideAttendanceAction;
+use App\Actions\ResendBookingIcsAction;
 use App\Enums\BookingAttendeeResponse;
 use App\Enums\BookingAttendeeStatus;
 use App\Models\Booking;
@@ -12,14 +13,17 @@ use App\Models\User;
 use App\Support\BookingGuestList;
 use App\Support\BookingPeople;
 use Filament\Actions\Action;
+use Filament\Actions\ActionGroup;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DetachAction;
 use Filament\Actions\DetachBulkAction;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\ToggleButtons;
+use Filament\Notifications\Notification;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Support\Enums\Width;
+use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
@@ -62,47 +66,90 @@ class AttendeesRelationManager extends RelationManager
             ->content(fn (): View => $this->guestListContent())
             ->paginated(false)
             ->headerActions([
-                Action::make('invite')
-                    ->visible(fn (): bool => $this->canManageBooking() && $this->booking()->acceptsInvites())
-                    ->modalHeading(__('Invite'))
-                    ->modalSubmitAction(false)
-                    ->modalCancelAction(false)
-                    ->modalWidth(Width::TwoExtraLarge)
-                    ->mountUsing(function (): void {
-                        $this->inviteSession = (string) Str::ulid();
-                    })
-                    ->modalContent(fn (): View => view('filament.bookings.invite-attendees-host', [
-                        'booking' => $this->booking(),
-                        'inviteSession' => $this->inviteSession,
-                    ])),
-                Action::make('add')
-                    ->label(__('Add'))
+                ActionGroup::make([
+                    Action::make('addToCalendar')
+                        ->label(__('Add to Calendar'))
+                        ->icon(Heroicon::OutlinedCalendarDays)
+                        ->url(fn (): string => route('booking.show.ics', $this->booking()))
+                        ->openUrlInNewTab(),
+                    Action::make('sendToEmail')
+                        ->label(__('Send to Email'))
+                        ->icon(Heroicon::OutlinedEnvelope)
+                        ->action(function (): void {
+                            $user = auth()->user();
+
+                            if (! $user instanceof User) {
+                                return;
+                            }
+
+                            app(ResendBookingIcsAction::class)($this->booking(), $user, force: true);
+
+                            Notification::make()
+                                ->success()
+                                ->title(__('Booking details have been sent to your email address.'))
+                                ->send();
+                        }),
+                ])
+                    ->label(__('Calendar'))
+                    ->hiddenLabel()
+                    ->tooltip(__('Calendar'))
+                    ->icon(Heroicon::OutlinedArrowDownTray)
+                    ->button()
+                    ->visible(fn (): bool => $this->canUseCalendarActions()),
+                ActionGroup::make([
+                    Action::make('invite')
+                        ->icon(Heroicon::OutlinedPaperAirplane)
+                        ->visible(fn (): bool => $this->canManageBooking() && $this->booking()->acceptsInvites())
+                        ->modalHeading(__('Invite'))
+                        ->modalSubmitAction(false)
+                        ->modalCancelAction(false)
+                        ->modalWidth(Width::TwoExtraLarge)
+                        ->mountUsing(function (): void {
+                            $this->inviteSession = (string) Str::ulid();
+                        })
+                        ->modalContent(fn (): View => view('filament.bookings.invite-attendees-host', [
+                            'booking' => $this->booking(),
+                            'inviteSession' => $this->inviteSession,
+                        ])),
+                    Action::make('add')
+                        ->label(__('Add'))
+                        ->icon(Heroicon::OutlinedUserPlus)
+                        ->visible(fn (): bool => $this->canManageBooking()
+                            && ! $this->booking()->isCancelled()
+                            && (bool) auth()->user()?->can('create', [BookingAttendance::class, $this->booking()]))
+                        ->schema([
+                            $this->memberSelect(existing: false),
+                            ...$this->attendanceFields(),
+                        ])
+                        ->action(function (array $data): void {
+                            $manager = auth()->user();
+                            $response = $this->responseFrom($data);
+                            $attendee = User::query()->find($data['user_id'] ?? null);
+
+                            if (! $manager instanceof User || ! $attendee instanceof User || $response === null) {
+                                return;
+                            }
+
+                            app(AddAttendeeAction::class)(
+                                $this->booking(),
+                                $attendee,
+                                $manager,
+                                $response->toStatus(),
+                                $data['comment'] ?? null,
+                            );
+
+                            $this->attendanceChanged();
+                        }),
+                ])
+                    ->label(__('People'))
+                    ->hiddenLabel()
+                    ->tooltip(__('People'))
+                    ->icon(Heroicon::OutlinedUserPlus)
+                    ->button()
                     ->visible(fn (): bool => $this->canManageBooking()
-                        && ! $this->booking()->isCancelled()
-                        && (bool) auth()->user()?->can('create', [BookingAttendance::class, $this->booking()]))
-                    ->schema([
-                        $this->memberSelect(existing: false),
-                        ...$this->attendanceFields(),
-                    ])
-                    ->action(function (array $data): void {
-                        $manager = auth()->user();
-                        $response = $this->responseFrom($data);
-                        $attendee = User::query()->find($data['user_id'] ?? null);
-
-                        if (! $manager instanceof User || ! $attendee instanceof User || $response === null) {
-                            return;
-                        }
-
-                        app(AddAttendeeAction::class)(
-                            $this->booking(),
-                            $attendee,
-                            $manager,
-                            $response->toStatus(),
-                            $data['comment'] ?? null,
-                        );
-
-                        $this->attendanceChanged();
-                    }),
+                        && ($this->booking()->acceptsInvites()
+                            || (! $this->booking()->isCancelled()
+                                && (bool) auth()->user()?->can('create', [BookingAttendance::class, $this->booking()])))),
             ])
             ->recordActions([
                 Action::make('qualifications')
@@ -246,6 +293,25 @@ class AttendeesRelationManager extends RelationManager
         $booking = $this->booking();
 
         return $actor instanceof User && $actor->can('update', $booking);
+    }
+
+    private function canUseCalendarActions(): bool
+    {
+        $actor = auth()->user();
+        $booking = $this->booking();
+
+        if (! $actor instanceof User || ! $booking->acceptsInvites()) {
+            return false;
+        }
+
+        $attendee = $booking->attendees()->whereKey($actor->getKey())->first();
+        $status = $attendee?->attendance?->status;
+
+        return in_array($status, [
+            BookingAttendeeStatus::NeedsAction,
+            BookingAttendeeStatus::Accepted,
+            BookingAttendeeStatus::Tentative,
+        ], true);
     }
 
     /**

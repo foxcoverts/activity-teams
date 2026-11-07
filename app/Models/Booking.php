@@ -352,8 +352,45 @@ class Booking extends Model implements Commentable
     {
         return $this->belongsToMany(User::class)
             ->withTimestamps()
-            ->withPivot('comment', 'status', 'token')->as('attendance')
+            ->withPivot('comment', 'status', 'token', 'calendar_imip_at')->as('attendance')
             ->using(BookingAttendance::class);
+    }
+
+    public function attendeeHasCalendarChannel(User $attendee): bool
+    {
+        $loaded = $this->relationLoaded('attendees')
+            ? $this->attendees->find($attendee->getKey())
+            : null;
+
+        if ($loaded?->attendance instanceof BookingAttendance) {
+            return $loaded->attendance->hasCalendarChannel();
+        }
+
+        $pivot = $this->attendees()->whereKey($attendee->getKey())->first()?->attendance;
+
+        return $pivot instanceof BookingAttendance && $pivot->hasCalendarChannel();
+    }
+
+    public function markCalendarChannel(User $attendee): void
+    {
+        $this->attendees()->updateExistingPivot($attendee->getKey(), [
+            'calendar_imip_at' => now(),
+        ]);
+
+        if ($this->relationLoaded('attendees')) {
+            $this->unsetRelation('attendees');
+        }
+    }
+
+    public function clearCalendarChannel(User $attendee): void
+    {
+        $this->attendees()->updateExistingPivot($attendee->getKey(), [
+            'calendar_imip_at' => null,
+        ]);
+
+        if ($this->relationLoaded('attendees')) {
+            $this->unsetRelation('attendees');
+        }
     }
 
     /**
