@@ -1,9 +1,6 @@
 @php
-    use Illuminate\Support\HtmlString;
-    use App\Enums\NewsPostStatus;
-    use Filament\Support\Enums\IconSize;
-    use Filament\Schemas\Schema;
-    use Filament\Support\Enums\Width;
+    use Filament\Facades\Filament;
+    use App\Filament\Teams\Resources\NewsPosts\Pages\ListNewsPosts as ListTeamsNewsPosts;
 
     $table = $this->getTable();
     $activeFiltersCount = $table->getActiveFiltersCount();
@@ -12,6 +9,9 @@
     $filtersApplyAction = $table->getFiltersApplyAction();
     $filtersResetAction = $table->getFiltersResetAction();
     $filtersForm = $table->getFiltersForm();
+
+    $tenant = Filament::getTenant();
+    $records = $this->getTableRecords();
 @endphp
 <x-filament-panels::page>
 
@@ -40,7 +40,7 @@
     @endif
 
     <div class="space-y-6">
-        @forelse ($this->getTableRecords() as $post)
+        @forelse ($records as $post)
             @php
                 $url = $this->getResource()::getUrl('view', ['record' => $post], panel: 'teams', tenant: $post->team);
                 $publishedAt = $post->published_at?->timezone(auth()->user()?->timezone ?? config('app.timezone'));
@@ -61,13 +61,15 @@
                             · {{ __('Not yet published') }}
                         @endif
                     </x-slot>
-                    @if (auth()->user()->can('update', $post))
-                        <x-slot name="afterHeader">
+                    <x-slot name="afterHeader">
+                        @if (is_null($tenant))
+                            {{ $this->teamBadgeAction()->record($post) }}
+                        @elseif (auth()->user()->can('update', $post))
                             <x-filament::badge :color="$post->getStatus()->getColor()" :icon="$post->getStatus()->getIcon()">
                                 {{ $post->getStatus()->getLabel() }}
                             </x-filament::badge>
-                        </x-slot>
-                    @endif
+                        @endif
+                    </x-slot>
 
                     <p>{{ $post->excerpt() }}</p>
                     <x-filament::link :href="$url">
@@ -81,7 +83,7 @@
             </x-filament::section>
         @endforelse
 
-        <x-filament::pagination :paginator="$this->getTableRecords()" />
+        <x-filament::pagination :paginator="$records" />
 
     </div>
 

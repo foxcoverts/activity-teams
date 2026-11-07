@@ -10,7 +10,7 @@ class ListNewsPosts extends ListRecords
 {
     protected static string $resource = NewsPostResource::class;
 
-    protected string $view = 'filament.teams.resources.news-posts.list-news-posts';
+    protected string $view = 'filament.resources.news-posts.list-news-posts';
 
     protected function getHeaderActions(): array
     {

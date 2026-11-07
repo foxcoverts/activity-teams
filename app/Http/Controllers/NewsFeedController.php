@@ -27,7 +27,9 @@ class NewsFeedController extends Controller
     {
         $posts = NewsPost::query()
             ->with(['team', 'author'])
-            ->forUserFeeds($user)
+            ->forUser($user)
+            ->live()
+            ->orderByDesc('published_at')
             ->get();
 
         $body = view($view, [

@@ -17,6 +17,7 @@ use App\Models\Team;
 use App\Models\User;
 use App\Support\CombinedDigest;
 use App\Support\MailPreference;
+use App\Support\MemberDashboard;
 use Filament\Facades\Filament;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -497,6 +498,124 @@ class NewsPostsTest extends TestCase
             ->assertSee('Alpha wall night')
             ->assertDontSee('Bravo draft')
             ->assertDontSee('Filter by team');
+    }
+
+    public function test_managers_see_status_and_trashed_filters_on_the_team_news_list(): void
+    {
+        $manager = User::factory()->teamManager()->create();
+
+        $this->actingAs($manager);
+
+        Livewire::test(ListNewsPosts::class)
+            ->assertSuccessful()
+            ->assertTableFilterVisible('status')
+            ->assertTableFilterVisible('trashed');
+    }
+
+    public function test_team_members_do_not_see_news_filters_on_the_team_list(): void
+    {
+        $team = Team::factory()->create();
+        $member = User::factory()->teamMember($team)->create();
+
+        Filament::setCurrentPanel('teams');
+        $this->actingAs($member);
+
+        Livewire::test(ListNewsPosts::class)
+            ->assertSuccessful()
+            ->assertTableFilterHidden('status')
+            ->assertTableFilterHidden('trashed')
+            ->assertDontSeeText(__('Filters'));
+    }
+
+    public function test_the_member_news_list_has_no_table_filters(): void
+    {
+        $team = Team::factory()->create(['name' => 'Alpha']);
+        $member = User::factory()->teamMember($team)->create();
+        NewsPost::factory()->forTeam($team)->published()->create(['title' => 'Alpha wall night']);
+
+        Filament::setCurrentPanel('member');
+        $this->actingAs($member);
+
+        Livewire::test(MemberListNewsPosts::class)
+            ->assertSuccessful()
+            ->assertSee('Alpha wall night')
+            ->assertSee('Alpha')
+            ->assertDontSeeText(__('Filters'))
+            ->assertDontSeeText(__('Draft'))
+            ->assertDontSeeText(__('Scheduled'));
+
+        $this->assertSame(
+            [],
+            array_keys(Livewire::test(MemberListNewsPosts::class)->instance()->getTable()->getFilters()),
+        );
+    }
+
+    public function test_past_members_lose_team_news_from_feeds_and_member_list(): void
+    {
+        [$manager, $team, $member] = $this->newsActors();
+        $other = Team::factory()->create(['name' => 'Other']);
+        $other->grant($member, MembershipRole::Member);
+
+        $leftPost = NewsPost::factory()->forTeam($team)->published()->create([
+            'title' => 'Left team news',
+            'published_at' => now()->subDay(),
+        ]);
+        NewsPost::factory()->forTeam($other)->published()->create([
+            'title' => 'Still a member news',
+            'published_at' => now()->subHours(2),
+        ]);
+
+        $member->forceFill(['feed_token' => User::generateToken()])->save();
+        $team->recordLeft($member);
+
+        Filament::setCurrentPanel('member');
+
+        $this->actingAs($member)
+            ->get(MemberNewsPostResource::getUrl('index', panel: 'member'))
+            ->assertOk()
+            ->assertDontSee('Left team news')
+            ->assertSee('Still a member news');
+
+        Livewire::test(MemberListNewsPosts::class)
+            ->assertSuccessful()
+            ->assertDontSee('Left team news')
+            ->assertSee('Still a member news');
+
+        $this->get(route('news.atom', $member))
+            ->assertOk()
+            ->assertDontSee('Left team news', false)
+            ->assertSee('Still a member news', false);
+        $this->get(route('news.rss', $member))
+            ->assertOk()
+            ->assertDontSee('Left team news', false)
+            ->assertSee('Still a member news', false);
+
+        $this->get($leftPost->memberUrl())->assertNotFound();
+
+        $this->assertNull((new MemberDashboard($member, $team))->latestNews());
+        $this->assertSame(
+            'Still a member news',
+            (new MemberDashboard($member))->latestNews()?->title,
+        );
+    }
+
+    public function test_atom_feed_lists_posts_newest_first(): void
+    {
+        [$manager, $team, $member] = $this->newsActors();
+        NewsPost::factory()->forTeam($team)->published()->create([
+            'title' => 'Older post',
+            'published_at' => now()->subDays(2),
+        ]);
+        NewsPost::factory()->forTeam($team)->published()->create([
+            'title' => 'Newer post',
+            'published_at' => now()->subHour(),
+        ]);
+
+        $member->forceFill(['feed_token' => User::generateToken()])->save();
+
+        $this->get(route('news.atom', $member))
+            ->assertOk()
+            ->assertSeeInOrder(['Newer post', 'Older post'], false);
     }
 
     public function test_first_publish_writes_inbox_and_opted_out_members_keep_the_row_and_feed(): void

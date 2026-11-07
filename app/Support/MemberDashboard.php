@@ -118,9 +118,10 @@ class MemberDashboard
     {
         return NewsPost::query()
             ->with(['team'])
-            ->forUserFeeds($this->user)
+            ->forUser($this->user)->live()
             ->when($this->team instanceof Team, fn (Builder $query) => $query->forTeam($this->team))
             ->where('published_at', '>=', now()->subDays(self::NEWS_MAX_AGE_DAYS))
+            ->orderByDesc('published_at')
             ->first();
     }
 

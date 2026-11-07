@@ -9,6 +9,7 @@ use App\Models\User;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Support\Icons\Heroicon;
+use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 
@@ -55,9 +56,14 @@ class NewsPostResource extends Resource
             ->with(['team', 'author'])
             ->when(
                 $user instanceof User,
-                fn (Builder $query): Builder => $query->forUserFeeds($user),
+                fn (Builder $query): Builder => $query->forUser($user)->live(),
                 fn (Builder $query): Builder => $query->whereRaw('0 = 1'),
             );
+    }
+
+    public static function table(Table $table): Table
+    {
+        return $table->defaultSort('published_at', 'desc');
     }
 
     public static function getPages(): array

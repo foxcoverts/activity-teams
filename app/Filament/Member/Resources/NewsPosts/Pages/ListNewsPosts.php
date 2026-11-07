@@ -3,51 +3,28 @@
 namespace App\Filament\Member\Resources\NewsPosts\Pages;
 
 use App\Filament\Member\Resources\NewsPosts\NewsPostResource;
+use App\Filament\Teams\Resources\NewsPosts\Pages\ListNewsPosts as ListTeamsNewsPosts;
 use App\Models\NewsPost;
-use App\Models\User;
-use Filament\Resources\Pages\Page;
-use Filament\Schemas\Components\View as SchemaView;
-use Filament\Schemas\Schema;
-use Illuminate\Contracts\Pagination\LengthAwarePaginator;
-use Livewire\WithPagination;
+use App\Support\Palette;
+use Filament\Actions\Action;
+use Filament\Resources\Pages\ListRecords;
+use Filament\Support\Enums\Size;
 
-class ListNewsPosts extends Page
+class ListNewsPosts extends ListRecords
 {
-    use WithPagination;
-
     protected static string $resource = NewsPostResource::class;
 
     protected static ?string $title = 'News';
 
-    public function mount(): void
-    {
-        abort_unless(static::getResource()::canViewAny(), 403);
-    }
+    protected string $view = 'filament.resources.news-posts.list-news-posts';
 
-    public function getBreadcrumb(): ?string
+    public function teamBadgeAction(): Action
     {
-        return __('filament-panels::resources/pages/list-records.breadcrumb');
-    }
-
-    public function content(Schema $schema): Schema
-    {
-        return $schema
-            ->components([
-                SchemaView::make('filament.member.resources.news-posts.feed')
-                    ->columnSpanFull(),
-            ]);
-    }
-
-    public function posts(): LengthAwarePaginator
-    {
-        return once(function (): LengthAwarePaginator {
-            $user = auth()->user();
-            assert($user instanceof User);
-
-            return NewsPost::query()
-                ->with(['team', 'author'])
-                ->forUserFeeds($user)
-                ->paginate(10);
-        });
+        return Action::make('viewTeam')
+            ->label(fn (NewsPost $record) => $record->team->name)
+            ->color(Palette::neutral())
+            ->button()
+            ->size(Size::ExtraSmall)
+            ->url(fn ($record) => ListTeamsNewsPosts::getUrl([], panel: 'teams', tenant: $record->team));
     }
 }

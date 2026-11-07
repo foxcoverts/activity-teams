@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Notification;
@@ -79,9 +80,21 @@ class NewsPost extends Model
         return $this->belongsTo(User::class, 'author_id');
     }
 
+    public function members(): HasManyThrough
+    {
+        return $this->hasManyThrough(
+            User::class,
+            TeamMembership::class,
+            'team_id', // Foreign key on the TeamMembership table...
+            'id',      // Foreign key on the User table...
+            'team_id', // Local key on the NewsPost table...
+            'user_id'  // Local key on the TeamMembership table...
+        )->whereNull('left_at');
+    }
+
     public function scopeForTeam(Builder $query, Team $team): void
     {
-        $query->where('team_id', $team->getKey());
+        $query->whereBelongsTo($team);
     }
 
     public function scopeLive(Builder $query): void
@@ -89,13 +102,11 @@ class NewsPost extends Model
         $query->whereNowOrPast('published_at');
     }
 
-    public function scopeForUserFeeds(Builder $query, User $user): void
+    public function scopeForUser(Builder $query, User $user): void
     {
-        $teamIds = $user->teams()->pluck('teams.id');
-
-        $query->whereIn('team_id', $teamIds)
-            ->live()
-            ->orderByDesc('published_at');
+        $query->whereHas('members', function (Builder $query) use ($user): void {
+            $query->whereKey($user->getKey());
+        });
     }
 
     public function scopeDueForNotification(Builder $query): void
