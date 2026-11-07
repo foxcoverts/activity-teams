@@ -5,8 +5,10 @@ namespace App\Filament\Teams\Resources\Members\Pages;
 use App\Filament\Concerns\AcknowledgesPersonalData;
 use App\Filament\Teams\Resources\Members\MemberResource;
 use App\Models\User;
+use Filament\Actions\ActionGroup;
 use Filament\Actions\EditAction;
 use Filament\Resources\Pages\ViewRecord;
+use Filament\Support\Icons\Heroicon;
 
 class ViewMember extends ViewRecord
 {
@@ -22,9 +24,14 @@ class ViewMember extends ViewRecord
 
         return [
             MemberResource::invitationActions($record),
-            EditAction::make(),
-            MemberResource::changeRoleAction($record),
-            MemberResource::removeFromTeamAction($record),
+            ActionGroup::make([
+                EditAction::make(),
+                MemberResource::changeRoleAction($record),
+                MemberResource::removeFromTeamAction($record),
+            ])
+                ->label(__('Manage'))
+                ->icon(Heroicon::OutlinedCog6Tooth)
+                ->button(),
         ];
     }
 }

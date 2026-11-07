@@ -207,17 +207,19 @@ class MemberResource extends Resource
             && ($user->isSystemAdmin() || $user->manages($team));
     }
 
-    public static function invitationActions(?User $record = null): ActionGroup
+    public static function invitationActions(?User $record = null, bool $asButton = true): ActionGroup
     {
-        return ActionGroup::make([
+        $group = ActionGroup::make([
             static::sendInvitationAction($record),
             static::revokeInvitationAction($record),
         ])
             ->record($record)
             ->label(__('Invitation'))
-            ->button()
+            ->icon(Heroicon::OutlinedEnvelope)
             ->color('gray')
             ->visible(fn (User $record): bool => static::canManageInvitation($record));
+
+        return $asButton ? $group->button() : $group;
     }
 
     public static function sendInvitationAction(?User $record = null): Action
@@ -229,6 +231,7 @@ class MemberResource extends Resource
                 InvitationStatus::Declined => __('Invite again'),
                 default => __('Send invitation'),
             })
+            ->icon(Heroicon::OutlinedPaperAirplane)
             ->visible(fn (User $record): bool => static::canManageInvitation($record))
             ->modalDescription(fn (User $record): ?string => $record->invitationStatus() === InvitationStatus::Declined
                 ? __('This person declined the invitation. Check the email address is correct before inviting them again.')
@@ -256,6 +259,7 @@ class MemberResource extends Resource
         return Action::make('revokeInvitation')
             ->record($record)
             ->label(__('Revoke invitation'))
+            ->icon(Heroicon::OutlinedXMark)
             ->color('danger')
             ->requiresConfirmation()
             ->visible(fn (User $record): bool => static::canManageInvitation($record) && $record->invitationStatus() === InvitationStatus::Invited)
@@ -271,6 +275,7 @@ class MemberResource extends Resource
         return Action::make('changeRole')
             ->record($record)
             ->label(__('Change role'))
+            ->icon(Heroicon::OutlinedUser)
             ->visible(fn (?User $record): bool => static::canChangeRole() && $record instanceof User && ! $record->trashed())
             ->disabled(fn (User $record): bool => static::cannotStepDown($record))
             ->tooltip(fn (User $record): ?string => static::stepDownHint($record))
@@ -308,6 +313,7 @@ class MemberResource extends Resource
         return Action::make('leave')
             ->record($record)
             ->label(__('Remove from team'))
+            ->icon(Heroicon::OutlinedUserMinus)
             ->color('danger')
             ->visible(fn (?User $record): bool => static::canManage() && $record instanceof User && ! $record->trashed())
             ->disabled(fn (User $record): bool => static::cannotStepDown($record))

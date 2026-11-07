@@ -8,6 +8,7 @@ use App\Filament\Teams\Resources\Members\MemberResource;
 use App\Models\Lock;
 use App\Models\User;
 use App\Support\Palette;
+use Filament\Actions\ActionGroup;
 use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
 use Filament\Support\Icons\Heroicon;
@@ -70,11 +71,13 @@ class MembersTable
                     ->visible(fn (): bool => MemberResource::teamLocks()->isNotEmpty()),
             ])
             ->recordActions([
-                MemberResource::invitationActions(),
-                ViewAction::make(),
-                EditAction::make(),
-                MemberResource::changeRoleAction(),
-                MemberResource::removeFromTeamAction(),
+                ActionGroup::make([
+                    ViewAction::make(),
+                    EditAction::make(),
+                    MemberResource::invitationActions(asButton: false),
+                    MemberResource::changeRoleAction(),
+                    MemberResource::removeFromTeamAction(),
+                ]),
             ]);
     }
 }

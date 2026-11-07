@@ -21,8 +21,7 @@ class EditMember extends EditRecord
         return [
             ViewAction::make($this->getRecord()),
             ActionGroup::make([
-                MemberResource::changeRoleAction($this->getRecord())
-                    ->icon(Heroicon::User),
+                MemberResource::changeRoleAction($this->getRecord()),
                 ...SuspensionActions::list($this->getRecord()),
             ])
                 ->label(__('More actions'))
