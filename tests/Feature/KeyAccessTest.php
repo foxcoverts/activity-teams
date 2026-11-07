@@ -38,6 +38,7 @@ use Filament\Actions\Testing\TestAction;
 use Filament\Facades\Filament;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Notification;
 use Livewire\Livewire;
 use Tests\TestCase;
 
@@ -660,6 +661,8 @@ class KeyAccessTest extends TestCase
 
     public function test_the_keys_action_updates_when_a_holder_is_marked_attending(): void
     {
+        Notification::fake();
+
         $manager = User::factory()->teamManager()->create();
         $holder = User::factory()->teamMember()->create(['name' => 'Robin Outsider']);
         $booking = Booking::factory()->create();

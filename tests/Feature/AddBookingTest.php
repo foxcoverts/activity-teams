@@ -106,6 +106,9 @@ class AddBookingTest extends TestCase
 
     public function test_manager_can_book_an_other_activity_at_a_private_venue_without_catalog_venues(): void
     {
+        Mail::fake();
+        Queue::fake();
+
         $manager = User::factory()->teamManager()->create();
         $team = $manager->managedTeams()->firstOrFail();
         Activity::factory()->create();
@@ -159,8 +162,6 @@ class AddBookingTest extends TestCase
             'status' => BookingAttendeeStatus::Accepted->value,
             'token' => BookingAttendance::generateToken(),
         ]);
-        Mail::fake();
-        Queue::fake();
 
         Livewire::test(EditBooking::class, ['record' => $booking->getRouteKey()])
             ->callAction('confirmBooking', data: ['lead_instructor_id' => $lead->getKey()])

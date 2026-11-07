@@ -280,6 +280,9 @@ class BookingStatusTest extends TestCase
 
     public function test_confirming_with_an_accepted_lead_succeeds(): void
     {
+        Queue::fake();
+        Mail::fake();
+
         $manager = User::factory()->teamManager()->create();
         $booking = Booking::factory()->create();
         $lead = User::factory()->create();
@@ -559,6 +562,9 @@ class BookingStatusTest extends TestCase
 
     public function test_changing_or_removing_the_lead_follows_who_is_attending(): void
     {
+        Queue::fake();
+        Mail::fake();
+
         $manager = User::factory()->teamManager()->create();
         $booking = Booking::factory()->confirmed()->create();
         $attending = User::factory()->create(['name' => 'Casey Lead']);
