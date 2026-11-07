@@ -8,6 +8,7 @@ use App\Filament\Member\NavigationGroup;
 use App\Filament\Member\Resources\Bookings\Pages\ListBookings;
 use App\Filament\Teams\Resources\Bookings\BookingResource as TeamsBookingResource;
 use App\Models\Booking;
+use App\Support\Palette;
 use BackedEnum;
 use Filament\Actions\ViewAction;
 use Filament\Resources\Resource;
@@ -77,6 +78,8 @@ class BookingResource extends Resource
                         })),
                 TextColumn::make('venue.name')->searchable(),
                 TextColumn::make('team.name')
+                    ->badge()
+                    ->color(fn (Booking $record): array => $record->team?->brandColor()->getColor() ?? Palette::neutral())
                     ->visible(fn (HasTable $livewire): bool => blank($livewire->getTableFilterState('team_id')['value'] ?? null)),
                 TextColumn::make('status')
                     ->label(__('Booking Status'))

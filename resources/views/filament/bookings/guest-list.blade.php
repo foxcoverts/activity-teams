@@ -19,7 +19,7 @@
                 @foreach ($group['people'] as $person)
                     <div class="invite-row" wire:key="guest-{{ $person['id'] }}">
                         <div class="invite-person">
-                            <span>{{ $person['name'] }}</span>
+                            @include('filament.bookings.person-identity', ['person' => $person])
 
                             @if ($person['guest'])
                                 <x-filament::badge class="guest-badge" :color="\App\Support\Palette::neutral()">

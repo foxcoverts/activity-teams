@@ -13,7 +13,7 @@
                 @forelse ($queuedPeople as $person)
                     <div class="invite-row" wire:key="queued-{{ $person['id'] }}">
                         <div class="invite-person">
-                            <span>{{ $person['name'] }}</span>
+                            @include('filament.bookings.person-identity', ['person' => $person])
                             @include('filament.bookings.person-badges', [
                                 'person' => $person,
                                 'showQualified' => $showQualified,
@@ -72,7 +72,7 @@
                 @forelse ($pickerPeople as $person)
                     <div class="invite-row" wire:key="picker-{{ $person['id'] }}">
                         <div class="invite-person">
-                            <span>{{ $person['name'] }}</span>
+                            @include('filament.bookings.person-identity', ['person' => $person])
                             @include('filament.bookings.person-badges', [
                                 'person' => $person,
                                 'showQualified' => $showQualified,

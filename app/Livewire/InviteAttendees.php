@@ -10,6 +10,7 @@ use App\Livewire\Concerns\InteractsWithPersonAccess;
 use App\Models\Booking;
 use App\Models\TeamMembership;
 use App\Models\User;
+use App\Support\Avatars;
 use App\Support\BookingPeople;
 use App\Support\MailPreference;
 use Illuminate\Contracts\View\View;
@@ -303,6 +304,7 @@ class InviteAttendees extends Component
                 return [
                     'id' => $id,
                     'name' => $user->name,
+                    'avatar_url' => Avatars::userUrl($user, 64),
                     'under_18' => $user->isUnder18(),
                     'is_parent' => $teamMemberRoles->get($id) === MembershipRole::Parent,
                     'qualified' => $showQualified && $this->booking->metBy($user),

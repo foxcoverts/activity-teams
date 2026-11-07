@@ -44,8 +44,17 @@
                         class="size-4" />{{ $booking->venue->name }}</span>
             @endif
             @if ($booking->team)
-                <span class="{{ $chip }}"><x-filament::icon :icon="Heroicon::OutlinedUserGroup"
-                        class="size-4" />{{ $booking->team->name }}</span>
+                <span
+                    class="inline-flex items-center gap-1.5 rounded-full bg-color-50 px-2.5 py-1 text-sm text-color-600 dark:bg-color-400/10 dark:text-color-400"
+                    @style([
+                        \Filament\Support\get_color_css_variables(
+                            $booking->team->brandColor()->getColor(),
+                            shades: [50, 400, 600],
+                        ),
+                    ])
+                >
+                    <x-filament::icon :icon="Heroicon::OutlinedUserGroup" class="size-4" />{{ $booking->team->name }}
+                </span>
             @endif
         </div>
 

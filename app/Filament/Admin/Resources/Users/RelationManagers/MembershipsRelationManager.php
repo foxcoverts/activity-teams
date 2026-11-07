@@ -12,6 +12,7 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\ToggleButtons;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Schemas\Schema;
+use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Validation\ValidationException;
@@ -26,6 +27,14 @@ class MembershipsRelationManager extends RelationManager
     {
         return $table
             ->columns([
+                ImageColumn::make('team_avatar')
+                    ->label('')
+                    ->state(fn (TeamMembership $record): ?string => $record->team?->getFilamentAvatarUrl())
+                    ->alt(fn (TeamMembership $record): string => $record->team?->name ?? '')
+                    ->imageSize(32)
+                    ->square()
+                    ->width('1%')
+                    ->grow(false),
                 TextColumn::make('team.name')
                     ->label('Team'),
                 TextColumn::make('role')

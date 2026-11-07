@@ -20,6 +20,7 @@ use App\Filament\RelationManagers\QualificationsRelationManager;
 use App\Filament\Schemas\ContactFields;
 use App\Filament\Schemas\PersonalDataSection;
 use App\Models\User;
+use App\Support\Palette;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
@@ -185,7 +186,7 @@ class UserResource extends Resource
                 $teamId = static::filteredTeamId($livewire);
 
                 if ($teamId === null) {
-                    return $query;
+                    return $query->with('teams');
                 }
 
                 return $query->with([
@@ -212,7 +213,17 @@ class UserResource extends Resource
                 TextColumn::make('teams.name')
                     ->label('Teams')
                     ->visible(fn (HasTable $livewire): bool => blank($livewire->getTableFilterState('team')['value'] ?? null))
-                    ->badge(),
+                    ->badge()
+                    ->color(function (?string $state, User $record): array {
+                        if ($state === null) {
+                            return Palette::neutral();
+                        }
+
+                        return $record->teams
+                            ->firstWhere('name', $state)
+                            ?->brandColor()
+                            ->getColor() ?? Palette::neutral();
+                    }),
                 TextColumn::make('team_role')
                     ->label('Team role')
                     ->badge()

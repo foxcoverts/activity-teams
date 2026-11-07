@@ -15,7 +15,7 @@ class BookingGuestList
      * @param  iterable<int, User>  $attendees
      * @param  list<BookingAttendeeStatus>  $visibleStatuses
      * @return array{
-     *     groups: list<array{key: string, label: string, open: bool, people: list<array{id: string, name: string, status: BookingAttendeeStatus, guest: bool, under_18: bool, is_parent: bool, qualified: bool, key_badge: ?string}>}>,
+     *     groups: list<array{key: string, label: string, open: bool, people: list<array{id: string, name: string, avatar_url: string, status: BookingAttendeeStatus, guest: bool, under_18: bool, is_parent: bool, qualified: bool, key_badge: ?string}>}>,
      *     show_qualified: bool,
      *     show_keys: bool
      * }
@@ -65,6 +65,7 @@ class BookingGuestList
                 return [
                     'id' => (string) $person->getKey(),
                     'name' => $person->name,
+                    'avatar_url' => Avatars::userUrl($person, 64),
                     'status' => $status,
                     'guest' => ! $memberRoles->has((string) $person->getKey()),
                     'under_18' => $person->isUnder18(),

@@ -11,7 +11,6 @@ use App\Models\BookingAttendance;
 use App\Models\User;
 use App\Support\BookingGuestList;
 use App\Support\BookingPeople;
-use App\Support\Palette;
 use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DetachAction;
@@ -21,8 +20,6 @@ use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\ToggleButtons;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Support\Enums\Width;
-use Filament\Support\Icons\Heroicon;
-use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
@@ -61,36 +58,7 @@ class AttendeesRelationManager extends RelationManager
     {
         return $table
             ->recordTitleAttribute('name')
-            ->columns([
-                TextColumn::make('name'),
-                TextColumn::make('qualified')
-                    ->label(__('Qualification'))
-                    ->badge()
-                    ->icon(Heroicon::CheckCircle)
-                    ->color(Palette::positive())
-                    ->placeholder('')
-                    ->state(function (User $record): ?string {
-                        if (! $this->booking()->metBy($record)) {
-                            return null;
-                        }
-
-                        return __('Qualified');
-                    })
-                    ->visible(fn (): bool => $this->canManageBooking() && $this->booking()->requiresQualification())
-                    ->disabledClick(fn (?string $state): bool => blank($state)),
-                TextColumn::make('key_badge')
-                    ->label(__('Keys'))
-                    ->badge()
-                    ->icon(Heroicon::OutlinedKey)
-                    ->state(fn (User $record): ?string => $this->keyBadge($record))
-                    ->formatStateUsing(fn (?string $state): ?string => match ($state) {
-                        'holder' => __('Key holder'),
-                        default => null,
-                    })
-                    ->color(fn (?string $state): array => $state === 'holder' ? Palette::positive() : Palette::neutral())
-                    ->visible(fn (): bool => $this->canManageBooking() && $this->bookingNeedsKeys())
-                    ->disabledClick(fn (?string $state): bool => blank($state)),
-            ])
+            ->columns([])
             ->content(fn (): View => $this->guestListContent())
             ->paginated(false)
             ->headerActions([
