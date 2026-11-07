@@ -8,6 +8,7 @@ use App\Models\Team;
 use App\Support\Palette;
 use Filament\Actions\Action;
 use Filament\Actions\EditAction;
+use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
@@ -20,6 +21,14 @@ class TeamsTable
         return $table
             ->defaultSort('name', 'asc')
             ->columns([
+                ImageColumn::make('avatar')
+                    ->label('')
+                    ->state(fn (Team $record): string => $record->getFilamentAvatarUrl())
+                    ->alt(fn (Team $record): string => $record->name)
+                    ->imageSize(32)
+                    ->square()
+                    ->width('1%')
+                    ->grow(false),
                 TextColumn::make('name')
                     ->sortable()
                     ->searchable(),

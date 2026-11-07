@@ -9,6 +9,7 @@ use App\Models\Booking;
 use App\Models\BookingAttendance;
 use App\Models\Team;
 use App\Models\User;
+use App\Support\Avatars;
 use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -181,7 +182,7 @@ class AuthenticationTest extends TestCase
             ->assertOk()
             ->assertSee('fi-user-avatar', false)
             ->assertSee(
-                'https://www.gravatar.com/avatar/'.hash('sha256', 'ada@example.com').'?d=identicon&amp;s=200',
+                str_replace('&', '&amp;', Avatars::userUrl($user)),
                 false,
             );
     }

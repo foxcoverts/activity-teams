@@ -18,6 +18,7 @@ class TeamFactory extends Factory
         return [
             'name' => $name,
             'slug' => Str::slug($name),
+            'color' => null,
         ];
     }
 }

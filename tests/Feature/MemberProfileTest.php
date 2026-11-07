@@ -6,6 +6,7 @@ use App\Filament\Admin\Resources\Users\Pages\EditUser;
 use App\Filament\Auth\EditProfile;
 use App\Filament\Pages\ChangePassword;
 use App\Models\User;
+use App\Support\Avatars;
 use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
@@ -81,12 +82,12 @@ class MemberProfileTest extends TestCase
         Livewire::test(EditProfile::class)
             ->assertSeeTextInOrder(['Personal details', 'Contact details', 'Emergency contact', 'Avatar'])
             ->assertSee('Your photo comes from Gravatar, using the email on this account.')
-            ->assertSee('generated pattern')
+            ->assertSee('soft initials generated from your name')
             ->assertSee('Changing your email changes which Gravatar is used.')
             ->assertSee('Change on Gravatar')
             ->assertSee('fi-user-avatar', false)
             ->assertSee(
-                'https://www.gravatar.com/avatar/'.hash('sha256', 'ada@example.com').'?d=identicon&amp;s=200',
+                str_replace('&', '&amp;', Avatars::userUrl($user)),
                 false,
             )
             ->assertSee('https://gravatar.com/profile/avatars', false);

@@ -16,6 +16,7 @@ use App\Models\Comment;
 use App\Models\Team;
 use App\Models\User;
 use App\Notifications\BookingCommentNotification;
+use App\Support\Avatars;
 use App\Support\BookingMailThread;
 use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -617,7 +618,7 @@ class BookingCommentsTest extends TestCase
             ->assertSee('Bring helmets.')
             ->assertSee('fi-user-avatar', false)
             ->assertSee(
-                'https://www.gravatar.com/avatar/'.hash('sha256', 'ada@example.com').'?d=identicon&amp;s=200',
+                str_replace('&', '&amp;', Avatars::userUrl($member->fresh())),
                 false,
             )
             ->assertDontSee('comment-avatar', false);

@@ -8,6 +8,7 @@ use App\Enums\AccountStatus;
 use App\Enums\InvitationStatus;
 use App\Enums\MembershipRole;
 use App\Enums\PersonalDataSection;
+use App\Support\Avatars;
 use Database\Factories\UserFactory;
 use Filament\Auth\Notifications\VerifyEmail;
 use Filament\Facades\Filament;
@@ -398,16 +399,9 @@ class User extends Authenticatable implements FilamentUser, HasAvatar, HasDefaul
         return $this->timezone?->getName() ?? (string) config('app.timezone');
     }
 
-    public function gravatarUrl(int $size = 64): string
-    {
-        $hash = hash('sha256', strtolower(trim((string) $this->email)));
-
-        return 'https://www.gravatar.com/avatar/'.$hash.'?d=identicon&s='.$size;
-    }
-
     public function getFilamentAvatarUrl(): ?string
     {
-        return $this->gravatarUrl(200);
+        return Avatars::userUrl($this, 200);
     }
 
     public function isLastSystemAdmin(): bool

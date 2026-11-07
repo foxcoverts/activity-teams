@@ -2,8 +2,11 @@
 
 namespace App\Models;
 
+use App\Enums\BrandColor;
 use App\Enums\MembershipRole;
+use App\Support\Avatars;
 use Database\Factories\TeamFactory;
+use Filament\Models\Contracts\HasAvatar;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -14,7 +17,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
-class Team extends Model
+class Team extends Model implements HasAvatar
 {
     /** @use HasFactory<TeamFactory> */
     use HasFactory, HasUlids;
@@ -22,7 +25,15 @@ class Team extends Model
     protected $fillable = [
         'name',
         'slug',
+        'color',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'color' => BrandColor::class,
+        ];
+    }
 
     protected static function booted(): void
     {
@@ -36,6 +47,16 @@ class Team extends Model
     public function getRouteKeyName(): string
     {
         return 'slug';
+    }
+
+    public function brandColor(): BrandColor
+    {
+        return $this->color ?? BrandColor::fromSeed((string) $this->name);
+    }
+
+    public function getFilamentAvatarUrl(): ?string
+    {
+        return Avatars::teamUrl($this, 200);
     }
 
     public function memberships(): HasMany
