@@ -4,9 +4,8 @@ namespace Tests\Feature;
 
 use App\Enums\BookingAttendeeStatus;
 use App\Enums\MembershipRole;
-use App\Filament\Manage\Resources\Bookings\Pages\ViewBooking as ManageViewBooking;
-use App\Filament\Manage\Resources\Bookings\RelationManagers\AttendeesRelationManager;
-use App\Filament\Teams\Resources\Bookings\Pages\ViewBooking as MemberViewBooking;
+use App\Filament\Teams\Resources\Bookings\Pages\ViewBooking as TeamsViewBooking;
+use App\Filament\Teams\Resources\Bookings\RelationManagers\AttendeesRelationManager;
 use App\Filament\Teams\Resources\Bookings\RelationManagers\AttendeesRelationManager as MemberAttendeesRelationManager;
 use App\Models\Booking;
 use App\Models\BookingAttendance;
@@ -40,7 +39,7 @@ class GuestListTest extends TestCase
 
         return Livewire::test(MemberAttendeesRelationManager::class, [
             'ownerRecord' => $booking,
-            'pageClass' => MemberViewBooking::class,
+            'pageClass' => TeamsViewBooking::class,
         ]);
     }
 
@@ -183,7 +182,7 @@ class GuestListTest extends TestCase
 
         Livewire::test(MemberAttendeesRelationManager::class, [
             'ownerRecord' => $booking,
-            'pageClass' => MemberViewBooking::class,
+            'pageClass' => TeamsViewBooking::class,
         ])
             ->assertSee('Guest list')
             ->assertSee('Current attendee')
@@ -204,13 +203,13 @@ class GuestListTest extends TestCase
 
         Livewire::test(MemberAttendeesRelationManager::class, [
             'ownerRecord' => $booking,
-            'pageClass' => MemberViewBooking::class,
+            'pageClass' => TeamsViewBooking::class,
         ])->assertForbidden();
     }
 
     public function test_manage_guest_list_is_grouped_and_retains_attendance_actions(): void
     {
-        Filament::setCurrentPanel('manage');
+        Filament::setCurrentPanel('teams');
 
         $manager = User::factory()->teamManager()->create();
         $team = $manager->managedTeams()->firstOrFail();
@@ -259,7 +258,7 @@ class GuestListTest extends TestCase
 
         $relationManager = Livewire::test(AttendeesRelationManager::class, [
             'ownerRecord' => $booking,
-            'pageClass' => ManageViewBooking::class,
+            'pageClass' => TeamsViewBooking::class,
         ]);
 
         $relationManager

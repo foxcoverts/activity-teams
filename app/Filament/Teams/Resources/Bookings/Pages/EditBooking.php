@@ -1,14 +1,14 @@
 <?php
 
-namespace App\Filament\Manage\Resources\Bookings\Pages;
+namespace App\Filament\Teams\Resources\Bookings\Pages;
 
 use App\Actions\SaveBookingDetailsAction;
 use App\Actions\UpdateBookingStatusAction;
-use App\Filament\Manage\Resources\Bookings\BookingResource;
-use App\Filament\Manage\Resources\Bookings\BookingStatusActions;
+use App\Filament\Teams\Resources\Bookings\BookingResource;
+use App\Filament\Teams\Resources\Bookings\BookingStatusActions;
+use App\Filament\Teams\Resources\Bookings\Schemas\BookingForm;
 use App\Models\Booking;
 use App\Models\User;
-use Filament\Actions\DeleteAction;
 use Filament\Actions\ViewAction;
 use Filament\Resources\Pages\EditRecord;
 use Illuminate\Database\Eloquent\Model;
@@ -21,8 +21,7 @@ class EditBooking extends EditRecord
     {
         return [
             ViewAction::make(),
-            BookingStatusActions::group(),
-            DeleteAction::make(),
+            BookingStatusActions::group(includeEdit: false),
         ];
     }
 
@@ -46,8 +45,8 @@ class EditBooking extends EditRecord
         $record = $this->getRecord();
 
         return $record instanceof Booking
-            ? BookingResource::hydrateBookingFormData($data, $record)
-            : BookingResource::hydrateScheduleData($data);
+            ? BookingForm::hydrateBookingFormData($data, $record)
+            : BookingForm::hydrateScheduleData($data);
     }
 
     /**
@@ -56,7 +55,7 @@ class EditBooking extends EditRecord
      */
     protected function mutateFormDataBeforeSave(array $data): array
     {
-        return BookingResource::mergeScheduleData($data);
+        return BookingForm::mergeScheduleData($data);
     }
 
     protected function handleRecordUpdate(Model $record, array $data): Model

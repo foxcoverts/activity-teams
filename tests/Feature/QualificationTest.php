@@ -4,10 +4,10 @@ namespace Tests\Feature;
 
 use App\Enums\MembershipRole;
 use App\Filament\Admin\Resources\Users\Pages\ViewUser;
-use App\Filament\Teams\Resources\Members\Pages\ViewMember;
 use App\Filament\Member\Resources\Qualifications\Pages\ListQualifications;
 use App\Filament\Member\Resources\Qualifications\QualificationResource;
 use App\Filament\RelationManagers\QualificationsRelationManager;
+use App\Filament\Teams\Resources\Members\Pages\ViewMember;
 use App\Models\Qualification;
 use App\Models\Team;
 use App\Models\User;
@@ -28,7 +28,7 @@ class QualificationTest extends TestCase
     {
         parent::setUp();
 
-        Filament::setCurrentPanel('manage');
+        Filament::setCurrentPanel('teams');
     }
 
     public function test_the_expiry_date_is_the_last_day_the_qualification_is_current(): void
@@ -255,7 +255,7 @@ class QualificationTest extends TestCase
             ->assertTableActionHidden('delete', $qualification)
             ->assertSee('Natural Lead Climbing');
 
-        Filament::setCurrentPanel('manage');
+        Filament::setCurrentPanel('teams');
         $this->actingAs($manager);
 
         Livewire::test(QualificationsRelationManager::class, [
@@ -405,7 +405,6 @@ class QualificationTest extends TestCase
             ->assertDontSee('No night climbing')
             ->assertDontSee('Restrictions')
             ->assertDontSee('Mountain Leader')
-            ->assertDontSee('/manage/')
             ->assertDontSee('New qualification');
 
         Livewire::test(ListQualifications::class)
@@ -420,8 +419,7 @@ class QualificationTest extends TestCase
             ->assertSee('Climbing and Abseiling')
             ->assertSee('Artificial Top Rope')
             ->assertSee('Leadership')
-            ->assertSee('Expires')
-            ->assertDontSee('/manage/');
+            ->assertSee('Expires');
 
         $this->get(QualificationResource::getUrl('view', ['record' => $award]))
             ->assertOk()

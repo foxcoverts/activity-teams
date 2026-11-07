@@ -2,7 +2,7 @@
 
 namespace App\Filament\Admin\Resources\Teams\Tables;
 
-use App\Filament\Manage\Pages\Dashboard as ManageDashboard;
+use App\Filament\Teams\Pages\Dashboard as TeamsDashboard;
 use App\Filament\Teams\Resources\Members\MemberResource;
 use App\Models\Team;
 use App\Support\Palette;
@@ -43,11 +43,11 @@ class TeamsTable
             ])
             ->recordActions([
                 EditAction::make(),
-                Action::make('manage')
-                    ->label(ManageDashboard::getNavigationLabel())
-                    ->icon(ManageDashboard::getNavigationIcon())
+                Action::make('teams')
+                    ->label(TeamsDashboard::getNavigationLabel())
+                    ->icon(TeamsDashboard::getNavigationIcon())
                     ->color(Palette::positive())
-                    ->url(fn (Team $record): string => ManageDashboard::getUrl(panel: 'manage', tenant: $record)),
+                    ->url(fn (Team $record): string => TeamsDashboard::getUrl(panel: 'teams', tenant: $record)),
             ]);
     }
 }

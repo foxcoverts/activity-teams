@@ -142,7 +142,6 @@ class User extends Authenticatable implements FilamentUser, HasAvatar, HasDefaul
         }
 
         return match ($panel->getId()) {
-            'manage' => $this->isSystemAdmin() || $this->managedTeams()->exists(),
             'admin' => $this->isSystemAdmin() || $this->hasOversight(),
             default => true,
         };
@@ -162,11 +161,7 @@ class User extends Authenticatable implements FilamentUser, HasAvatar, HasDefaul
             return $this->teamsPanelTenants();
         }
 
-        if ($panel->getId() !== 'manage') {
-            return new EloquentCollection;
-        }
-
-        return $this->managedTeams()->orderBy('name')->get();
+        return new EloquentCollection;
     }
 
     /**
@@ -184,7 +179,8 @@ class User extends Authenticatable implements FilamentUser, HasAvatar, HasDefaul
         return Team::query()
             ->where(function (Builder $teams): void {
                 $teams->whereIn('teams.id', $this->teams()->select('teams.id'))
-                    ->orWhereIn('teams.id', $this->bookings()->select('bookings.team_id'));
+                    ->orWhereIn('teams.id', $this->bookings()->select('bookings.team_id'))
+                    ->orWhereIn('teams.id', $this->managedTeams()->select('teams.id'));
             })
             ->orderBy('name')
             ->get();

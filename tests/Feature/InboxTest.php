@@ -76,7 +76,7 @@ class InboxTest extends TestCase
         ]);
         $manager->notify(new LeadNeededNotification($booking, null));
 
-        Filament::setCurrentPanel('manage');
+        Filament::setCurrentPanel('teams');
         $this->actingAs($manager);
 
         Livewire::test(Topbar::class)

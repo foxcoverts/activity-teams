@@ -7,8 +7,8 @@ use App\Actions\UpdateBookingStatusAction;
 use App\Enums\BookingAttendeeStatus;
 use App\Enums\MembershipRole;
 use App\Filament\Admin\Resources\Users\Pages\EditUser;
-use App\Filament\Teams\Actions\SuspensionActions;
 use App\Filament\Member\Resources\Bookings\BookingResource as MemberBookingResource;
+use App\Filament\Teams\Actions\SuspensionActions;
 use App\Filament\Teams\Resources\Bookings\Pages\ViewBooking as TeamsViewBooking;
 use App\Filament\Teams\Resources\Bookings\RelationManagers\AttendeesRelationManager as TeamsAttendeesRelationManager;
 use App\Filament\Teams\Resources\Members\MemberResource;
@@ -281,7 +281,6 @@ class SuspensionTest extends TestCase
 
         $this->actingAs($this->manager);
 
-        $this->get('/manage')->assertForbidden();
         $this->assertFalse($this->manager->manages($this->team));
         $this->assertFalse($this->manager->can('suspend', $this->member));
     }

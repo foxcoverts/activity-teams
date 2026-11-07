@@ -6,8 +6,8 @@ use App\Enums\BookingAttendeeStatus;
 use App\Enums\MailChannel;
 use App\Enums\MailGroup;
 use App\Enums\MembershipRole;
-use App\Filament\Manage\Resources\Bookings\Pages\EditBooking;
-use App\Filament\Manage\Resources\Bookings\RelationManagers\AttendeesRelationManager;
+use App\Filament\Teams\Resources\Bookings\Pages\EditBooking;
+use App\Filament\Teams\Resources\Bookings\RelationManagers\AttendeesRelationManager;
 use App\Livewire\InviteAttendees;
 use App\Models\Activity;
 use App\Models\ActivityAudience;
@@ -31,7 +31,7 @@ class InvitePickerTest extends TestCase
     {
         parent::setUp();
 
-        Filament::setCurrentPanel('manage');
+        Filament::setCurrentPanel('teams');
     }
 
     public function test_qualified_people_start_queued_and_everyone_else_stays_in_the_picker(): void

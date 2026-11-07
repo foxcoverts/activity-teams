@@ -32,7 +32,7 @@ class PersonalDataSection
             ->schema([
                 ViewEntry::make('acknowledge-'.$section->value)
                     ->hiddenLabel()
-                    ->view('filament.manage.personal-data-acknowledgement', ['section' => $section])
+                    ->view('filament.bookings.personal-data-acknowledgement', ['section' => $section])
                     ->visible(fn (User $record): bool => ! $isAcknowledged($record)),
                 Group::make($entries)
                     ->visible($isAcknowledged),
@@ -65,7 +65,7 @@ class PersonalDataSection
             ->collapsed(fn (?User $record): bool => $record !== null)
             ->afterHeader($section === Section::ContactDetails ? [static::emailVerifiedBadge()] : null)
             ->schema([
-                View::make('filament.manage.personal-data-acknowledgement')
+                View::make('filament.bookings.personal-data-acknowledgement')
                     ->viewData(['section' => $section])
                     ->visible(fn (?User $record): bool => ! $isAcknowledged($record)),
                 Group::make($fields)

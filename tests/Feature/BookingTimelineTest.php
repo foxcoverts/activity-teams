@@ -6,8 +6,7 @@ use App\Actions\OverrideAttendanceAction;
 use App\Actions\RespondToBookingAction;
 use App\Enums\BookingAttendeeStatus;
 use App\Enums\MembershipRole;
-use App\Filament\Manage\Resources\Bookings\Pages\ViewBooking as ManageViewBooking;
-use App\Filament\Teams\Resources\Bookings\Pages\ViewBooking as MemberViewBooking;
+use App\Filament\Teams\Resources\Bookings\Pages\ViewBooking as TeamsViewBooking;
 use App\Filament\Teams\Resources\Members\MemberResource;
 use App\Models\Booking;
 use App\Models\User;
@@ -23,16 +22,18 @@ class BookingTimelineTest extends TestCase
     public function test_the_member_timeline_does_not_link_into_manage(): void
     {
         $manager = User::factory()->teamManager()->create();
-        $member = User::factory()->teamMember()->create();
+        $team = $manager->managedTeams()->firstOrFail();
+        $member = User::factory()->create();
+        $team->grant($member, MembershipRole::Member);
 
         $this->actingAs($manager);
-        $booking = Booking::factory()->confirmed()->create();
+        $booking = Booking::factory()->confirmed()->forTeam($team)->create();
         $booking->attendees()->attach($member->id);
 
         Filament::setCurrentPanel('teams');
         $this->actingAs($member);
 
-        $view = Livewire::test(MemberViewBooking::class, ['record' => $booking->getRouteKey()]);
+        $view = Livewire::test(TeamsViewBooking::class, ['record' => $booking->getRouteKey()]);
 
         $view
             ->assertSee('Confirmed booking')
@@ -40,7 +41,7 @@ class BookingTimelineTest extends TestCase
             ->assertSee('Recent activity')
             ->assertSee($manager->name)
             ->assertSeeHtml('wire:name="App\\Filament\\Teams\\Resources\\Bookings\\RelationManagers\\AttendeesRelationManager"')
-            ->assertDontSeeHtml('/manage/');
+            ->assertDontSeeHtml('/members/');
     }
 
     public function test_only_current_team_members_can_see_the_guest_list(): void
@@ -50,14 +51,14 @@ class BookingTimelineTest extends TestCase
         $member = User::factory()->create();
         $team->grant($member, MembershipRole::Member);
 
-        $booking = Booking::factory()->confirmed()->create([
+        $booking = Booking::factory()->confirmed()->forTeam($team)->create([
             'team_id' => $team->getKey(),
         ]);
 
         Filament::setCurrentPanel('teams');
         $this->actingAs($member);
 
-        $view = Livewire::test(MemberViewBooking::class, ['record' => $booking->getRouteKey()]);
+        $view = Livewire::test(TeamsViewBooking::class, ['record' => $booking->getRouteKey()]);
 
         $view
             ->assertSee('Confirmed booking')
@@ -69,15 +70,18 @@ class BookingTimelineTest extends TestCase
         $this->actingAs($outsider);
         Filament::setTenant($booking->team);
 
-        Livewire::test(MemberViewBooking::class, ['record' => $booking->getRouteKey()])
+        Livewire::test(TeamsViewBooking::class, ['record' => $booking->getRouteKey()])
             ->assertNotFound();
     }
 
     public function test_the_member_timeline_emboldens_people_who_are_not_links(): void
     {
         $manager = User::factory()->teamManager()->create(['name' => 'Manager A']);
-        $member = User::factory()->teamMember()->create(['name' => 'Member B']);
-        $booking = Booking::factory()->confirmed()->create();
+        $team = $manager->managedTeams()->firstOrFail();
+        $member = User::factory()->create(['name' => 'Member B']);
+        $team->grant($member, MembershipRole::Member);
+
+        $booking = Booking::factory()->confirmed()->forTeam($team)->create();
         $booking->attendees()->attach($member->id, [
             'status' => BookingAttendeeStatus::NeedsAction->value,
         ]);
@@ -89,26 +93,26 @@ class BookingTimelineTest extends TestCase
         Filament::setCurrentPanel('teams');
         $this->actingAs($member);
 
-        Livewire::test(MemberViewBooking::class, ['record' => $booking->getRouteKey()])
+        Livewire::test(TeamsViewBooking::class, ['record' => $booking->getRouteKey()])
             ->assertSeeHtml('<strong>Manager A</strong>')
             ->assertSeeHtml('<strong>Can help</strong>')
             ->assertSeeHtml('<strong>Member B</strong>')
-            ->assertDontSeeHtml('/manage/');
+            ->assertDontSeeHtml('/members/');
     }
 
-    public function test_the_manage_timeline_links_a_teammate_to_the_member_page(): void
+    public function test_the_teams_timeline_links_a_teammate_to_the_member_page(): void
     {
-        Filament::setCurrentPanel('manage');
+        Filament::setCurrentPanel('teams');
 
         $manager = User::factory()->teamManager()->create();
-        $team = $manager->managedTeams()->first();
+        $team = $manager->managedTeams()->firstOrFail();
 
         $this->actingAs($manager);
-        $booking = Booking::factory()->confirmed()->create();
+        $booking = Booking::factory()->confirmed()->forTeam($team)->create();
 
         $memberUrl = MemberResource::getUrl('view', ['record' => $manager], panel: 'teams', tenant: $team);
 
-        Livewire::test(ManageViewBooking::class, ['record' => $booking->getRouteKey()])
+        Livewire::test(TeamsViewBooking::class, ['record' => $booking->getRouteKey()])
             ->assertSee('Confirmed booking')
             ->assertSee('Group')
             ->assertSee('Recent activity')
@@ -117,21 +121,22 @@ class BookingTimelineTest extends TestCase
             ->assertDontSeeHtml('/users/'.$manager->getKey());
     }
 
-    public function test_the_manage_timeline_links_the_person_a_change_is_about(): void
+    public function test_the_teams_timeline_links_the_person_a_change_is_about(): void
     {
-        Filament::setCurrentPanel('manage');
+        Filament::setCurrentPanel('teams');
 
         $manager = User::factory()->teamManager()->create();
-        $member = User::factory()->teamMember()->create(['name' => 'Casey']);
-        $team = $manager->managedTeams()->first();
+        $team = $manager->managedTeams()->firstOrFail();
+        $member = User::factory()->create(['name' => 'Casey']);
+        $team->grant($member, MembershipRole::Member);
 
         $this->actingAs($manager);
 
-        $booking = Booking::factory()->confirmed()->create();
+        $booking = Booking::factory()->confirmed()->forTeam($team)->create();
         $booking->lead_instructor_id = $member->getKey();
         $booking->save();
 
-        Livewire::test(ManageViewBooking::class, ['record' => $booking->getRouteKey()])
+        Livewire::test(TeamsViewBooking::class, ['record' => $booking->getRouteKey()])
             ->assertSee('Casey')
             ->assertSeeHtml(MemberResource::getUrl('view', ['record' => $member], panel: 'teams', tenant: $team))
             ->assertDontSeeHtml('/users/'.$member->getKey());
@@ -139,11 +144,14 @@ class BookingTimelineTest extends TestCase
 
     public function test_recording_your_own_attendance_does_not_name_you_twice(): void
     {
-        Filament::setCurrentPanel('manage');
+        Filament::setCurrentPanel('teams');
 
         $manager = User::factory()->teamManager()->create();
-        $member = User::factory()->teamMember()->create(['name' => 'Casey']);
-        $booking = Booking::factory()->confirmed()->create();
+        $team = $manager->managedTeams()->firstOrFail();
+        $member = User::factory()->create(['name' => 'Casey']);
+        $team->grant($member, MembershipRole::Member);
+
+        $booking = Booking::factory()->confirmed()->forTeam($team)->create();
         $booking->attendees()->attach($member->id, [
             'status' => BookingAttendeeStatus::NeedsAction->value,
         ]);
@@ -152,7 +160,7 @@ class BookingTimelineTest extends TestCase
 
         $this->actingAs($manager);
 
-        Livewire::test(ManageViewBooking::class, ['record' => $booking->getRouteKey()])
+        Livewire::test(TeamsViewBooking::class, ['record' => $booking->getRouteKey()])
             ->assertSee('said')
             ->assertSee('maybe')
             ->assertDontSee('said they')
@@ -161,18 +169,19 @@ class BookingTimelineTest extends TestCase
 
     public function test_several_field_changes_are_listed_under_one_intro(): void
     {
-        Filament::setCurrentPanel('manage');
+        Filament::setCurrentPanel('teams');
 
         $manager = User::factory()->teamManager()->create();
+        $team = $manager->managedTeams()->firstOrFail();
 
         $this->actingAs($manager);
 
-        $booking = Booking::factory()->confirmed()->create();
+        $booking = Booking::factory()->confirmed()->forTeam($team)->create();
         $booking->start_at = $booking->start_at->copy()->addHour();
         $booking->end_at = $booking->end_at->copy()->addHour();
         $booking->save();
 
-        Livewire::test(ManageViewBooking::class, ['record' => $booking->getRouteKey()])
+        Livewire::test(TeamsViewBooking::class, ['record' => $booking->getRouteKey()])
             ->assertSee('made some changes')
             ->assertSeeHtml('<ul>')
             ->assertSeeHtml('<li><strong>start at</strong>')

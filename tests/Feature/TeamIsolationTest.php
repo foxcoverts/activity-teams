@@ -4,9 +4,9 @@ namespace Tests\Feature;
 
 use App\Enums\BookingAttendeeStatus;
 use App\Enums\MembershipRole;
-use App\Filament\Manage\Resources\Bookings\BookingResource as ManageBookingResource;
 use App\Filament\Member\Resources\Bookings\BookingResource as MemberBookingResource;
 use App\Filament\Member\Resources\Bookings\Pages\ListBookings as MemberListBookings;
+use App\Filament\Teams\Resources\Bookings\BookingResource as TeamsBookingResource;
 use App\Filament\Teams\Resources\Members\MemberResource;
 use App\Filament\Teams\Resources\Members\Pages\ListMembers;
 use App\Models\Booking;
@@ -52,21 +52,28 @@ class TeamIsolationTest extends TestCase
             ->create();
     }
 
-    public function test_the_manage_panel_lists_only_the_current_teams_bookings(): void
+    public function test_the_teams_panel_lists_only_the_current_teams_bookings(): void
     {
         $manager = $this->person($this->climbing, MembershipRole::Manager);
         $this->person($this->archery, MembershipRole::Manager, $manager);
-        $this->booking($this->climbing, 'Climbing group', confirmed: false);
-        $this->booking($this->archery, 'Archery group', confirmed: false);
+        Booking::factory()->forTeam($this->climbing)->create([
+            'activity_label' => 'Climbing group',
+            'activity_id' => null,
+        ]);
+        Booking::factory()->forTeam($this->archery)->create([
+            'activity_label' => 'Archery group',
+            'activity_id' => null,
+        ]);
 
+        Filament::setCurrentPanel('teams');
         $this->actingAs($manager);
 
-        $this->get(ManageBookingResource::getUrl('index', panel: 'manage', tenant: $this->climbing))
+        $this->get(TeamsBookingResource::getUrl('index', panel: 'teams', tenant: $this->climbing))
             ->assertOk()
             ->assertSee('Climbing group')
             ->assertDontSee('Archery group');
 
-        $this->get(ManageBookingResource::getUrl('index', panel: 'manage', tenant: $this->archery))
+        $this->get(TeamsBookingResource::getUrl('index', panel: 'teams', tenant: $this->archery))
             ->assertOk()
             ->assertSee('Archery group')
             ->assertDontSee('Climbing group');
@@ -78,13 +85,13 @@ class TeamIsolationTest extends TestCase
         $archeryBooking = $this->booking($this->archery, 'Archery group', confirmed: false);
         $cancelled = Booking::factory()->cancelled()->create(['team_id' => $this->archery->getKey()]);
 
-        Filament::setCurrentPanel('manage');
+        Filament::setCurrentPanel('teams');
         $this->actingAs($manager);
 
         foreach (['view', 'edit'] as $page) {
-            $this->get(ManageBookingResource::getUrl($page, ['record' => $archeryBooking], panel: 'manage', tenant: $this->climbing))
+            $this->get(TeamsBookingResource::getUrl($page, ['record' => $archeryBooking], panel: 'teams', tenant: $this->climbing))
                 ->assertNotFound();
-            $this->get(ManageBookingResource::getUrl($page, ['record' => $archeryBooking], panel: 'manage', tenant: $this->archery))
+            $this->get(TeamsBookingResource::getUrl($page, ['record' => $archeryBooking], panel: 'teams', tenant: $this->archery))
                 ->assertNotFound();
         }
 
@@ -127,7 +134,7 @@ class TeamIsolationTest extends TestCase
         $this->get(MemberResource::getUrl('index', panel: 'teams', tenant: $this->archery))->assertNotFound();
     }
 
-    public function test_a_member_cannot_reach_manage_pages_for_what_they_can_see_in_members(): void
+    public function test_a_member_can_browse_team_bookings_but_cannot_manage_them(): void
     {
         $member = $this->person($this->climbing, MembershipRole::Member);
         $this->person($this->climbing, MembershipRole::Manager);
@@ -137,14 +144,9 @@ class TeamIsolationTest extends TestCase
 
         $this->get(MemberBookingResource::viewUrl($booking))->assertOk();
 
-        $this->get('/manage')->assertForbidden();
-        $this->get('/manage/'.$this->climbing->getKey())->assertForbidden();
-        $this->get(ManageBookingResource::getUrl('index', panel: 'manage', tenant: $this->climbing))->assertForbidden();
-
-        foreach (['view', 'edit'] as $page) {
-            $this->get(ManageBookingResource::getUrl($page, ['record' => $booking], panel: 'manage', tenant: $this->climbing))
-                ->assertForbidden();
-        }
+        $this->get(TeamsBookingResource::getUrl('index', panel: 'teams', tenant: $this->climbing))->assertOk();
+        $this->get(TeamsBookingResource::getUrl('view', ['record' => $booking], panel: 'teams', tenant: $this->climbing))->assertOk();
+        $this->get(TeamsBookingResource::getUrl('edit', ['record' => $booking], panel: 'teams', tenant: $this->climbing))->assertForbidden();
 
         $this->get(MemberResource::getUrl('index', panel: 'teams', tenant: $this->climbing))->assertForbidden();
     }

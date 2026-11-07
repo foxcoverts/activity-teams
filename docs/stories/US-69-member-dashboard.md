@@ -31,4 +31,4 @@ As a team member, I want my dashboard to show what needs my attention, most urge
 ## Notes
 
 - The news feed (`/news/{team:slug}`) and the bookings list (a Filament team filter) already have team filters.
-- Manage and admin dashboard stories are deferred.
+- Teams manager attention and admin dashboard stories are deferred.

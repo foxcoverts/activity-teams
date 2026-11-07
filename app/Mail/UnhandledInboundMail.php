@@ -4,7 +4,7 @@ namespace App\Mail;
 
 use App\Filament\Admin\Resources\InboundMails\InboundMailResource;
 use App\Filament\Admin\Resources\Teams\TeamResource;
-use App\Filament\Manage\Resources\Bookings\BookingResource;
+use App\Filament\Teams\Resources\Bookings\BookingResource;
 use App\Filament\Teams\Resources\Keys\KeyResource;
 use App\Models\Booking;
 use App\Models\InboundMail;
@@ -70,10 +70,33 @@ class UnhandledInboundMail extends Mailable implements ShouldQueue
         $resource = $this->inboundMail->resource;
 
         return match (true) {
-            $resource instanceof Booking => BookingResource::getUrl('view', ['record' => $resource], panel: 'manage'),
-            $resource instanceof Key => KeyResource::getUrl('view', ['record' => $resource], panel: 'manage'),
+            $resource instanceof Booking => $this->bookingTeamsUrl($resource),
+            $resource instanceof Key => $this->keyTeamsUrl($resource),
             $resource instanceof Team => TeamResource::getUrl('view', ['record' => $resource], panel: 'admin'),
             default => null,
         };
+    }
+
+    private function bookingTeamsUrl(Booking $booking): ?string
+    {
+        $booking->loadMissing('team');
+        $team = $booking->team;
+
+        if (! $team instanceof Team) {
+            return null;
+        }
+
+        return BookingResource::getUrl('view', ['record' => $booking], panel: 'teams', tenant: $team);
+    }
+
+    private function keyTeamsUrl(Key $key): ?string
+    {
+        $team = $key->interestedTeams()->first();
+
+        if (! $team instanceof Team) {
+            return null;
+        }
+
+        return KeyResource::getUrl('view', ['record' => $key], panel: 'teams', tenant: $team);
     }
 }

@@ -3,7 +3,7 @@
 namespace App\Notifications;
 
 use App\Enums\MailChannel;
-use App\Filament\Manage\Resources\Bookings\BookingResource;
+use App\Filament\Teams\Resources\Bookings\BookingResource;
 use App\Mail\LeadNeededMail;
 use App\Models\Booking;
 use App\Models\User;
@@ -46,7 +46,7 @@ class LeadNeededNotification extends Notification
             return null;
         }
 
-        return BookingResource::getUrl('view', ['record' => $this->booking], panel: 'manage', tenant: $team);
+        return BookingResource::getUrl('view', ['record' => $this->booking], panel: 'teams', tenant: $team);
     }
 
     public function inboxChannel(): ?MailChannel

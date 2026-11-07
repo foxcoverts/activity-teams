@@ -9,9 +9,8 @@ use App\Filament\Admin\Resources\Teams\Pages\CreateTeam;
 use App\Filament\Admin\Resources\Teams\Pages\EditTeam;
 use App\Filament\Admin\Resources\Teams\Pages\ListTeams;
 use App\Filament\Admin\Resources\Users\Pages\ViewUser;
-use App\Filament\Manage\Resources\Bookings\Pages\ListBookings as ManageListBookings;
-use App\Filament\Manage\Resources\Bookings\Pages\ViewBooking as ManageViewBooking;
 use App\Filament\Member\Resources\Bookings\Pages\ListBookings as MemberListBookings;
+use App\Filament\Teams\Resources\Bookings\Pages\ListBookings as TeamsListBookings;
 use App\Filament\Teams\Resources\Bookings\Pages\ViewBooking as TeamsViewBooking;
 use App\Models\Booking;
 use App\Models\Team;
@@ -46,23 +45,23 @@ class FilamentDisplayPreferencesTest extends TestCase
 
         $booking->attendees()->attach($user->getKey(), ['status' => BookingAttendeeStatus::Accepted]);
 
-        Filament::setCurrentPanel('manage');
+        Filament::setCurrentPanel('teams');
         $this->travelTo('2026-10-20 12:00:00');
         $this->actingAs($user);
 
-        Livewire::test(ManageListBookings::class)
+        Livewire::test(TeamsListBookings::class)
             ->assertSee('Oct 24, 2026 10:30')
             ->assertDontSee('Oct 24, 2026 10:30:00');
-        Livewire::test(ManageViewBooking::class, ['record' => $booking->getKey()])
+        Livewire::test(TeamsViewBooking::class, ['record' => $booking->getKey()])
             ->assertSee('Confirmed booking')
             ->assertSee('When')
             ->assertSee('Sat 24 Oct 2026, 11:30 to 13:30 (2 hours)')
             ->assertDontSee('Timezone')
             ->assertDontSee('Created at')
             ->assertDontSee('Updated at');
-        Livewire::test(ManageViewBooking::class, ['record' => $tentativeBooking->getKey()])
+        Livewire::test(TeamsViewBooking::class, ['record' => $tentativeBooking->getKey()])
             ->assertSee('Tentative booking');
-        Livewire::test(ManageViewBooking::class, ['record' => $cancelledBooking->getKey()])
+        Livewire::test(TeamsViewBooking::class, ['record' => $cancelledBooking->getKey()])
             ->assertSee('Cancelled booking');
 
         Filament::setCurrentPanel('member');
@@ -104,10 +103,10 @@ class FilamentDisplayPreferencesTest extends TestCase
             'status' => BookingStatus::Confirmed,
         ]);
 
-        Filament::setCurrentPanel('manage');
+        Filament::setCurrentPanel('teams');
         $this->actingAs($user);
 
-        Livewire::test(ManageViewBooking::class, ['record' => $booking->getKey()])
+        Livewire::test(TeamsViewBooking::class, ['record' => $booking->getKey()])
             ->assertSee('Tue 20 Oct 2026 11:30 to Wed 21 Oct 2026 11:30 (1 day)');
 
         Filament::setCurrentPanel('teams');
@@ -129,10 +128,10 @@ class FilamentDisplayPreferencesTest extends TestCase
             'lead_instructor_notes' => 'Private lead arrangements',
         ]);
 
-        Filament::setCurrentPanel('manage');
+        Filament::setCurrentPanel('teams');
         $this->actingAs($manager);
 
-        Livewire::test(ManageViewBooking::class, ['record' => $booking->getKey()])
+        Livewire::test(TeamsViewBooking::class, ['record' => $booking->getKey()])
             ->assertSee('Private lead arrangements');
 
         Filament::setCurrentPanel('teams');

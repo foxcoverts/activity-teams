@@ -13,7 +13,7 @@ abstract class TestCase extends BaseTestCase
     {
         $result = parent::actingAs($user, $guard);
 
-        if (in_array(Filament::getCurrentPanel()?->getId(), ['manage', 'teams'])) {
+        if (Filament::getCurrentPanel()?->getId() === 'teams') {
             $team = $user->managedTeams()->first();
 
             if ($team === null) {

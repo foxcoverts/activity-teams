@@ -53,7 +53,7 @@
                             </div>
                         @endif
 
-                        @if ($panel === 'manage')
+                        @if ($panel === 'teams')
                             <div class="flex items-center gap-2">
                                 @if ($person['can_edit'])
                                     <x-filament::button size="sm" color="gray" outlined

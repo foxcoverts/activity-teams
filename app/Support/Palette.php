@@ -57,7 +57,7 @@ final class Palette
     }
 
     /**
-     * The person running a team. Same sky as the manage panel.
+     * The person running a team. Same sky as the Teams panel primary.
      *
      * @return array<int, string>
      */

@@ -2,13 +2,17 @@
 
 namespace App\Filament\Teams\Resources\Bookings;
 
+use App\Filament\Teams\Resources\Members\MemberResource;
 use App\Models\Activity;
 use App\Models\Booking;
 use App\Models\Team;
 use App\Models\User;
 use App\Models\Venue;
+use Filament\Facades\Filament;
 use Filament\Schemas\Components\Section;
+use Illuminate\Database\Eloquent\Model;
 use RalphJSmit\Filament\Activitylog\Filament\Infolists\Components\Timeline;
+use Spatie\Activitylog\Models\Activity as ActivityLog;
 
 class BookingTimeline
 {
@@ -25,11 +29,11 @@ class BookingTimeline
     {
         return Timeline::make()
             ->columnSpanFull()
-            ->causerUrl(fn (): null => null)
+            ->causerUrl(fn (?Model $causer, ActivityLog $activity): ?string => static::memberUrl($causer, $activity))
             ->recordUrl(Booking::class, fn (Booking $booking): ?string => static::bookingUrl($booking))
+            ->recordUrl(User::class, fn (User $user, ActivityLog $activity): ?string => static::memberUrl($user, $activity))
             ->recordUrl(Activity::class, fn (): null => null)
             ->recordUrl(Venue::class, fn (): null => null)
-            ->recordUrl(User::class, fn (): null => null)
             ->recordUrl(Team::class, fn (): null => null);
     }
 
@@ -39,6 +43,66 @@ class BookingTimeline
             return null;
         }
 
-        return BookingResource::getUrl('view', ['record' => $booking], panel: 'teams', tenant: $booking->team);
+        $team = static::teamOf($booking);
+
+        if (! $team instanceof Team) {
+            return null;
+        }
+
+        return BookingResource::getUrl('view', ['record' => $booking], panel: 'teams', tenant: $team);
+    }
+
+    protected static function memberUrl(?Model $causer, ActivityLog $activity): ?string
+    {
+        if (! $causer instanceof User) {
+            return null;
+        }
+
+        $team = static::teamFor($activity);
+
+        if (! $team instanceof Team || ! $causer->teams()->whereKey($team->getKey())->exists()) {
+            return null;
+        }
+
+        $viewer = auth()->user();
+
+        if (! $viewer instanceof User) {
+            return null;
+        }
+
+        $mayLinkMembers = $viewer->manages($team)
+            || ($viewer->isSystemAdmin() && MemberResource::canView($causer));
+
+        if (! $mayLinkMembers || ! MemberResource::canView($causer)) {
+            return null;
+        }
+
+        return MemberResource::getUrl('view', ['record' => $causer], panel: 'teams', tenant: $team);
+    }
+
+    protected static function teamFor(ActivityLog $activity): ?Team
+    {
+        $subject = $activity->relationLoaded('subject') ? $activity->subject : null;
+
+        if (! $subject instanceof Booking && $activity->subject_type === Booking::class) {
+            $subject = Booking::query()->find($activity->subject_id);
+        }
+
+        if ($subject instanceof Booking) {
+            return static::teamOf($subject);
+        }
+
+        $tenant = Filament::getTenant();
+
+        return $tenant instanceof Team ? $tenant : null;
+    }
+
+    protected static function teamOf(Booking $booking): ?Team
+    {
+        if ($booking->relationLoaded('team')) {
+            return $booking->team;
+        }
+
+        return Team::query()->find($booking->team_id);
     }
 }

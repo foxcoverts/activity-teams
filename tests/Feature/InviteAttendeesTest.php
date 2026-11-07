@@ -4,9 +4,9 @@ namespace Tests\Feature;
 
 use App\Actions\InviteAttendeesAction;
 use App\Enums\BookingAttendeeStatus;
-use App\Filament\Manage\Resources\Bookings\Pages\EditBooking;
-use App\Filament\Manage\Resources\Bookings\Pages\ViewBooking;
-use App\Filament\Manage\Resources\Bookings\RelationManagers\AttendeesRelationManager;
+use App\Filament\Teams\Resources\Bookings\Pages\EditBooking;
+use App\Filament\Teams\Resources\Bookings\Pages\ViewBooking;
+use App\Filament\Teams\Resources\Bookings\RelationManagers\AttendeesRelationManager;
 use App\Mail\BookingInviteMail;
 use App\Models\Booking;
 use App\Models\BookingAttendance;
@@ -25,7 +25,7 @@ class InviteAttendeesTest extends TestCase
     {
         parent::setUp();
 
-        Filament::setCurrentPanel('manage');
+        Filament::setCurrentPanel('teams');
     }
 
     public function test_upcoming_bookings_can_be_invited_to(): void

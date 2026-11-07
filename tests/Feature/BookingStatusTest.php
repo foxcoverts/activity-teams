@@ -7,12 +7,12 @@ use App\Actions\UpdateBookingStatusAction;
 use App\Enums\BookingAttendeeStatus;
 use App\Enums\BookingStatus;
 use App\Enums\MembershipRole;
-use App\Filament\Manage\Resources\Bookings\BookingResource;
-use App\Filament\Manage\Resources\Bookings\Pages\CreateBooking;
-use App\Filament\Manage\Resources\Bookings\Pages\EditBooking;
-use App\Filament\Manage\Resources\Bookings\Pages\ListBookings;
-use App\Filament\Manage\Resources\Bookings\Pages\ViewBooking;
-use App\Filament\Manage\Resources\Bookings\RelationManagers\AttendeesRelationManager;
+use App\Filament\Teams\Resources\Bookings\BookingResource;
+use App\Filament\Teams\Resources\Bookings\Pages\CreateBooking;
+use App\Filament\Teams\Resources\Bookings\Pages\EditBooking;
+use App\Filament\Teams\Resources\Bookings\Pages\ListBookings;
+use App\Filament\Teams\Resources\Bookings\Pages\ViewBooking;
+use App\Filament\Teams\Resources\Bookings\RelationManagers\AttendeesRelationManager;
 use App\Jobs\SendBookingNotification;
 use App\Livewire\RespondToBooking;
 use App\Mail\BookingCancelledMail;
@@ -48,7 +48,7 @@ class BookingStatusTest extends TestCase
     {
         parent::setUp();
 
-        Filament::setCurrentPanel('manage');
+        Filament::setCurrentPanel('teams');
     }
 
     public function test_a_new_booking_is_tentative_and_cannot_be_created_confirmed(): void
@@ -641,7 +641,7 @@ class BookingStatusTest extends TestCase
 
         Livewire::test(ViewBooking::class, ['record' => $cancelled->getRouteKey()])
             ->assertSee('Cancelled booking')
-            ->assertActionDoesNotExist('edit')
+            ->assertActionHidden('edit')
             ->assertActionVisible('restoreBooking')
             ->assertActionVisible('delete');
     }
@@ -653,23 +653,24 @@ class BookingStatusTest extends TestCase
         $cancelled = Booking::factory()->cancelled()->create(['group_name' => 'Already cancelled']);
         $attendee = User::factory()->create();
         $this->attend($cancelled, $attendee, BookingAttendeeStatus::NeedsAction);
+        $this->attend($tentative, $manager, BookingAttendeeStatus::NeedsAction);
 
         $this->actingAs($manager);
 
-        $tentativeEditUrl = BookingResource::getUrl('edit', ['record' => $tentative], panel: 'manage');
-        $cancelledEditUrl = BookingResource::getUrl('edit', ['record' => $cancelled], panel: 'manage');
+        $tentativeEditUrl = BookingResource::getUrl('edit', ['record' => $tentative], panel: 'teams');
+        $cancelledEditUrl = BookingResource::getUrl('edit', ['record' => $cancelled], panel: 'teams');
 
         Livewire::test(ListBookings::class)
             ->assertSee($tentativeEditUrl)
             ->assertDontSee($cancelledEditUrl);
 
         $cancelledView = Livewire::test(ViewBooking::class, ['record' => $cancelled->getRouteKey()])
-            ->assertActionDoesNotExist('edit')
+            ->assertActionHidden('edit')
             ->assertActionVisible('restoreBooking')
             ->assertActionVisible('delete');
 
         $this->assertSame(
-            [__('Restore'), __('Delete')],
+            [__('Manage')],
             $this->visibleHeaderLabels($cancelledView->instance()),
         );
 
@@ -677,7 +678,7 @@ class BookingStatusTest extends TestCase
             ->assertActionVisible('edit');
 
         $this->assertSame(
-            [__('Edit'), __('Status')],
+            [__('Respond'), __('Manage')],
             $this->visibleHeaderLabels($tentativeView->instance()),
         );
 

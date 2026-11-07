@@ -3,10 +3,9 @@
 namespace Tests\Feature;
 
 use App\Enums\MembershipRole;
-use App\Filament\Manage\Resources\Bookings\BookingResource;
-use App\Filament\Manage\Resources\Bookings\Pages\EditBooking as ManageEditBooking;
-use App\Filament\Manage\Resources\Bookings\Pages\ViewBooking as ManageViewBooking;
-use App\Filament\Teams\Resources\Bookings\Pages\ViewBooking as MemberViewBooking;
+use App\Filament\Teams\Resources\Bookings\BookingResource;
+use App\Filament\Teams\Resources\Bookings\Pages\EditBooking as TeamsEditBooking;
+use App\Filament\Teams\Resources\Bookings\Pages\ViewBooking as TeamsViewBooking;
 use App\Livewire\RelatedBookings;
 use App\Mail\BookingChangedMail;
 use App\Mail\BookingInviteMail;
@@ -30,12 +29,11 @@ class RelatedBookingTest extends TestCase
     {
         [$manager, $saturday, $sunday] = $this->weekend();
 
-        Filament::setCurrentPanel('manage');
+        Filament::setCurrentPanel('teams');
         $this->actingAs($manager);
 
         Livewire::test(RelatedBookings::class, [
             'record' => $saturday,
-            'panel' => 'manage',
         ])
             ->callAction('add', data: [
                 'related_id' => $sunday->getKey(),
@@ -51,12 +49,11 @@ class RelatedBookingTest extends TestCase
         [$manager, $saturday, $sunday] = $this->weekend();
         $saturday->relate($sunday);
 
-        Filament::setCurrentPanel('manage');
+        Filament::setCurrentPanel('teams');
         $this->actingAs($manager);
 
         Livewire::test(RelatedBookings::class, [
             'record' => $saturday,
-            'panel' => 'manage',
         ])
             ->call('remove', $sunday->getKey())
             ->assertSee('No related bookings.');
@@ -82,12 +79,11 @@ class RelatedBookingTest extends TestCase
             'timezone' => 'Europe/London',
         ]);
 
-        Filament::setCurrentPanel('manage');
+        Filament::setCurrentPanel('teams');
         $this->actingAs($manager);
 
         Livewire::test(RelatedBookings::class, [
             'record' => $saturday,
-            'panel' => 'manage',
         ])
             ->mountAction('add')
             ->assertSchemaComponentExists('related_id', checkComponentUsing: function (Select $select) use ($saturday, $sunday, $cancelled, $past): bool {
@@ -113,14 +109,13 @@ class RelatedBookingTest extends TestCase
             'group_name' => 'Archery camp',
         ]);
 
-        Filament::setCurrentPanel('manage');
+        Filament::setCurrentPanel('teams');
         $this->actingAs($manager);
 
         $this->assertFalse($manager->can('relate', [$saturday, $foreign]));
 
         Livewire::test(RelatedBookings::class, [
             'record' => $saturday,
-            'panel' => 'manage',
         ])
             ->mountAction('add')
             ->assertSchemaComponentExists('related_id', checkComponentUsing: function (Select $select) use ($foreign): bool {
@@ -129,7 +124,6 @@ class RelatedBookingTest extends TestCase
 
         Livewire::test(RelatedBookings::class, [
             'record' => $saturday,
-            'panel' => 'manage',
         ])
             ->call('add', $foreign->getKey())
             ->assertNotFound();
@@ -152,7 +146,6 @@ class RelatedBookingTest extends TestCase
 
         Livewire::test(RelatedBookings::class, [
             'record' => $saturday,
-            'panel' => 'member',
         ])
             ->assertSee('Related bookings')
             ->assertSee($sunday->relatedLabel())
@@ -161,7 +154,6 @@ class RelatedBookingTest extends TestCase
 
         Livewire::test(RelatedBookings::class, [
             'record' => $saturday,
-            'panel' => 'member',
         ])
             ->call('add', $sunday->getKey())
             ->assertForbidden();
@@ -188,7 +180,6 @@ class RelatedBookingTest extends TestCase
 
         Livewire::test(RelatedBookings::class, [
             'record' => $saturday,
-            'panel' => 'member',
         ])
             ->assertDontSee('Related bookings')
             ->assertDontSee('Leaders only')
@@ -196,12 +187,12 @@ class RelatedBookingTest extends TestCase
 
         Filament::setCurrentPanel('teams');
         Filament::setTenant($saturday->team);
-        Livewire::test(MemberViewBooking::class, ['record' => $saturday->getRouteKey()])
+        Livewire::test(TeamsViewBooking::class, ['record' => $saturday->getRouteKey()])
             ->assertDontSee('Related bookings')
             ->assertDontSee('Leaders only');
     }
 
-    public function test_manage_and_member_view_pages_stack_the_related_row_under_the_guest_list(): void
+    public function test_teams_view_pages_stack_the_related_row_under_the_guest_list(): void
     {
         [$manager, $saturday, $sunday] = $this->weekend();
         $team = $manager->managedTeams()->firstOrFail();
@@ -209,24 +200,23 @@ class RelatedBookingTest extends TestCase
         $team->grant($member, MembershipRole::Member);
         $saturday->relate($sunday);
 
-        Filament::setCurrentPanel('manage');
+        Filament::setCurrentPanel('teams');
         $this->actingAs($manager);
 
-        $manageUrl = BookingResource::getUrl(
+        $teamsUrl = BookingResource::getUrl(
             'view',
             ['record' => $sunday],
-            panel: 'manage',
+            panel: 'teams',
             tenant: $team,
         );
 
-        Livewire::test(ManageViewBooking::class, ['record' => $saturday->getRouteKey()])
+        Livewire::test(TeamsViewBooking::class, ['record' => $saturday->getRouteKey()])
             ->assertSee('Related bookings')
             ->assertSee($sunday->relatedLabel())
-            ->assertSeeHtml($manageUrl)
-            ->assertSeeHtml('class="invite-panel"')
-            ->assertDontSeeHtml('wire:name="App\\Filament\\Manage\\Resources\\Bookings\\RelationManagers\\Related');
+            ->assertSeeHtml($teamsUrl)
+            ->assertSeeHtml('class="invite-panel"');
 
-        Livewire::test(ManageEditBooking::class, ['record' => $saturday->getRouteKey()])
+        Livewire::test(TeamsEditBooking::class, ['record' => $saturday->getRouteKey()])
             ->assertDontSee('Related bookings');
 
         Filament::setCurrentPanel('teams');
@@ -234,7 +224,7 @@ class RelatedBookingTest extends TestCase
 
         $memberUrl = \App\Filament\Member\Resources\Bookings\BookingResource::viewUrl($sunday);
 
-        Livewire::test(MemberViewBooking::class, ['record' => $saturday->getRouteKey()])
+        Livewire::test(TeamsViewBooking::class, ['record' => $saturday->getRouteKey()])
             ->assertSee('Related bookings')
             ->assertSee($sunday->relatedLabel())
             ->assertSeeHtml($memberUrl)
@@ -251,7 +241,7 @@ class RelatedBookingTest extends TestCase
         Filament::setCurrentPanel('teams');
         $this->actingAs($member);
 
-        Livewire::test(MemberViewBooking::class, ['record' => $saturday->getRouteKey()])
+        Livewire::test(TeamsViewBooking::class, ['record' => $saturday->getRouteKey()])
             ->assertDontSee('Related bookings');
     }
 

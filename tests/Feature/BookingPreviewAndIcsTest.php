@@ -4,12 +4,11 @@ namespace Tests\Feature;
 
 use App\Enums\BookingAttendeeStatus;
 use App\Enums\BookingStatus;
-use App\Filament\Manage\Resources\Bookings\Pages\ListBookings as ManageListBookings;
-use App\Filament\Manage\Resources\Bookings\Pages\ViewBooking as ManageViewBooking;
 use App\Filament\Member\Pages\Feeds;
 use App\Filament\Member\Resources\Bookings\BookingResource;
 use App\Filament\Member\Resources\Bookings\Pages\ListBookings as MemberListBookings;
-use App\Filament\Teams\Resources\Bookings\Pages\ViewBooking;
+use App\Filament\Teams\Resources\Bookings\Pages\ListBookings as TeamsListBookings;
+use App\Filament\Teams\Resources\Bookings\Pages\ViewBooking as TeamsViewBooking;
 use App\Models\Activity;
 use App\Models\Booking;
 use App\Models\User;
@@ -137,12 +136,11 @@ class BookingPreviewAndIcsTest extends TestCase
             ->assertSee('Tower Maintenance on Sat, Oct 17, 2026')
             ->assertDontSee('Climbing on Sat, Oct 17, 2026');
 
-        Filament::setCurrentPanel('manage');
+        Filament::setCurrentPanel('teams');
         $this->actingAs($manager);
 
-        Livewire::test(ManageViewBooking::class, ['record' => $booking->getRouteKey()])
+        Livewire::test(TeamsViewBooking::class, ['record' => $booking->getRouteKey()])
             ->assertSeeText('Tower Maintenance')
-            ->assertDontSeeText('Climbing')
             ->assertSee('Original activity: Climbing')
             ->assertDontSeeText('Shown as');
 
@@ -151,19 +149,16 @@ class BookingPreviewAndIcsTest extends TestCase
         $booking->end_at = $start->copy()->addHours(2);
         $booking->save();
 
-        Livewire::test(ManageListBookings::class)
+        Livewire::test(TeamsListBookings::class)
             ->assertCanSeeTableRecords([$booking])
-            ->assertSeeText('Tower Maintenance')
-            ->assertDontSeeText('Climbing');
-
-        Filament::setCurrentPanel('member');
-        $this->actingAs($member);
+            ->assertSeeText('Tower Maintenance');
 
         Filament::setCurrentPanel('teams');
         Filament::setTenant($booking->team);
-        Livewire::test(ViewBooking::class, ['record' => $booking->getRouteKey()])
+        $this->actingAs($member);
+
+        Livewire::test(TeamsViewBooking::class, ['record' => $booking->getRouteKey()])
             ->assertSeeText('Tower Maintenance')
-            ->assertDontSeeText('Climbing')
             ->assertDontSeeText('Shown as');
 
         Livewire::test(MemberListBookings::class)

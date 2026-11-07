@@ -110,17 +110,17 @@ class MemberProfileTest extends TestCase
             ->assertDontSee('filament-panels::');
     }
 
-    public function test_the_manage_user_menu_links_profile_and_change_password_to_the_member_panel(): void
+    public function test_the_teams_user_menu_links_profile_and_change_password_to_the_member_panel(): void
     {
         $manager = User::factory()->teamManager()->create();
-        $managePanel = Filament::getPanel('manage');
-        $team = $manager->getDefaultTenant($managePanel);
+        $teamsPanel = Filament::getPanel('teams');
+        $team = $manager->getDefaultTenant($teamsPanel);
         $profileUrl = EditProfile::getUrl(panel: 'member');
         $changePasswordUrl = ChangePassword::getUrl(panel: 'member');
 
         $this->actingAs($manager);
 
-        $this->get($managePanel->getUrl($team))
+        $this->get($teamsPanel->getUrl($team))
             ->assertOk()
             ->assertSee('Profile')
             ->assertSee($profileUrl, escape: false)

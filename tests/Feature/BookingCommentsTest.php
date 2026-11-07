@@ -6,10 +6,9 @@ use App\Actions\PostCommentAction;
 use App\Enums\BookingAttendeeStatus;
 use App\Enums\MailChannel;
 use App\Enums\MembershipRole;
-use App\Filament\Manage\Resources\Bookings\Pages\ViewBooking as ManageViewBooking;
 use App\Filament\Member\Resources\Bookings\BookingResource as MemberBookingResource;
 use App\Filament\Member\Resources\Inbox\InboxResource;
-use App\Filament\Teams\Resources\Bookings\Pages\ViewBooking as MemberViewBooking;
+use App\Filament\Teams\Resources\Bookings\Pages\ViewBooking as TeamsViewBooking;
 use App\Livewire\BookingComments;
 use App\Mail\BookingCommentMail;
 use App\Models\Booking;
@@ -632,10 +631,10 @@ class BookingCommentsTest extends TestCase
             'body' => 'On the booking',
         ]);
 
-        Filament::setCurrentPanel('manage');
+        Filament::setCurrentPanel('teams');
         $this->actingAs($manager);
 
-        Livewire::test(ManageViewBooking::class, ['record' => $booking->getRouteKey()])
+        Livewire::test(TeamsViewBooking::class, ['record' => $booking->getRouteKey()])
             ->assertSee('Comments')
             ->assertSee('On the booking')
             ->assertSee('Recent activity');
@@ -645,7 +644,7 @@ class BookingCommentsTest extends TestCase
 
         Filament::setCurrentPanel('teams');
         Filament::setTenant($booking->team);
-        Livewire::test(MemberViewBooking::class, ['record' => $booking->getRouteKey()])
+        Livewire::test(TeamsViewBooking::class, ['record' => $booking->getRouteKey()])
             ->assertSee('Comments')
             ->assertSee('On the booking')
             ->assertSee('Recent activity');

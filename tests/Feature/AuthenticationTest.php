@@ -40,7 +40,7 @@ class AuthenticationTest extends TestCase
             ->assertOk();
     }
 
-    public function test_team_manager_sees_manage_link_in_members_sidebar(): void
+    public function test_team_manager_sees_teams_link_in_members_sidebar(): void
     {
         $manager = User::factory()->create();
         $managedTeam = Team::factory()->create(['name' => 'Archery']);
@@ -51,11 +51,11 @@ class AuthenticationTest extends TestCase
 
         $this->get('/bookings')
             ->assertOk()
-            ->assertSeeTextInOrder(['Dashboard', 'Manage', 'Team'])
-            ->assertSee('/manage/'.$managedTeam->slug, false);
+            ->assertSeeTextInOrder(['Dashboard', 'Teams', 'Team'])
+            ->assertSee('/teams/'.$managedTeam->slug, false);
     }
 
-    public function test_team_member_does_not_see_manage_or_admin_links_in_members_sidebar(): void
+    public function test_team_member_does_not_see_admin_links_in_members_sidebar(): void
     {
         $member = User::factory()->teamMember()->create();
 
@@ -72,19 +72,8 @@ class AuthenticationTest extends TestCase
                 'Keys',
                 'Qualifications',
             ])
-            ->assertDontSee('Manage')
             ->assertDontSee('Admin')
-            ->assertDontSee('href="/manage', false)
             ->assertDontSee(Filament::getPanel('admin')->getUrl(), false);
-    }
-
-    public function test_team_member_cannot_open_manage_panel(): void
-    {
-        $user = User::factory()->teamMember()->create();
-
-        $this->actingAs($user)
-            ->get('/manage')
-            ->assertForbidden();
     }
 
     /**
@@ -108,31 +97,27 @@ class AuthenticationTest extends TestCase
             ->assertForbidden();
     }
 
-    public function test_a_team_manager_can_open_the_manage_panel_without_site_admin_access(): void
+    public function test_a_team_manager_can_open_the_teams_panel_without_site_admin_access(): void
     {
         $manager = User::factory()->teamManager()->create();
         $team = $manager->managedTeams()->firstOrFail();
 
         $this->actingAs($manager)
-            ->get('/manage')
-            ->assertRedirect('/manage/'.$team->slug);
+            ->get('/teams')
+            ->assertRedirect('/teams/'.$team->slug);
 
-        $this->get('/manage/'.$team->slug)
+        $this->get('/teams/'.$team->slug)
             ->assertOk()
             ->assertDontSee(Filament::getPanel('admin')->getUrl(), false);
     }
 
-    public function test_oversight_can_open_admin_and_not_manage(): void
+    public function test_oversight_can_open_admin_and_not_teams_without_a_tenant(): void
     {
-        $team = Team::factory()->create();
         $oversight = User::factory()->oversight()->create();
 
         $this->actingAs($oversight)
             ->get('/admin')
             ->assertOk();
-
-        $this->get('/manage')
-            ->assertForbidden();
     }
 
     public function test_a_system_admin_can_open_the_admin_panel(): void
@@ -165,10 +150,9 @@ class AuthenticationTest extends TestCase
             ->assertForbidden();
     }
 
-    public function test_unauthenticated_admin_and_manage_requests_redirect_to_login(): void
+    public function test_unauthenticated_admin_requests_redirect_to_login(): void
     {
         $this->get('/admin')->assertRedirect(route('filament.admin.auth.login'));
-        $this->get('/manage')->assertRedirect(route('filament.manage.auth.login'));
     }
 
     public function test_oversight_sees_the_admin_link_in_the_members_sidebar(): void
@@ -181,7 +165,6 @@ class AuthenticationTest extends TestCase
         $this->get('/dashboard')
             ->assertOk()
             ->assertSee('Admin')
-            ->assertDontSee('Manage')
             ->assertSee(Filament::getPanel('admin')->getUrl(), false);
     }
 
@@ -212,23 +195,23 @@ class AuthenticationTest extends TestCase
 
         $this->get('/bookings')
             ->assertOk()
-            ->assertSee('Manage')
+            ->assertSee('Teams')
             ->assertDontSee('Admin')
             ->assertDontSee(Filament::getPanel('admin')->getUrl(), false);
     }
 
-    public function test_manage_sidebar_links_to_admin_for_a_system_admin(): void
+    public function test_teams_sidebar_links_to_admin_for_a_system_admin(): void
     {
         $admin = User::factory()->systemAdmin()->create();
         $team = Team::factory()->create();
 
         $this->actingAs($admin)
-            ->get('/manage/'.$team->slug)
+            ->get('/teams/'.$team->slug)
             ->assertOk()
             ->assertSee(Filament::getPanel('admin')->getUrl(), false);
     }
 
-    public function test_a_system_admin_who_manages_a_team_opens_that_team_from_manage(): void
+    public function test_a_system_admin_who_manages_a_team_opens_that_team_from_teams(): void
     {
         Team::factory()->create(['name' => 'Alpha']);
         $zebra = Team::factory()->create(['name' => 'Zebra']);
@@ -239,10 +222,10 @@ class AuthenticationTest extends TestCase
 
         $this->get('/bookings')
             ->assertOk()
-            ->assertSee('/manage/'.$zebra->slug, false);
+            ->assertSee('/teams/'.$zebra->slug, false);
 
-        $this->get('/manage')
-            ->assertRedirect('/manage/'.$zebra->slug);
+        $this->get('/teams')
+            ->assertRedirect('/teams/'.$zebra->slug);
     }
 
     public function test_a_system_admin_keeps_a_remembered_unmanaged_team(): void
@@ -252,20 +235,20 @@ class AuthenticationTest extends TestCase
         $admin = User::factory()->systemAdmin()->teamManager($zebra)->create();
 
         $this->actingAs($admin)
-            ->get('/manage/'.$alpha->slug)
+            ->get('/teams/'.$alpha->slug)
             ->assertOk();
 
-        $this->get('/manage')
-            ->assertRedirect('/manage/'.$alpha->slug);
+        $this->get('/teams')
+            ->assertRedirect('/teams/'.$alpha->slug);
 
         Filament::setCurrentPanel('member');
 
         $this->get('/bookings')
             ->assertOk()
-            ->assertSee('/manage/'.$alpha->slug, false);
+            ->assertSee('/teams/'.$alpha->slug, false);
     }
 
-    public function test_admin_sidebar_links_to_manage_and_members(): void
+    public function test_admin_sidebar_links_to_teams_and_members(): void
     {
         $admin = User::factory()->systemAdmin()->create();
         $team = Team::factory()->create();
@@ -276,10 +259,10 @@ class AuthenticationTest extends TestCase
             ->get('/admin')
             ->assertOk()
             ->assertSee($membersUrl, false)
-            ->assertSee('/manage/'.$team->slug, false);
+            ->assertSee('/teams/'.$team->slug, false);
     }
 
-    public function test_manage_bookings_index_loads_with_attendees(): void
+    public function test_teams_bookings_index_loads_with_attendees(): void
     {
         $manager = User::factory()->teamManager()->create();
         $member = User::factory()->teamMember()->create();
@@ -292,21 +275,21 @@ class AuthenticationTest extends TestCase
         $team = $manager->managedTeams()->first();
 
         $this->actingAs($manager)
-            ->get('/manage/'.$team->slug.'/bookings')
+            ->get('/teams/'.$team->slug.'/bookings')
             ->assertOk();
     }
 
-    public function test_team_manager_can_open_manage_panel(): void
+    public function test_team_manager_can_open_teams_panel(): void
     {
         $manager = User::factory()->teamManager()->create();
         $team = $manager->managedTeams()->first();
 
         $this->actingAs($manager)
-            ->get('/manage')
-            ->assertRedirect('/manage/'.$team->slug);
+            ->get('/teams')
+            ->assertRedirect('/teams/'.$team->slug);
     }
 
-    public function test_manage_sidebar_links_back_to_members_panel(): void
+    public function test_teams_sidebar_links_back_to_members_panel(): void
     {
         $manager = User::factory()->teamManager()->create();
         $admin = User::factory()->systemAdmin()->create();
@@ -314,20 +297,20 @@ class AuthenticationTest extends TestCase
         $membersUrl = Dashboard::getUrl();
 
         $this->actingAs($manager)
-            ->get('/manage/'.$team->slug)
+            ->get('/teams/'.$team->slug)
             ->assertOk()
-            ->assertSeeTextInOrder(['Dashboard', 'Teams', 'Manage'])
+            ->assertSeeTextInOrder(['Dashboard', 'Team'])
             ->assertDontSee('Admin', false)
             ->assertSee('href="'.$membersUrl.'"', false);
 
         $this->actingAs($admin)
-            ->get('/manage/'.$team->slug)
+            ->get('/teams/'.$team->slug)
             ->assertOk()
-            ->assertSeeTextInOrder(['Dashboard', 'Teams', 'Manage', 'Admin'])
+            ->assertSeeTextInOrder(['Dashboard', 'Team', 'Admin'])
             ->assertSee('href="'.$membersUrl.'"', false);
     }
 
-    public function test_a_system_admin_without_a_team_does_not_see_manage(): void
+    public function test_a_system_admin_without_a_team_does_not_see_teams_in_members(): void
     {
         $admin = User::factory()->systemAdmin()->create();
 
@@ -336,13 +319,12 @@ class AuthenticationTest extends TestCase
             ->get('/dashboard')
             ->assertOk()
             ->assertSee('Admin')
-            ->assertDontSee('Manage');
+            ->assertDontSee('href="/teams', false);
 
         Filament::setCurrentPanel('admin');
         $this->actingAs($admin)
             ->get('/admin')
-            ->assertOk()
-            ->assertDontSee('Manage', false);
+            ->assertOk();
     }
 
     public function test_admin_sidebar_links_back_to_members_panel(): void
@@ -355,14 +337,13 @@ class AuthenticationTest extends TestCase
         $this->actingAs($admin)
             ->get('/admin')
             ->assertOk()
-            ->assertSeeTextInOrder(['Dashboard', 'Manage', 'Admin', 'Organisation'])
+            ->assertSeeTextInOrder(['Dashboard', 'Teams', 'Admin', 'Organisation'])
             ->assertSee('href="'.$membersUrl.'"', false);
 
         $this->actingAs($oversight)
             ->get('/admin')
             ->assertOk()
             ->assertSeeTextInOrder(['Dashboard', 'Admin', 'Organisation'])
-            ->assertDontSee('Manage', false)
             ->assertSee('href="'.$membersUrl.'"', false);
     }
 }

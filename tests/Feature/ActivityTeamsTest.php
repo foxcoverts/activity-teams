@@ -14,10 +14,11 @@ use App\Filament\Admin\Resources\Users\Pages\ListUsers;
 use App\Filament\Admin\Resources\Users\Pages\ViewUser;
 use App\Filament\Admin\Resources\Users\RelationManagers\MembershipsRelationManager;
 use App\Filament\Admin\Resources\Users\UserResource;
-use App\Filament\Manage\Resources\Bookings\BookingResource;
 use App\Filament\RelationManagers\QualificationsRelationManager;
+use App\Filament\Teams\Pages\Dashboard as TeamsDashboard;
 use App\Filament\Teams\Resources\Activities\ActivityResource;
 use App\Filament\Teams\Resources\Activities\Pages\ListActivities;
+use App\Filament\Teams\Resources\Bookings\BookingResource;
 use App\Filament\Teams\Resources\Keys\KeyResource;
 use App\Filament\Teams\Resources\Members\MemberResource;
 use App\Filament\Teams\Resources\Members\Pages\ListMembers;
@@ -34,7 +35,6 @@ use App\Models\User;
 use App\Models\Venue;
 use Filament\Actions\Testing\TestAction;
 use Filament\Facades\Filament;
-use Filament\Pages\Dashboard;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Validation\ValidationException;
 use Livewire\Livewire;
@@ -48,7 +48,7 @@ class ActivityTeamsTest extends TestCase
     {
         parent::setUp();
 
-        Filament::setCurrentPanel('manage');
+        Filament::setCurrentPanel('teams');
     }
 
     public function test_a_person_can_belong_to_more_than_one_team(): void
@@ -304,7 +304,7 @@ class ActivityTeamsTest extends TestCase
             ->assertSee('+44 70 0033 3444');
     }
 
-    public function test_opening_manage_returns_to_the_last_team(): void
+    public function test_opening_teams_returns_to_the_last_team(): void
     {
         $first = Team::factory()->create(['name' => 'First']);
         $second = Team::factory()->create(['name' => 'Second']);
@@ -312,23 +312,23 @@ class ActivityTeamsTest extends TestCase
         $manager = User::factory()->teamManager($first)->teamManager($second)->create();
 
         $this->actingAs($manager)
-            ->get('/manage/'.$second->slug.'/bookings')
+            ->get('/teams/'.$second->slug.'/bookings')
             ->assertOk();
 
         $this->actingAs($manager)
-            ->get('/manage')
-            ->assertRedirect('/manage/'.$second->slug);
+            ->get('/teams')
+            ->assertRedirect('/teams/'.$second->slug);
 
         $this->assertNotSame($first->getKey(), $second->getKey());
     }
 
-    public function test_manage_navigation_separates_the_team_from_the_site(): void
+    public function test_teams_navigation_separates_the_team_from_the_site(): void
     {
         $manager = User::factory()->teamManager()->create();
         $team = $manager->managedTeams()->first();
 
         $this->actingAs($manager)
-            ->get('/manage/'.$team->slug)
+            ->get('/teams/'.$team->slug)
             ->assertOk()
             ->assertSeeTextInOrder([
                 'Team',
@@ -341,7 +341,7 @@ class ActivityTeamsTest extends TestCase
         $manager = User::factory()->teamManager()->create();
 
         $this->actingAs($manager)
-            ->get('/manage/'.$manager->managedTeams()->first()->slug)
+            ->get('/teams/'.$manager->managedTeams()->first()->slug)
             ->assertOk()
             ->assertDontSee('Organisation')
             ->assertDontSee('Audiences')
@@ -436,7 +436,7 @@ class ActivityTeamsTest extends TestCase
         ]);
     }
 
-    public function test_team_catalog_links_to_team_manage_panel(): void
+    public function test_team_catalog_links_to_teams_dashboard(): void
     {
         $admin = User::factory()->systemAdmin()->create();
         $team = Team::factory()->create();
@@ -446,8 +446,8 @@ class ActivityTeamsTest extends TestCase
 
         Livewire::test(ListTeams::class)
             ->assertActionHasUrl(
-                TestAction::make('manage')->table($team),
-                Dashboard::getUrl(panel: 'manage', tenant: $team)
+                TestAction::make('teams')->table($team),
+                TeamsDashboard::getUrl(panel: 'teams', tenant: $team)
             );
     }
 
@@ -584,7 +584,7 @@ class ActivityTeamsTest extends TestCase
 
         $this->assertInstanceOf(Qualification::class, $member->qualifications()->first());
 
-        Filament::setCurrentPanel('manage');
+        Filament::setCurrentPanel('teams');
 
         $booking = Booking::factory()->forTeam($team)->create();
         $booking->attendees()->attach($member->getKey(), [

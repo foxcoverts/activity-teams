@@ -5,8 +5,7 @@ namespace Tests\Feature;
 use App\Filament\Admin\Resources\Venues\Pages\CreateVenue;
 use App\Filament\Admin\Resources\Venues\Pages\EditVenue;
 use App\Filament\Admin\Resources\Venues\VenueResource as AdminVenueResource;
-use App\Filament\Manage\Resources\Bookings\BookingResource;
-use App\Filament\Manage\Resources\Bookings\Pages\ViewBooking as ManageViewBooking;
+use App\Filament\Teams\Resources\Bookings\BookingResource;
 use App\Filament\Teams\Resources\Bookings\Pages\ViewBooking as TeamsViewBooking;
 use App\Filament\Teams\Resources\Venues\Pages\CreateVenue as TeamsCreateVenue;
 use App\Filament\Teams\Resources\Venues\VenueResource as TeamsVenueResource;
@@ -102,7 +101,7 @@ class VenueTest extends TestCase
             'venue_id' => $venue->getKey(),
         ]);
 
-        Filament::setCurrentPanel('manage');
+        Filament::setCurrentPanel('teams');
         $this->actingAs($manager);
 
         $this->get(BookingResource::getUrl('view', ['record' => $booking->getKey()]))
@@ -526,10 +525,10 @@ class VenueTest extends TestCase
             'venue_id' => $venue->getKey(),
         ]);
 
-        Filament::setCurrentPanel('manage');
+        Filament::setCurrentPanel('teams');
         $this->actingAs($manager);
 
-        Livewire::test(ManageViewBooking::class, ['record' => $booking->getRouteKey()])
+        Livewire::test(TeamsViewBooking::class, ['record' => $booking->getRouteKey()])
             ->assertSee('Pinned Hall')
             ->assertSee('View Map')
             ->assertInfolistActionVisible('location', 'map')
@@ -558,10 +557,10 @@ class VenueTest extends TestCase
             'venue_id' => $venue->getKey(),
         ]);
 
-        Filament::setCurrentPanel('manage');
+        Filament::setCurrentPanel('teams');
         $this->actingAs($manager);
 
-        Livewire::test(ManageViewBooking::class, ['record' => $booking->getRouteKey()])
+        Livewire::test(TeamsViewBooking::class, ['record' => $booking->getRouteKey()])
             ->assertSee('Unpinned Hall')
             ->assertDontSee('View Map')
             ->assertInfolistActionDoesNotExist('location', 'map');

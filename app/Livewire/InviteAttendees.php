@@ -121,7 +121,7 @@ class InviteAttendees extends Component
     {
         $picker = $this->pickerPeople();
 
-        return view('filament.manage.invite-attendees', [
+        return view('filament.bookings.invite-attendees', [
             'queuedPeople' => $this->queuedPeople(),
             'pickerPeople' => $picker,
             'showQualifiedFilter' => $this->requiresQualification(),

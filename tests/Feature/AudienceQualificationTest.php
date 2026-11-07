@@ -2,8 +2,8 @@
 
 namespace Tests\Feature;
 
-use App\Filament\Manage\Resources\Bookings\Pages\CreateBooking;
 use App\Filament\Teams\Resources\Activities\Pages\ListActivities;
+use App\Filament\Teams\Resources\Bookings\Pages\CreateBooking;
 use App\Mail\BookingInviteMail;
 use App\Models\Activity;
 use App\Models\ActivityAudience;
@@ -200,7 +200,7 @@ class AudienceQualificationTest extends TestCase
 
     public function test_a_new_booking_uses_the_team_activity_default_audience(): void
     {
-        Filament::setCurrentPanel('manage');
+        Filament::setCurrentPanel('teams');
 
         $manager = User::factory()->teamManager()->create();
         $team = $manager->managedTeams()->firstOrFail();

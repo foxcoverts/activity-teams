@@ -6,7 +6,6 @@ use App\Filament\Admin\Pages\Dashboard as AdminDashboard;
 use App\Filament\Auth\EditProfile;
 use App\Filament\Auth\Login;
 use App\Filament\Auth\Register;
-use App\Filament\Manage\Pages\Dashboard as ManageDashboard;
 use App\Filament\Member\NavigationGroup;
 use App\Filament\Member\Pages\Dashboard;
 use App\Filament\Member\Pages\Feeds;
@@ -64,7 +63,6 @@ class MemberPanelProvider extends PanelProvider
             ])
             ->navigationItems([
                 TeamsDashboard::navigationItem(),
-                ManageDashboard::navigationItem(),
                 AdminDashboard::navigationItem(),
             ])
             ->discoverWidgets(in: app_path('Filament/Member/Widgets'), for: 'App\\Filament\\Member\\Widgets')

@@ -3,6 +3,7 @@
 namespace App\Filament\Teams\Resources\Bookings\Pages;
 
 use App\Enums\BookingAttendeeStatus;
+use App\Filament\Teams\Resources\Bookings\Actions\CreateAction;
 use App\Filament\Teams\Resources\Bookings\BookingResource;
 use Filament\Resources\Pages\ListRecords;
 use Filament\Schemas\Components\Tabs\Tab;
@@ -14,7 +15,9 @@ class ListBookings extends ListRecords
 
     protected function getHeaderActions(): array
     {
-        return [];
+        return [
+            CreateAction::make(),
+        ];
     }
 
     public function getTabs(): array
@@ -31,6 +34,8 @@ class ListBookings extends ListRecords
                     BookingAttendeeStatus::Accepted,
                     BookingAttendeeStatus::Tentative,
                 ])),
+            'history' => Tab::make(__('History'))
+                ->modifyQueryUsing(fn (Builder $query) => $query->past()),
         ];
     }
 }

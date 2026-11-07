@@ -6,6 +6,7 @@ use App\Filament\Bookings\BookingKeysAction;
 use App\Filament\Bookings\BookingRespondAction;
 use App\Filament\Bookings\RefreshesWhenAttendanceChanges;
 use App\Filament\Teams\Resources\Bookings\BookingResource;
+use App\Filament\Teams\Resources\Bookings\BookingStatusActions;
 use App\Filament\Teams\Resources\Bookings\BookingTimeline;
 use App\Livewire\BookingComments;
 use App\Livewire\RelatedBookings;
@@ -33,7 +34,10 @@ class ViewBooking extends ViewRecord
         if ($record instanceof Booking && $user instanceof User) {
             $record->loadMissing('team');
 
-            if ($record->team !== null && $user->isCurrentMemberOf($record->team)) {
+            if (
+                $record->team !== null
+                && ($user->isCurrentMemberOf($record->team) || $user->can('update', $record))
+            ) {
                 $sidebar[] = $this->getRelationManagersContentComponent();
             }
 
@@ -44,7 +48,6 @@ class ViewBooking extends ViewRecord
             if ($visibleRelated->isNotEmpty()) {
                 $sidebar[] = Livewire::make(RelatedBookings::class, [
                     'record' => $record,
-                    'panel' => 'teams',
                 ]);
             }
         }
@@ -82,15 +85,28 @@ class ViewBooking extends ViewRecord
 
     protected function getHeaderActions(): array
     {
-        $actions = [];
         $record = $this->getRecord();
         $user = auth()->user();
 
-        if ($record instanceof Booking && $user instanceof User && $record->isLead($user)) {
+        if (! $record instanceof Booking || ! $user instanceof User) {
+            return [];
+        }
+
+        $record->loadMissing('team');
+
+        $actions = [];
+
+        if ($record->isLead($user) || ($record->team !== null && $user->manages($record->team))) {
             $actions[] = BookingKeysAction::make();
         }
 
         $actions[] = BookingRespondAction::make();
+
+        $managesTeam = $record->team !== null && $user->manages($record->team);
+
+        if ($managesTeam) {
+            $actions[] = BookingStatusActions::group();
+        }
 
         return $actions;
     }

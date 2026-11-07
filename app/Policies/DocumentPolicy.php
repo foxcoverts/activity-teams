@@ -15,13 +15,14 @@ class DocumentPolicy
             return false;
         }
 
-        if (Filament::getCurrentPanel()?->getId() === 'manage') {
-            $tenant = Filament::getTenant();
-
-            return $tenant instanceof Team && ($user->manages($tenant) || $user->isSystemAdmin());
+        if (Filament::getCurrentPanel()?->getId() !== 'teams') {
+            return true;
         }
 
-        return true;
+        $tenant = Filament::getTenant();
+
+        return $tenant instanceof Team
+            && ($user->isCurrentMemberOf($tenant) || $user->isSystemAdmin());
     }
 
     public function view(User $user, Document $document): bool
@@ -32,8 +33,8 @@ class DocumentPolicy
 
         $document->loadMissing('team');
 
-        if (Filament::getCurrentPanel()?->getId() === 'manage') {
-            return $user->manages($document->team) || $user->isSystemAdmin();
+        if ($user->isSystemAdmin()) {
+            return $document->team instanceof Team;
         }
 
         return $document->team instanceof Team && $user->isCurrentMemberOf($document->team);

@@ -50,7 +50,7 @@ class KeyReturnedToCupboardNotification extends Notification
             return null;
         }
 
-        return KeyResource::getUrl('view', ['record' => $this->ring], panel: 'manage', tenant: $team);
+        return KeyResource::getUrl('view', ['record' => $this->ring], panel: 'teams', tenant: $team);
     }
 
     public function inboxChannel(): ?MailChannel

@@ -15,8 +15,6 @@ use App\Filament\Admin\Resources\Locks\Pages\ViewLock;
 use App\Filament\Admin\Resources\Locks\RelationManagers\CoversRelationManager;
 use App\Filament\Admin\Resources\Locks\RelationManagers\KeysRelationManager;
 use App\Filament\Bookings\BookingKeysAction;
-use App\Filament\Manage\Resources\Bookings\Pages\ViewBooking as ManageViewBooking;
-use App\Filament\Manage\Resources\Bookings\RelationManagers\AttendeesRelationManager;
 use App\Filament\Member\Resources\Bookings\BookingResource;
 use App\Filament\Member\Resources\Keys\KeyResource as MemberKeyResource;
 use App\Filament\Teams\Resources\Bookings\Pages\ViewBooking as TeamsViewBooking;
@@ -336,10 +334,10 @@ class KeyAccessTest extends TestCase
         $door = Lock::factory()->create(['name' => 'Front door']);
         Key::factory()->heldBy($other)->create(['name' => 'Door ring'])->locks()->attach($door);
 
-        Filament::setCurrentPanel('manage');
+        Filament::setCurrentPanel('teams');
         $this->actingAs($manager);
 
-        Livewire::test(ManageViewBooking::class, ['record' => $booking->getRouteKey()])
+        Livewire::test(TeamsViewBooking::class, ['record' => $booking->getRouteKey()])
             ->assertActionVisible('keys')
             ->assertActionHasIcon('keys', Heroicon::Key)
             ->assertSee('Key holder attending')
@@ -352,9 +350,9 @@ class KeyAccessTest extends TestCase
             ->assertMountedActionModalSee('Spare climbing')
             ->assertMountedActionModalSee('These just need passing to an attendee.');
 
-        Livewire::test(AttendeesRelationManager::class, [
+        Livewire::test(TeamsAttendeesRelationManager::class, [
             'ownerRecord' => $booking,
-            'pageClass' => ManageViewBooking::class,
+            'pageClass' => TeamsViewBooking::class,
         ])->assertSee('Key holder')
             ->assertDontSee('Other keys')
             ->assertSeeHtml('key-holder-badge')
@@ -375,7 +373,7 @@ class KeyAccessTest extends TestCase
 
         $empty = Booking::factory()->create();
 
-        Livewire::test(ManageViewBooking::class, ['record' => $empty->getRouteKey()])
+        Livewire::test(TeamsViewBooking::class, ['record' => $empty->getRouteKey()])
             ->assertActionHidden('keys');
     }
 
@@ -617,12 +615,12 @@ class KeyAccessTest extends TestCase
             'token' => BookingAttendance::generateToken(),
         ]);
 
-        Filament::setCurrentPanel('manage');
+        Filament::setCurrentPanel('teams');
         $this->actingAs($manager);
 
         $memberUrl = MemberResource::getUrl('view', ['record' => $uninvited], panel: 'teams', tenant: $team);
 
-        Livewire::test(ManageViewBooking::class, ['record' => $booking->getRouteKey()])
+        Livewire::test(TeamsViewBooking::class, ['record' => $booking->getRouteKey()])
             ->assertActionVisible('keys')
             ->assertActionHasIcon('keys', Heroicon::OutlinedKey)
             ->assertSee('No key holder attending')
@@ -677,16 +675,16 @@ class KeyAccessTest extends TestCase
         ]);
         Key::factory()->heldBy($holder)->create(['name' => 'Shared climbing'])->locks()->attach($store);
 
-        Filament::setCurrentPanel('manage');
+        Filament::setCurrentPanel('teams');
         $this->actingAs($manager);
 
-        $page = Livewire::test(ManageViewBooking::class, ['record' => $booking->getRouteKey()])
+        $page = Livewire::test(TeamsViewBooking::class, ['record' => $booking->getRouteKey()])
             ->assertActionHasIcon('keys', Heroicon::OutlinedKey)
             ->assertSee('No key holder attending');
 
-        Livewire::test(AttendeesRelationManager::class, [
+        Livewire::test(TeamsAttendeesRelationManager::class, [
             'ownerRecord' => $booking,
-            'pageClass' => ManageViewBooking::class,
+            'pageClass' => TeamsViewBooking::class,
         ])
             ->callTableAction('editAttendance', $holder, [
                 'response' => BookingAttendeeResponse::Yes->value,
@@ -698,9 +696,9 @@ class KeyAccessTest extends TestCase
             ->assertSee('Key holder attending')
             ->assertDontSee('No key holder attending');
 
-        Livewire::test(AttendeesRelationManager::class, [
+        Livewire::test(TeamsAttendeesRelationManager::class, [
             'ownerRecord' => $booking,
-            'pageClass' => ManageViewBooking::class,
+            'pageClass' => TeamsViewBooking::class,
         ])
             ->callTableAction('editAttendance', $holder, [
                 'response' => BookingAttendeeResponse::No->value,

@@ -9,7 +9,6 @@ use App\Models\Booking;
 use App\Models\Team;
 use App\Support\BookingPeople;
 use Filament\Actions\Action;
-use Filament\Facades\Filament;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Contracts\View\View;
 
@@ -37,7 +36,10 @@ class BookingKeysAction
     public static function lines(Booking $booking): array
     {
         $memberIds = self::memberIds($booking);
-        $linkMembers = Filament::getCurrentPanel()?->getId() === 'manage' && $booking->team instanceof Team;
+        $actor = auth()->user();
+        $linkMembers = $booking->team instanceof Team
+            && $actor !== null
+            && $actor->manages($booking->team);
 
         return collect(BookingPeople::keyAccess($booking))
             ->map(function (array $key) use ($booking, $linkMembers, $memberIds): array {

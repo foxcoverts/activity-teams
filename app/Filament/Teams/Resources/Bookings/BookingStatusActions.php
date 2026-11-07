@@ -1,13 +1,16 @@
 <?php
 
-namespace App\Filament\Manage\Resources\Bookings;
+namespace App\Filament\Teams\Resources\Bookings;
 
 use App\Actions\UpdateBookingStatusAction;
 use App\Enums\BookingStatus;
+use App\Filament\Teams\Resources\Bookings\Actions\EditAction;
+use App\Filament\Teams\Resources\Bookings\Schemas\BookingForm;
 use App\Models\Booking;
 use App\Models\User;
 use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
+use Filament\Actions\DeleteAction;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Resources\Pages\ListRecords;
@@ -19,11 +22,17 @@ use Illuminate\Validation\ValidationException;
 
 class BookingStatusActions
 {
-    public static function group(): ActionGroup
+    public static function group(bool $includeEdit = true): ActionGroup
     {
-        return ActionGroup::make(self::actions())
-            ->label(__('Status'))
-            ->icon(Heroicon::OutlinedRectangleStack)
+        $actions = $includeEdit
+            ? [EditAction::make(), ...self::actions()]
+            : self::actions();
+
+        $actions[] = DeleteAction::make();
+
+        return ActionGroup::make($actions)
+            ->label(__('Manage'))
+            ->icon(Heroicon::OutlinedCog6Tooth)
             ->button();
     }
 
@@ -63,7 +72,7 @@ class BookingStatusActions
                     ->label(__('Lead instructor'))
                     ->options(fn (Booking $record): array => $record->leadOptions())
                     ->required(),
-                ...BookingResource::detailComponents(),
+                ...BookingForm::detailComponents(),
             ])
             ->action(function (Booking $record, array $data, Action $action): void {
                 $leadId = (string) $data['lead_instructor_id'];
@@ -73,7 +82,7 @@ class BookingStatusActions
                     $record,
                     self::actor(),
                     $leadId,
-                    BookingResource::mergeScheduleData($data),
+                    BookingForm::mergeScheduleData($data),
                 );
                 self::redirectAfter($record, $action);
             });
@@ -113,12 +122,12 @@ class BookingStatusActions
             ->modalDescription(__('Make any necessary changes before restoring. The email will include them. Anyone who had not declined will be asked to respond again. An existing decline stands.'))
             ->modalSubmitActionLabel(__('Restore'))
             ->fillForm(fn (Booking $record): array => self::detailDefaults($record))
-            ->schema(BookingResource::detailComponents())
+            ->schema(BookingForm::detailComponents())
             ->action(function (Booking $record, array $data, Action $action): void {
                 app(UpdateBookingStatusAction::class)->restore(
                     $record,
                     self::actor(),
-                    BookingResource::mergeScheduleData($data),
+                    BookingForm::mergeScheduleData($data),
                 );
                 self::redirectAfter($record, $action);
             });
@@ -192,7 +201,7 @@ class BookingStatusActions
             ? $record->timezone->getName()
             : (string) $record->timezone;
 
-        return BookingResource::hydrateBookingFormData([
+        return BookingForm::hydrateBookingFormData([
             'activity_id' => $record->activity_id,
             'activity_label' => $record->activity_label,
             'audience_id' => $record->audience_id,
@@ -261,6 +270,6 @@ class BookingStatusActions
 
         $page = $livewire instanceof ViewRecord ? 'view' : 'edit';
 
-        $livewire->redirect(BookingResource::getUrl($page, ['record' => $record], panel: 'manage'));
+        $livewire->redirect(BookingResource::getUrl($page, ['record' => $record], panel: 'teams'));
     }
 }

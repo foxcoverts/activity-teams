@@ -1,10 +1,11 @@
 <?php
 
-namespace App\Filament\Manage\Resources\Bookings\Pages;
+namespace App\Filament\Teams\Resources\Bookings\Pages;
 
 use App\Actions\SaveBookingDetailsAction;
 use App\Enums\BookingStatus;
-use App\Filament\Manage\Resources\Bookings\BookingResource;
+use App\Filament\Teams\Resources\Bookings\BookingResource;
+use App\Filament\Teams\Resources\Bookings\Schemas\BookingForm;
 use App\Models\Team;
 use Filament\Facades\Filament;
 use Filament\Resources\Pages\CreateRecord;
@@ -31,7 +32,7 @@ class CreateBooking extends CreateRecord
 
         unset($data['status']);
 
-        return BookingResource::mergeScheduleData($data);
+        return BookingForm::mergeScheduleData($data);
     }
 
     protected function handleRecordCreation(array $data): Model

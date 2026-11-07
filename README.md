@@ -24,7 +24,7 @@ php artisan serve
 Seeded login: `leader@example.com` / `password`.
 
 - Members panel: `/`
-- Manage panel (leaders / booking managers): `/manage`
+- Teams panel (members and booking managers): `/teams`
 - First-user registration is only available when there are no users yet
 - Later users are invited (to a team, or as oversight / system admin)
 

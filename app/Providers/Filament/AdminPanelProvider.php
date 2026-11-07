@@ -5,7 +5,6 @@ namespace App\Providers\Filament;
 use App\Filament\Admin\NavigationGroup;
 use App\Filament\Admin\Pages\Dashboard;
 use App\Filament\Auth\EditProfile;
-use App\Filament\Manage\Pages\Dashboard as ManageDashboard;
 use App\Filament\Member\Pages\Dashboard as MemberDashboard;
 use App\Filament\Member\Pages\Feeds;
 use App\Filament\Member\Pages\NotificationSettings;
@@ -58,7 +57,6 @@ class AdminPanelProvider extends PanelProvider
             ->navigationItems([
                 MemberDashboard::navigationItem(),
                 TeamsDashboard::navigationItem(),
-                ManageDashboard::navigationItem(),
             ])
             ->discoverWidgets(in: app_path('Filament/Admin/Widgets'), for: 'App\Filament\Admin\Widgets')
             ->widgets([

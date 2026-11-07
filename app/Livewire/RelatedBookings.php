@@ -2,7 +2,6 @@
 
 namespace App\Livewire;
 
-use App\Filament\Manage\Resources\Bookings\BookingResource as ManageBookingResource;
 use App\Filament\Teams\Resources\Bookings\BookingResource as TeamsBookingResource;
 use App\Models\Booking;
 use App\Models\Team;
@@ -17,7 +16,6 @@ use Filament\Schemas\Contracts\HasSchemas;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
-use Livewire\Attributes\Locked;
 use Livewire\Component;
 
 class RelatedBookings extends Component implements HasActions, HasSchemas
@@ -27,15 +25,11 @@ class RelatedBookings extends Component implements HasActions, HasSchemas
 
     public ?Booking $record = null;
 
-    #[Locked]
-    public string $panel = 'teams';
-
-    public function mount(?Booking $record = null, string $panel = 'teams'): void
+    public function mount(?Booking $record = null): void
     {
         abort_unless($record instanceof Booking, 404);
 
         $this->record = $this->booking($record->getKey());
-        $this->panel = $panel;
 
         abort_unless($this->viewer()?->can('view', $this->record) ?? false, 403);
     }
@@ -127,8 +121,7 @@ class RelatedBookings extends Component implements HasActions, HasSchemas
 
     private function canManage(Booking $booking): bool
     {
-        return $this->panel === 'manage'
-            && ($this->viewer()?->can('update', $booking) ?? false);
+        return $this->viewer()?->can('update', $booking) ?? false;
     }
 
     private function viewer(): ?User
@@ -169,18 +162,14 @@ class RelatedBookings extends Component implements HasActions, HasSchemas
 
     private function urlFor(Booking $related, Booking $current): string
     {
-        if ($this->panel === 'manage') {
-            $related->loadMissing('team');
-            $team = $related->team ?? $current->team;
+        $related->loadMissing('team');
+        $team = $related->team ?? $current->team;
 
-            if (! $team instanceof Team) {
-                $current->loadMissing('team');
-                $team = $current->team;
-            }
-
-            return ManageBookingResource::getUrl('view', ['record' => $related], panel: 'manage', tenant: $team);
+        if (! $team instanceof Team) {
+            $current->loadMissing('team');
+            $team = $current->team;
         }
 
-        return TeamsBookingResource::getUrl('view', ['record' => $related], panel: 'teams', tenant: $related->team ?? $current->team);
+        return TeamsBookingResource::getUrl('view', ['record' => $related], panel: 'teams', tenant: $team);
     }
 }

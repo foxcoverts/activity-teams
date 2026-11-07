@@ -20,7 +20,7 @@
 
 @if ($showQualified && $person['qualified'])
     <button type="button" class="invite-badge"
-        wire:click="{{ in_array($panel, ['manage', 'member-relation-manager'], true)
+        wire:click="{{ in_array($panel, ['teams', 'member-relation-manager'], true)
             ? "mountTableAction('qualifications', '{$person['id']}')"
             : "openQualifications('{$person['id']}')" }}">
         <x-filament::badge :color="\App\Support\Palette::positive()" :icon="\Filament\Support\Icons\Heroicon::CheckCircle">
@@ -39,7 +39,7 @@
 
 @if ($showKeys && $person['key_badge'] === 'holder')
     <button type="button" class="invite-badge" title="{{ __('Key holder') }}" aria-label="{{ __('Key holder') }}"
-        wire:click="{{ in_array($panel, ['manage', 'member-relation-manager'], true)
+        wire:click="{{ in_array($panel, ['teams', 'member-relation-manager'], true)
             ? "mountTableAction('heldKeys', '{$person['id']}')"
             : "openKeys('{$person['id']}')" }}">
         <x-filament::badge class="key-holder-badge" :color="\App\Support\Palette::positive()" :icon="\Filament\Support\Icons\Heroicon::OutlinedKey">

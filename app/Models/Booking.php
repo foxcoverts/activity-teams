@@ -486,6 +486,11 @@ class Booking extends Model implements Commentable
         $bookings->whereDate('end_at', '>=', Carbon::now());
     }
 
+    public function scopePast(Builder $bookings): void
+    {
+        $bookings->whereDate('end_at', '<', Carbon::now());
+    }
+
     /**
      * @param  BookingAttendeeStatus[]  $status
      */

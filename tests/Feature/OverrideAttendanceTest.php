@@ -9,8 +9,8 @@ use App\Enums\BookingAttendeeResponse;
 use App\Enums\BookingAttendeeStatus;
 use App\Enums\BookingStatus;
 use App\Enums\MembershipRole;
-use App\Filament\Manage\Resources\Bookings\Pages\ViewBooking;
-use App\Filament\Manage\Resources\Bookings\RelationManagers\AttendeesRelationManager;
+use App\Filament\Teams\Resources\Bookings\Pages\ViewBooking;
+use App\Filament\Teams\Resources\Bookings\RelationManagers\AttendeesRelationManager;
 use App\Filament\Teams\Resources\Members\MemberResource;
 use App\Mail\AttendanceRecordedMail;
 use App\Mail\BookingInviteMail;
@@ -38,7 +38,7 @@ class OverrideAttendanceTest extends TestCase
     {
         parent::setUp();
 
-        Filament::setCurrentPanel('manage');
+        Filament::setCurrentPanel('teams');
     }
 
     public function test_a_manager_can_record_attendance_from_the_roster(): void
@@ -135,7 +135,9 @@ class OverrideAttendanceTest extends TestCase
         Livewire::test(AttendeesRelationManager::class, [
             'ownerRecord' => $booking,
             'pageClass' => ViewBooking::class,
-        ])->assertStatus(403);
+        ])
+            ->assertSuccessful()
+            ->assertTableActionHidden('editAttendance', $member);
 
         (new RespondToBookingAction($booking))($member, BookingAttendeeStatus::Accepted);
 

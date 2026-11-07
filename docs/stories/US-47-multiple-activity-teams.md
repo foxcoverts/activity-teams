@@ -19,13 +19,13 @@ As an activity manager, I want bookings, members, and invite lists to belong to 
 - A member sees a booking when they are on its roster, or when they are a current member of its team and it is confirmed. A manager of its team sees it in any status. A member does not see another team's confirmed bookings.
 - The Members panel is the personal, cross-team workspace for bookings and invitations a user may access. It has no current-team tenant switch.
 - Team-scoped resources such as documents or news may offer a team filter within Members, but do not require switching the current tenant.
-- Managers remain members and lead instructors and use Members for day-to-day member tools, as well as Manage for team management.
-- The manage panel keeps one team current, and bookings, members, activities, and venues follow that team. It is for team managers and system admins, not for oversight-only accounts. When a system admin also manages a team, that team is the current Manage team unless they already chose another.
+- Managers remain members and lead instructors. They use Members for day-to-day member tools, and the Teams panel for team management (bookings, members, activities, venues, and related team resources).
+- The Teams panel keeps one team current, and bookings, members, activities, and venues follow that team. Managers and system admins use it for team work; oversight-only accounts do not get a Teams tenant from management alone. When a system admin also manages a team, that team is the current Teams tenant unless they already chose another.
 - Site-wide Users, Teams, catalogs, and key rings live on a separate untenanted Admin panel. Oversight and system admins can open it; team managers cannot.
-- Sidebars link among Members, Manage, and Admin only for users who can open each panel. Manage is hidden when the user has no team to make current.
+- Sidebars link among Members, Teams, and Admin only for users who can open each panel. Teams is available when the user has a team to make current (membership, managed team, or past booking invite).
 - Leaving a team keeps attendance already recorded. They can still open those bookings, and they leave future invite lists.
 - Someone with oversight can open a directory of every account on Admin Users, including a team filter and that person's qualifications. A team manager can access their team's members, including phone and emergency details, without being the lead instructor on a booking. Viewing another person's personal details requires the acknowledgement in [US-58](US-58-personal-data-viewing-acknowledgement.md), in addition to the existing access rules.
 
 ## Progress
 
-Implemented: Members stays the untenanted personal workspace; Manage is tenanted by team slug for managers and system admins; Admin at `/admin` holds Users, Teams, catalogs, and key rings. Oversight uses Admin rather than a fake Manage tenant. Panel links follow `canAccessPanel`, and Manage is omitted when there is no current team. A system admin who also manages a team opens that team from Manage unless a remembered last-visited team is still accessible.
+Implemented: Members stays the untenanted personal workspace; Teams is tenanted by team slug for members, managers, and system admins; Admin at `/admin` holds Users, Teams, catalogs, and key rings. Oversight uses Admin rather than a fake team tenant. Panel links follow `canAccessPanel`. A system admin who also manages a team opens that team from Teams unless a remembered last-visited team is still accessible. There is no separate Manage panel.

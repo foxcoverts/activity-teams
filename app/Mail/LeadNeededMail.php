@@ -2,7 +2,7 @@
 
 namespace App\Mail;
 
-use App\Filament\Manage\Resources\Bookings\BookingResource;
+use App\Filament\Teams\Resources\Bookings\BookingResource;
 use App\Models\Booking;
 use App\Models\Team;
 use App\Models\User;
@@ -46,12 +46,12 @@ class LeadNeededMail extends Mailable implements ShouldQueue
             with: [
                 'booking' => $this->booking,
                 'previousLead' => $this->previousLead,
-                'bookingUrl' => $this->manageUrl(),
+                'bookingUrl' => $this->bookingUrl(),
             ],
         );
     }
 
-    private function manageUrl(): ?string
+    private function bookingUrl(): ?string
     {
         $team = $this->booking->team;
 
@@ -59,6 +59,6 @@ class LeadNeededMail extends Mailable implements ShouldQueue
             return null;
         }
 
-        return BookingResource::getUrl('view', ['record' => $this->booking], panel: 'manage', tenant: $team);
+        return BookingResource::getUrl('view', ['record' => $this->booking], panel: 'teams', tenant: $team);
     }
 }

@@ -7,11 +7,11 @@ use App\Enums\BookingStatus;
 use App\Enums\MembershipRole;
 use App\Events\BookingChanged;
 use App\Filament\Forms\Components\TimezoneSelect;
-use App\Filament\Manage\Resources\Bookings\BookingResource;
-use App\Filament\Manage\Resources\Bookings\Pages\CreateBooking;
-use App\Filament\Manage\Resources\Bookings\Pages\EditBooking;
-use App\Filament\Manage\Resources\Bookings\Pages\ListBookings;
-use App\Filament\Manage\Resources\Bookings\Pages\ViewBooking;
+use App\Filament\Teams\Resources\Bookings\BookingResource;
+use App\Filament\Teams\Resources\Bookings\Pages\CreateBooking;
+use App\Filament\Teams\Resources\Bookings\Pages\EditBooking;
+use App\Filament\Teams\Resources\Bookings\Pages\ListBookings;
+use App\Filament\Teams\Resources\Bookings\Pages\ViewBooking;
 use App\Models\Activity;
 use App\Models\ActivityAudience;
 use App\Models\Booking;
@@ -41,7 +41,7 @@ class AddBookingTest extends TestCase
     {
         parent::setUp();
 
-        Filament::setCurrentPanel('manage');
+        Filament::setCurrentPanel('teams');
     }
 
     public function test_team_leader_can_create_a_booking(): void
@@ -142,7 +142,7 @@ class AddBookingTest extends TestCase
         $this->assertFalse($team->venues()->whereKey($privateVenue->getKey())->exists());
         $this->assertSame(0, Venue::query()->count());
 
-        $this->get(BookingResource::getUrl('view', ['record' => $booking], panel: 'manage'))
+        $this->get(BookingResource::getUrl('view', ['record' => $booking], panel: 'teams'))
             ->assertOk()
             ->assertSee('A home address')
             ->assertSee('1 Example Road')
@@ -385,7 +385,7 @@ class AddBookingTest extends TestCase
         Livewire::test(ListBookings::class)
             ->assertActionEnabled('create');
 
-        $this->get(BookingResource::getUrl('create', panel: 'manage', tenant: $team))->assertOk();
+        $this->get(BookingResource::getUrl('create', panel: 'teams', tenant: $team))->assertOk();
 
         Livewire::test(CreateBooking::class)
             ->assertFormFieldHidden('activity_id')
@@ -716,8 +716,8 @@ class AddBookingTest extends TestCase
     {
         $user = User::factory()->teamManager()->create();
         $booking = Booking::factory()->create([
-            'start_at' => Carbon::parse('2026-10-20 13:00:00', 'UTC'),
-            'end_at' => Carbon::parse('2026-10-20 16:00:00', 'UTC'),
+            'start_at' => Carbon::parse('2026-12-20 13:00:00', 'UTC'),
+            'end_at' => Carbon::parse('2026-12-20 16:00:00', 'UTC'),
             'timezone' => 'America/New_York',
         ]);
 
@@ -730,8 +730,8 @@ class AddBookingTest extends TestCase
             ->assertHasNoFormErrors();
 
         $booking->refresh();
-        $this->assertSame('2026-10-20 14:00', $booking->start_at->utc()->format('Y-m-d H:i'));
-        $this->assertSame('2026-10-20 17:00', $booking->end_at->utc()->format('Y-m-d H:i'));
+        $this->assertSame('2026-12-20 15:00', $booking->start_at->utc()->format('Y-m-d H:i'));
+        $this->assertSame('2026-12-20 18:00', $booking->end_at->utc()->format('Y-m-d H:i'));
     }
 
     public function test_list_create_action_combines_the_schedule_fields_before_saving(): void
@@ -799,7 +799,7 @@ class AddBookingTest extends TestCase
         $user = User::factory()->teamMember()->create();
 
         $this->actingAs($user)
-            ->get('/manage/'.$user->teams()->first()->slug.'/bookings/create')
+            ->get('/teams/'.$user->teams()->first()->slug.'/bookings/create')
             ->assertForbidden();
     }
 
