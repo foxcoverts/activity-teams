@@ -25,6 +25,10 @@
         <env name="CACHE_STORE" value="array"/>
         <env name="DB_DATABASE" value="testing"/>
         <env name="DB_URL" value=""/>
+        <env name="LEGACY_DB_CONNECTION" value="sqlite"/>
+        <env name="LEGACY_DB_DATABASE" value="storage/framework/testing/legacy.sqlite"/>
+        <env name="LEGACY_DB_USERNAME" value=""/>
+        <env name="LEGACY_DB_PASSWORD" value=""/>
         <env name="MAIL_MAILER" value="array"/>
         <env name="MAIL_INBOUND_DOMAIN" value="climbfoxcoverts.co.uk"/>
         <env name="MAIL_WEBHOOK_SECRET" value="testing-webhook-secret"/>

@@ -39,6 +39,7 @@ services:
         volumes:
             - 'sail-mariadb:/var/lib/mysql'
             - './vendor/laravel/sail/database/mariadb/create-testing-database.sh:/docker-entrypoint-initdb.d/10-create-testing-database.sh'
+            - './docker/mariadb/create-legacy-database.sh:/docker-entrypoint-initdb.d/20-create-legacy-database.sh'
         networks:
             - sail
         healthcheck:

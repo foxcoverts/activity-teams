@@ -114,6 +114,45 @@ return [
             // 'trust_server_certificate' => env('DB_TRUST_SERVER_CERTIFICATE', 'false'),
         ],
 
+        /*
+        | Legacy climbing-team database (read-only preferred). Used by
+        | `php artisan legacy:import` / `legacy:verify`. On the live server this
+        | points at the co-located legacy DB; locally it can point at a restored dump.
+        */
+        'legacy' => (static function (): array {
+            $driver = env('LEGACY_DB_CONNECTION', 'mariadb');
+
+            if ($driver === 'sqlite') {
+                return [
+                    'driver' => 'sqlite',
+                    'url' => env('LEGACY_DB_URL'),
+                    'database' => env('LEGACY_DB_DATABASE', database_path('legacy.sqlite')),
+                    'prefix' => '',
+                    'foreign_key_constraints' => env('DB_FOREIGN_KEYS', true),
+                ];
+            }
+
+            return [
+                'driver' => $driver,
+                'url' => env('LEGACY_DB_URL'),
+                'host' => env('LEGACY_DB_HOST', '127.0.0.1'),
+                'port' => env('LEGACY_DB_PORT', '3306'),
+                'database' => env('LEGACY_DB_DATABASE', 'climbing_legacy'),
+                'username' => env('LEGACY_DB_USERNAME', 'sail'),
+                'password' => env('LEGACY_DB_PASSWORD', ''),
+                'unix_socket' => env('LEGACY_DB_SOCKET', ''),
+                'charset' => env('LEGACY_DB_CHARSET', 'utf8mb4'),
+                'collation' => env('LEGACY_DB_COLLATION', 'utf8mb4_unicode_ci'),
+                'prefix' => '',
+                'prefix_indexes' => true,
+                'strict' => true,
+                'engine' => null,
+                'options' => extension_loaded('pdo_mysql') ? array_filter([
+                    Mysql::ATTR_SSL_CA => env('MYSQL_ATTR_SSL_CA'),
+                ]) : [],
+            ];
+        })(),
+
     ],
 
     /*
