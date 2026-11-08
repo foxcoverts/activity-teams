@@ -77,6 +77,27 @@ class BookingResourceTest extends TestCase
             ->assertCanNotSeeTableRecords([$upcoming]);
     }
 
+    public function test_the_history_tab_lists_past_bookings_newest_first(): void
+    {
+        $manager = User::factory()->teamManager()->create();
+        $team = $manager->managedTeams()->firstOrFail();
+
+        $older = Booking::factory()->forTeam($team)->confirmed()->create([
+            'start_at' => now()->subDays(20),
+            'end_at' => now()->subDays(20)->addHours(2),
+        ]);
+        $newer = Booking::factory()->forTeam($team)->confirmed()->create([
+            'start_at' => now()->subDays(5),
+            'end_at' => now()->subDays(5)->addHours(2),
+        ]);
+
+        $this->actingAs($manager);
+
+        Livewire::test(ListBookings::class)
+            ->set('activeTab', 'history')
+            ->assertCanSeeTableRecords([$newer, $older], inOrder: true);
+    }
+
     public function test_a_manager_sees_respond_and_manage_actions_on_the_booking_view(): void
     {
         $manager = User::factory()->teamManager()->create();

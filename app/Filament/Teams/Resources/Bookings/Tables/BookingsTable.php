@@ -6,12 +6,14 @@ use App\Enums\BookingAttendeeStatus;
 use App\Enums\BookingStatus;
 use App\Filament\Teams\Resources\Bookings\Actions\EditAction;
 use App\Filament\Teams\Resources\Bookings\BookingStatusActions;
+use App\Filament\Teams\Resources\Bookings\Pages\ListBookings;
 use App\Models\Booking;
 use Filament\Actions\ActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\ViewAction;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Contracts\HasTable;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
@@ -66,6 +68,12 @@ class BookingsTable
                     DeleteAction::make(),
                 ]),
             ])
-            ->defaultSort('start_at');
+            ->defaultSort(
+                'start_at',
+                fn (HasTable $livewire): string => $livewire instanceof ListBookings
+                    && $livewire->activeTab === 'history'
+                        ? 'desc'
+                        : 'asc',
+            );
     }
 }

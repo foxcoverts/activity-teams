@@ -38,4 +38,11 @@ class ListBookings extends ListRecords
                 ->modifyQueryUsing(fn (Builder $query) => $query->past()),
         ];
     }
+
+    public function updatedActiveTab(): void
+    {
+        parent::updatedActiveTab();
+
+        $this->tableSort = null;
+    }
 }
