@@ -30,6 +30,6 @@ class RequireProfileConfirmation
             return $next($request);
         }
 
-        return redirect()->route('profile.confirm');
+        return redirect()->guest(route('profile.confirm'));
     }
 }

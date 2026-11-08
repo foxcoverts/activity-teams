@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Filament\Auth\EditProfile;
+use App\Filament\Member\Pages\Dashboard;
 use App\Livewire\ConfirmProfile;
 use App\Models\User;
 use Filament\Facades\Filament;
@@ -35,6 +36,8 @@ class ProfileConfirmationTest extends TestCase
 
         $this->actingAs($user);
 
+        $this->get('/bookings')->assertRedirect(route('profile.confirm'));
+
         Livewire::test(ConfirmProfile::class)
             ->fillForm([
                 'email' => 'old@example.com',
@@ -43,7 +46,8 @@ class ProfileConfirmationTest extends TestCase
                 'emergency_phone' => '+447700900222',
             ])
             ->call('confirm')
-            ->assertHasNoFormErrors();
+            ->assertHasNoFormErrors()
+            ->assertRedirect('/bookings');
 
         $user->refresh();
 
@@ -51,6 +55,26 @@ class ProfileConfirmationTest extends TestCase
         $this->assertSame('+447700900111', $user->phone);
 
         $this->get('/bookings')->assertOk();
+    }
+
+    public function test_confirming_without_an_intended_url_opens_the_member_dashboard(): void
+    {
+        $user = User::factory()->teamMember()->create([
+            'created_at' => now()->subYear()->subDay(),
+        ]);
+
+        $this->actingAs($user);
+
+        Livewire::test(ConfirmProfile::class)
+            ->fillForm([
+                'email' => $user->email,
+                'phone' => '+447700900111',
+                'emergency_name' => 'Pat',
+                'emergency_phone' => '+447700900222',
+            ])
+            ->call('confirm')
+            ->assertHasNoFormErrors()
+            ->assertRedirect(Dashboard::getUrl(panel: 'member'));
     }
 
     public function test_deferring_allows_the_app_and_shows_a_banner_until_the_next_day(): void
@@ -63,8 +87,11 @@ class ProfileConfirmationTest extends TestCase
 
         $this->actingAs($user);
 
+        $this->get('/bookings')->assertRedirect(route('profile.confirm'));
+
         Livewire::test(ConfirmProfile::class)
-            ->call('deferConfirmation');
+            ->call('deferConfirmation')
+            ->assertRedirect('/bookings');
 
         $this->get('/bookings')
             ->assertOk()

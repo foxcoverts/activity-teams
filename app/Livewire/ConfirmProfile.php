@@ -2,6 +2,7 @@
 
 namespace App\Livewire;
 
+use App\Filament\Member\Pages\Dashboard;
 use App\Filament\Schemas\ContactFields;
 use App\Models\User;
 use Filament\Actions\Action;
@@ -165,8 +166,6 @@ class ConfirmProfile extends SimplePage
 
     private function redirectIntendedHome(): void
     {
-        $url = Filament::getPanel('member')?->getUrl() ?? '/';
-
-        $this->redirect($url);
+        $this->redirectIntended(Dashboard::getUrl(panel: 'member'));
     }
 }
