@@ -75,9 +75,16 @@ class BookingPeople
     }
 
     /**
-     * @return list<array{name: string, groups: list<array{situation: KeySituation, rings: list<array{name: string, holder: ?string, holder_id: ?string}>}>}>
+     * Person-first key roster for the booking Keys modal: situation groups of holders
+     * (rings merged per person) plus cupboard rings without a holder.
+     *
+     * @return list<array{
+     *     situation: KeySituation,
+     *     people: list<array{id: string, name: string, avatar_url: string, rings: list<array{name: string, locks: list<string>}>}>,
+     *     rings: list<array{name: string, locks: list<string>}>
+     * }>
      */
-    public static function keyAccess(Booking $booking): array
+    public static function keyHolderGroups(Booking $booking): array
     {
         $booking->loadMissing('attendees');
 
@@ -85,45 +92,102 @@ class BookingPeople
             fn (User $person): array => [(string) $person->getKey() => $person->attendance?->status],
         );
 
-        return $booking->requiredLocks()
-            ->map(fn (Lock $key): array => [
-                'name' => $key->name,
-                'groups' => self::groupsForKey($key, $statusById),
-            ])
-            ->all();
-    }
-
-    /**
-     * @param  Collection<string, BookingAttendeeStatus|null>  $statusById
-     * @return list<array{situation: KeySituation, rings: list<array{name: string, holder: ?string, holder_id: ?string}>}>
-     */
-    private static function groupsForKey(Lock $key, Collection $statusById): array
-    {
-        $grouped = [];
+        /** @var array<string, array<string, array{id: string, name: string, avatar_url: string, rings: array<string, array{name: string, locks: array<string, string>}>}>> $people */
+        $people = [];
+        /** @var array<string, array{name: string, locks: array<string, string>}> $cupboard */
+        $cupboard = [];
 
         foreach (KeySituation::displayOrder() as $situation) {
-            $grouped[$situation->value] = [];
+            if ($situation !== KeySituation::Cupboard) {
+                $people[$situation->value] = [];
+            }
         }
 
-        foreach ($key->accessKeys()->with('holder')->get() as $ring) {
-            $situation = self::situation($ring, $statusById);
-            $grouped[$situation->value][] = [
-                'name' => $ring->name,
-                'holder' => $ring->holder?->name,
-                'holder_id' => $ring->holder_id === null ? null : (string) $ring->holder_id,
-            ];
+        foreach ($booking->requiredLocks() as $lock) {
+            foreach ($lock->accessKeys()->with('holder')->get() as $ring) {
+                $situation = self::situation($ring, $statusById);
+                $ringId = (string) $ring->getKey();
+                $lockName = $lock->name;
+
+                if ($situation === KeySituation::Cupboard) {
+                    $cupboard[$ringId] ??= [
+                        'name' => $ring->name,
+                        'locks' => [],
+                    ];
+                    $cupboard[$ringId]['locks'][$lockName] = $lockName;
+
+                    continue;
+                }
+
+                $holder = $ring->holder;
+                if (! $holder instanceof User) {
+                    continue;
+                }
+
+                $holderId = (string) $holder->getKey();
+                $people[$situation->value][$holderId] ??= [
+                    'id' => $holderId,
+                    'name' => $holder->name,
+                    'avatar_url' => Avatars::userUrl($holder, 64),
+                    'rings' => [],
+                ];
+                $people[$situation->value][$holderId]['rings'][$ringId] ??= [
+                    'name' => $ring->name,
+                    'locks' => [],
+                ];
+                $people[$situation->value][$holderId]['rings'][$ringId]['locks'][$lockName] = $lockName;
+            }
         }
 
         $groups = [];
 
         foreach (KeySituation::displayOrder() as $situation) {
-            if ($grouped[$situation->value] === []) {
+            if ($situation === KeySituation::Cupboard) {
+                if ($cupboard === []) {
+                    continue;
+                }
+
+                $groups[] = [
+                    'situation' => $situation,
+                    'people' => [],
+                    'rings' => collect($cupboard)
+                        ->sortBy('name', SORT_NATURAL | SORT_FLAG_CASE)
+                        ->map(fn (array $ring): array => [
+                            'name' => $ring['name'],
+                            'locks' => array_values($ring['locks']),
+                        ])
+                        ->values()
+                        ->all(),
+                ];
+
+                continue;
+            }
+
+            $holders = $people[$situation->value] ?? [];
+            if ($holders === []) {
                 continue;
             }
 
             $groups[] = [
                 'situation' => $situation,
-                'rings' => $grouped[$situation->value],
+                'people' => collect($holders)
+                    ->sortBy('name', SORT_NATURAL | SORT_FLAG_CASE)
+                    ->map(fn (array $person): array => [
+                        'id' => $person['id'],
+                        'name' => $person['name'],
+                        'avatar_url' => $person['avatar_url'],
+                        'rings' => collect($person['rings'])
+                            ->sortBy('name', SORT_NATURAL | SORT_FLAG_CASE)
+                            ->map(fn (array $ring): array => [
+                                'name' => $ring['name'],
+                                'locks' => array_values($ring['locks']),
+                            ])
+                            ->values()
+                            ->all(),
+                    ])
+                    ->values()
+                    ->all(),
+                'rings' => [],
             ];
         }
 

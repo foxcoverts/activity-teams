@@ -14,7 +14,6 @@ use App\Filament\Admin\Resources\Locks\Pages\CreateLock;
 use App\Filament\Admin\Resources\Locks\Pages\ViewLock;
 use App\Filament\Admin\Resources\Locks\RelationManagers\CoversRelationManager;
 use App\Filament\Admin\Resources\Locks\RelationManagers\KeysRelationManager;
-use App\Filament\Bookings\BookingKeysAction;
 use App\Filament\Member\Resources\Bookings\BookingResource;
 use App\Filament\Member\Resources\Keys\KeyResource as MemberKeyResource;
 use App\Filament\Teams\Resources\Bookings\Pages\ViewBooking as TeamsViewBooking;
@@ -24,6 +23,7 @@ use App\Filament\Teams\Resources\Members\MemberResource;
 use App\Filament\Teams\Resources\Members\Pages\ListMembers;
 use App\Filament\Teams\Resources\Members\Pages\ViewMember;
 use App\Filament\Teams\Resources\Members\RelationManagers\LocksRelationManager;
+use App\Livewire\BookingKeysPanel;
 use App\Models\Activity;
 use App\Models\ActivityAudience;
 use App\Models\Booking;
@@ -34,6 +34,7 @@ use App\Models\Qualification;
 use App\Models\Team;
 use App\Models\User;
 use App\Models\Venue;
+use App\Support\BookingPeople;
 use Filament\Actions\Testing\TestAction;
 use Filament\Facades\Filament;
 use Filament\Support\Icons\Heroicon;
@@ -342,14 +343,16 @@ class KeyAccessTest extends TestCase
             ->assertActionVisible('keys')
             ->assertActionHasIcon('keys', Heroicon::Key)
             ->assertSee('Key holder attending')
-            ->mountAction('keys')
-            ->assertMountedActionModalSee('Climbing store')
-            ->assertMountedActionModalSee('Attending')
-            ->assertMountedActionModalSee('Shared climbing')
-            ->assertMountedActionModalSee('Robin Outsider')
-            ->assertMountedActionModalSee('In the cupboard')
-            ->assertMountedActionModalSee('Spare climbing')
-            ->assertMountedActionModalSee('These just need passing to an attendee.');
+            ->mountAction('keys');
+
+        Livewire::test(BookingKeysPanel::class, ['booking' => $booking])
+            ->assertSee('Climbing store')
+            ->assertSee('Attending')
+            ->assertSee('Shared climbing')
+            ->assertSee('Robin Outsider')
+            ->assertSee('In the cupboard')
+            ->assertSee('Spare climbing')
+            ->assertSee('These just need passing to an attendee.');
 
         Livewire::test(TeamsAttendeesRelationManager::class, [
             'ownerRecord' => $booking,
@@ -475,10 +478,12 @@ class KeyAccessTest extends TestCase
 
         Livewire::test(TeamsViewBooking::class, ['record' => $booking->getRouteKey()])
             ->assertActionHasIcon('keys', Heroicon::Key)
-            ->mountAction('keys')
-            ->assertMountedActionModalSee('Attending')
-            ->assertMountedActionModalSee('Shared climbing')
-            ->assertMountedActionModalSee('Sam Holder');
+            ->mountAction('keys');
+
+        Livewire::test(BookingKeysPanel::class, ['booking' => $booking])
+            ->assertSee('Attending')
+            ->assertSee('Shared climbing')
+            ->assertSee('Sam Holder');
 
         $qualifications = view('filament.bookings.person-access-host', [
             'booking' => $booking,
@@ -616,8 +621,9 @@ class KeyAccessTest extends TestCase
             'token' => BookingAttendance::generateToken(),
         ]);
 
-        Filament::setCurrentPanel('teams');
         $this->actingAs($manager);
+        Filament::setCurrentPanel('teams');
+        Filament::setTenant($team);
 
         $memberUrl = MemberResource::getUrl('view', ['record' => $uninvited], panel: 'teams', tenant: $team);
 
@@ -625,25 +631,26 @@ class KeyAccessTest extends TestCase
             ->assertActionVisible('keys')
             ->assertActionHasIcon('keys', Heroicon::OutlinedKey)
             ->assertSee('No key holder attending')
-            ->mountAction('keys')
-            ->assertMountedActionModalSee('Climbing store')
-            ->assertMountedActionModalSee('Cannot make it')
-            ->assertMountedActionModalSee('Declined ring')
-            ->assertMountedActionModalSee('Dana Declined')
-            ->assertMountedActionModalSee('Invited')
-            ->assertMountedActionModalSee('Maybe ring')
-            ->assertMountedActionModalSee('Morgan Maybe')
-            ->assertMountedActionModalSee('Not invited')
-            ->assertMountedActionModalSee('Uninvited ring')
-            ->assertMountedActionModalSee('Uma Uninvited')
-            ->assertMountedActionModalSee('In the cupboard')
-            ->assertMountedActionModalSee('Cupboard ring')
-            ->assertMountedActionModalSeeHtml($memberUrl)
+            ->mountAction('keys');
+
+        $panel = Livewire::test(BookingKeysPanel::class, ['booking' => $booking])
+            ->assertSee('Climbing store')
+            ->assertSee('Cannot make it')
+            ->assertSee('Declined ring')
+            ->assertSee('Dana Declined')
+            ->assertSee('Invited')
+            ->assertSee('Maybe ring')
+            ->assertSee('Morgan Maybe')
+            ->assertSee('Not invited')
+            ->assertSee('Uninvited ring')
+            ->assertSee('Uma Uninvited')
+            ->assertSee('In the cupboard')
+            ->assertSee('Cupboard ring')
+            ->assertSee('View member')
+            ->assertSeeHtml($memberUrl)
             ->assertDontSee('Attending');
 
-        $html = view('filament.bookings.keys', [
-            'keys' => BookingKeysAction::lines($booking),
-        ])->render();
+        $html = $panel->html();
 
         $invited = strpos($html, 'Maybe ring');
         $cupboard = strpos($html, 'Cupboard ring');
@@ -657,6 +664,127 @@ class KeyAccessTest extends TestCase
         $this->assertLessThan($cupboard, $invited);
         $this->assertLessThan($notInvited, $cupboard);
         $this->assertLessThan($cannotMakeIt, $notInvited);
+
+        $groups = BookingPeople::keyHolderGroups($booking);
+        $this->assertSame(
+            ['invited', 'cupboard', 'not_invited', 'cannot_make_it'],
+            array_map(fn (array $group): string => $group['situation']->value, $groups),
+        );
+    }
+
+    public function test_the_keys_panel_lets_managers_contact_invite_and_edit_holders(): void
+    {
+        Notification::fake();
+
+        $manager = User::factory()->teamManager()->create();
+        $team = $manager->managedTeams()->first();
+        $accepted = User::factory()->teamMember($team)->create([
+            'name' => 'Ada Accepted',
+            'phone' => '07000111222',
+        ]);
+        $uninvited = User::factory()->teamMember($team)->create(['name' => 'Uma Uninvited']);
+        $booking = Booking::factory()->confirmed()->forTeam($team)->create([
+            'start_at' => now()->addDay(),
+            'end_at' => now()->addDay()->addHours(2),
+            'lead_instructor_id' => $manager->getKey(),
+        ]);
+
+        $store = Lock::factory()->create(['name' => 'Climbing store']);
+        $store->requirements()->create([
+            'activity_id' => $booking->activity_id,
+            'venue_id' => $booking->venue_id,
+        ]);
+        Key::factory()->heldBy($accepted)->create(['name' => 'Accepted ring'])->locks()->attach($store);
+        Key::factory()->heldBy($uninvited)->create(['name' => 'Uninvited ring'])->locks()->attach($store);
+
+        $booking->attendees()->attach($accepted->id, [
+            'status' => BookingAttendeeStatus::Accepted->value,
+            'token' => BookingAttendance::generateToken(),
+        ]);
+        $booking->attendees()->attach($manager->id, [
+            'status' => BookingAttendeeStatus::Accepted->value,
+            'token' => BookingAttendance::generateToken(),
+        ]);
+
+        $this->actingAs($manager);
+        Filament::setCurrentPanel('teams');
+        Filament::setTenant($team);
+
+        Livewire::test(BookingKeysPanel::class, ['booking' => $booking])
+            ->assertSee('Ada Accepted')
+            ->assertSee('Uma Uninvited')
+            ->assertSee('Not invited')
+            ->assertActionVisible(TestAction::make('inviteHolder')->arguments(['person' => $uninvited->getKey()]))
+            ->callAction(TestAction::make('inviteHolder')->arguments(['person' => $uninvited->getKey()]))
+            ->assertDispatched('booking-attendance-updated')
+            ->assertSeeInOrder(['Attending', 'Ada Accepted', 'Invited', 'Uma Uninvited'])
+            ->assertDontSee('Not invited');
+
+        $this->assertTrue($booking->fresh()->attendees()->whereKey($uninvited->getKey())->exists());
+
+        Livewire::test(BookingKeysPanel::class, ['booking' => $booking->fresh()])
+            ->callAction(
+                TestAction::make('editAttendance')->arguments(['person' => $uninvited->getKey()]),
+                ['response' => BookingAttendeeResponse::Yes->value],
+            )
+            ->assertDispatched('booking-attendance-updated')
+            ->assertSeeInOrder(['Attending', 'Ada Accepted', 'Uma Uninvited'])
+            ->assertDontSee('Invited');
+
+        $this->assertSame(
+            BookingAttendeeStatus::Accepted,
+            $booking->fresh()->attendees()->find($uninvited)->attendance->status,
+        );
+
+        Livewire::test(BookingKeysPanel::class, ['booking' => $booking->fresh()])
+            ->mountAction(TestAction::make('contact')->arguments(['person' => $accepted->getKey()]))
+            ->assertActionMounted('contact')
+            ->assertSee('Ada Accepted');
+    }
+
+    public function test_a_non_manager_lead_sees_contact_but_not_invite_or_edit_on_keys(): void
+    {
+        $manager = User::factory()->teamManager()->create();
+        $team = $manager->managedTeams()->first();
+        $lead = User::factory()->teamMember($team)->create(['name' => 'Lead Only']);
+        $accepted = User::factory()->teamMember($team)->create([
+            'name' => 'Ada Accepted',
+            'phone' => '07000111222',
+        ]);
+        $uninvited = User::factory()->teamMember($team)->create(['name' => 'Uma Uninvited']);
+        $booking = Booking::factory()->confirmed()->forTeam($team)->create([
+            'start_at' => now()->addDay(),
+            'end_at' => now()->addDay()->addHours(2),
+            'lead_instructor_id' => $lead->getKey(),
+        ]);
+
+        $store = Lock::factory()->create(['name' => 'Climbing store']);
+        $store->requirements()->create([
+            'activity_id' => $booking->activity_id,
+            'venue_id' => $booking->venue_id,
+        ]);
+        Key::factory()->heldBy($accepted)->create(['name' => 'Accepted ring'])->locks()->attach($store);
+        Key::factory()->heldBy($uninvited)->create(['name' => 'Uninvited ring'])->locks()->attach($store);
+
+        foreach ([$lead, $accepted] as $person) {
+            $booking->attendees()->attach($person->id, [
+                'status' => BookingAttendeeStatus::Accepted->value,
+                'token' => BookingAttendance::generateToken(),
+            ]);
+        }
+
+        $this->actingAs($lead);
+        Filament::setCurrentPanel('teams');
+        Filament::setTenant($team);
+
+        Livewire::test(BookingKeysPanel::class, ['booking' => $booking])
+            ->assertSee('Ada Accepted')
+            ->assertSee('Uma Uninvited')
+            ->assertActionHidden(TestAction::make('inviteHolder')->arguments(['person' => $uninvited->getKey()]))
+            ->assertActionHidden(TestAction::make('editAttendance')->arguments(['person' => $accepted->getKey()]))
+            ->assertDontSee('View member')
+            ->mountAction(TestAction::make('contact')->arguments(['person' => $accepted->getKey()]))
+            ->assertActionMounted('contact');
     }
 
     public function test_the_keys_action_updates_when_a_holder_is_marked_attending(): void
