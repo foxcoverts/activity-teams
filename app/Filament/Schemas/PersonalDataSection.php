@@ -5,6 +5,9 @@ namespace App\Filament\Schemas;
 use App\Enums\PersonalDataSection as Section;
 use App\Models\User;
 use App\Support\Palette;
+use Filament\Forms\Components\Placeholder;
+use Filament\Forms\Components\TextInput;
+use Filament\Infolists\Components\TextEntry;
 use Filament\Infolists\Components\ViewEntry;
 use Filament\Schemas\Components\Group;
 use Filament\Schemas\Components\Section as SectionComponent;
@@ -28,7 +31,7 @@ class PersonalDataSection
         return SectionComponent::make($section->getLabel())
             ->collapsible()
             ->collapsed()
-            ->afterHeader($section === Section::ContactDetails ? [static::emailVerifiedBadge()] : null)
+            ->afterHeader($section === Section::ContactDetails ? [static::contactDetailsBadge()] : null)
             ->schema([
                 ViewEntry::make('acknowledge-'.$section->value)
                     ->hiddenLabel()
@@ -37,16 +40,6 @@ class PersonalDataSection
                 Group::make($entries)
                     ->visible($isAcknowledged),
             ]);
-    }
-
-    protected static function emailVerifiedBadge(): Text
-    {
-        return Text::make(fn (?User $record): string => $record?->hasVerifiedEmail() ? __('Email verified') : __('Email not verified'))
-            ->badge()
-            ->size(Size::Small)
-            ->visible(fn (?User $record): bool => $record !== null)
-            ->icon(fn (?User $record): Heroicon => $record?->hasVerifiedEmail() ? Heroicon::CheckCircle : Heroicon::ExclamationCircle)
-            ->color(fn (?User $record): array => $record?->hasVerifiedEmail() ? Palette::positive() : Palette::uncertain());
     }
 
     /**
@@ -63,7 +56,7 @@ class PersonalDataSection
         return SectionComponent::make($section->getLabel())
             ->collapsible()
             ->collapsed(fn (?User $record): bool => $record !== null)
-            ->afterHeader($section === Section::ContactDetails ? [static::emailVerifiedBadge()] : null)
+            ->afterHeader($section === Section::ContactDetails ? [static::contactDetailsBadge()] : null)
             ->schema([
                 View::make('filament.bookings.personal-data-acknowledgement')
                     ->viewData(['section' => $section])
@@ -71,5 +64,68 @@ class PersonalDataSection
                 Group::make($fields)
                     ->visible($isAcknowledged),
             ]);
+    }
+
+    /**
+     * Account email (editable) or invited email (read-only) for Contact Details forms.
+     *
+     * @return array{0: TextInput, 1: Placeholder}
+     */
+    public static function emailFields(?string $accountLabel = null): array
+    {
+        return [
+            TextInput::make('email')
+                ->label($accountLabel ?? __('Email'))
+                ->email()
+                ->required()
+                ->visible(fn (?User $record): bool => $record === null || ! $record->isPlaceholder()),
+            Placeholder::make('invited_email')
+                ->label(__('Invited email'))
+                ->content(fn (?User $record): ?string => $record?->invitation?->email)
+                ->visible(fn (?User $record): bool => $record?->isPlaceholder() === true
+                    && filled($record->invitation?->email)),
+        ];
+    }
+
+    public static function emailEntry(?string $accountLabel = null): TextEntry
+    {
+        return TextEntry::make('email')
+            ->label(fn (User $record): string => $record->isPlaceholder()
+                ? __('Invited email')
+                : ($accountLabel ?? __('Email')))
+            ->state(fn (User $record): ?string => $record->isPlaceholder()
+                ? $record->invitation?->email
+                : $record->email)
+            ->visible(fn (User $record): bool => $record->isPlaceholder()
+                ? filled($record->invitation?->email)
+                : true);
+    }
+
+    protected static function contactDetailsBadge(): Text
+    {
+        return Text::make(fn (?User $record): string => match (true) {
+            $record === null => '',
+            $record->isPlaceholder() && $record->invitation === null => __('No invitation'),
+            $record->isPlaceholder() => $record->invitationStatus()->getLabel(),
+            $record->hasVerifiedEmail() => __('Email verified'),
+            default => __('Email not verified'),
+        })
+            ->badge()
+            ->size(Size::Small)
+            ->visible(fn (?User $record): bool => $record !== null)
+            ->icon(fn (?User $record): Heroicon => match (true) {
+                $record === null => Heroicon::ExclamationCircle,
+                $record->isPlaceholder() && $record->invitation === null => Heroicon::ExclamationTriangle,
+                $record->isPlaceholder() => $record->invitationStatus()->getIcon(),
+                $record->hasVerifiedEmail() => Heroicon::CheckCircle,
+                default => Heroicon::ExclamationCircle,
+            })
+            ->color(fn (?User $record): array => match (true) {
+                $record === null => Palette::uncertain(),
+                $record->isPlaceholder() && $record->invitation === null => Palette::uncertain(),
+                $record->isPlaceholder() => $record->invitationStatus()->getColor(),
+                $record->hasVerifiedEmail() => Palette::positive(),
+                default => Palette::uncertain(),
+            });
     }
 }

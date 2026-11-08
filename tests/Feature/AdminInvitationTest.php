@@ -6,6 +6,7 @@ use App\Actions\AcceptTeamInvitationAction;
 use App\Actions\SendTeamInvitationAction;
 use App\Enums\InvitationStatus;
 use App\Enums\MembershipRole;
+use App\Enums\PersonalDataSection;
 use App\Filament\Admin\Resources\Users\Pages\ListUsers;
 use App\Filament\Admin\Resources\Users\Pages\ViewUser;
 use App\Filament\Admin\Resources\Users\UserResource;
@@ -324,7 +325,11 @@ class AdminInvitationTest extends TestCase
 
         Livewire::test(ViewUser::class, ['record' => $placeholder->getRouteKey()])
             ->assertSee('Invitation')
-            ->assertSee('new@example.com');
+            ->assertDontSee('new@example.com')
+            ->call('acknowledgePersonalData', PersonalDataSection::ContactDetails->value)
+            ->assertSee('Invited')
+            ->assertSee('new@example.com')
+            ->assertDontSee('Email not verified');
     }
 
     public function test_a_team_member_invitation_does_not_grant_site_flags(): void

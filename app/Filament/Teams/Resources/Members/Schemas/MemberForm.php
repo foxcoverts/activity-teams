@@ -36,10 +36,7 @@ class MemberForm
                             ->badge()
                             ->state(fn (User $record): ?MembershipRole => MemberResource::roleOnCurrentTeam($record)),
                         PersonalDataSection::form(PersonalDataSectionEnum::ContactDetails, [
-                            TextInput::make('email')
-                                ->email()
-                                ->required(fn (?User $record): bool => ! $record?->isPlaceholder())
-                                ->disabled(fn (?User $record): bool => $record?->isPlaceholder() ?? false),
+                            ...PersonalDataSection::emailFields(),
                             ContactFields::phoneInput('phone'),
                         ]),
                         PersonalDataSection::form(PersonalDataSectionEnum::EmergencyContact, [

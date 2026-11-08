@@ -100,10 +100,7 @@ class UserResource extends Resource
                             ->content(__('Only the user can change their own password.'))
                             ->hiddenOn('view'),
                         PersonalDataSection::form(PersonalDataSectionEnum::ContactDetails, [
-                            TextInput::make('email')
-                                ->label('Email address')
-                                ->email()
-                                ->required(),
+                            ...PersonalDataSection::emailFields(__('Email address')),
                             ContactFields::phoneInput('phone'),
                         ]),
                         PersonalDataSection::form(PersonalDataSectionEnum::EmergencyContact, [
@@ -137,16 +134,12 @@ class UserResource extends Resource
                         TextEntry::make('name'),
                         TextEntry::make('timezone')
                             ->placeholder('-'),
-                        TextEntry::make('invited_email')
-                            ->state(fn (User $record): ?string => $record->invitation?->email)
-                            ->visible(fn (User $record): bool => $record->isPlaceholder() && $record->invitation !== null),
                         TextEntry::make('status_badges')
                             ->hiddenLabel()
                             ->badge()
                             ->state(fn (User $record): array => static::statusBadges($record)),
                         PersonalDataSection::make(PersonalDataSectionEnum::ContactDetails, [
-                            TextEntry::make('email')
-                                ->label('Email address'),
+                            PersonalDataSection::emailEntry(__('Email address')),
                             ContactFields::phoneEntry('phone'),
                         ]),
                         PersonalDataSection::make(PersonalDataSectionEnum::EmergencyContact, [
@@ -164,7 +157,13 @@ class UserResource extends Resource
      */
     protected static function statusBadges(User $user): array
     {
-        $badges = [$user->status()];
+        $badges = [];
+        $status = $user->status();
+
+        // Invitation status for placeholders lives on the Contact Details header.
+        if (! $user->isPlaceholder() || in_array($status, [AccountStatus::Deleted, AccountStatus::Suspended], true)) {
+            $badges[] = $status;
+        }
 
         if ($user->isUnder18()) {
             $badges[] = AgeGroup::Under18;

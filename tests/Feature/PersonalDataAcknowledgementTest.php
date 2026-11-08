@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Actions\AcknowledgePersonalDataAction;
+use App\Actions\SendTeamInvitationAction;
 use App\Enums\AccountRole;
 use App\Enums\AccountStatus;
 use App\Enums\MembershipRole;
@@ -344,6 +345,75 @@ class PersonalDataAcknowledgementTest extends TestCase
         Livewire::test(ViewMember::class, ['record' => $this->member->getKey()])
             ->assertSee('Email not verified')
             ->assertDontSee('alex@example.test');
+    }
+
+    public function test_a_placeholder_shows_invitation_status_and_gates_the_invited_email_on_view(): void
+    {
+        [$placeholder, $team] = $this->invitedPlaceholder();
+
+        Filament::setCurrentPanel('teams');
+        $this->actingAs($this->manager);
+        Filament::setTenant($team);
+
+        Livewire::test(ViewMember::class, ['record' => $placeholder->getKey()])
+            ->assertSee('Invited')
+            ->assertDontSee('Email not verified')
+            ->assertDontSee('invitee@example.test')
+            ->call('acknowledgePersonalData', PersonalDataSection::ContactDetails->value)
+            ->assertSee('Invited email')
+            ->assertSee('invitee@example.test')
+            ->assertDontSee('Email not verified');
+    }
+
+    public function test_a_placeholder_shows_invitation_status_and_gates_the_invited_email_on_edit(): void
+    {
+        [$placeholder, $team] = $this->invitedPlaceholder();
+
+        Filament::setCurrentPanel('teams');
+        $this->actingAs($this->manager);
+        Filament::setTenant($team);
+
+        Livewire::test(EditMember::class, ['record' => $placeholder->getKey()])
+            ->assertSee('Invited')
+            ->assertDontSee('invitee@example.test')
+            ->call('acknowledgePersonalData', PersonalDataSection::ContactDetails->value)
+            ->assertSee('Invited email')
+            ->assertSee('invitee@example.test')
+            ->assertDontSee('Email not verified');
+    }
+
+    public function test_a_placeholder_without_an_invitation_shows_a_warning_badge(): void
+    {
+        $placeholder = User::factory()->placeholder()->create(['name' => 'Broken Placeholder']);
+        $this->manager->managedTeams()->first()->grant($placeholder, MembershipRole::Member);
+
+        Filament::setCurrentPanel('teams');
+        $this->actingAs($this->manager);
+        Filament::setTenant($this->manager->managedTeams()->first());
+
+        Livewire::test(ViewMember::class, ['record' => $placeholder->getKey()])
+            ->assertSee('No invitation')
+            ->assertDontSee('Email not verified')
+            ->call('acknowledgePersonalData', PersonalDataSection::ContactDetails->value)
+            ->assertSee('No invitation')
+            ->assertDontSee('Invited email');
+    }
+
+    /**
+     * @return array{0: User, 1: Team}
+     */
+    private function invitedPlaceholder(): array
+    {
+        $team = $this->manager->managedTeams()->first();
+        $placeholder = app(SendTeamInvitationAction::class)->add(
+            $this->manager,
+            $team,
+            'Sam Placeholder',
+            'invitee@example.test',
+            MembershipRole::Member,
+        );
+
+        return [$placeholder, $team];
     }
 
     public function test_an_unknown_section_is_rejected(): void
