@@ -126,6 +126,9 @@ class VenueResource extends Resource
             ->columns([
                 TextColumn::make('name')
                     ->searchable(),
+                TextColumn::make('address')
+                    ->state(fn (Venue $record): array => $record->location->addressArray())
+                    ->searchable(),
                 TextColumn::make('default_venue')
                     ->label(__('Default'))
                     ->state(fn (Venue $record): string => static::currentTeam()?->default_venue_id === $record->getKey()

@@ -98,6 +98,9 @@ class VenueResource extends Resource
             ->columns([
                 TextColumn::make('name')
                     ->searchable(),
+                TextColumn::make('address')
+                    ->state(fn (Venue $record): array => $record->location->addressArray())
+                    ->searchable(),
             ])
             ->filters([
                 //
