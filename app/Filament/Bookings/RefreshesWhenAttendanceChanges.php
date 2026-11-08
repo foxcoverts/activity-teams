@@ -13,7 +13,7 @@ trait RefreshesWhenAttendanceChanges
         $record = $this->getRecord();
 
         if ($record instanceof Booking) {
-            $record->unsetRelation('attendees');
+            $record->refresh()->unsetRelation('attendees');
         }
     }
 }

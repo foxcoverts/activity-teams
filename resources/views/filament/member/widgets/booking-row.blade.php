@@ -21,12 +21,24 @@
         'inline-flex items-center gap-1.5 rounded-full bg-gray-100 px-2.5 py-1 text-sm text-gray-700 dark:bg-white/10 dark:text-gray-300';
 @endphp
 
-<li class="relative flex flex-col gap-4 py-4 first:pt-0 last:pb-0 sm:flex-row sm:items-center {{ $booking->isPast() ? 'opacity-60' : '' }}"
-    wire:key="booking-{{ $booking->getKey() }}">
-    <div class="min-w-0 flex-1 space-y-2">
+<li
+    @class([
+        'relative flex flex-col gap-4 py-4 first:pt-0 last:pb-0 sm:flex-row sm:items-center',
+        'opacity-60' => $booking->isPast(),
+    ])
+    wire:key="booking-{{ $booking->getKey() }}"
+    @if ($needsAnswer)
+        x-data="{ open: false }"
+        x-on:mousedown="open = $event.target.closest('.fi-dropdown') !== null"
+        x-on:click.outside="open = false"
+        x-on:keydown.escape.window="open = false"
+        x-bind:style="open ? 'z-index: 50' : null"
+    @endif
+>
+    <div class="relative min-w-0 flex-1 space-y-2">
         <p class="text-base font-semibold">
             <a href="{{ BookingResource::viewUrl($booking) }}"
-                class="hover:underline after:absolute after:inset-0 after:content-['']">{{ $booking->activityTitle() }}</a>
+                class="hover:underline after:absolute after:inset-0 after:z-0 after:content-['']">{{ $booking->activityTitle() }}</a>
             @if ($booking->audience)
                 <span class="font-normal text-gray-500 dark:text-gray-400">· {{ $booking->audience->name }}</span>
             @endif
@@ -76,14 +88,11 @@
     </div>
 
     @if ($needsAnswer)
-        <div class="relative z-10 flex shrink-0 flex-col items-start gap-2 sm:items-end">
+        <div class="relative flex shrink-0 flex-col items-start gap-2 sm:items-end">
             <p class="text-sm text-gray-600 dark:text-gray-400">
                 {{ $own === BookingAttendeeStatus::Tentative ? __('Please confirm if you can make it') : __('Can you help with this?') }}
             </p>
-            <x-filament::button :color="$own === BookingAttendeeStatus::Tentative ? \App\Support\Palette::uncertain() : 'primary'"
-                wire:click="mountAction('respond', { booking: '{{ $booking->getKey() }}' })">
-                {{ $own === BookingAttendeeStatus::Tentative ? __('Confirm') : __('Respond') }}
-            </x-filament::button>
+            {!! $this->respondGroupFor($booking)->toHtml() !!}
         </div>
     @endif
 </li>

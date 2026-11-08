@@ -3,7 +3,7 @@
 namespace App\Filament\Teams\Resources\Bookings\Pages;
 
 use App\Filament\Bookings\BookingKeysAction;
-use App\Filament\Bookings\BookingRespondAction;
+use App\Filament\Bookings\BookingViewRespondActions;
 use App\Filament\Bookings\RefreshesWhenAttendanceChanges;
 use App\Filament\Teams\Resources\Bookings\BookingResource;
 use App\Filament\Teams\Resources\Bookings\BookingStatusActions;
@@ -100,7 +100,7 @@ class ViewBooking extends ViewRecord
             $actions[] = BookingKeysAction::make();
         }
 
-        $actions[] = BookingRespondAction::make();
+        $actions[] = BookingViewRespondActions::make();
 
         $managesTeam = $record->team !== null && $user->manages($record->team);
 

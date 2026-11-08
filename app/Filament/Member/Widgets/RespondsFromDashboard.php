@@ -2,26 +2,40 @@
 
 namespace App\Filament\Member\Widgets;
 
-use App\Filament\Bookings\BookingRespondAction;
+use App\Enums\BookingAttendeeResponse;
+use App\Filament\Bookings\BookingResponseChoices;
+use App\Filament\Bookings\DashboardRespondActions;
 use App\Filament\Member\Resources\Bookings\BookingResource;
-use App\Filament\Teams\Resources\Bookings\Schemas\BookingInfolist;
 use App\Models\Booking;
 use Filament\Actions\Action;
+use Filament\Actions\ActionGroup;
 
 trait RespondsFromDashboard
 {
-    public function respondAction(): Action
+    public function respondYesAction(): Action
     {
-        return BookingRespondAction::make(BookingInfolist::components())
-            ->record(fn (array $arguments): ?Booking => $this->bookingForResponse($arguments['booking'] ?? null))
-            ->modalHeading(fn (Booking $record): string => $record->activityTitle())
-            ->modalSubmitActionLabel(__('Save response'))
-            ->extraModalFooterActions(fn (Booking $record): array => [
-                Action::make('openBooking')
-                    ->label(__('Open booking'))
-                    ->color('gray')
-                    ->url(BookingResource::viewUrl($record)),
-            ]);
+        return $this->dashboardResponseAction(BookingAttendeeResponse::Yes);
+    }
+
+    public function respondMaybeAction(): Action
+    {
+        return $this->dashboardResponseAction(BookingAttendeeResponse::Maybe);
+    }
+
+    public function respondNoAction(): Action
+    {
+        return $this->dashboardResponseAction(BookingAttendeeResponse::No);
+    }
+
+    public function respondGroupFor(Booking $booking): ActionGroup
+    {
+        return DashboardRespondActions::make($booking, $this);
+    }
+
+    private function dashboardResponseAction(BookingAttendeeResponse $response): Action
+    {
+        return BookingResponseChoices::action($response)
+            ->record(fn (array $arguments): ?Booking => $this->bookingForResponse($arguments['booking'] ?? null));
     }
 
     private function bookingForResponse(mixed $id): ?Booking

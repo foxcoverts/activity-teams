@@ -3,7 +3,6 @@
 namespace Tests\Feature;
 
 use App\Actions\RespondToBookingAction;
-use App\Enums\BookingAttendeeResponse;
 use App\Enums\BookingAttendeeStatus;
 use App\Filament\Teams\Resources\Bookings\Pages\ViewBooking;
 use App\Mail\BookingChangedMail;
@@ -20,7 +19,7 @@ class ViewBookingResponseTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_respond_action_opens_on_the_current_answer(): void
+    public function test_respond_choices_omit_the_current_answer(): void
     {
         $member = User::factory()->teamMember()->create();
         $booking = Booking::factory()->confirmed()->create();
@@ -32,19 +31,16 @@ class ViewBookingResponseTest extends TestCase
         $this->actingAs($member);
 
         Livewire::test(ViewBooking::class, ['record' => $booking->getRouteKey()])
-            ->mountAction('respond')
-            ->assertActionDataSet([
-                'response' => BookingAttendeeResponse::Yes,
-            ])
-            ->assertMountedActionModalDontSee('Awaiting response');
+            ->assertActionHidden('respondYes')
+            ->assertActionVisible('respondMaybe')
+            ->assertActionVisible('respondNo')
+            ->assertSee(__('Can help'));
 
         Livewire::test(ViewBooking::class, ['record' => $booking->getRouteKey()])
-            ->callAction('respond', data: [
-                'response' => BookingAttendeeStatus::NeedsAction->value,
-            ]);
+            ->callAction('respondMaybe');
 
         $this->assertSame(
-            BookingAttendeeStatus::Accepted,
+            BookingAttendeeStatus::Tentative,
             $booking->attendees()->find($member)->attendance->status,
         );
 
@@ -67,17 +63,17 @@ class ViewBookingResponseTest extends TestCase
         Filament::setCurrentPanel('teams');
         $this->actingAs($invited);
         Livewire::test(ViewBooking::class, ['record' => $booking->getRouteKey()])
-            ->assertActionVisible('respond');
+            ->assertActionVisible('respondYes');
 
         Filament::setCurrentPanel('teams');
         $this->actingAs($uninvited);
         Livewire::test(ViewBooking::class, ['record' => $booking->getRouteKey()])
-            ->assertActionHidden('respond');
+            ->assertActionHidden('respondYes');
 
         Filament::setCurrentPanel('teams');
         $this->actingAs($manager);
         Livewire::test(ViewBooking::class, ['record' => $booking->getRouteKey()])
-            ->assertActionVisible('respond');
+            ->assertActionVisible('respondYes');
     }
 
     public function test_responding_without_an_invite_creates_a_token_for_later_emails(): void
@@ -88,9 +84,7 @@ class ViewBookingResponseTest extends TestCase
         Filament::setCurrentPanel('teams');
         $this->actingAs($manager);
         Livewire::test(ViewBooking::class, ['record' => $booking->getRouteKey()])
-            ->callAction('respond', data: [
-                'response' => BookingAttendeeResponse::Yes->value,
-            ]);
+            ->callAction('respondYes');
 
         $token = $booking->attendees()->find($manager)->attendance->token;
 
@@ -122,10 +116,8 @@ class ViewBookingResponseTest extends TestCase
         $this->assertTrue($lead->can('update', $booking->attendees()->find($lead)->attendance));
 
         Livewire::test(ViewBooking::class, ['record' => $booking->getRouteKey()])
-            ->assertActionVisible('respond')
-            ->callAction('respond', data: [
-                'response' => BookingAttendeeResponse::No->value,
-            ]);
+            ->assertActionVisible('respondNo')
+            ->callAction('respondNo');
 
         $booking->refresh();
 

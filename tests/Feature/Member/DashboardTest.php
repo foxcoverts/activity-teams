@@ -199,10 +199,8 @@ class DashboardTest extends TestCase
         $booking = $this->booking('2026-11-05 18:00:00', BookingAttendeeStatus::NeedsAction);
 
         Livewire::test(ThisWeekWidget::class)
-            ->mountAction('respond', ['booking' => $booking->id])
-            ->assertMountedActionModalSee($booking->activityTitle())
-            ->setActionData(['response' => 'no'])
-            ->callMountedAction()
+            ->assertSee(__('Respond'))
+            ->callAction('respondNo', arguments: ['booking' => (string) $booking->getKey()])
             ->assertHasNoErrors()
             ->assertDispatched('booking-attendance-updated')
             ->assertDontSee('This week');

@@ -81,10 +81,11 @@ class BookingResourceTest extends TestCase
         $this->actingAs($manager);
 
         Livewire::test(ViewBooking::class, ['record' => $booking->getRouteKey()])
-            ->assertActionVisible('respond')
+            ->assertActionVisible('respondYes')
             ->assertActionVisible('edit')
             ->assertActionHidden('delete')
-            ->assertSee(__('Manage'));
+            ->assertSee(__('Manage'))
+            ->assertSee(__('Awaiting response'));
 
         $cancelled = Booking::factory()->forTeam($team)->cancelled()->create();
 

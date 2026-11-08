@@ -684,7 +684,7 @@ class BookingStatusTest extends TestCase
             ->assertActionVisible('edit');
 
         $this->assertSame(
-            [__('Respond'), __('Manage')],
+            [__('Awaiting response'), __('Manage')],
             $this->visibleHeaderLabels($tentativeView->instance()),
         );
 
