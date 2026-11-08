@@ -8,6 +8,8 @@ use App\Enums\BookingAttendeeStatus;
 use App\Enums\MembershipRole;
 use App\Filament\Teams\Resources\Bookings\Pages\ViewBooking as TeamsViewBooking;
 use App\Filament\Teams\Resources\Members\MemberResource;
+use App\Models\ActivityAudience;
+use App\Models\Audience;
 use App\Models\Booking;
 use App\Models\User;
 use Filament\Facades\Filament;
@@ -184,7 +186,142 @@ class BookingTimelineTest extends TestCase
         Livewire::test(TeamsViewBooking::class, ['record' => $booking->getRouteKey()])
             ->assertSee('made some changes')
             ->assertSeeHtml('<ul>')
-            ->assertSeeHtml('<li><strong>start at</strong>')
-            ->assertSeeHtml('<li><strong>end at</strong>');
+            ->assertSeeHtml('<li>changed the <strong>start at</strong>')
+            ->assertSeeHtml('<li>changed the <strong>end at</strong>');
+    }
+
+    public function test_audience_changes_show_the_audience_name_not_the_id(): void
+    {
+        Filament::setCurrentPanel('teams');
+
+        $manager = User::factory()->teamManager()->create();
+        $team = $manager->managedTeams()->firstOrFail();
+
+        $this->actingAs($manager);
+
+        $booking = Booking::factory()->confirmed()->forTeam($team)->create();
+        $from = Audience::query()->findOrFail($booking->audience_id);
+        $from->forceFill(['name' => 'Beavers'])->save();
+        $to = Audience::factory()->create(['name' => 'Scouts']);
+        ActivityAudience::factory()->create([
+            'activity_id' => $booking->activity_id,
+            'audience_id' => $to->getKey(),
+        ]);
+
+        $booking->audience_id = $to->getKey();
+        $booking->save();
+
+        Livewire::test(TeamsViewBooking::class, ['record' => $booking->getRouteKey()])
+            ->assertSeeHtml('<strong>audience</strong>')
+            ->assertSee('Beavers')
+            ->assertSee('Scouts')
+            ->assertDontSee($from->getKey())
+            ->assertDontSee($to->getKey());
+    }
+
+    public function test_setting_a_blank_field_says_set_to_not_empty_field(): void
+    {
+        Filament::setCurrentPanel('teams');
+
+        $manager = User::factory()->teamManager()->create();
+        $team = $manager->managedTeams()->firstOrFail();
+        $member = User::factory()->create(['name' => 'Joe Climber']);
+        $team->grant($member, MembershipRole::Member);
+
+        $this->actingAs($manager);
+
+        $booking = Booking::factory()->confirmed()->forTeam($team)->create([
+            'lead_instructor_id' => null,
+        ]);
+        $booking->lead_instructor_id = $member->getKey();
+        $booking->save();
+
+        Livewire::test(TeamsViewBooking::class, ['record' => $booking->getRouteKey()])
+            ->assertSee('set the')
+            ->assertSee('lead instructor')
+            ->assertSee('Joe Climber')
+            ->assertDontSee('updated the lead instructor')
+            ->assertDontSee('empty field');
+    }
+
+    public function test_clearing_a_field_says_removed_not_empty_field(): void
+    {
+        Filament::setCurrentPanel('teams');
+
+        $manager = User::factory()->teamManager()->create();
+        $team = $manager->managedTeams()->firstOrFail();
+        $member = User::factory()->create(['name' => 'Joe Climber']);
+        $team->grant($member, MembershipRole::Member);
+
+        $this->actingAs($manager);
+
+        $booking = Booking::factory()->confirmed()->forTeam($team)->create([
+            'lead_instructor_id' => $member->getKey(),
+        ]);
+        $booking->lead_instructor_id = null;
+        $booking->save();
+
+        Livewire::test(TeamsViewBooking::class, ['record' => $booking->getRouteKey()])
+            ->assertSee('removed')
+            ->assertSee('Joe Climber')
+            ->assertSee('as the')
+            ->assertSee('lead instructor')
+            ->assertDontSee('empty field');
+    }
+
+    public function test_changes_without_a_causer_still_read_as_a_sentence(): void
+    {
+        Filament::setCurrentPanel('teams');
+
+        $manager = User::factory()->teamManager()->create();
+        $team = $manager->managedTeams()->firstOrFail();
+
+        $this->actingAs($manager);
+
+        $booking = Booking::factory()->confirmed()->forTeam($team)->create([
+            'lead_instructor_id' => null,
+        ]);
+
+        auth()->logout();
+
+        $booking->start_at = $booking->start_at->copy()->addHour();
+        $booking->end_at = $booking->end_at->copy()->addHour();
+        $booking->save();
+
+        $this->assertNull($booking->activities()->where('event', 'updated')->first()?->causer_id);
+
+        $this->actingAs($manager);
+
+        Livewire::test(TeamsViewBooking::class, ['record' => $booking->getRouteKey()])
+            ->assertSee('Made some changes')
+            ->assertDontSee('made some changes');
+    }
+
+    public function test_a_single_change_without_a_causer_starts_with_a_capital_letter(): void
+    {
+        Filament::setCurrentPanel('teams');
+
+        $manager = User::factory()->teamManager()->create();
+        $team = $manager->managedTeams()->firstOrFail();
+        $member = User::factory()->create(['name' => 'Joe Climber']);
+        $team->grant($member, MembershipRole::Member);
+
+        $this->actingAs($manager);
+
+        $booking = Booking::factory()->confirmed()->forTeam($team)->create([
+            'lead_instructor_id' => null,
+        ]);
+
+        auth()->logout();
+
+        $booking->lead_instructor_id = $member->getKey();
+        $booking->save();
+
+        $this->actingAs($manager);
+
+        Livewire::test(TeamsViewBooking::class, ['record' => $booking->getRouteKey()])
+            ->assertSee('Set the')
+            ->assertSee('Joe Climber')
+            ->assertDontSee('set the lead instructor');
     }
 }

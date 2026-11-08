@@ -5,6 +5,7 @@ namespace App\Providers\Filament;
 use App\Enums\BookingAttendeeStatus;
 use App\Enums\BookingStatus;
 use App\Models\Activity;
+use App\Models\Audience;
 use App\Models\Booking;
 use App\Models\Team;
 use App\Models\User;
@@ -48,11 +49,14 @@ class TimelineProvider extends ServiceProvider
                 }, Booking::class)
                 ->attributeLabels([
                     'activity_id' => __('activity'),
+                    'audience_id' => __('audience'),
                     'venue_id' => __('venue'),
                     'lead_instructor_id' => __('lead instructor'),
                     'team_id' => __('team'),
+                    'activity_label' => __('activity name'),
                 ], Booking::class)
                 ->attributeValue('activity_id', fn (mixed $value): ?string => filled($value) ? Activity::query()->find($value)?->name : null, Booking::class)
+                ->attributeValue('audience_id', fn (mixed $value): ?string => filled($value) ? Audience::query()->find($value)?->name : null, Booking::class)
                 ->attributeValue('venue_id', fn (mixed $value): ?string => filled($value) ? Venue::query()->find($value)?->name : null, Booking::class)
                 ->attributeValue('lead_instructor_id', fn (mixed $value, ActivityLog $activity, Timeline $timeline): ?string => static::linkedUser($timeline, $activity, $value, escape: false), Booking::class)
                 ->attributeValue('team_id', fn (mixed $value): ?string => filled($value) ? Team::query()->find($value)?->name : null, Booking::class)
@@ -71,13 +75,19 @@ class TimelineProvider extends ServiceProvider
                         return static::withActor($timeline, $activity, $causerName, 'noted '.$activity->description.'.', $changesSummary);
                     }
 
-                    $lines = static::changeLines($timeline, $activity);
+                    $clauses = static::changeClauses($timeline, $activity);
 
-                    if ($lines->count() < 2) {
+                    if ($clauses->isEmpty()) {
                         return null;
                     }
 
-                    $list = '<ul>'.$lines->map(fn (string $line): string => '<li>'.trim($line).'</li>')->implode('').'</ul>';
+                    if ($clauses->count() === 1) {
+                        return static::withActor($timeline, $activity, $causerName, $clauses->first().'.', escape: false);
+                    }
+
+                    $list = '<ul>'.$clauses
+                        ->map(fn (string $clause): string => '<li>'.trim((string) str($clause)->inlineMarkdown()).'</li>')
+                        ->implode('').'</ul>';
 
                     return new HtmlString(static::withActor($timeline, $activity, $causerName, 'made some changes:').$list);
                 }, Booking::class);
@@ -95,7 +105,7 @@ class TimelineProvider extends ServiceProvider
         }
 
         if (blank($causerName)) {
-            return str($update)->inlineMarkdown()->toHtmlString();
+            return str(str($update)->ucfirst())->inlineMarkdown()->toHtmlString();
         }
 
         $causerUrl = $timeline->getCauserUrl($activity, $activity->causer);
@@ -111,9 +121,11 @@ class TimelineProvider extends ServiceProvider
     }
 
     /**
+     * Markdown verb phrases for each changed attribute, e.g. "set the **audience** to **Scouts**".
+     *
      * @return Collection<int, string>
      */
-    protected static function changeLines(Timeline $timeline, ActivityLog $activity): Collection
+    protected static function changeClauses(Timeline $timeline, ActivityLog $activity): Collection
     {
         $item = new ActivityTimelineItem($activity, $timeline);
         $changes = $activity->attribute_changes;
@@ -129,7 +141,7 @@ class TimelineProvider extends ServiceProvider
         return $attributes
             ->reject(fn (mixed $value, string $key): bool => in_array($key, $ignored, true))
             ->filter(fn (mixed $value, string $key): bool => $item->parseAttributeValue($oldAttributes->get($key), $key, 'old') !== $item->parseAttributeValue($value, $key))
-            ->map(fn (mixed $value, string $key): string => (string) str(static::changeClause($timeline, $item, $key, $value, $oldAttributes->get($key)))->inlineMarkdown())
+            ->map(fn (mixed $value, string $key): string => static::changeClause($timeline, $item, $key, $value, $oldAttributes->get($key)))
             ->values();
     }
 
