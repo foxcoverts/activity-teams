@@ -49,7 +49,14 @@ final class ClimbingCatalogBootstrap
 
         $lopc = Venue::query()->firstOrCreate(
             ['name' => 'Leicester Outdoor Pursuits Centre'],
-            ['country' => 'GB'],
+            [
+                'street' => 'Loughborough Rd',
+                'city' => 'Leicester',
+                'postcode' => 'LE4 5PN',
+                'country' => 'GB',
+                'latitude' => 52.6634794,
+                'longitude' => -1.1268926,
+            ],
         );
 
         $climbingLock = Lock::query()->firstOrCreate(['name' => 'Campsite Climbing']);
