@@ -62,7 +62,14 @@ class ViewBooking extends ViewRecord
                             'highlightId' => is_string(request()->query('comment'))
                                 ? request()->query('comment')
                                 : null,
-                        ]),
+                        ])->visible(function (): bool {
+                            $booking = $this->getRecord();
+                            $viewer = auth()->user();
+
+                            return $booking instanceof Booking
+                                && $viewer instanceof User
+                                && BookingComments::shouldShowPanel($booking, $viewer);
+                        }),
                     ])
                         ->columnSpan(['default' => 1, 'lg' => 3]),
                     Group::make($sidebar)
@@ -105,7 +112,7 @@ class ViewBooking extends ViewRecord
         $managesTeam = $record->team !== null && $user->manages($record->team);
 
         if ($managesTeam) {
-            $actions[] = BookingStatusActions::group();
+            $actions[] = BookingStatusActions::group()->record($record);
         }
 
         return $actions;

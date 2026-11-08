@@ -5,6 +5,7 @@ namespace App\Filament\Bookings;
 use App\Enums\KeyHolderAttendance;
 use App\Models\Booking;
 use App\Support\BookingPeople;
+use App\Support\Palette;
 use Filament\Actions\Action;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Contracts\View\View;
@@ -20,7 +21,9 @@ class BookingKeysAction
             ->modalCancelActionLabel(__('Close'))
             ->visible(fn (Booking $record): bool => $record->requiredLocks()->isNotEmpty())
             ->icon(fn (Booking $record): Heroicon => self::attendance($record)->getIcon())
-            ->color(fn (Booking $record): array => self::attendance($record)->getColor())
+            ->color(fn (Booking $record): array => $record->isPast()
+                ? Palette::neutral()
+                : self::attendance($record)->getColor())
             ->tooltip(fn (Booking $record): string => self::attendance($record)->getLabel())
             ->modalContent(fn (Booking $record): View => view('filament.bookings.keys-host', [
                 'booking' => $record,

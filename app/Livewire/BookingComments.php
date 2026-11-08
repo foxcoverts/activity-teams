@@ -124,13 +124,26 @@ class BookingComments extends Component
         $this->showOlder = true;
     }
 
+    /**
+     * Whether the comments block should occupy layout on a booking view.
+     * Used by the Filament schema so an empty panel does not leave a gap.
+     */
+    public static function shouldShowPanel(Booking $booking, User $viewer): bool
+    {
+        if ($viewer->can('create', [Comment::class, $booking])) {
+            return true;
+        }
+
+        return static::visibleCommentsFor($booking, $viewer)->isNotEmpty();
+    }
+
     public function render(): View
     {
         $booking = $this->currentBooking();
         $viewer = $this->viewer();
         abort_unless($viewer?->can('view', $booking) ?? false, 403);
 
-        $comments = $this->visibleComments($booking, $viewer);
+        $comments = static::visibleCommentsFor($booking, $viewer);
         $target = $this->target($comments);
         $older = collect();
         $visible = $comments;
@@ -164,7 +177,7 @@ class BookingComments extends Component
     /**
      * @return Collection<int, Comment>
      */
-    private function visibleComments(Booking $booking, User $viewer): Collection
+    public static function visibleCommentsFor(Booking $booking, User $viewer): Collection
     {
         return $booking->comments()
             ->withTrashed()

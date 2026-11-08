@@ -8,6 +8,7 @@ use App\Filament\Teams\Resources\Bookings\Actions\EditAction;
 use App\Filament\Teams\Resources\Bookings\Schemas\BookingForm;
 use App\Models\Booking;
 use App\Models\User;
+use App\Support\Palette;
 use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
 use Filament\Actions\DeleteAction;
@@ -33,7 +34,8 @@ class BookingStatusActions
         return ActionGroup::make($actions)
             ->label(__('Manage'))
             ->icon(Heroicon::OutlinedCog6Tooth)
-            ->button();
+            ->button()
+            ->color(fn (?Booking $record): ?array => $record?->isPast() ? Palette::neutral() : null);
     }
 
     /**

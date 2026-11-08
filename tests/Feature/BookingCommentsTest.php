@@ -602,6 +602,30 @@ class BookingCommentsTest extends TestCase
             ->assertDontSee('Add a comment...');
     }
 
+    public function test_a_past_booking_without_comments_does_not_leave_a_comments_slot_on_the_view(): void
+    {
+        $manager = User::factory()->teamManager()->create();
+        $team = $manager->managedTeams()->firstOrFail();
+        $member = User::factory()->create();
+        $team->grant($member, MembershipRole::Member);
+        $past = Booking::factory()->confirmed()->forTeam($team)->create([
+            'start_at' => now()->subDays(3),
+            'end_at' => now()->subDays(3)->addHours(2),
+        ]);
+        $past->attendees()->attach($member->id, ['status' => BookingAttendeeStatus::Accepted->value]);
+
+        $this->assertFalse(BookingComments::shouldShowPanel($past, $member));
+
+        $this->actingAs($member);
+        Filament::setCurrentPanel('teams');
+        Filament::setTenant($team);
+
+        Livewire::test(TeamsViewBooking::class, ['record' => $past->getRouteKey()])
+            ->assertSee('Recent activity')
+            ->assertDontSeeLivewire(BookingComments::class)
+            ->assertDontSee('Comments');
+    }
+
     public function test_comments_render_filament_user_avatars_from_gravatar(): void
     {
         [, $member, $booking] = $this->party();

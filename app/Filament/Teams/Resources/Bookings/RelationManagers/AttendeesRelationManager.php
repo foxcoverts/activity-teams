@@ -13,6 +13,7 @@ use App\Models\BookingAttendance;
 use App\Models\User;
 use App\Support\BookingGuestList;
 use App\Support\BookingPeople;
+use App\Support\Palette;
 use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
 use Filament\Actions\BulkActionGroup;
@@ -148,6 +149,7 @@ class AttendeesRelationManager extends RelationManager
                     ->tooltip(__('People'))
                     ->icon(Heroicon::OutlinedUserPlus)
                     ->button()
+                    ->color(fn (): ?array => $this->booking()->isPast() ? Palette::neutral() : null)
                     ->visible(fn (): bool => $this->canManageBooking()
                         && ($this->booking()->acceptsInvites()
                             || (! $this->booking()->isCancelled()

@@ -7,9 +7,12 @@ use App\Filament\Bookings\LocationMapAction;
 use App\Models\Booking;
 use App\Models\User;
 use App\Support\BookingWhen;
+use App\Support\Palette;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Text;
 use Filament\Schemas\Schema;
+use Filament\Support\Enums\Size;
 use Filament\Support\Icons\Heroicon;
 
 class BookingInfolist
@@ -26,7 +29,12 @@ class BookingInfolist
                 'status' => $record?->status->getLabel() ?? __('Booking'),
             ]))
                 ->icon(fn (?Booking $record): Heroicon => ($record?->status ?? BookingStatus::Tentative)->getIcon())
-                ->iconColor(fn (?Booking $record): array => ($record?->status ?? BookingStatus::Tentative)->getColor())
+                ->iconColor(fn (?Booking $record): array => $record?->isPast()
+                    ? Palette::neutral()
+                    : ($record?->status ?? BookingStatus::Tentative)->getColor())
+                ->afterHeader([
+                    static::endedBadge(),
+                ])
                 ->columns(1)
                 ->columnSpanFull()
                 ->schema([
@@ -80,5 +88,14 @@ class BookingInfolist
                         ->columnSpanFull(),
                 ]),
         ];
+    }
+
+    protected static function endedBadge(): Text
+    {
+        return Text::make(__('Ended'))
+            ->badge()
+            ->size(Size::Small)
+            ->color(Palette::neutral())
+            ->visible(fn (?Booking $record): bool => $record?->isPast() ?? false);
     }
 }

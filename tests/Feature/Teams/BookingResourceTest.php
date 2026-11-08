@@ -6,8 +6,12 @@ use App\Filament\Member\Resources\Bookings\BookingResource as MemberBookingResou
 use App\Filament\Teams\Resources\Bookings\BookingResource;
 use App\Filament\Teams\Resources\Bookings\Pages\ListBookings;
 use App\Filament\Teams\Resources\Bookings\Pages\ViewBooking;
+use App\Filament\Teams\Resources\Bookings\RelationManagers\AttendeesRelationManager;
 use App\Models\Booking;
+use App\Models\Lock;
 use App\Models\User;
+use App\Support\Palette;
+use Filament\Actions\ActionGroup;
 use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
@@ -95,6 +99,71 @@ class BookingResourceTest extends TestCase
             ->assertSee(__('Manage'))
             ->assertActionVisible('restoreBooking')
             ->assertActionVisible('delete');
+    }
+
+    public function test_a_past_booking_shows_an_ended_badge_and_mutes_heading_and_header_actions(): void
+    {
+        $manager = User::factory()->teamManager()->create();
+        $team = $manager->managedTeams()->firstOrFail();
+        $upcoming = Booking::factory()->forTeam($team)->confirmed()->create([
+            'start_at' => now()->addDay(),
+            'end_at' => now()->addDay()->addHours(2),
+        ]);
+        $past = Booking::factory()->forTeam($team)->confirmed()->create([
+            'start_at' => now()->subDays(2),
+            'end_at' => now()->subDays(2)->addHours(2),
+        ]);
+        $store = Lock::factory()->create(['name' => 'Climbing store']);
+        foreach ([$upcoming, $past] as $booking) {
+            $store->requirements()->firstOrCreate([
+                'activity_id' => $booking->activity_id,
+                'venue_id' => $booking->venue_id,
+            ]);
+        }
+
+        $this->actingAs($manager);
+
+        $positive = Palette::positive()[600];
+        $neutral = Palette::neutral();
+
+        $upcomingPage = Livewire::test(ViewBooking::class, ['record' => $upcoming->getRouteKey()])
+            ->assertSee('Confirmed booking')
+            ->assertDontSee('Ended')
+            ->assertSeeHtml($positive)
+            ->assertActionVisible('keys');
+
+        $this->assertSame(
+            Palette::uncertain(),
+            $upcomingPage->instance()->getAction('keys')->getColor(),
+        );
+
+        $pastPage = Livewire::test(ViewBooking::class, ['record' => $past->getRouteKey()])
+            ->assertSee('Confirmed booking')
+            ->assertSee('Ended')
+            ->assertSeeHtml($neutral[600])
+            ->assertActionVisible('keys')
+            ->assertSee(__('Manage'));
+
+        $this->assertSame($neutral, $pastPage->instance()->getAction('keys')->getColor());
+
+        $manage = collect($pastPage->instance()->getCachedHeaderActions())
+            ->first(fn (mixed $action): bool => $action instanceof ActionGroup
+                && $action->getLabel() === __('Manage'));
+
+        $this->assertNotNull($manage);
+        $this->assertSame($neutral, $manage->getColor());
+
+        $guests = Livewire::test(AttendeesRelationManager::class, [
+            'ownerRecord' => $past,
+            'pageClass' => ViewBooking::class,
+        ]);
+
+        $people = collect($guests->instance()->getTable()->getHeaderActions())
+            ->first(fn (mixed $action): bool => $action instanceof ActionGroup
+                && $action->getLabel() === __('People'));
+
+        $this->assertNotNull($people);
+        $this->assertSame($neutral, $people->getColor());
     }
 
     public function test_a_teams_booking_view_still_shows_the_public_summary_to_guests(): void
