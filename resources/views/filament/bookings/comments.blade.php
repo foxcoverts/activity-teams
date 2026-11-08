@@ -96,7 +96,11 @@
                                 </button>
                             </form>
                         @else
-                            <p class="comment-body">{!! nl2br(e($row['body'])) !!}</p>
+                            <p class="comment-body">{!! str($row['body'])->inlineMarkdown([
+                                'html_input' => 'strip',
+                                'allow_unsafe_links' => false,
+                                'renderer' => ['soft_break' => "<br />\n"],
+                            ]) !!}</p>
                         @endif
                     </div>
                 </div>

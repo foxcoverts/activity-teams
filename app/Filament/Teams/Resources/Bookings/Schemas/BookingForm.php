@@ -17,8 +17,8 @@ use Filament\Actions\Action;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Hidden;
+use Filament\Forms\Components\MarkdownEditor;
 use Filament\Forms\Components\Select;
-use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\TimePicker;
 use Filament\Forms\Components\Toggle;
@@ -259,10 +259,10 @@ class BookingForm
             ...VenueLocationSchema::components(
                 visible: fn (Get $get): bool => $get('venue_id') === self::OTHER_VENUE,
             ),
-            Textarea::make('notes')
+            MarkdownEditor::make('notes')
                 ->label(__('Team notes'))
                 ->columnSpanFull(),
-            Textarea::make('lead_instructor_notes')
+            MarkdownEditor::make('lead_instructor_notes')
                 ->helperText('These notes will be visible to the Lead instructor. You can use these to share access arrangements, gate codes, etc.')
                 ->visible(fn (Get $get): bool => (bool) ($get('requires_lead_instructor') ?? true))
                 ->columnSpanFull(),

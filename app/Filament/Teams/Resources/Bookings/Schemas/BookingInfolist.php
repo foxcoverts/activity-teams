@@ -65,17 +65,19 @@ class BookingInfolist
                             : null),
                     TextEntry::make('audience.name')
                         ->label(__('Audience'))
-                        ->placeholder('-'),
+                        ->visible(fn (Booking $record): bool => filled($record->audience?->name)),
                     TextEntry::make('group_name')
                         ->label(__('Group'))
-                        ->placeholder('-')
+                        ->visible(fn (Booking $record): bool => filled($record->group_name))
                         ->columnSpanFull(),
                     TextEntry::make('notes')
                         ->label(__('Notes'))
+                        ->markdown()
                         ->visible(fn (Booking $record): bool => filled($record->notes))
                         ->columnSpanFull(),
                     TextEntry::make('lead_instructor_notes')
                         ->label(__('Lead instructor notes'))
+                        ->markdown()
                         ->visible(function (Booking $record): bool {
                             $user = auth()->user();
                             $record->loadMissing('team');

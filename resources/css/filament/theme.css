@@ -208,6 +208,10 @@
     @apply mt-1 text-sm text-gray-950 dark:text-white;
 }
 
+.comment-body a {
+    @apply text-primary-600 underline underline-offset-4 dark:text-primary-400;
+}
+
 .comment-compose {
     @apply mt-1 flex min-w-0 items-start gap-3;
 }

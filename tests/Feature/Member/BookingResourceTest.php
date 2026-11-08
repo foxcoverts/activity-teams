@@ -91,18 +91,47 @@ class BookingResourceTest extends TestCase
             ->assertSee('Lead instructor notes');
     }
 
-    public function test_empty_notes_fields_are_hidden_on_the_booking_view(): void
+    public function test_empty_optional_booking_fields_are_hidden_on_the_view(): void
     {
         $manager = User::factory()->teamManager()->create();
         $team = $manager->managedTeams()->firstOrFail();
-        $booking = Booking::factory()->forTeam($team)->confirmed()->create(['notes' => null, 'lead_instructor_notes' => null]);
+        $booking = Booking::factory()->forTeam($team)->confirmed()->create([
+            'notes' => null,
+            'lead_instructor_notes' => null,
+        ]);
+        $booking->forceFill([
+            'audience_id' => null,
+            'group_name' => null,
+        ])->saveQuietly();
 
         Filament::setCurrentPanel('teams');
         $this->actingAs($manager);
 
         Livewire::test(ViewBooking::class, ['record' => $booking->getKey()])
+            ->assertDontSeeHtml('>Audience</')
+            ->assertDontSeeHtml('>Group</')
             ->assertDontSee('Lead instructor notes')
-            ->assertDontSee('Notes');
+            ->assertDontSeeHtml('>Notes</');
+    }
+
+    public function test_booking_notes_render_as_markdown_on_the_view(): void
+    {
+        $manager = User::factory()->teamManager()->create();
+        $team = $manager->managedTeams()->firstOrFail();
+        $booking = Booking::factory()->forTeam($team)->confirmed()->create([
+            'notes' => "Meet at the **wall**.\n\n- Bring shoes",
+            'lead_instructor_notes' => 'Gate code **1234**',
+            'lead_instructor_id' => $manager->getKey(),
+        ]);
+
+        Filament::setCurrentPanel('teams');
+        $this->actingAs($manager);
+
+        Livewire::test(ViewBooking::class, ['record' => $booking->getKey()])
+            ->assertSuccessful()
+            ->assertSeeHtml('<strong>wall</strong>')
+            ->assertSeeHtml('<li>Bring shoes</li>')
+            ->assertSeeHtml('<strong>1234</strong>');
     }
 
     public function test_the_guest_list_refreshes_when_attendance_changes(): void
