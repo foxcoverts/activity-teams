@@ -21,7 +21,12 @@ class ClearLeadInstructorAction
 
         $booking->lead_instructor_id = null;
 
-        if (! $booking->isPast() && ! $booking->isCancelled() && $booking->isConfirmed()) {
+        if (
+            $booking->requires_lead_instructor
+            && ! $booking->isPast()
+            && ! $booking->isCancelled()
+            && $booking->isConfirmed()
+        ) {
             $booking->status = BookingStatus::Tentative;
         }
 

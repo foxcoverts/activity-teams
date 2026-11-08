@@ -63,7 +63,7 @@ class UpdateBookingStatusAction
     /**
      * @param  array<string, mixed>  $details
      */
-    public function confirm(Booking $booking, User $actor, string $leadId, array $details): void
+    public function confirm(Booking $booking, User $actor, ?string $leadId, array $details): void
     {
         if (! $booking->isTentative()) {
             throw ValidationException::withMessages([
@@ -72,11 +72,28 @@ class UpdateBookingStatusAction
         }
 
         $booking->fill(Arr::except($details, ['private_venue']));
-        $booking->lead_instructor_id = $leadId;
-        $booking->status = BookingStatus::Confirmed;
-        $this->assertAttending($booking, $leadId);
 
-        $details['lead_instructor_id'] = $leadId;
+        $requiresLead = (bool) ($details['requires_lead_instructor'] ?? $booking->requires_lead_instructor);
+
+        if ($requiresLead) {
+            if (blank($leadId)) {
+                throw ValidationException::withMessages([
+                    'lead_instructor_id' => __('A lead instructor must be attending.'),
+                ]);
+            }
+
+            $booking->lead_instructor_id = $leadId;
+            $booking->requires_lead_instructor = true;
+            $this->assertAttending($booking, $leadId);
+            $details['lead_instructor_id'] = $leadId;
+        } else {
+            $booking->lead_instructor_id = null;
+            $booking->requires_lead_instructor = false;
+            $details['lead_instructor_id'] = null;
+            $details['requires_lead_instructor'] = false;
+        }
+
+        $booking->status = BookingStatus::Confirmed;
         $details['status'] = BookingStatus::Confirmed;
         $this->saveBookingDetails->update($booking, $details);
 

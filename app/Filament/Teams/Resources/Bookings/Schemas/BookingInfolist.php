@@ -80,7 +80,8 @@ class BookingInfolist
                             $user = auth()->user();
                             $record->loadMissing('team');
 
-                            return filled($record->lead_instructor_notes)
+                            return $record->requires_lead_instructor
+                                && filled($record->lead_instructor_notes)
                                 && $user instanceof User
                                 && $record->team !== null
                                 && ($record->isLead($user) || $user->manages($record->team));

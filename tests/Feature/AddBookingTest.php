@@ -30,6 +30,7 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Queue;
+use Illuminate\Validation\ValidationException;
 use Livewire\Livewire;
 use Tests\TestCase;
 
@@ -266,6 +267,68 @@ class AddBookingTest extends TestCase
 
         Livewire::test(EditBooking::class, ['record' => $booking->getRouteKey()])
             ->assertFormFieldVisible('activity_label');
+    }
+
+    public function test_catalog_activity_that_requires_a_label_always_shows_required_activity_name(): void
+    {
+        $manager = User::factory()->teamManager()->create();
+        $activity = Activity::factory()->requiresActivityLabel()->create(['name' => 'Climbing Access']);
+        $venue = Venue::factory()->create();
+        $audienceId = $this->offerAudience($activity);
+
+        $this->actingAs($manager);
+
+        Livewire::test(CreateBooking::class)
+            ->fillForm([
+                'activity_id' => $activity->getKey(),
+            ])
+            ->assertFormFieldVisible('activity_label')
+            ->assertFormComponentActionHidden('activity_id', 'showAs')
+            ->fillForm([
+                'activity_id' => $activity->getKey(),
+                'audience_id' => $audienceId,
+                'venue_id' => $venue->getKey(),
+                'start_date' => '2026-10-24',
+                'start_time' => '09:30',
+                'end_time' => '11:30',
+                'timezone' => 'Europe/London',
+            ])
+            ->call('create')
+            ->assertHasFormErrors(['activity_label']);
+
+        Livewire::test(CreateBooking::class)
+            ->fillForm([
+                'activity_id' => $activity->getKey(),
+                'audience_id' => $audienceId,
+                'activity_label' => 'Tower Inspection',
+                'venue_id' => $venue->getKey(),
+                'start_date' => '2026-10-24',
+                'start_time' => '09:30',
+                'end_time' => '11:30',
+                'timezone' => 'Europe/London',
+            ])
+            ->call('create')
+            ->assertHasNoFormErrors();
+
+        $booking = Booking::query()->firstOrFail();
+
+        $this->assertTrue($booking->activity->is($activity));
+        $this->assertSame('Tower Inspection', $booking->activityTitle());
+        $this->assertSame($audienceId, $booking->audience_id);
+    }
+
+    public function test_catalog_activity_that_requires_a_label_is_refused_without_one_on_the_model(): void
+    {
+        $activity = Activity::factory()->requiresActivityLabel()->create(['name' => 'Climbing Access']);
+        $booking = Booking::factory()->create([
+            'activity_id' => $activity->getKey(),
+            'activity_label' => 'Kit Checks',
+        ]);
+
+        $this->expectException(ValidationException::class);
+
+        $booking->activity_label = null;
+        $booking->save();
     }
 
     public function test_editing_a_private_venue_updates_booking_sequence_and_notifies_attendees(): void

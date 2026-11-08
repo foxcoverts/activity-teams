@@ -302,6 +302,86 @@ class BookingStatusTest extends TestCase
         $this->assertSame($lead->id, $booking->lead_instructor_id);
     }
 
+    public function test_confirm_without_a_lead_succeeds_when_lead_is_not_required(): void
+    {
+        Queue::fake();
+        Mail::fake();
+
+        $manager = User::factory()->teamManager()->create();
+        $booking = Booking::factory()->create([
+            'requires_lead_instructor' => false,
+            'notes' => 'Hosted by District.',
+        ]);
+
+        $this->actingAs($manager);
+
+        Livewire::test(EditBooking::class, ['record' => $booking->getRouteKey()])
+            ->assertActionEnabled('confirmBooking')
+            ->assertActionHidden('changeLead')
+            ->callAction('confirmBooking', data: [
+                'requires_lead_instructor' => false,
+            ]);
+
+        $booking->refresh();
+
+        $this->assertSame(BookingStatus::Confirmed, $booking->status);
+        $this->assertNull($booking->lead_instructor_id);
+        $this->assertFalse($booking->requires_lead_instructor);
+    }
+
+    public function test_turning_lead_requirement_back_on_returns_a_confirmed_booking_to_tentative(): void
+    {
+        $manager = User::factory()->teamManager()->create();
+        $booking = Booking::factory()->confirmed()->create([
+            'requires_lead_instructor' => false,
+            'lead_instructor_id' => null,
+        ]);
+
+        $this->actingAs($manager);
+
+        $booking->requires_lead_instructor = true;
+        $booking->save();
+
+        $this->assertSame(BookingStatus::Tentative, $booking->fresh()->status);
+        $this->assertTrue($booking->fresh()->requires_lead_instructor);
+    }
+
+    public function test_turning_lead_requirement_off_clears_the_assigned_lead(): void
+    {
+        $manager = User::factory()->teamManager()->create();
+        $lead = User::factory()->create();
+        $booking = Booking::factory()->confirmed()->create();
+        $this->attend($booking, $lead, BookingAttendeeStatus::Accepted);
+        $booking->lead_instructor_id = $lead->getKey();
+        $booking->save();
+
+        $this->actingAs($manager);
+
+        $booking->requires_lead_instructor = false;
+        $booking->save();
+
+        $booking->refresh();
+
+        $this->assertFalse($booking->requires_lead_instructor);
+        $this->assertNull($booking->lead_instructor_id);
+        $this->assertSame(BookingStatus::Confirmed, $booking->status);
+    }
+
+    public function test_settings_section_exposes_require_lead_instructor_on_the_booking_form(): void
+    {
+        $manager = User::factory()->teamManager()->create();
+        Activity::factory()->create();
+        Venue::factory()->create();
+
+        $this->actingAs($manager);
+
+        Livewire::test(CreateBooking::class)
+            ->assertFormFieldExists('requires_lead_instructor')
+            ->assertFormSet([
+                'requires_lead_instructor' => true,
+            ]);
+    }
+
     public function test_cancelling_requires_a_reason_and_notifies_everyone_who_has_not_declined(): void
     {
         $manager = User::factory()->teamManager()->create(['name' => 'Alex Leader']);

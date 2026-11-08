@@ -47,10 +47,12 @@ class Booking extends Model implements Commentable
         'notes',
         'lead_instructor_id',
         'lead_instructor_notes',
+        'requires_lead_instructor',
     ];
 
     protected $attributes = [
         'status' => BookingStatus::Tentative->value,
+        'requires_lead_instructor' => true,
     ];
 
     public ?string $cancellationReason = null;
@@ -65,6 +67,7 @@ class Booking extends Model implements Commentable
             'status' => BookingStatus::class,
             'sequence' => AsSequence::class,
             'timezone' => AsTimezone::class,
+            'requires_lead_instructor' => 'boolean',
         ];
     }
 
@@ -119,6 +122,27 @@ class Booking extends Model implements Commentable
                     throw ValidationException::withMessages([
                         'audience_id' => __('Choose an audience this activity offers.'),
                     ]);
+                }
+            }
+
+            if (
+                filled($booking->activity_id)
+                && blank($booking->activity_label)
+                && Activity::query()
+                    ->whereKey($booking->activity_id)
+                    ->where('requires_activity_label', true)
+                    ->exists()
+            ) {
+                throw ValidationException::withMessages([
+                    'activity_label' => __('Enter an activity name.'),
+                ]);
+            }
+
+            if ($booking->isDirty('requires_lead_instructor')) {
+                if (! $booking->requires_lead_instructor) {
+                    $booking->lead_instructor_id = null;
+                } elseif ($booking->isConfirmed() && blank($booking->lead_instructor_id)) {
+                    $booking->status = BookingStatus::Tentative;
                 }
             }
 

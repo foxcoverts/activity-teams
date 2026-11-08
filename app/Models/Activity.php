@@ -20,7 +20,19 @@ class Activity extends Model
     protected $fillable = [
         'name',
         'description',
+        'requires_activity_label',
     ];
+
+    protected $attributes = [
+        'requires_activity_label' => false,
+    ];
+
+    protected function casts(): array
+    {
+        return [
+            'requires_activity_label' => 'boolean',
+        ];
+    }
 
     protected static function booted(): void
     {

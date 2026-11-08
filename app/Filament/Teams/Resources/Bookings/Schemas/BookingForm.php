@@ -21,6 +21,7 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\TimePicker;
+use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Components\FusedGroup;
 use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
@@ -93,6 +94,7 @@ class BookingForm
                         ->tooltip(__('Use a different name for this booking.'))
                         ->visible(fn (Get $get): bool => static::teamHasCatalogActivities()
                             && $get('activity_id') !== self::OTHER_ACTIVITY
+                            && ! static::activityRequiresLabel(is_string($get('activity_id')) ? $get('activity_id') : null)
                             && ! $get('show_activity_label'))
                         ->action(fn (Set $set) => $set('show_activity_label', true)),
                 ),
@@ -114,9 +116,11 @@ class BookingForm
                 ->live(onBlur: true)
                 ->visible(fn (Get $get): bool => ! static::teamHasCatalogActivities()
                     || $get('activity_id') === self::OTHER_ACTIVITY
+                    || static::activityRequiresLabel(is_string($get('activity_id')) ? $get('activity_id') : null)
                     || (bool) $get('show_activity_label'))
                 ->required(fn (Get $get): bool => ! static::teamHasCatalogActivities()
-                    || $get('activity_id') === self::OTHER_ACTIVITY),
+                    || $get('activity_id') === self::OTHER_ACTIVITY
+                    || static::activityRequiresLabel(is_string($get('activity_id')) ? $get('activity_id') : null)),
             Select::make('audience_id')
                 ->label(__('Audience'))
                 ->options(fn (Get $get): array => static::audienceOptions(is_string($get('activity_id')) ? $get('activity_id') : null))
@@ -260,8 +264,33 @@ class BookingForm
                 ->columnSpanFull(),
             Textarea::make('lead_instructor_notes')
                 ->helperText('These notes will be visible to the Lead instructor. You can use these to share access arrangements, gate codes, etc.')
+                ->visible(fn (Get $get): bool => (bool) ($get('requires_lead_instructor') ?? true))
                 ->columnSpanFull(),
+            Section::make(__('Settings'))
+                ->icon(Heroicon::OutlinedCog6Tooth)
+                ->collapsed()
+                ->columns(1)
+                ->columnSpanFull()
+                ->schema([
+                    Toggle::make('requires_lead_instructor')
+                        ->label(__('Require lead instructor'))
+                        ->helperText(__('Turn off for events led by someone outside the team. Record the organiser in the notes if needed.'))
+                        ->default(true)
+                        ->live(),
+                ]),
         ];
+    }
+
+    public static function activityRequiresLabel(?string $activityId): bool
+    {
+        if ($activityId === null || $activityId === self::OTHER_ACTIVITY) {
+            return false;
+        }
+
+        return (bool) Activity::query()
+            ->whereKey($activityId)
+            ->where('requires_activity_label', true)
+            ->exists();
     }
 
     public static function teamOptions(string $relation): array

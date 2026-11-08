@@ -59,8 +59,11 @@ class BookingStatusActions
             ->icon(BookingStatus::Confirmed->getIcon())
             ->color(BookingStatus::Confirmed->getColor())
             ->visible(fn (Booking $record): bool => $record->isTentative())
-            ->disabled(fn (Booking $record): bool => self::leadUnavailableReason($record) !== null)
-            ->tooltip(fn (Booking $record): ?string => self::leadUnavailableReason($record))
+            ->disabled(fn (Booking $record): bool => $record->requires_lead_instructor
+                && self::leadUnavailableReason($record) !== null)
+            ->tooltip(fn (Booking $record): ?string => $record->requires_lead_instructor
+                ? self::leadUnavailableReason($record)
+                : null)
             ->authorize(fn (Booking $record): bool => self::canUpdate($record))
             ->slideOver()
             ->modalWidth(Width::ScreenLarge)
@@ -73,11 +76,13 @@ class BookingStatusActions
                 Select::make('lead_instructor_id')
                     ->label(__('Lead instructor'))
                     ->options(fn (Booking $record): array => $record->leadOptions())
-                    ->required(),
+                    ->visible(fn (Get $get): bool => (bool) ($get('requires_lead_instructor') ?? true))
+                    ->required(fn (Get $get): bool => (bool) ($get('requires_lead_instructor') ?? true)),
                 ...BookingForm::detailComponents(),
             ])
             ->action(function (Booking $record, array $data, Action $action): void {
-                $leadId = (string) $data['lead_instructor_id'];
+                $requiresLead = (bool) ($data['requires_lead_instructor'] ?? true);
+                $leadId = $requiresLead ? (string) ($data['lead_instructor_id'] ?? '') : null;
                 unset($data['lead_instructor_id']);
 
                 app(UpdateBookingStatusAction::class)->confirm(
@@ -157,7 +162,8 @@ class BookingStatusActions
         return Action::make('changeLead')
             ->label(__('Change lead'))
             ->icon(Heroicon::OutlinedUser)
-            ->visible(fn (Booking $record): bool => $record->isTentative() || $record->isConfirmed())
+            ->visible(fn (Booking $record): bool => $record->requires_lead_instructor
+                && ($record->isTentative() || $record->isConfirmed()))
             ->disabled(fn (Booking $record): bool => $record->lead_instructor_id === null && self::leadUnavailableReason($record) !== null)
             ->tooltip(fn (Booking $record): ?string => $record->lead_instructor_id === null
                 ? self::leadUnavailableReason($record)
@@ -214,6 +220,7 @@ class BookingStatusActions
             'group_name' => $record->group_name,
             'notes' => $record->notes,
             'lead_instructor_notes' => $record->lead_instructor_notes,
+            'requires_lead_instructor' => $record->requires_lead_instructor,
         ], $record);
     }
 

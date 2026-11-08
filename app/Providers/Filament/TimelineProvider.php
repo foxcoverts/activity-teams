@@ -58,6 +58,7 @@ class TimelineProvider extends ServiceProvider
                     'audience_id' => __('audience'),
                     'venue_id' => __('venue'),
                     'lead_instructor_id' => __('lead instructor'),
+                    'requires_lead_instructor' => __('require lead instructor'),
                     'team_id' => __('team'),
                     'activity_label' => __('activity name'),
                 ], Booking::class)

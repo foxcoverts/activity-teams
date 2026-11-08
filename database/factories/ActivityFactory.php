@@ -19,7 +19,15 @@ class ActivityFactory extends Factory
         return [
             'name' => Str::title($name),
             'description' => fake()->optional()->sentence(),
+            'requires_activity_label' => false,
         ];
+    }
+
+    public function requiresActivityLabel(): static
+    {
+        return $this->state(fn (): array => [
+            'requires_activity_label' => true,
+        ]);
     }
 
     public function configure(): static

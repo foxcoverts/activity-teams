@@ -17,6 +17,7 @@ use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
@@ -57,6 +58,10 @@ class ActivityResource extends Resource
                             ->required(),
                         Textarea::make('description')
                             ->columnSpanFull(),
+                        Toggle::make('requires_activity_label')
+                            ->label(__('Require activity name on bookings'))
+                            ->helperText(__('Use when the catalog name is only for keys and staffing. Each booking must then give a proper activity name.'))
+                            ->default(false),
                     ]),
             ]);
     }
