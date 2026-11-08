@@ -31,7 +31,9 @@ class TeamResourceTest extends TestCase
         $this->actingAs($admin);
 
         Livewire::test(ListTeams::class)
-            ->assertCanSeeTableRecords([$archery, $climbing, $zebra], inOrder: true);
+            ->assertCanSeeTableRecords([$archery, $climbing, $zebra], inOrder: true)
+            ->sortTable('name', 'desc')
+            ->assertCanSeeTableRecords([$zebra, $climbing, $archery], inOrder: true);
     }
 
     public function test_the_manager_filter_lists_only_active_managers(): void

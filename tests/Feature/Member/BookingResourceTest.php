@@ -43,7 +43,9 @@ class BookingResourceTest extends TestCase
         $this->actingAs($member);
 
         Livewire::test(ListBookings::class)
-            ->assertCanSeeTableRecords([$sooner, $later], inOrder: true);
+            ->assertCanSeeTableRecords([$sooner, $later], inOrder: true)
+            ->sortTable('start_at', 'desc')
+            ->assertCanSeeTableRecords([$later, $sooner], inOrder: true);
     }
 
     public function test_the_team_filter_only_offers_the_members_teams_and_filters_bookings(): void

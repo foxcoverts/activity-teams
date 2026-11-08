@@ -32,6 +32,8 @@ class InboundMailResourceTest extends TestCase
         $this->actingAs($admin);
 
         Livewire::test(ListInboundMails::class)
-            ->assertCanSeeTableRecords([$newer, $older], inOrder: true);
+            ->assertCanSeeTableRecords([$newer, $older], inOrder: true)
+            ->sortTable('created_at', 'asc')
+            ->assertCanSeeTableRecords([$older, $newer], inOrder: true);
     }
 }

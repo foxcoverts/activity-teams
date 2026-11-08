@@ -41,7 +41,9 @@ class BookingResourceTest extends TestCase
 
         Livewire::test(ListBookings::class)
             ->assertSet('activeTab', 'upcoming')
-            ->assertCanSeeTableRecords([$sooner, $later], inOrder: true);
+            ->assertCanSeeTableRecords([$sooner, $later], inOrder: true)
+            ->sortTable('start_at', 'desc')
+            ->assertCanSeeTableRecords([$later, $sooner], inOrder: true);
     }
 
     public function test_the_upcoming_tab_hides_past_bookings_and_history_shows_only_past(): void

@@ -34,6 +34,8 @@ class QualificationResourceTest extends TestCase
         $this->actingAs($member);
 
         Livewire::test(ListQualifications::class)
-            ->assertCanSeeTableRecords([$sooner, $later], inOrder: true);
+            ->assertCanSeeTableRecords([$sooner, $later], inOrder: true)
+            ->sortTable('expires_on', 'desc')
+            ->assertCanSeeTableRecords([$later, $sooner], inOrder: true);
     }
 }

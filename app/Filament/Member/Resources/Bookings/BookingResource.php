@@ -51,8 +51,7 @@ class BookingResource extends Resource
     {
         return parent::getEloquentQuery()
             ->with(['activity', 'audience', 'team', 'venue', 'attendees'])
-            ->forUser(auth()->user())
-            ->ordered();
+            ->forUser(auth()->user());
     }
 
     public static function viewUrl(Booking $booking): string

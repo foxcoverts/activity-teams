@@ -53,8 +53,7 @@ class BookingResource extends Resource
                 $user instanceof User,
                 fn (Builder $query): Builder => $query->forUser($user),
                 fn (Builder $query): Builder => $query->whereRaw('0 = 1'),
-            )
-            ->ordered();
+            );
     }
 
     public static function form(Schema $schema): Schema

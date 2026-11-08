@@ -599,6 +599,44 @@ class NewsPostsTest extends TestCase
         );
     }
 
+    public function test_the_team_news_list_shows_the_newest_post_first(): void
+    {
+        $manager = User::factory()->teamManager()->create();
+        $team = $manager->managedTeams()->firstOrFail();
+        NewsPost::factory()->forTeam($team)->published()->create([
+            'title' => 'Older post',
+            'published_at' => now()->subDays(2),
+        ]);
+        NewsPost::factory()->forTeam($team)->published()->create([
+            'title' => 'Newer post',
+            'published_at' => now()->subHour(),
+        ]);
+
+        $this->actingAs($manager);
+
+        Livewire::test(ListNewsPosts::class)
+            ->assertSeeInOrder(['Newer post', 'Older post']);
+    }
+
+    public function test_the_member_news_list_shows_the_newest_post_first(): void
+    {
+        [, $team, $member] = $this->newsActors();
+        NewsPost::factory()->forTeam($team)->published()->create([
+            'title' => 'Older post',
+            'published_at' => now()->subDays(2),
+        ]);
+        NewsPost::factory()->forTeam($team)->published()->create([
+            'title' => 'Newer post',
+            'published_at' => now()->subHour(),
+        ]);
+
+        Filament::setCurrentPanel('member');
+        $this->actingAs($member);
+
+        Livewire::test(MemberListNewsPosts::class)
+            ->assertSeeInOrder(['Newer post', 'Older post']);
+    }
+
     public function test_atom_feed_lists_posts_newest_first(): void
     {
         [$manager, $team, $member] = $this->newsActors();

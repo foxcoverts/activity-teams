@@ -31,6 +31,8 @@ class AudienceResourceTest extends TestCase
         $this->actingAs($admin);
 
         Livewire::test(ListAudiences::class)
-            ->assertCanSeeTableRecords([$archery, $climbing, $zebra], inOrder: true);
+            ->assertCanSeeTableRecords([$archery, $climbing, $zebra], inOrder: true)
+            ->sortTable('name', 'desc')
+            ->assertCanSeeTableRecords([$zebra, $climbing, $archery], inOrder: true);
     }
 }
