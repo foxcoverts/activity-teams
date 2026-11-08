@@ -220,6 +220,10 @@ class OverrideAttendanceTest extends TestCase
         $booking->refresh();
         $this->assertSame(BookingStatus::Tentative, $booking->status);
         $this->assertNull($booking->lead_instructor_id);
+        $this->assertSame(
+            ['lead_stepped_down'],
+            $booking->activities()->where('event', '!=', 'created')->orderBy('id')->pluck('event')->all(),
+        );
         $this->assertTrue($lead->notifications()->where('type', AttendanceRecordedNotification::class)->exists());
         $this->assertTrue($otherManager->notifications()->where('type', LeadNeededNotification::class)->exists());
         $this->assertFalse($manager->notifications()->where('type', LeadNeededNotification::class)->exists());

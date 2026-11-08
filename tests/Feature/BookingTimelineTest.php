@@ -169,6 +169,35 @@ class BookingTimelineTest extends TestCase
             ->assertDontSee('recorded Maybe for');
     }
 
+    public function test_stepping_down_as_lead_is_one_timeline_entry(): void
+    {
+        Filament::setCurrentPanel('teams');
+
+        $manager = User::factory()->teamManager()->create();
+        $team = $manager->managedTeams()->firstOrFail();
+        $lead = User::factory()->create(['name' => 'Casey']);
+        $team->grant($lead, MembershipRole::Member);
+
+        $booking = Booking::factory()->confirmed()->forTeam($team)->create([
+            'lead_instructor_id' => $lead->getKey(),
+        ]);
+        $booking->attendees()->attach($lead->getKey(), [
+            'status' => BookingAttendeeStatus::Accepted->value,
+        ]);
+
+        (new RespondToBookingAction($booking, $lead))($lead, BookingAttendeeStatus::Declined);
+
+        $this->actingAs($manager);
+
+        Livewire::test(TeamsViewBooking::class, ['record' => $booking->getRouteKey()])
+            ->assertSee('Casey')
+            ->assertSee('said they')
+            ->assertSee('cannot make it')
+            ->assertSee('stepped down as lead instructor')
+            ->assertSee('leaving the booking tentative')
+            ->assertDontSee('made some changes');
+    }
+
     public function test_several_field_changes_are_listed_under_one_intro(): void
     {
         Filament::setCurrentPanel('teams');

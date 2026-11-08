@@ -48,36 +48,46 @@ class OverrideAttendanceAction
             ],
         ]);
 
-        activity()
-            ->causedBy($manager)
-            ->performedOn($booking)
-            ->withProperties([
-                'attendee_id' => $attendee->getKey(),
-                'status' => $status->value,
-                'comment' => $comment,
-                'via' => 'manager',
-            ])
-            ->event('attendance_updated')
-            ->log(__('Recorded :status for :name.', [
-                'status' => $status->getLabel(),
-                'name' => $attendee->name,
-            ]));
+        $clearLead = $booking->lead_instructor_id === $attendee->getKey()
+            && $status !== BookingAttendeeStatus::Accepted;
 
-        $this->stepLeadAway($booking, $attendee, $manager, $status);
+        $properties = [
+            'attendee_id' => $attendee->getKey(),
+            'status' => $status->value,
+            'comment' => $comment,
+            'via' => 'manager',
+        ];
+
+        if ($clearLead) {
+            activity()->withoutLogging(
+                fn () => (new ClearLeadInstructorAction)($booking, $manager),
+            );
+
+            $booking->refresh();
+            $properties['booking_status'] = $booking->status->value;
+
+            activity()
+                ->causedBy($manager)
+                ->performedOn($booking)
+                ->withProperties($properties)
+                ->event('lead_stepped_down')
+                ->log('lead_stepped_down');
+        } else {
+            activity()
+                ->causedBy($manager)
+                ->performedOn($booking)
+                ->withProperties($properties)
+                ->event('attendance_updated')
+                ->log(__('Recorded :status for :name.', [
+                    'status' => $status->getLabel(),
+                    'name' => $attendee->name,
+                ]));
+        }
 
         if ($booking->isPast() || $attendee->isSuspended() || ! $attendee->hasVerifiedEmail()) {
             return;
         }
 
         $attendee->notify(new AttendanceRecordedNotification($booking, $attendee));
-    }
-
-    private function stepLeadAway(Booking $booking, User $attendee, User $manager, BookingAttendeeStatus $status): void
-    {
-        if ($booking->lead_instructor_id !== $attendee->getKey() || $status === BookingAttendeeStatus::Accepted) {
-            return;
-        }
-
-        (new ClearLeadInstructorAction)($booking, $manager);
     }
 }

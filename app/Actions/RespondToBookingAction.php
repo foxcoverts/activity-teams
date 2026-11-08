@@ -43,6 +43,9 @@ class RespondToBookingAction
         }
 
         DB::transaction(function () use ($attendeeId, $status, $comment, $attendance, $author, $via): void {
+            $clearLead = $this->booking->lead_instructor_id === $attendeeId
+                && $status !== BookingAttendeeStatus::Accepted;
+
             $this->booking->attendees()->syncWithoutDetaching([
                 $attendeeId => [
                     'status' => $status->value,
@@ -60,18 +63,30 @@ class RespondToBookingAction
                 $properties['via'] = $via;
             }
 
+            if ($clearLead) {
+                activity()->withoutLogging(
+                    fn () => (new ClearLeadInstructorAction)($this->booking, $author),
+                );
+
+                $this->booking->refresh();
+                $properties['booking_status'] = $this->booking->status->value;
+
+                activity()
+                    ->causedBy($author)
+                    ->performedOn($this->booking)
+                    ->withProperties($properties)
+                    ->event('lead_stepped_down')
+                    ->log('lead_stepped_down');
+
+                return;
+            }
+
             activity()
                 ->causedBy($author)
                 ->performedOn($this->booking)
                 ->withProperties($properties)
                 ->event('attendance_updated')
                 ->log('Attendance updated');
-
-            if ($this->booking->lead_instructor_id !== $attendeeId || $status === BookingAttendeeStatus::Accepted) {
-                return;
-            }
-
-            (new ClearLeadInstructorAction)($this->booking, $author);
         });
     }
 }

@@ -128,6 +128,10 @@ class ViewBookingResponseTest extends TestCase
             BookingAttendeeStatus::Declined,
             $booking->attendees()->find($lead)->attendance->status,
         );
+        $this->assertSame(
+            ['lead_stepped_down'],
+            $booking->activities()->where('event', '!=', 'created')->orderBy('id')->pluck('event')->all(),
+        );
     }
 
     public function test_a_lead_can_step_down_after_the_activity_leaves_the_team(): void
