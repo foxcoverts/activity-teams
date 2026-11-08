@@ -19,7 +19,6 @@
         <x-filament::section collapsible collapsed>
             <x-slot name="heading">
                 {{ __('Filters') }}
-                <x-filament::badge color="amber" size="sm">{{ $filterCount }}</x-filament::badge>
                 @if ($activeFiltersCount)
                     <x-filament::badge size="sm">
                         {{ $activeFiltersCount }}

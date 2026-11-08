@@ -45,7 +45,7 @@ class ViewBooking extends ViewRecord
                 ->get()
                 ->filter(fn (Booking $related): bool => $user->can('view', $related));
 
-            if ($visibleRelated->isNotEmpty()) {
+            if ($user->can('update', $record) || $visibleRelated->isNotEmpty()) {
                 $sidebar[] = Livewire::make(RelatedBookings::class, [
                     'record' => $record,
                 ]);

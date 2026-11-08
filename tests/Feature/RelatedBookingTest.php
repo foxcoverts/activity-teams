@@ -245,6 +245,19 @@ class RelatedBookingTest extends TestCase
             ->assertDontSee('Related bookings');
     }
 
+    public function test_a_manager_sees_related_bookings_so_they_can_add_the_first_link(): void
+    {
+        [$manager, $saturday] = $this->weekend();
+
+        Filament::setCurrentPanel('teams');
+        $this->actingAs($manager);
+
+        Livewire::test(TeamsViewBooking::class, ['record' => $saturday->getRouteKey()])
+            ->assertSee('Related bookings')
+            ->assertSeeLivewire(RelatedBookings::class)
+            ->assertSee(__('Add'));
+    }
+
     public function test_related_bookings_do_not_change_mail_threads_or_uids(): void
     {
         [$manager, $saturday, $sunday] = $this->weekend();
