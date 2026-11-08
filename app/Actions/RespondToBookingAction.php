@@ -5,6 +5,7 @@ namespace App\Actions;
 use App\Enums\BookingAttendeeStatus;
 use App\Models\Booking;
 use App\Models\User;
+use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 
 class RespondToBookingAction
@@ -41,34 +42,36 @@ class RespondToBookingAction
             return;
         }
 
-        $this->booking->attendees()->syncWithoutDetaching([
-            $attendeeId => [
+        DB::transaction(function () use ($attendeeId, $status, $comment, $attendance, $author, $via): void {
+            $this->booking->attendees()->syncWithoutDetaching([
+                $attendeeId => [
+                    'status' => $status->value,
+                    'comment' => $comment ?? $attendance?->comment,
+                ],
+            ]);
+
+            $properties = [
+                'attendee_id' => $attendeeId,
                 'status' => $status->value,
-                'comment' => $comment ?? $attendance?->comment,
-            ],
-        ]);
+                'comment' => $comment,
+            ];
 
-        $properties = [
-            'attendee_id' => $attendeeId,
-            'status' => $status->value,
-            'comment' => $comment,
-        ];
+            if (filled($via)) {
+                $properties['via'] = $via;
+            }
 
-        if (filled($via)) {
-            $properties['via'] = $via;
-        }
+            activity()
+                ->causedBy($author)
+                ->performedOn($this->booking)
+                ->withProperties($properties)
+                ->event('attendance_updated')
+                ->log('Attendance updated');
 
-        activity()
-            ->causedBy($author)
-            ->performedOn($this->booking)
-            ->withProperties($properties)
-            ->event('attendance_updated')
-            ->log('Attendance updated');
+            if ($this->booking->lead_instructor_id !== $attendeeId || $status === BookingAttendeeStatus::Accepted) {
+                return;
+            }
 
-        if ($this->booking->lead_instructor_id !== $attendeeId || $status === BookingAttendeeStatus::Accepted) {
-            return;
-        }
-
-        (new ClearLeadInstructorAction)($this->booking, $author);
+            (new ClearLeadInstructorAction)($this->booking, $author);
+        });
     }
 }

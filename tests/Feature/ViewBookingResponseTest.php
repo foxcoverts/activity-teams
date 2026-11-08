@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Actions\RespondToBookingAction;
 use App\Enums\BookingAttendeeStatus;
+use App\Enums\BookingStatus;
 use App\Filament\Teams\Resources\Bookings\Pages\ViewBooking;
 use App\Mail\BookingChangedMail;
 use App\Models\Booking;
@@ -102,7 +103,7 @@ class ViewBookingResponseTest extends TestCase
     public function test_an_accepted_lead_can_step_down_from_the_booking_page(): void
     {
         $lead = User::factory()->teamMember()->create();
-        $booking = Booking::factory()->create([
+        $booking = Booking::factory()->confirmed()->create([
             'lead_instructor_id' => $lead->id,
         ]);
         $booking->attendees()->attach($lead->id, [
@@ -122,6 +123,36 @@ class ViewBookingResponseTest extends TestCase
         $booking->refresh();
 
         $this->assertNull($booking->lead_instructor_id);
+        $this->assertSame(BookingStatus::Tentative, $booking->status);
+        $this->assertSame(
+            BookingAttendeeStatus::Declined,
+            $booking->attendees()->find($lead)->attendance->status,
+        );
+    }
+
+    public function test_a_lead_can_step_down_after_the_activity_leaves_the_team(): void
+    {
+        $lead = User::factory()->teamMember()->create();
+        $booking = Booking::factory()->confirmed()->create([
+            'lead_instructor_id' => $lead->id,
+        ]);
+        $booking->attendees()->attach($lead->id, [
+            'status' => BookingAttendeeStatus::Accepted->value,
+            'token' => BookingAttendance::generateToken(),
+        ]);
+
+        $booking->team->removeActivity($booking->activity);
+
+        Filament::setCurrentPanel('teams');
+        $this->actingAs($lead);
+
+        Livewire::test(ViewBooking::class, ['record' => $booking->getRouteKey()])
+            ->callAction('respondNo');
+
+        $booking->refresh();
+
+        $this->assertNull($booking->lead_instructor_id);
+        $this->assertSame(BookingStatus::Tentative, $booking->status);
         $this->assertSame(
             BookingAttendeeStatus::Declined,
             $booking->attendees()->find($lead)->attendance->status,

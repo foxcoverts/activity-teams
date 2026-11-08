@@ -6,6 +6,7 @@ use App\Enums\BookingStatus;
 use App\Events\LeadInstructorCleared;
 use App\Models\Booking;
 use App\Models\User;
+use Throwable;
 
 class ClearLeadInstructorAction
 {
@@ -28,7 +29,13 @@ class ClearLeadInstructorAction
         $alert = $cleared && ! $booking->isPast() && ! $booking->isCancelled();
 
         if ($booking->isDirty(['lead_instructor_id', 'status'])) {
-            $booking->save();
+            try {
+                $booking->save();
+            } catch (Throwable $exception) {
+                $booking->refresh();
+
+                throw $exception;
+            }
         }
 
         if ($alert) {

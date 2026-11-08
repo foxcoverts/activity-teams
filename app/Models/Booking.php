@@ -93,15 +93,12 @@ class Booking extends Model implements Commentable
                 return;
             }
 
-            if (filled($booking->activity_id) && ! $team->activities()->whereKey($booking->activity_id)->exists()) {
-                throw ValidationException::withMessages([
-                    'activity_id' => __('Choose an activity this team has been given.'),
-                ]);
-            }
-
             if (blank($booking->group_name)) {
                 $booking->group_name = null;
             }
+
+            $activityAssignmentChanging = ! $booking->exists
+                || $booking->isDirty(['activity_id', 'audience_id', 'activity_label', 'team_id']);
 
             if (blank($booking->activity_id)) {
                 if (blank($booking->activity_label)) {
@@ -111,10 +108,18 @@ class Booking extends Model implements Commentable
                 }
 
                 $booking->audience_id = null;
-            } elseif (blank($booking->audience_id) || ! $booking->hasOfferedAudience()) {
-                throw ValidationException::withMessages([
-                    'audience_id' => __('Choose an audience this activity offers.'),
-                ]);
+            } elseif ($activityAssignmentChanging) {
+                if (! $team->activities()->whereKey($booking->activity_id)->exists()) {
+                    throw ValidationException::withMessages([
+                        'activity_id' => __('Choose an activity this team has been given.'),
+                    ]);
+                }
+
+                if (blank($booking->audience_id) || ! $booking->hasOfferedAudience()) {
+                    throw ValidationException::withMessages([
+                        'audience_id' => __('Choose an audience this activity offers.'),
+                    ]);
+                }
             }
 
             if (
@@ -130,19 +135,22 @@ class Booking extends Model implements Commentable
                 }
             }
 
-            $hasCatalogVenue = filled($booking->venue_id)
-                && $team->venues()->whereKey($booking->venue_id)->exists();
-            $hasPrivateVenue = $booking->exists
-                && filled($booking->venue_id)
-                && Venue::onlyPrivate()
-                    ->whereKey($booking->venue_id)
-                    ->where('booking_id', $booking->getKey())
-                    ->exists();
+            $venueAssignmentChanging = ! $booking->exists
+                || $booking->isDirty(['venue_id', 'team_id']);
 
-            if (filled($booking->venue_id) && ! $hasCatalogVenue && ! $hasPrivateVenue) {
-                throw ValidationException::withMessages([
-                    'venue_id' => __('Choose a venue this team has been given.'),
-                ]);
+            if ($venueAssignmentChanging && filled($booking->venue_id)) {
+                $hasCatalogVenue = $team->venues()->whereKey($booking->venue_id)->exists();
+                $hasPrivateVenue = $booking->exists
+                    && Venue::onlyPrivate()
+                        ->whereKey($booking->venue_id)
+                        ->where('booking_id', $booking->getKey())
+                        ->exists();
+
+                if (! $hasCatalogVenue && ! $hasPrivateVenue) {
+                    throw ValidationException::withMessages([
+                        'venue_id' => __('Choose a venue this team has been given.'),
+                    ]);
+                }
             }
         });
 
