@@ -41,11 +41,7 @@ class ViewBooking extends ViewRecord
                 $sidebar[] = $this->getRelationManagersContentComponent();
             }
 
-            $visibleRelated = $record->related()
-                ->get()
-                ->filter(fn (Booking $related): bool => $user->can('view', $related));
-
-            if ($user->can('update', $record) || $visibleRelated->isNotEmpty()) {
+            if (RelatedBookings::shouldShowPanel($record, $user)) {
                 $sidebar[] = Livewire::make(RelatedBookings::class, [
                     'record' => $record,
                 ]);

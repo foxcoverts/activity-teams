@@ -99,10 +99,11 @@ class RelatedBookings extends Component implements HasActions, HasSchemas
         abort_unless($this->record instanceof Booking, 404);
 
         $booking = $this->booking($this->record->getKey());
-        abort_unless($this->viewer()?->can('view', $booking) ?? false, 403);
+        $viewer = $this->viewer();
+        abort_unless($viewer instanceof User && $viewer->can('view', $booking), 403);
 
         $items = $booking->related
-            ->filter(fn (Booking $related): bool => $this->viewer()?->can('view', $related) ?? false)
+            ->filter(fn (Booking $related): bool => $viewer->can('view', $related))
             ->values()
             ->map(fn (Booking $related): array => [
                 'id' => $related->getKey(),
@@ -110,13 +111,29 @@ class RelatedBookings extends Component implements HasActions, HasSchemas
                 'url' => $this->urlFor($related, $booking),
             ]);
 
-        $canManage = $this->canManage($booking);
-
         return view('filament.bookings.related-bookings', [
             'items' => $items,
-            'canManage' => $canManage,
-            'showPanel' => $canManage || $items->isNotEmpty(),
+            'canManage' => $this->canManage($booking),
+            'showPanel' => static::shouldShowPanel($booking, $viewer),
         ]);
+    }
+
+    public static function shouldShowPanel(Booking $booking, User $viewer): bool
+    {
+        $booking->loadMissing('related');
+
+        $hasVisibleRelated = $booking->related
+            ->contains(fn (Booking $related): bool => $viewer->can('view', $related));
+
+        if ($hasVisibleRelated) {
+            return true;
+        }
+
+        if (! $viewer->can('update', $booking)) {
+            return false;
+        }
+
+        return static::candidateQueryFor($booking)->exists();
     }
 
     private function canManage(Booking $booking): bool
@@ -141,7 +158,7 @@ class RelatedBookings extends Component implements HasActions, HasSchemas
      */
     private function candidates(Booking $booking): Collection
     {
-        return $this->candidateQuery($booking)
+        return static::candidateQueryFor($booking)
             ->with('activity')
             ->ordered()
             ->get();
@@ -151,6 +168,14 @@ class RelatedBookings extends Component implements HasActions, HasSchemas
      * @return Builder<Booking>
      */
     private function candidateQuery(Booking $booking): Builder
+    {
+        return static::candidateQueryFor($booking);
+    }
+
+    /**
+     * @return Builder<Booking>
+     */
+    public static function candidateQueryFor(Booking $booking): Builder
     {
         return Booking::query()
             ->where('team_id', $booking->team_id)

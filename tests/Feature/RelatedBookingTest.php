@@ -258,6 +258,47 @@ class RelatedBookingTest extends TestCase
             ->assertSee(__('Add'));
     }
 
+    public function test_a_manager_does_not_see_related_bookings_on_a_past_booking_with_nothing_to_add(): void
+    {
+        $manager = User::factory()->teamManager()->create();
+        $team = $manager->managedTeams()->firstOrFail();
+        $past = Booking::factory()->forTeam($team)->confirmed()->create([
+            'start_at' => now()->subDays(10),
+            'end_at' => now()->subDays(10)->addHours(2),
+        ]);
+
+        Filament::setCurrentPanel('teams');
+        $this->actingAs($manager);
+
+        Livewire::test(TeamsViewBooking::class, ['record' => $past->getRouteKey()])
+            ->assertDontSee('Related bookings')
+            ->assertDontSeeLivewire(RelatedBookings::class);
+    }
+
+    public function test_a_past_booking_still_shows_related_bookings_when_linked(): void
+    {
+        $manager = User::factory()->teamManager()->create();
+        $team = $manager->managedTeams()->firstOrFail();
+        $older = Booking::factory()->forTeam($team)->confirmed()->create([
+            'start_at' => now()->subDays(20),
+            'end_at' => now()->subDays(20)->addHours(2),
+            'group_name' => 'Older camp',
+        ]);
+        $newerPast = Booking::factory()->forTeam($team)->confirmed()->create([
+            'start_at' => now()->subDays(5),
+            'end_at' => now()->subDays(5)->addHours(2),
+            'group_name' => 'Newer camp',
+        ]);
+        $older->relate($newerPast);
+
+        Filament::setCurrentPanel('teams');
+        $this->actingAs($manager);
+
+        Livewire::test(TeamsViewBooking::class, ['record' => $older->getRouteKey()])
+            ->assertSee('Related bookings')
+            ->assertSee($newerPast->relatedLabel());
+    }
+
     public function test_related_bookings_do_not_change_mail_threads_or_uids(): void
     {
         [$manager, $saturday, $sunday] = $this->weekend();
