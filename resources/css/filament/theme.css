@@ -2,6 +2,7 @@
 
 @source '../../../app/Filament/**/*';
 @source '../../../resources/views/filament/**/*';
+@source '../../../resources/views/livewire/**/*';
 @source '../../../vendor/ralphjsmit/laravel-filament-activitylog/resources/**/*.blade.php';
 @source '../../../resources/views/vendor/filament-activitylog/**/*.blade.php';
 
@@ -232,6 +233,53 @@
     padding-inline: 0;
     padding-block: 0;
     padding-top: calc(var(--spacing) * 6);
+}
+
+.fi-modal:not(.fi-align-start)>.fi-modal-window-ctn>.booking-contact-panel.fi-modal-window .fi-modal-content {
+    padding-inline: 0;
+    padding-block: calc(var(--spacing) * 4);
+}
+
+.booking-contact-details {
+    @apply w-full text-sm;
+}
+
+.booking-contact-details__list {
+    @apply w-full divide-y divide-gray-200 border-y border-gray-200 dark:divide-white/10 dark:border-white/10;
+}
+
+.booking-contact-details__trigger {
+    @apply flex w-full items-center py-4 pr-6 text-left font-medium text-gray-950 dark:text-white;
+}
+
+.booking-contact-details__chevron {
+    @apply flex size-6 shrink-0 items-center justify-center;
+    /* Hang in the modal’s px-6 gutter so the title lines up with the heading. */
+    width: calc(var(--spacing) * 6);
+}
+
+.booking-contact-details__title {
+    @apply min-w-0 flex-1;
+}
+
+.booking-contact-details__body {
+    @apply space-y-4 px-6 pb-6 pt-2 leading-relaxed text-gray-700 dark:text-gray-200;
+}
+
+.booking-contact-details__gate {
+    @apply flex items-start gap-3;
+}
+
+.booking-contact-details__fields {
+    @apply flex flex-col gap-4;
+}
+
+.booking-contact-details__field {
+    @apply flex flex-col gap-1.5;
+}
+
+.booking-contact-details__field-label {
+    @apply font-medium text-gray-950 dark:text-white;
 }
 
 .venue-map-panel.fi-sc-section .fi-section:not(.fi-section-not-contained):not(.fi-divided)>.fi-section-content-ctn>.fi-section-content {

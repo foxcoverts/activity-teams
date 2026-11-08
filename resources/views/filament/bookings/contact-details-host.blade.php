@@ -1,1 +1,1 @@
-<livewire:booking-contact-details :booking="$booking" :person="$person" :kind="$kind" :key="'contact-'.$kind.'-'.$person->getKey()" />
+<livewire:booking-contact-details :booking="$booking" :person="$person" :key="'contact-'.$person->getKey()" />

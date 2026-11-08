@@ -20,6 +20,6 @@ As a Lead Instructor, I want time-bound access to participant contact and emerge
 
 ## Progress
 
-Dates are those of the booking's own timezone, not the viewer's, so a booking that crosses midnight has one window for everyone. The booking timezone is required and not null in the database. A manager of the team can view their members' phone and emergency details outside the booking window. A system admin does not bypass this guard.
+Dates are those of the booking's own timezone, not the viewer's, so a booking that crosses midnight has one window for everyone. The booking timezone is required and not null in the database. A manager of the team can view phone and emergency details from the booking guest list without a time window (the same access they already have via Members). A system admin does not bypass this guard.
 
-Shown from the member guest list: a Phone and an Emergency button open a modal that asks for the US-58 acknowledgement before revealing anything. Rules live in `BookingAttendancePolicy::viewPhone` and `viewEmergencyContact`.
+Shown from the guest list: a Contact action opens a modal with separate US-58 acknowledgements for phone and emergency. Empty phone numbers are omitted; emergency without a phone number is treated as missing and points attendees to a team manager. Manager rows keep Edit and Remove in a kebab menu. Rules live in `BookingAttendancePolicy::viewPhone` and `viewEmergencyContact`.

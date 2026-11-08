@@ -7,6 +7,7 @@ use App\Actions\OverrideAttendanceAction;
 use App\Actions\ResendBookingIcsAction;
 use App\Enums\BookingAttendeeResponse;
 use App\Enums\BookingAttendeeStatus;
+use App\Filament\Teams\Resources\Members\MemberResource;
 use App\Models\Booking;
 use App\Models\BookingAttendance;
 use App\Models\User;
@@ -28,6 +29,7 @@ use Filament\Tables\Table;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\HtmlString;
 use Illuminate\Support\Str;
 use Livewire\Attributes\On;
 use RuntimeException;
@@ -178,32 +180,38 @@ class AttendeesRelationManager extends RelationManager
                         'person' => $record,
                         'panel' => 'keys',
                     ])),
-                Action::make('contactPhone')
-                    ->modalHeading(fn (User $record): string => $record->name)
+                Action::make('contact')
+                    ->label(__('Contact'))
+                    ->icon(Heroicon::OutlinedPhoneArrowUpRight)
+                    ->modalHeading(fn (User $record): HtmlString => new HtmlString(
+                        view('filament.bookings.contact-modal-heading', ['person' => $record])->render(),
+                    ))
                     ->modalWidth(Width::Large)
+                    ->extraModalWindowAttributes(['class' => 'booking-contact-panel'])
                     ->modalSubmitAction(false)
                     ->modalCancelActionLabel(__('Close'))
-                    ->visible(fn (): bool => ! $this->canManageBooking())
-                    ->authorize(fn (User $record): bool => $this->canViewContact($this->attendee($record), 'viewPhone'))
+                    ->extraModalFooterActions(fn (User $record): array => [
+                        Action::make('viewMember')
+                            ->label(__('View member'))
+                            ->icon(Heroicon::OutlinedUser)
+                            ->color('gray')
+                            ->url(fn (): string => MemberResource::getUrl(
+                                'view',
+                                ['record' => $record],
+                                panel: 'teams',
+                                tenant: $this->booking()->team,
+                            ))
+                            ->visible(fn (): bool => MemberResource::canViewAny()
+                                && MemberResource::canView($record)),
+                    ])
+                    ->authorize(fn (User $record): bool => $this->canOpenContact($this->attendee($record)))
                     ->modalContent(fn (User $record): View => view('filament.bookings.contact-details-host', [
                         'booking' => $this->booking(),
                         'person' => $record,
-                        'kind' => 'phone',
-                    ])),
-                Action::make('emergencyContact')
-                    ->modalHeading(fn (User $record): string => __(':name — emergency contact', ['name' => $record->name]))
-                    ->modalWidth(Width::Large)
-                    ->modalSubmitAction(false)
-                    ->modalCancelActionLabel(__('Close'))
-                    ->visible(fn (): bool => ! $this->canManageBooking())
-                    ->authorize(fn (User $record): bool => $this->canViewContact($this->attendee($record), 'viewEmergencyContact'))
-                    ->modalContent(fn (User $record): View => view('filament.bookings.contact-details-host', [
-                        'booking' => $this->booking(),
-                        'person' => $record,
-                        'kind' => 'emergency',
                     ])),
                 Action::make('editAttendance')
                     ->label(__('Edit'))
+                    ->icon(Heroicon::OutlinedPencilSquare)
                     ->visible(fn (): bool => $this->canManageBooking())
                     ->authorize(function (User $record): bool {
                         $attendance = $record->attendance;
@@ -240,6 +248,7 @@ class AttendeesRelationManager extends RelationManager
                     }),
                 DetachAction::make()
                     ->label(__('Remove'))
+                    ->icon(Heroicon::OutlinedTrash)
                     ->visible(fn (): bool => $this->canManageBooking())
                     ->authorize(fn (User $record): bool => $this->canRemoveAttendee($record))
                     ->after(function (User $record): void {
@@ -466,6 +475,9 @@ class AttendeesRelationManager extends RelationManager
                             && $attendee instanceof User
                             && $attendance instanceof BookingAttendance
                             && ! ($booking->isLead($attendee) && $attendance->isAccepted());
+                        $person['can_phone'] = $this->canViewContact($attendee, 'viewPhone');
+                        $person['can_emergency'] = $this->canViewContact($attendee, 'viewEmergencyContact');
+                        $person['has_contact_details'] = $this->hasSharedContactDetails($attendee);
 
                         return $person;
                     },
@@ -524,7 +536,7 @@ class AttendeesRelationManager extends RelationManager
             includeAccessDetails: $isLead,
         );
 
-        $roster['groups'] = $this->withContactAccess($roster['groups'], $booking, $actor);
+        $roster['groups'] = $this->withContactAccess($roster['groups'], $booking);
 
         return view('filament.bookings.guest-list', [
             ...$roster,
@@ -540,7 +552,7 @@ class AttendeesRelationManager extends RelationManager
      * @param  list<array<string, mixed>>  $groups
      * @return list<array<string, mixed>>
      */
-    private function withContactAccess(array $groups, Booking $booking, User $actor): array
+    private function withContactAccess(array $groups, Booking $booking): array
     {
         return array_map(function (array $group) use ($booking): array {
             $group['people'] = array_map(function (array $person) use ($booking): array {
@@ -549,6 +561,7 @@ class AttendeesRelationManager extends RelationManager
                 return $person + [
                     'can_phone' => $this->canViewContact($subject, 'viewPhone'),
                     'can_emergency' => $this->canViewContact($subject, 'viewEmergencyContact'),
+                    'has_contact_details' => $this->hasSharedContactDetails($subject),
                 ];
             }, $group['people']);
 
@@ -561,6 +574,22 @@ class AttendeesRelationManager extends RelationManager
         return $this->getOwnerRecord()->attendees()->whereKey($person->getKey())->first();
     }
 
+    private function canOpenContact(?User $person): bool
+    {
+        return $this->canViewContact($person, 'viewPhone')
+            || $this->canViewContact($person, 'viewEmergencyContact');
+    }
+
+    private function hasSharedContactDetails(?User $person): bool
+    {
+        if (! $person instanceof User) {
+            return false;
+        }
+
+        return $this->canViewContact($person, 'viewPhone')
+            || ($this->canViewContact($person, 'viewEmergencyContact') && filled($person->emergency_phone));
+    }
+
     private function canViewContact(?User $person, string $ability): bool
     {
         $actor = auth()->user();
@@ -570,9 +599,17 @@ class AttendeesRelationManager extends RelationManager
             return false;
         }
 
-        $shared = $ability === 'viewPhone' ? $person->phone : $person->emergency_phone;
+        if (! $actor->can($ability, $attendance)) {
+            return false;
+        }
 
-        return filled($shared) && $actor->can($ability, $attendance);
+        // Phone: only offer the channel when a number exists. Emergency: allow the
+        // empty tip path when the policy window/role allows it.
+        if ($ability === 'viewPhone') {
+            return filled($person->phone);
+        }
+
+        return true;
     }
 
     private function hasAccessDetail(User $person, string $detail): bool

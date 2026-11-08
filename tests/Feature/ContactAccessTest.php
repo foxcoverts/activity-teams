@@ -154,6 +154,25 @@ class ContactAccessTest extends TestCase
         $this->assertFalse($this->can($this->attendee, 'viewEmergencyContact', $this->manager));
     }
 
+    public function test_a_team_manager_can_view_contact_without_attending_or_a_time_window(): void
+    {
+        Carbon::setTestNow('2026-10-01 12:00:00');
+
+        foreach (['viewPhone', 'viewEmergencyContact'] as $ability) {
+            $this->assertTrue($this->can($this->manager, $ability, $this->lead));
+            $this->assertTrue($this->can($this->manager, $ability, $this->attendee));
+            $this->assertTrue($this->can($this->manager, $ability, $this->declined));
+            $this->assertFalse($this->can($this->manager, $ability, $this->manager));
+        }
+
+        $this->manager->forceFill(['suspended' => true])->save();
+        $this->assertFalse($this->can($this->manager, 'viewPhone', $this->lead));
+
+        $this->manager->forceFill(['suspended' => false])->save();
+        $this->booking->forceFill(['status' => 'cancelled'])->save();
+        $this->assertFalse($this->can($this->manager, 'viewPhone', $this->lead));
+    }
+
     public function test_the_phone_is_open_until_the_end_of_the_last_day_in_the_booking_timezone(): void
     {
         $booking = $this->makeBooking(
@@ -266,15 +285,19 @@ class ContactAccessTest extends TestCase
         }
     }
 
-    public function test_the_viewer_must_acknowledge_the_notice_before_details_are_shown(): void
+    public function test_the_viewer_must_acknowledge_each_section_before_details_are_shown(): void
     {
         Carbon::setTestNow('2026-11-10 12:00:00');
         $this->actingAs($this->attendee);
 
-        Livewire::test(BookingContactDetails::class, ['booking' => $this->booking, 'person' => $this->lead, 'kind' => 'phone'])
+        $component = Livewire::test(BookingContactDetails::class, ['booking' => $this->booking, 'person' => $this->lead])
             ->assertSee('legitimate team matters')
+            ->assertSee('Phone')
+            ->assertSee('Emergency contact')
+            ->assertSee('I have a legitimate reason to view these details')
             ->assertDontSee($this->lead->phone)
-            ->call('acknowledge')
+            ->assertDontSee($this->lead->emergency_phone)
+            ->call('acknowledge', PersonalDataSection::ContactDetails->value)
             ->assertSeeHtml('href="tel:'.$this->lead->phone.'"')
             ->assertDontSee($this->lead->emergency_phone);
 
@@ -284,13 +307,35 @@ class ContactAccessTest extends TestCase
             ->where('section', PersonalDataSection::ContactDetails)
             ->exists());
 
-        Livewire::test(BookingContactDetails::class, ['booking' => $this->booking, 'person' => $this->lead, 'kind' => 'emergency'])
-            ->assertDontSee($this->lead->emergency_phone)
-            ->call('acknowledge')
-            ->assertSee('Emergency contact name')
+        $component
+            ->call('acknowledge', PersonalDataSection::EmergencyContact->value)
             ->assertSee($this->lead->emergency_name)
-            ->assertSee('Emergency contact phone')
             ->assertSeeHtml('href="tel:'.$this->lead->emergency_phone.'"');
+    }
+
+    public function test_blank_or_name_only_emergency_skips_the_gate_and_points_attendees_to_a_manager(): void
+    {
+        Carbon::setTestNow('2026-11-10 12:00:00');
+        $this->lead->forceFill([
+            'phone' => null,
+            'emergency_name' => 'Only A Name',
+            'emergency_phone' => null,
+        ])->save();
+        $this->actingAs($this->attendee);
+
+        Livewire::test(BookingContactDetails::class, ['booking' => $this->booking, 'person' => $this->lead])
+            ->assertDontSee('legitimate team matters')
+            ->assertDontSee('Only A Name')
+            ->assertSee('No emergency contact on file')
+            ->assertSee('Ask a team manager')
+            ->assertSee('Team leaders');
+
+        $this->actingAs($this->manager);
+
+        Livewire::test(BookingContactDetails::class, ['booking' => $this->booking, 'person' => $this->lead])
+            ->assertSee('No emergency contact on file.')
+            ->assertDontSee('Ask a team manager')
+            ->assertDontSee('Team leaders');
     }
 
     public function test_the_details_component_refuses_people_who_may_not_view_them(): void
@@ -298,16 +343,16 @@ class ContactAccessTest extends TestCase
         Carbon::setTestNow('2026-11-10 12:00:00');
         $this->actingAs($this->declined);
 
-        Livewire::test(BookingContactDetails::class, ['booking' => $this->booking, 'person' => $this->lead, 'kind' => 'phone'])
+        Livewire::test(BookingContactDetails::class, ['booking' => $this->booking, 'person' => $this->lead])
             ->assertForbidden();
 
         $this->actingAs($this->attendee);
 
-        Livewire::test(BookingContactDetails::class, ['booking' => $this->booking, 'person' => $this->maybe, 'kind' => 'phone'])
+        Livewire::test(BookingContactDetails::class, ['booking' => $this->booking, 'person' => $this->maybe])
             ->assertForbidden();
     }
 
-    public function test_the_guest_list_offers_contact_details_only_where_they_may_be_viewed(): void
+    public function test_the_guest_list_offers_contact_only_where_it_may_be_viewed(): void
     {
         Carbon::setTestNow('2026-11-10 12:00:00');
 
@@ -316,39 +361,63 @@ class ContactAccessTest extends TestCase
 
         Livewire::test(TeamsAttendeesRelationManager::class, ['ownerRecord' => $this->booking, 'pageClass' => TeamsViewBooking::class])
             ->assertSee('Lee Lead')
-            ->assertSee('Emergency')
+            ->assertSee('Contact')
             ->assertDontSee($this->lead->phone)
-            ->mountTableAction('contactPhone', $this->lead)
+            ->mountTableAction('contact', $this->lead)
             ->assertMountedActionModalSee('legitimate team matters');
 
         Livewire::test(TeamsAttendeesRelationManager::class, ['ownerRecord' => $this->booking, 'pageClass' => TeamsViewBooking::class])
-            ->mountTableAction('contactPhone', $this->maybe)
-            ->assertTableActionNotMounted('contactPhone');
-
-        Livewire::test(TeamsAttendeesRelationManager::class, ['ownerRecord' => $this->booking, 'pageClass' => TeamsViewBooking::class])
-            ->mountTableAction('emergencyContact', $this->maybe)
-            ->assertTableActionNotMounted('emergencyContact');
+            ->mountTableAction('contact', $this->maybe)
+            ->assertTableActionNotMounted('contact');
     }
 
-    public function test_no_button_is_offered_for_a_detail_the_person_has_not_shared(): void
+    public function test_contact_stays_available_when_details_are_blank_so_the_emergency_tip_can_show(): void
     {
         Carbon::setTestNow('2026-11-10 12:00:00');
-        Filament::setCurrentPanel('member');
+        Filament::setCurrentPanel('teams');
         $this->lead->forceFill(['phone' => null, 'emergency_phone' => null])->save();
         $this->actingAs($this->attendee);
 
         $page = fn (): array => ['ownerRecord' => $this->booking->fresh(), 'pageClass' => TeamsViewBooking::class];
 
         Livewire::test(TeamsAttendeesRelationManager::class, $page())
+            ->assertSee('Contact')
+            ->mountTableAction('contact', $this->lead)
+            ->assertMountedActionModalSee('Ask a team manager');
+    }
+
+    public function test_managers_get_contact_from_the_guest_list_with_edit_and_remove_in_a_menu(): void
+    {
+        Carbon::setTestNow('2026-10-01 12:00:00');
+        $this->actingAs($this->manager);
+        Filament::setCurrentPanel('teams');
+        Filament::setTenant($this->team);
+
+        Livewire::test(TeamsAttendeesRelationManager::class, ['ownerRecord' => $this->booking, 'pageClass' => TeamsViewBooking::class])
+            ->assertSee('Contact')
+            ->assertSee('More actions')
             ->assertDontSee('contactPhone')
             ->assertDontSee('emergencyContact')
-            ->mountTableAction('contactPhone', $this->lead)
-            ->assertTableActionNotMounted('contactPhone');
+            ->mountTableAction('contact', $this->attendee)
+            ->assertMountedActionModalSee('legitimate team matters')
+            ->assertMountedActionModalSeeHtml('fi-avatar')
+            ->assertMountedActionModalSee('View member')
+            ->unmountTableAction()
+            ->mountTableAction('editAttendance', $this->attendee)
+            ->assertMountedActionModalSee('Status');
+    }
 
-        $this->lead->forceFill(['phone' => '07000111222'])->save();
+    public function test_attendees_do_not_get_a_view_member_link_in_the_contact_modal(): void
+    {
+        Carbon::setTestNow('2026-11-10 12:00:00');
+        $this->actingAs($this->attendee);
+        Filament::setCurrentPanel('teams');
+        Filament::setTenant($this->team);
 
-        Livewire::test(TeamsAttendeesRelationManager::class, $page())
-            ->assertSee('contactPhone')
-            ->assertDontSee('emergencyContact');
+        Livewire::test(TeamsAttendeesRelationManager::class, ['ownerRecord' => $this->booking, 'pageClass' => TeamsViewBooking::class])
+            ->mountTableAction('contact', $this->lead)
+            ->assertMountedActionModalSee('legitimate team matters')
+            ->assertMountedActionModalSeeHtml('fi-avatar')
+            ->assertMountedActionModalDontSee('View member');
     }
 }

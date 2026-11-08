@@ -20,4 +20,4 @@ As a team member attending an event, I want the lead instructor's phone number s
 
 ## Progress
 
-Dates are those of the booking's own timezone, not the viewer's. A system admin does not bypass these GDPR controls.
+Dates are those of the booking's own timezone, not the viewer's. A system admin does not bypass these GDPR controls. Contact is offered from the guest list as a single action with separate US-58 acknowledgements for phone and emergency (see [US-18](US-18-lead-instructor-contact-access.md)).

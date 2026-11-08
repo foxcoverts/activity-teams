@@ -76,10 +76,15 @@ class BookingAttendancePolicy
     /**
      * Phone numbers: attendees and the lead can reach each other, and attendees can reach an
      * attending team manager, until the booking's last day ends. There is no earlier start.
+     * Team managers may view any attendee's phone without a time window (same data as Members).
      */
     public function viewPhone(User $viewer, BookingAttendance $attendance): bool
     {
         [$booking, $subject] = $this->contactParties($attendance);
+
+        if ($this->managesBooking($viewer, $booking)) {
+            return $this->managerMayViewContact($viewer, $subject, $booking);
+        }
 
         if (! $this->canContact($viewer, $subject, $booking) || now()->greaterThan($this->windowEnd($booking))) {
             return false;
@@ -92,10 +97,15 @@ class BookingAttendancePolicy
 
     /**
      * Emergency contacts: attendees and the lead, only on the booking's own dates.
+     * Team managers may view any attendee's emergency contact without a time window.
      */
     public function viewEmergencyContact(User $viewer, BookingAttendance $attendance): bool
     {
         [$booking, $subject] = $this->contactParties($attendance);
+
+        if ($this->managesBooking($viewer, $booking)) {
+            return $this->managerMayViewContact($viewer, $subject, $booking);
+        }
 
         if (! $this->canContact($viewer, $subject, $booking)) {
             return false;
@@ -108,6 +118,15 @@ class BookingAttendancePolicy
         }
 
         return $booking->isLead($viewer) || $booking->isLead($subject);
+    }
+
+    private function managerMayViewContact(User $viewer, ?User $subject, Booking $booking): bool
+    {
+        return $subject !== null
+            && ! $viewer->is($subject)
+            && ! $booking->isCancelled()
+            && ! $viewer->isSuspended()
+            && ! $subject->isSuspended();
     }
 
     /**
