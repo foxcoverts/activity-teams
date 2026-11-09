@@ -23,7 +23,8 @@ class BookingTimelineTest extends TestCase
 
     public function test_the_member_timeline_does_not_link_into_manage(): void
     {
-        $manager = User::factory()->teamManager()->create();
+        // Apostrophe regression: timeline must show a raw ', never double-encoded &amp;#039;.
+        $manager = User::factory()->teamManager()->create(['name' => "Joana D'Amore II"]);
         $team = $manager->managedTeams()->firstOrFail();
         $member = User::factory()->create();
         $team->grant($member, MembershipRole::Member);
@@ -41,7 +42,10 @@ class BookingTimelineTest extends TestCase
             ->assertSee('Confirmed booking')
             ->assertSee('Group')
             ->assertSee('Recent activity')
-            ->assertSee($manager->name)
+            ->assertSee($manager->name, escape: false)
+            ->assertSeeHtml("<strong>Joana D'Amore II</strong>")
+            ->assertDontSeeHtml('D&amp;#039;Amore')
+            ->assertDontSeeHtml('D&#039;Amore')
             ->assertSeeHtml('wire:name="App\\Filament\\Teams\\Resources\\Bookings\\RelationManagers\\AttendeesRelationManager"')
             ->assertDontSeeHtml('/members/');
     }
@@ -78,9 +82,9 @@ class BookingTimelineTest extends TestCase
 
     public function test_the_member_timeline_emboldens_people_who_are_not_links(): void
     {
-        $manager = User::factory()->teamManager()->create(['name' => 'Manager A']);
+        $manager = User::factory()->teamManager()->create(['name' => "Manager O'Brien"]);
         $team = $manager->managedTeams()->firstOrFail();
-        $member = User::factory()->create(['name' => 'Member B']);
+        $member = User::factory()->create(['name' => "Member O'Brien"]);
         $team->grant($member, MembershipRole::Member);
 
         $booking = Booking::factory()->confirmed()->forTeam($team)->create();
@@ -96,9 +100,10 @@ class BookingTimelineTest extends TestCase
         $this->actingAs($member);
 
         Livewire::test(TeamsViewBooking::class, ['record' => $booking->getRouteKey()])
-            ->assertSeeHtml('<strong>Manager A</strong>')
+            ->assertSeeHtml("<strong>Manager O'Brien</strong>")
             ->assertSeeHtml('<strong>Can help</strong>')
-            ->assertSeeHtml('<strong>Member B</strong>')
+            ->assertSeeHtml("<strong>Member O'Brien</strong>")
+            ->assertDontSeeHtml('O&amp;#039;Brien')
             ->assertDontSeeHtml('/members/');
     }
 
@@ -106,7 +111,7 @@ class BookingTimelineTest extends TestCase
     {
         Filament::setCurrentPanel('teams');
 
-        $manager = User::factory()->teamManager()->create();
+        $manager = User::factory()->teamManager()->create(['name' => "Manager O'Brien"]);
         $team = $manager->managedTeams()->firstOrFail();
 
         $this->actingAs($manager);
@@ -118,7 +123,7 @@ class BookingTimelineTest extends TestCase
             ->assertSee('Confirmed booking')
             ->assertSee('Group')
             ->assertSee('Recent activity')
-            ->assertSee($manager->name)
+            ->assertSee($manager->name, escape: false)
             ->assertSeeHtml($memberUrl)
             ->assertDontSeeHtml('/users/'.$manager->getKey());
     }
