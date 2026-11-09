@@ -56,7 +56,7 @@ Keep these as **repository** secrets so both the Test workflow and the deploy jo
 | `LEGACY_DB_PASSWORD` | Read-only (preferred) legacy climbing-team DB password |
 | `SSH_PRIVATE_KEY` | Deploy key; public half in IONOS `authorized_keys` |
 | `MAIL_PASSWORD` | SMTP / mail auth password if used |
-| `MAIL_WEBHOOK_SECRET` | ForwardEmail (or inbound) webhook shared secret |
+| `MAIL_WEBHOOK_SECRET` | ForwardEmail **Webhook Signature Payload Verification Key** (My Account → Domains → Settings). Used to verify `X-Webhook-Signature` (HMAC-SHA256 of the raw body). |
 | Provider API keys | Any extra mail keys you already use (e.g. SendGrid / ForwardEmail) |
 
 ## F. Variables on `production`

@@ -317,23 +317,22 @@ class BookingCalendarChannelTest extends TestCase
         ]);
         $to = InboundMailAddress::forBooking($booking);
 
-        return $this->withToken('testing-webhook-secret')
-            ->postJson(route('api.mail.store'), [
-                'subject' => 'Calendar: '.$booking->activity->name,
-                'date' => now()->toIso8601String(),
-                'from' => [
-                    'text' => $member->email,
-                    'value' => [['address' => $member->email, 'name' => 'Member']],
-                ],
-                'to' => [
-                    'text' => $to,
-                    'value' => [['address' => $to, 'name' => null]],
-                ],
-                'attachments' => [[
-                    'contentType' => 'text/calendar',
-                    'content' => $ics,
-                ]],
-                'html' => '<p>reply</p>',
-            ]);
+        return $this->postMailWebhook([
+            'subject' => 'Calendar: '.$booking->activity->name,
+            'date' => now()->toIso8601String(),
+            'from' => [
+                'text' => $member->email,
+                'value' => [['address' => $member->email, 'name' => 'Member']],
+            ],
+            'to' => [
+                'text' => $to,
+                'value' => [['address' => $to, 'name' => null]],
+            ],
+            'attachments' => [[
+                'contentType' => 'text/calendar',
+                'content' => $ics,
+            ]],
+            'html' => '<p>reply</p>',
+        ]);
     }
 }
