@@ -10,6 +10,8 @@ use Illuminate\Foundation\Testing\WithCachedConfig;
 use Illuminate\Foundation\Testing\WithCachedRoutes;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Sleep;
+use Illuminate\Testing\TestResponse;
+use JsonException;
 
 abstract class TestCase extends BaseTestCase
 {
@@ -44,5 +46,24 @@ abstract class TestCase extends BaseTestCase
         }
 
         return $result;
+    }
+
+    /**
+     * POST a ForwardEmail-style signed inbound mail webhook payload.
+     *
+     * @param  array<string, mixed>  $payload
+     *
+     * @throws JsonException
+     */
+    protected function postMailWebhook(array $payload): TestResponse
+    {
+        $body = json_encode($payload, JSON_THROW_ON_ERROR);
+        $signature = hash_hmac('sha256', $body, (string) config('mail.webhook_secret'));
+
+        return $this->call('POST', route('api.mail.store'), [], [], [], [
+            'CONTENT_TYPE' => 'application/json',
+            'HTTP_ACCEPT' => 'application/json',
+            'HTTP_X_WEBHOOK_SIGNATURE' => $signature,
+        ], $body);
     }
 }

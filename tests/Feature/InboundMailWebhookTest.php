@@ -23,13 +23,25 @@ class InboundMailWebhookTest extends TestCase
         $this->assertDatabaseCount('inbound_mails', 0);
     }
 
+    public function test_webhook_rejects_invalid_signature(): void
+    {
+        $payload = $this->payload();
+        $body = json_encode($payload, JSON_THROW_ON_ERROR);
+
+        $this->call('POST', route('api.mail.store'), [], [], [], [
+            'CONTENT_TYPE' => 'application/json',
+            'HTTP_ACCEPT' => 'application/json',
+            'HTTP_X_WEBHOOK_SIGNATURE' => 'not-a-valid-signature',
+        ], $body)->assertUnauthorized();
+
+        $this->assertDatabaseCount('inbound_mails', 0);
+    }
+
     public function test_webhook_stores_authenticated_payload_for_review(): void
     {
         $payload = $this->payload();
 
-        $this->withToken('testing-webhook-secret')
-            ->postJson(route('api.mail.store'), $payload)
-            ->assertOk();
+        $this->postMailWebhook($payload)->assertOk();
 
         $mail = InboundMail::query()->first();
 
@@ -38,6 +50,15 @@ class InboundMailWebhookTest extends TestCase
         $this->assertSame('booking+abc@climbfoxcoverts.co.uk', $mail->to_address);
         $this->assertSame(InboundMailOutcome::Queued, $mail->outcome);
         $this->assertNull($mail->handled_at);
+    }
+
+    public function test_webhook_accepts_bearer_token_fallback(): void
+    {
+        $this->withToken('testing-webhook-secret')
+            ->postJson(route('api.mail.store'), $this->payload())
+            ->assertOk();
+
+        $this->assertDatabaseCount('inbound_mails', 1);
     }
 
     public function test_system_admin_can_mark_inbound_mail_reviewed(): void

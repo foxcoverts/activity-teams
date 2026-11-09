@@ -46,20 +46,27 @@ Use `vendor/bin/sail …` from the host if you are outside the Sail app containe
 
 ## Server cutover
 
-1. Create a blank AT database; deploy Activity Teams; run `php artisan migrate --no-interaction`.
-2. Point `DB_*` at the new AT database.
-3. Point `LEGACY_DB_*` at the **co-located** legacy climbing-team database (not a laptop connection).
-4. Freeze legacy writes (maintenance mode). Optionally take a safety SQL dump and tarball of `upload/`.
-5. Run:
+Production deploy runs migrate, then a **one-shot** import, under maintenance. See [`docs/deploy-setup.md`](deploy-setup.md) for secrets, variables, and the `DEPLOY_ENABLED` kill-switch.
+
+1. Create a blank AT database; configure `DB_*` and co-located `LEGACY_DB_*` in the GitHub `production` environment (not a laptop connection).
+2. Set `LEGACY_DOCUMENTS_PATH` to the on-server legacy upload parent if documents should be imported.
+3. Freeze legacy writes (maintenance mode). Optionally take a safety SQL dump and tarball of `upload/`.
+4. Set repository variable `DEPLOY_ENABLED=true` and deploy (merge to `main` or `workflow_dispatch`).
+5. On the server, [`.deploy/post.sh`](../.deploy/post.sh) runs `migrate`, then if `storage/app/.legacy-imported` is missing:
 
 ```bash
-php artisan legacy:import --documents-path=/path/to/legacy/upload-parent
+php artisan legacy:import --documents-path="$LEGACY_DOCUMENTS_PATH"  # flag omitted when path empty
 php artisan legacy:verify
+touch storage/app/.legacy-imported
 ```
 
 6. Spot-check login, qualifications, bookings, key holders, a document download, and calendar feeds if tokens were preserved.
-7. Point traffic at Activity Teams; leave the legacy app offline or read-only.
+7. Leave the legacy app offline or read-only; traffic remains on `https://climbfoxcoverts.co.uk/`.
 8. Keep the legacy database until deferred todos/kit checks are imported (`--only=todos` / `--only=kit_checks` once those stories ship) or you explicitly abandon them. Then take a final dump and drop the legacy DB.
+
+### Re-running import
+
+Import runs only when `storage/app/.legacy-imported` is absent. To force a full re-import (destructive relative to already-imported data): put the site in maintenance, remove that marker on the server, fix env/data as needed, and re-deploy. If import or verify fails, the deploy stops and the site stays down.
 
 ## Importer domains
 

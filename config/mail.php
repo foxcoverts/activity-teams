@@ -122,7 +122,9 @@ return [
     |--------------------------------------------------------------------------
     |
     | Calendar UIDs and Reply-To plus-addresses use the inbound domain, which
-    | may differ from APP_URL. The webhook secret authenticates ForwardEmail.
+    | may differ from APP_URL. MAIL_WEBHOOK_SECRET is ForwardEmail's Webhook
+    | Signature Payload Verification Key (HMAC-SHA256 of the raw body, sent as
+    | X-Webhook-Signature). Bearer / X-Webhook-Secret remain a local fallback.
     |
     */
 

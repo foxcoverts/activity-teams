@@ -92,8 +92,7 @@ class InboundMailReplyTest extends TestCase
 
         $ics = $this->ics($booking, 'stranger@example.com', 'REPLY', 'ACCEPTED', (int) $booking->sequence);
 
-        $this->withToken('testing-webhook-secret')
-            ->postJson(route('api.mail.store'), $this->payload($booking, 'stranger@example.com', $ics))
+        $this->postMailWebhook($this->payload($booking, 'stranger@example.com', $ics))
             ->assertOk();
 
         $this->assertSame(InboundMailOutcome::Queued, InboundMail::query()->first()?->outcome);
@@ -105,13 +104,11 @@ class InboundMailReplyTest extends TestCase
         [$booking, $member] = $this->bookingWithAttendee();
         $manager = User::factory()->teamManager($booking->team)->create();
 
-        $this->withToken('testing-webhook-secret')
-            ->postJson(route('api.mail.store'), $this->payload(
-                $booking,
-                $member->email,
-                $this->ics($booking, $member->email, 'REPLY', 'DECLINED', (int) $booking->sequence),
-            ))
-            ->assertOk();
+        $this->postMailWebhook($this->payload(
+            $booking,
+            $member->email,
+            $this->ics($booking, $member->email, 'REPLY', 'DECLINED', (int) $booking->sequence),
+        ))->assertOk();
 
         $this->assertSame(
             BookingAttendeeStatus::Declined,
@@ -160,8 +157,7 @@ class InboundMailReplyTest extends TestCase
     ) {
         $ics = $this->ics($booking, $member->email, $method, $partstat, $sequence);
 
-        return $this->withToken('testing-webhook-secret')
-            ->postJson(route('api.mail.store'), $this->payload($booking, $member->email, $ics));
+        return $this->postMailWebhook($this->payload($booking, $member->email, $ics));
     }
 
     private function ics(Booking $booking, string $email, string $method, string $partstat, int $sequence): string
