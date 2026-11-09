@@ -1,0 +1,167 @@
+name: Deploy to Webspace
+
+concurrency: deploy-production
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: Test
+    uses: ./.github/workflows/test.yml
+    secrets:
+      COMPOSER_AUTH: ${{ secrets.COMPOSER_AUTH }}
+
+  deployment:
+    name: Deploy
+    needs: test
+    # Repository variable: set to "true" only when ready to deploy.
+    # Environment-scoped vars are not reliable in job-level if conditions.
+    if: ${{ vars.DEPLOY_ENABLED == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment:
+      name: production
+      url: https://climbfoxcoverts.co.uk/
+    env:
+      COMPOSER_AUTH: ${{ secrets.COMPOSER_AUTH }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.5"
+          extensions: mbstring, dom, fileinfo, pdo_mysql, intl, gd
+          coverage: none
+          tools: composer:v2
+
+      - name: Get Composer cache directory
+        id: composer-cache
+        run: echo "dir=$(composer config cache-files-dir)" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Composer dependencies
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+          restore-keys: ${{ runner.os }}-composer-
+
+      - name: Install Composer dependencies
+        run: composer install --no-progress --prefer-dist --optimize-autoloader --no-dev
+
+      - name: Generate dotenv file
+        uses: iamsauravsharma/create-dotenv@v4.0.0
+        with:
+          input-prefix: DOTENV_
+        env:
+          DOTENV_APP_NAME: Activity Teams
+          DOTENV_APP_ENV: production
+          DOTENV_APP_KEY: ${{ secrets.APP_KEY }}
+          DOTENV_APP_DEBUG: "false"
+          DOTENV_APP_URL: https://climbfoxcoverts.co.uk
+
+          DOTENV_APP_MAINTENANCE_DRIVER: file
+
+          DOTENV_LOG_CHANNEL: stack
+          DOTENV_LOG_LEVEL: error
+
+          DOTENV_DB_CONNECTION: mysql
+          DOTENV_DB_HOST: ${{ vars.DB_HOST }}
+          DOTENV_DB_PORT: ${{ vars.DB_PORT }}
+          DOTENV_DB_DATABASE: ${{ vars.DB_NAME }}
+          DOTENV_DB_USERNAME: ${{ vars.DB_USERNAME }}
+          DOTENV_DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+
+          DOTENV_LEGACY_DB_CONNECTION: ${{ vars.LEGACY_DB_CONNECTION }}
+          DOTENV_LEGACY_DB_HOST: ${{ vars.LEGACY_DB_HOST }}
+          DOTENV_LEGACY_DB_PORT: ${{ vars.LEGACY_DB_PORT }}
+          DOTENV_LEGACY_DB_DATABASE: ${{ vars.LEGACY_DB_DATABASE }}
+          DOTENV_LEGACY_DB_USERNAME: ${{ vars.LEGACY_DB_USERNAME }}
+          DOTENV_LEGACY_DB_PASSWORD: ${{ secrets.LEGACY_DB_PASSWORD }}
+          DOTENV_LEGACY_DOCUMENTS_PATH: ${{ vars.LEGACY_DOCUMENTS_PATH }}
+
+          DOTENV_SESSION_DRIVER: database
+          DOTENV_QUEUE_CONNECTION: database
+          DOTENV_CACHE_STORE: database
+          DOTENV_FILESYSTEM_DISK: local
+          DOTENV_BROADCAST_CONNECTION: log
+
+          DOTENV_MAIL_MAILER: ${{ vars.MAILER }}
+          DOTENV_MAIL_HOST: ${{ vars.MAIL_HOST }}
+          DOTENV_MAIL_PORT: ${{ vars.MAIL_PORT }}
+          DOTENV_MAIL_ENCRYPTION: ${{ vars.MAIL_ENCRYPTION }}
+          DOTENV_MAIL_USERNAME: ${{ vars.MAIL_USERNAME }}
+          DOTENV_MAIL_PASSWORD: ${{ secrets.MAIL_PASSWORD }}
+          DOTENV_MAIL_FROM_ADDRESS: ${{ vars.MAIL_FROM_ADDRESS }}
+          DOTENV_MAIL_FROM_NAME: Activity Teams
+
+          DOTENV_MAIL_INBOUND_DOMAIN: ${{ vars.MAIL_INBOUND_DOMAIN }}
+          DOTENV_MAIL_WEBHOOK_SECRET: ${{ secrets.MAIL_WEBHOOK_SECRET }}
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Build assets
+        run: |
+          npm ci
+          npm run build
+
+      - name: Generate maintenance page
+        run: php artisan down --render=down.deploy --retry=60 --refresh=15
+
+      - name: Remove unwanted files and directories
+        run: |
+          rm -rf \
+            .cursor \
+            .devcontainer \
+            .editorconfig \
+            .git \
+            .github \
+            AGENTS.md \
+            CLAUDE.md \
+            compose.yaml \
+            docs \
+            node_modules \
+            tests
+
+      - name: Put site into maintenance mode
+        uses: easingthemes/ssh-deploy@v6.0.3
+        with:
+          REMOTE_HOST: ${{ vars.SSH_HOST }}
+          REMOTE_USER: ${{ vars.SSH_USERNAME }}
+          REMOTE_PORT: ${{ vars.SSH_PORT }}
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          SOURCE: storage/framework/down
+          TARGET: ${{ vars.SSH_PATH }}/storage/framework/
+          EXCLUDE: ".git,.github,.gitattributes,.gitignore"
+
+      - name: Deploy to server
+        uses: easingthemes/ssh-deploy@v6.0.3
+        with:
+          REMOTE_HOST: ${{ vars.SSH_HOST }}
+          REMOTE_USER: ${{ vars.SSH_USERNAME }}
+          REMOTE_PORT: ${{ vars.SSH_PORT }}
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          TARGET: ${{ vars.SSH_PATH }}
+          EXCLUDE: ".git,.github,.gitattributes,.gitignore,storage/app,storage/logs,storage/framework/sessions,storage/framework/cache,storage/framework/views"
+
+      - name: Run deploy scripts
+        uses: appleboy/ssh-action@v1.2.5
+        with:
+          host: ${{ vars.SSH_HOST }}
+          username: ${{ vars.SSH_USERNAME }}
+          port: ${{ vars.SSH_PORT }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            set -e
+            cd "${{ vars.SSH_PATH }}"
+            bash ./.deploy/post.sh
