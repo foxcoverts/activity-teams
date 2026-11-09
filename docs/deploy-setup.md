@@ -82,16 +82,26 @@ Keep these as **repository** secrets so both the Test workflow and the deploy jo
 3. Keep the legacy climbing-team database available (prefer read-only user); note `LEGACY_DB_*`.
 4. Note the on-server path to legacy document uploads for `LEGACY_DOCUMENTS_PATH`.
 5. Install/authorize the deploy SSH public key for `SSH_USERNAME`.
-6. Confirm `SSH_PATH` is the directory that should receive the rsynced app (same model as climbing-team).
+6. Confirm `SSH_PATH` is the directory that should receive the rsynced app (same model as climbing-team). On this host, **`.ssh` lives inside `SSH_PATH`** — never delete it.
 
 ## H. First cutover (when ready)
 
 1. Freeze legacy writes / put legacy into maintenance as per the [import runbook](legacy-import-runbook.md).
-2. Set repository variable `DEPLOY_ENABLED=true`.
-3. Merge to `main` (or run **Deploy to Webspace** via `workflow_dispatch`).
-4. Confirm Actions: Test passes → Deployment runs → remote `.deploy/post.sh` migrates, imports once, verifies, writes `storage/app/.legacy-imported`, then `up`.
-5. Spot-check login, bookings, keys, a document, calendar feeds.
-6. Leave `DEPLOY_ENABLED=true` for normal ongoing deploys, or set back to `false` to pause auto-deploy.
+2. Backup the current web root (tarball) and databases.
+3. Empty `SSH_PATH` **except `.ssh`** so leftover climbing-team files are not left beside the new app (rsync does not `--delete`). Example:
+
+```bash
+cd "$SSH_PATH"   # the path from the GitHub variable
+find . -mindepth 1 -maxdepth 1 ! -name '.ssh' -exec rm -rf {} +
+```
+
+4. Set repository variable `DEPLOY_ENABLED=true`.
+5. Merge to `main` (or run **Deploy to Webspace** via `workflow_dispatch`).
+6. Confirm Actions: Test passes → Deployment runs → remote `.deploy/post.sh` migrates, imports once, verifies, writes `storage/app/.legacy-imported`, then `up`.
+7. Spot-check login, bookings, keys, a document, calendar feeds.
+8. Leave `DEPLOY_ENABLED=true` for normal ongoing deploys, or set back to `false` to pause auto-deploy.
+
+The deploy workflow also **excludes `.ssh`** from rsync so later deploys cannot overwrite or remove it.
 
 ## I. If something goes wrong
 

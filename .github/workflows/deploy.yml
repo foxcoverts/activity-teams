@@ -154,7 +154,7 @@ jobs:
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
           SOURCE: storage/framework/down
           TARGET: ${{ vars.SSH_PATH }}/storage/framework/
-          EXCLUDE: ".git,.github,.gitattributes,.gitignore"
+          EXCLUDE: ".git,.github,.gitattributes,.gitignore,.ssh"
 
       - name: Deploy to server
         uses: easingthemes/ssh-deploy@v6.0.3
@@ -164,7 +164,7 @@ jobs:
           REMOTE_PORT: ${{ vars.SSH_PORT }}
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
           TARGET: ${{ vars.SSH_PATH }}
-          EXCLUDE: ".git,.github,.gitattributes,.gitignore,storage/app,storage/logs,storage/framework/sessions,storage/framework/cache,storage/framework/views"
+          EXCLUDE: ".git,.github,.gitattributes,.gitignore,.ssh,storage/app,storage/logs,storage/framework/sessions,storage/framework/cache,storage/framework/views"
 
       - name: Run deploy scripts
         uses: appleboy/ssh-action@v1.2.5
