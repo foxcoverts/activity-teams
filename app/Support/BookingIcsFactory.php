@@ -6,10 +6,16 @@ use App\Enums\BookingAttendeeStatus;
 use App\Enums\CalendarMethod;
 use App\Models\Booking;
 use App\Models\User;
+use Carbon\Carbon;
+use Carbon\CarbonTimeZone;
+use DateInterval;
 use DateTimeImmutable;
+use DateTimeZone as PhpDateTimeZone;
 use Eluceo\iCal\Domain\Entity\Attendee;
 use Eluceo\iCal\Domain\Entity\Calendar;
 use Eluceo\iCal\Domain\Entity\Event;
+use Eluceo\iCal\Domain\Entity\TimeZone;
+use Eluceo\iCal\Domain\Enum\CalendarUserType;
 use Eluceo\iCal\Domain\Enum\EventStatus;
 use Eluceo\iCal\Domain\Enum\ParticipationStatus;
 use Eluceo\iCal\Domain\Enum\RoleType;
@@ -18,6 +24,7 @@ use Eluceo\iCal\Domain\ValueObject\EmailAddress;
 use Eluceo\iCal\Domain\ValueObject\GeographicPosition;
 use Eluceo\iCal\Domain\ValueObject\Organizer;
 use Eluceo\iCal\Domain\ValueObject\TimeSpan;
+use Eluceo\iCal\Domain\ValueObject\Timestamp;
 use Eluceo\iCal\Domain\ValueObject\UniqueIdentifier;
 use Eluceo\iCal\Domain\ValueObject\Uri;
 use Eluceo\iCal\Presentation\Component;
@@ -31,6 +38,7 @@ use Eluceo\iCal\Presentation\Component\Property\Value\UriValue;
 use Eluceo\iCal\Presentation\Factory\CalendarFactory;
 use Eluceo\iCal\Presentation\Factory\EventFactory;
 use Generator;
+use Illuminate\Support\Str;
 
 class BookingIcsFactory
 {
@@ -40,13 +48,21 @@ class BookingIcsFactory
         ?CalendarMethod $method = null,
         ?User $forAttendee = null,
         bool $rsvp = false,
+        ?DateInterval $publishedTtl = null,
     ): string {
         $calendar = new Calendar;
         $calendar->setProductIdentifier('-//Activity Teams//EN');
         $calendar->setCalName($title);
 
-        /** @var array<string, array{related: list<string>, sequence: int, location: ?Location, coords: ?Coords}> $metaByUid */
+        if ($publishedTtl instanceof DateInterval) {
+            $calendar->setPublishedTTL($publishedTtl);
+        }
+
+        /** @var array<string, array{related: list<string>, sequence: int, location: ?Location, coords: ?Coords, comment: ?string}> $metaByUid */
         $metaByUid = [];
+
+        /** @var array<string, array{min: DateTimeImmutable, max: DateTimeImmutable}> $timeZones */
+        $timeZones = [];
 
         foreach ($bookings as $booking) {
             if (! $booking instanceof Booking || ! $booking->start_at || ! $booking->end_at) {
@@ -55,13 +71,41 @@ class BookingIcsFactory
 
             $booking->loadMissing(['activity', 'audience', 'venue', 'related', 'attendees']);
 
-            $start = new DateTime(new DateTimeImmutable($booking->start_at->toIso8601String()), true);
-            $end = new DateTime(new DateTimeImmutable($booking->end_at->toIso8601String()), true);
+            [$start, $end, $timeZoneId] = $this->occurrenceDateTimes($booking);
+
+            if ($timeZoneId !== 'UTC') {
+                $startImmutable = $booking->start_at->copy()->timezone($timeZoneId)->toDateTimeImmutable();
+                $endImmutable = $booking->end_at->copy()->timezone($timeZoneId)->toDateTimeImmutable();
+
+                if (! array_key_exists($timeZoneId, $timeZones)) {
+                    $now = Carbon::now($timeZoneId)->toDateTimeImmutable();
+                    $timeZones[$timeZoneId] = [
+                        'min' => $now,
+                        'max' => $now,
+                    ];
+                }
+
+                if ($startImmutable < $timeZones[$timeZoneId]['min']) {
+                    $timeZones[$timeZoneId]['min'] = $startImmutable;
+                }
+
+                if ($endImmutable > $timeZones[$timeZoneId]['max']) {
+                    $timeZones[$timeZoneId]['max'] = $endImmutable;
+                }
+            }
+
+            [$textDescription, $htmlDescription] = $this->descriptions($booking);
 
             $event = (new Event(new UniqueIdentifier($booking->uid)))
                 ->setSummary($booking->icsSummary())
-                ->setDescription($booking->notes ?? '')
+                ->setDescription($textDescription)
+                ->setHtmlDescription($htmlDescription)
+                ->setUrl(new Uri(route('booking.preview', $booking)))
                 ->setOccurrence(new TimeSpan($start, $end));
+
+            if ($booking->updated_at !== null) {
+                $event->setLastModified(new Timestamp($booking->updated_at->toDateTimeImmutable()));
+            }
 
             $event = match ($booking->status->value) {
                 'confirmed' => $event->setStatus(EventStatus::CONFIRMED()),
@@ -77,6 +121,7 @@ class BookingIcsFactory
 
                 if ($forAttendee instanceof User && filled($forAttendee->email)) {
                     $attendee = (new Attendee(new EmailAddress($forAttendee->email)))
+                        ->setCalendarUserType(CalendarUserType::INDIVIDUAL())
                         ->setDisplayName($forAttendee->name)
                         ->setResponseNeededFromAttendee($rsvp && $method === CalendarMethod::Request)
                         ->setRole(
@@ -87,21 +132,27 @@ class BookingIcsFactory
 
                     $status = $booking->attendees->find($forAttendee->getKey())?->attendance?->status;
 
-                    if ($status instanceof BookingAttendeeStatus) {
-                        $participation = match ($status) {
-                            BookingAttendeeStatus::Accepted => ParticipationStatus::ACCEPTED(),
-                            BookingAttendeeStatus::Declined => ParticipationStatus::DECLINED(),
-                            BookingAttendeeStatus::Tentative => ParticipationStatus::TENTATIVE(),
-                            default => null,
-                        };
+                    $participation = match ($status) {
+                        BookingAttendeeStatus::Accepted => ParticipationStatus::ACCEPTED(),
+                        BookingAttendeeStatus::Declined => ParticipationStatus::DECLINED(),
+                        BookingAttendeeStatus::Tentative => ParticipationStatus::TENTATIVE(),
+                        BookingAttendeeStatus::NeedsAction => ParticipationStatus::NEEDS_ACTION(),
+                        default => ParticipationStatus::NEEDS_ACTION(),
+                    };
 
-                        if ($participation instanceof ParticipationStatus) {
-                            $attendee->setParticipationStatus($participation);
-                        }
-                    }
-
+                    $attendee->setParticipationStatus($participation);
                     $event->addAttendee($attendee);
                 }
+            }
+
+            $comment = null;
+
+            if (
+                $forAttendee instanceof User
+                && $booking->isLead($forAttendee)
+                && filled($booking->lead_instructor_notes)
+            ) {
+                $comment = (string) $booking->lead_instructor_notes;
             }
 
             $metaByUid[$booking->uid] = [
@@ -111,15 +162,28 @@ class BookingIcsFactory
                 'sequence' => (int) $booking->sequence,
                 'location' => $booking->location,
                 'coords' => $booking->coords,
+                'comment' => $comment,
             ];
 
             $calendar->addEvent($event);
         }
 
+        $primaryTimeZoneId = null;
+
+        foreach ($timeZones as $timeZoneId => $range) {
+            $timeZone = TimeZone::createFromPhpDateTimeZone(
+                new PhpDateTimeZone($timeZoneId),
+                $range['min'],
+                $range['max'],
+            );
+            $calendar->addTimeZone($timeZone);
+            $primaryTimeZoneId ??= $timeZoneId;
+        }
+
         $eventFactory = new class($metaByUid) extends EventFactory
         {
             /**
-             * @param  array<string, array{related: list<string>, sequence: int, location: ?Location, coords: ?Coords}>  $metaByUid
+             * @param  array<string, array{related: list<string>, sequence: int, location: ?Location, coords: ?Coords, comment: ?string}>  $metaByUid
              */
             public function __construct(private array $metaByUid)
             {
@@ -129,7 +193,8 @@ class BookingIcsFactory
             public function createComponent(Event $event): Component
             {
                 $component = parent::createComponent($event)
-                    ->withProperty(new Property('CLASS', new TextValue('PRIVATE')));
+                    ->withProperty(new Property('CLASS', new TextValue('PRIVATE')))
+                    ->withProperty(new Property('TRANSP', new TextValue('OPAQUE')));
 
                 $uid = (string) $event->getUniqueIdentifier();
                 $meta = $this->metaByUid[$uid] ?? null;
@@ -141,6 +206,12 @@ class BookingIcsFactory
                 $component = $component->withProperty(
                     new Property('SEQUENCE', new IntegerValue($meta['sequence'])),
                 );
+
+                if (filled($meta['comment'])) {
+                    $component = $component->withProperty(
+                        new Property('COMMENT', new TextValue((string) $meta['comment'])),
+                    );
+                }
 
                 foreach ($meta['related'] as $relatedUid) {
                     $component = $component->withProperty(new Property(
@@ -276,10 +347,13 @@ class BookingIcsFactory
             }
         };
 
-        $calendarFactory = new class($method, $eventFactory) extends CalendarFactory
+        $calendarFactory = new class($method, $primaryTimeZoneId, $eventFactory) extends CalendarFactory
         {
-            public function __construct(private ?CalendarMethod $method, EventFactory $eventFactory)
-            {
+            public function __construct(
+                private ?CalendarMethod $method,
+                private ?string $primaryTimeZoneId,
+                EventFactory $eventFactory,
+            ) {
                 parent::__construct($eventFactory);
             }
 
@@ -290,6 +364,12 @@ class BookingIcsFactory
                 if ($this->method instanceof CalendarMethod) {
                     $component = $component->withProperty(
                         new Property('METHOD', new TextValue($this->method->value)),
+                    );
+                }
+
+                if (filled($this->primaryTimeZoneId)) {
+                    $component = $component->withProperty(
+                        new Property('X-WR-TIMEZONE', new TextValue((string) $this->primaryTimeZoneId)),
                     );
                 }
 
@@ -309,6 +389,65 @@ class BookingIcsFactory
         $lines = self::icsAddressLines($location);
 
         return $lines === [] ? $location->name : implode("\n", $lines);
+    }
+
+    /**
+     * Build DTSTART/DTEND with a named TZID (and matching VTIMEZONE), or UTC with a Z suffix.
+     * Offsets such as +00:00 are not valid TZIDs for iCalendar clients.
+     *
+     * @return array{0: DateTime, 1: DateTime, 2: string}
+     */
+    private function occurrenceDateTimes(Booking $booking): array
+    {
+        $timeZone = $booking->timezone instanceof CarbonTimeZone
+            ? $booking->timezone
+            : CarbonTimeZone::instance(config('app.timezone'));
+
+        $timeZoneId = $timeZone->getName();
+        $useNamedZone = $timeZoneId !== 'UTC'
+            && ! preg_match('/^[+-]\d{2}/', $timeZoneId);
+
+        if (! $useNamedZone) {
+            return [
+                new DateTime($booking->start_at->copy()->utc()->toDateTimeImmutable(), true),
+                new DateTime($booking->end_at->copy()->utc()->toDateTimeImmutable(), true),
+                'UTC',
+            ];
+        }
+
+        return [
+            new DateTime($booking->start_at->copy()->timezone($timeZone)->toDateTimeImmutable(), true),
+            new DateTime($booking->end_at->copy()->timezone($timeZone)->toDateTimeImmutable(), true),
+            $timeZoneId,
+        ];
+    }
+
+    /**
+     * @return array{0: string, 1: string}
+     */
+    private function descriptions(Booking $booking): array
+    {
+        $parts = array_values(array_filter([
+            filled($booking->group_name) ? (string) $booking->group_name : null,
+            is_string($booking->notes) && filled($booking->notes) ? $booking->notes : null,
+            route('booking.preview', $booking),
+        ]));
+
+        $text = implode("\n\n", $parts);
+
+        $html = '<!DOCTYPE html><html lang="en"><body>'
+            .Str::markdown($text, [
+                'renderer' => [
+                    'block_separator' => "\n",
+                    'inner_separator' => "\n",
+                    'soft_break' => '<br \\>',
+                ],
+                'html_input' => 'strip',
+                'allow_unsafe_links' => false,
+            ])
+            .'</body></html>';
+
+        return [$text, $html];
     }
 
     /**

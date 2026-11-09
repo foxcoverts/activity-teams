@@ -6,6 +6,7 @@ use App\Enums\BookingAttendeeStatus;
 use App\Models\Booking;
 use App\Models\User;
 use App\Support\BookingIcsFactory;
+use DateInterval;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Gate;
@@ -57,7 +58,11 @@ class BookingIcsController extends Controller
 
     protected function download(iterable $bookings, string $title, string $filename): Response
     {
-        $body = app(BookingIcsFactory::class)->make($bookings, $title);
+        $body = app(BookingIcsFactory::class)->make(
+            $bookings,
+            $title,
+            publishedTtl: DateInterval::createFromDateString('7 days') ?: null,
+        );
 
         return response($body, 200, [
             'Content-Type' => 'text/calendar; charset=utf-8',
