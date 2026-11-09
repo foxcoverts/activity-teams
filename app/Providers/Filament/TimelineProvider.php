@@ -74,6 +74,11 @@ class TimelineProvider extends ServiceProvider
 
                     return is_string($value) ? $value : null;
                 }, Booking::class)
+                // Own created/deleted/restored so we return HtmlString and avoid the package
+                // path that e()s the causer name and then e()s again before inlineMarkdown.
+                ->eventDescription('created', fn (ActivityLog $activity, ?string $causerName, Timeline $timeline): HtmlString => static::withActor($timeline, $activity, $causerName, 'created the booking.'), Booking::class)
+                ->eventDescription('deleted', fn (ActivityLog $activity, ?string $causerName, Timeline $timeline): HtmlString => static::withActor($timeline, $activity, $causerName, 'deleted the booking.'), Booking::class)
+                ->eventDescription('restored', fn (ActivityLog $activity, ?string $causerName, Timeline $timeline): HtmlString => static::withActor($timeline, $activity, $causerName, 'restored the booking.'), Booking::class)
                 ->eventDescription('attendees_invited', fn (ActivityLog $activity, ?string $causerName, Timeline $timeline): HtmlString => static::withActor($timeline, $activity, $causerName, static::invitedUpdate($timeline, $activity), escape: false), Booking::class)
                 ->eventDescription('attendee_removed', fn (ActivityLog $activity, ?string $causerName, Timeline $timeline): HtmlString => static::withActor($timeline, $activity, $causerName, static::removedUpdate($timeline, $activity), escape: false), Booking::class)
                 ->eventDescription('attendance_updated', fn (ActivityLog $activity, ?string $causerName, Timeline $timeline): HtmlString => static::withActor($timeline, $activity, $causerName, static::attendanceUpdate($timeline, $activity), escape: false), Booking::class)
@@ -97,20 +102,27 @@ class TimelineProvider extends ServiceProvider
                         ->map(fn (string $clause): string => '<li>'.trim((string) str($clause)->inlineMarkdown()).'</li>')
                         ->implode('').'</ul>';
 
-                    return new HtmlString(static::withActor($timeline, $activity, $causerName, 'made some changes:').$list);
+                    return new HtmlString((string) static::withActor($timeline, $activity, $causerName, 'made some changes:').$list);
                 }, Booking::class);
         });
     }
 
+    /**
+     * Build a timeline sentence. The activitylog package passes an already-escaped
+     * $causerName; decode it and let inlineMarkdown perform a single HTML escape.
+     * Do not e() text that will be fed to markdown — that double-encodes apostrophes.
+     */
     protected static function withActor(Timeline $timeline, ActivityLog $activity, ?string $causerName, string $update, ?string $changesSummary = null, bool $escape = true): HtmlString
     {
         if ($escape) {
-            $update = e(lcfirst($update));
+            $update = lcfirst($update);
         }
 
         if (filled($changesSummary)) {
             $update .= ' '.$changesSummary;
         }
+
+        $causerName = static::rawCauserName($causerName);
 
         if (blank($causerName)) {
             return str(str($update)->ucfirst())->inlineMarkdown()->toHtmlString();
@@ -119,13 +131,30 @@ class TimelineProvider extends ServiceProvider
         $causerUrl = $timeline->getCauserUrl($activity, $activity->causer);
 
         if (filled($causerUrl)) {
-            $causerName = '['.$causerName.']('.$causerUrl.')';
+            $causerName = '['.static::markdownLinkText($causerName).']('.$causerUrl.')';
         }
 
         return str(__('**:name** :update', [
             'name' => $causerName,
             'update' => $update,
         ]))->inlineMarkdown()->toHtmlString();
+    }
+
+    /**
+     * The package HTML-escapes the causer before invoking eventDescription callbacks.
+     */
+    protected static function rawCauserName(?string $causerName): ?string
+    {
+        if ($causerName === null || $causerName === '') {
+            return $causerName;
+        }
+
+        return html_entity_decode($causerName, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+    }
+
+    protected static function markdownLinkText(string $text): string
+    {
+        return str_replace(['[', ']', '\\'], ['\\[', '\\]', '\\\\'], $text);
     }
 
     /**
@@ -217,7 +246,7 @@ class TimelineProvider extends ServiceProvider
         $status = static::attendanceStatus($activity);
 
         if ($status instanceof BookingAttendeeStatus && filled($attendeeId) && (string) $activity->causer_id === (string) $attendeeId) {
-            $statusLabel = e(lcfirst($status->getLabel()));
+            $statusLabel = lcfirst($status->getLabel());
 
             return $status === BookingAttendeeStatus::Tentative
                 ? __('said **:status**.', ['status' => $statusLabel])
@@ -226,12 +255,12 @@ class TimelineProvider extends ServiceProvider
 
         if (filled($name) && $status instanceof BookingAttendeeStatus) {
             return __('recorded **:status** for :name.', [
-                'status' => e($status->getLabel()),
+                'status' => $status->getLabel(),
                 'name' => $name,
             ]);
         }
 
-        return e(lcfirst($activity->description));
+        return lcfirst((string) $activity->description);
     }
 
     protected static function leadSteppedDownUpdate(Timeline $timeline, ActivityLog $activity): string
@@ -255,7 +284,7 @@ class TimelineProvider extends ServiceProvider
         $names = static::linkedUsers($timeline, $activity, data_get($activity->properties, 'user_ids', []));
 
         if ($names->isEmpty()) {
-            return e(lcfirst($activity->description));
+            return lcfirst((string) $activity->description);
         }
 
         return __('invited :names.', ['names' => static::naturalList($names)]);
@@ -266,7 +295,7 @@ class TimelineProvider extends ServiceProvider
         $name = static::linkedUser($timeline, $activity, data_get($activity->properties, 'user_id'));
 
         if (blank($name)) {
-            return e(lcfirst($activity->description));
+            return lcfirst((string) $activity->description);
         }
 
         return __('removed :name.', ['name' => $name]);
@@ -284,14 +313,15 @@ class TimelineProvider extends ServiceProvider
             return null;
         }
 
-        $name = $escape ? e($user->name) : $user->name;
+        // Raw name: inlineMarkdown escapes HTML once. Pre-escaping here double-encodes apostrophes.
+        $name = $user->name;
         $url = $timeline->getRecordUrl($activity, $user);
 
         if (blank($url)) {
             return $escape ? '**'.$name.'**' : $name;
         }
 
-        return '['.$name.']('.$url.')';
+        return '['.static::markdownLinkText($name).']('.$url.')';
     }
 
     /**
@@ -311,10 +341,12 @@ class TimelineProvider extends ServiceProvider
                     return null;
                 }
 
-                $name = e($user->name);
+                $name = $user->name;
                 $url = $timeline->getRecordUrl($activity, $user);
 
-                return filled($url) ? '['.$name.']('.$url.')' : '**'.$name.'**';
+                return filled($url)
+                    ? '['.static::markdownLinkText($name).']('.$url.')'
+                    : '**'.$name.'**';
             })
             ->filter()
             ->values();
