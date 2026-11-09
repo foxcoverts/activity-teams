@@ -72,7 +72,8 @@ jobs:
         with:
           input-prefix: DOTENV_
         env:
-          DOTENV_APP_NAME: Activity Teams
+          # Quote values that contain spaces — create-dotenv writes them as-is.
+          DOTENV_APP_NAME: '"Activity Teams"'
           DOTENV_APP_ENV: production
           DOTENV_APP_KEY: ${{ secrets.APP_KEY }}
           DOTENV_APP_DEBUG: "false"
@@ -83,14 +84,16 @@ jobs:
           DOTENV_LOG_CHANNEL: stack
           DOTENV_LOG_LEVEL: error
 
-          DOTENV_DB_CONNECTION: mysql
+          # Drivers are configurable; empty GitHub vars would otherwise write blank
+          # .env lines and override Laravel defaults. Legacy falls back to the app driver.
+          DOTENV_DB_CONNECTION: ${{ vars.DB_CONNECTION || 'mariadb' }}
           DOTENV_DB_HOST: ${{ vars.DB_HOST }}
           DOTENV_DB_PORT: ${{ vars.DB_PORT }}
           DOTENV_DB_DATABASE: ${{ vars.DB_NAME }}
           DOTENV_DB_USERNAME: ${{ vars.DB_USERNAME }}
           DOTENV_DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
 
-          DOTENV_LEGACY_DB_CONNECTION: ${{ vars.LEGACY_DB_CONNECTION }}
+          DOTENV_LEGACY_DB_CONNECTION: ${{ vars.LEGACY_DB_CONNECTION || vars.DB_CONNECTION || 'mariadb' }}
           DOTENV_LEGACY_DB_HOST: ${{ vars.LEGACY_DB_HOST }}
           DOTENV_LEGACY_DB_PORT: ${{ vars.LEGACY_DB_PORT }}
           DOTENV_LEGACY_DB_DATABASE: ${{ vars.LEGACY_DB_DATABASE }}
@@ -111,7 +114,7 @@ jobs:
           DOTENV_MAIL_USERNAME: ${{ vars.MAIL_USERNAME }}
           DOTENV_MAIL_PASSWORD: ${{ secrets.MAIL_PASSWORD }}
           DOTENV_MAIL_FROM_ADDRESS: ${{ vars.MAIL_FROM_ADDRESS }}
-          DOTENV_MAIL_FROM_NAME: Activity Teams
+          DOTENV_MAIL_FROM_NAME: '"Activity Teams"'
 
           DOTENV_MAIL_INBOUND_DOMAIN: ${{ vars.MAIL_INBOUND_DOMAIN }}
           DOTENV_MAIL_WEBHOOK_SECRET: ${{ secrets.MAIL_WEBHOOK_SECRET }}

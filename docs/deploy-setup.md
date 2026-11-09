@@ -67,13 +67,20 @@ Keep these as **repository** secrets so both the Test workflow and the deploy jo
 | `SSH_USERNAME` | SSH user |
 | `SSH_PORT` | SSH port |
 | `SSH_PATH` | Absolute path to the web app root on the server |
+| `DB_CONNECTION` | Activity Teams DB driver (optional; defaults to `mariadb`) |
 | `DB_HOST` / `DB_PORT` / `DB_NAME` / `DB_USERNAME` | Activity Teams DB |
-| `LEGACY_DB_CONNECTION` / `LEGACY_DB_HOST` / `LEGACY_DB_PORT` / `LEGACY_DB_DATABASE` / `LEGACY_DB_USERNAME` | Co-located legacy DB |
+| `LEGACY_DB_CONNECTION` | Legacy DB driver (optional; falls back to `DB_CONNECTION`, then `mariadb`) |
+| `LEGACY_DB_HOST` / `LEGACY_DB_PORT` / `LEGACY_DB_DATABASE` / `LEGACY_DB_USERNAME` | Co-located legacy DB |
 | `LEGACY_DOCUMENTS_PATH` | Server path to legacy upload parent (omit if unused) |
 | `MAILER` / `MAIL_HOST` / `MAIL_PORT` / `MAIL_ENCRYPTION` / `MAIL_USERNAME` / `MAIL_FROM_ADDRESS` | Outbound mail as needed |
 | `MAIL_INBOUND_DOMAIN` | Keep `climbfoxcoverts.co.uk` unless you change inbound later |
 
-`APP_URL` is set in the deploy workflow to `https://climbfoxcoverts.co.uk` (change the workflow if the domain ever moves).
+`APP_URL`, `APP_NAME`, and `MAIL_FROM_NAME` are set in the deploy workflow (`https://climbfoxcoverts.co.uk`, quoted `Activity Teams`).
+
+### How `create-dotenv` writes `.env`
+
+- Every `DOTENV_*` key in the workflow is written. Unset GitHub vars become **empty** `.env` lines and override Laravel `env()` defaults — so optional drivers use workflow fallbacks (`vars.X || 'mariadb'`) instead of relying on PHP defaults.
+- Values are written **as-is**; the action does **not** auto-quote. Spaces, `#`, or embedded `"` in a value will break dotenv parsing unless the quotes are already in the workflow (as with `APP_NAME` / `MAIL_FROM_NAME`) or included in the GitHub variable/secret value itself (e.g. `"My App"`). Prefer values without spaces or `#` for hosts, paths, and passwords when you can.
 
 ## G. IONOS / server (before first real deploy)
 
