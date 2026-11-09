@@ -167,7 +167,7 @@ jobs:
           ARGS: "-rlgoDzvc -i --delete"
           TARGET: ${{ vars.SSH_PATH }}
           # Persist host/SSH state and runtime data. Do not exclude .env — CI ships a fresh one.
-          EXCLUDE: ".git,.github,.gitattributes,.gitignore,.ssh,storage,upload,logs"
+          EXCLUDE: ".git,.github,.gitattributes,.gitignore,.ssh,storage,logs"
 
       - name: Run deploy scripts
         uses: appleboy/ssh-action@v1.2.5

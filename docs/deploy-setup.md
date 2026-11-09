@@ -83,7 +83,7 @@ Keep these as **repository** secrets so both the Test workflow and the deploy jo
 4. Note the on-server path to legacy document uploads for `LEGACY_DOCUMENTS_PATH`.
 5. Install/authorize the deploy SSH public key for `SSH_USERNAME`.
 6. Confirm `SSH_PATH` is the directory that should receive the rsynced app (same model as climbing-team). On this host, **`.ssh` lives inside `SSH_PATH`** — never delete it.
-7. If legacy document files still live under the web root (e.g. `upload/`), keep that path for `LEGACY_DOCUMENTS_PATH`; deploy rsync excludes `upload`.
+7. Point `LEGACY_DOCUMENTS_PATH` at the legacy upload tree under `storage` (rsync excludes all of `storage`, so those files survive deploy).
 
 ## H. First cutover (when ready)
 
@@ -96,7 +96,6 @@ cd "$SSH_PATH"   # the path from the GitHub variable
 find . -mindepth 1 -maxdepth 1 \
   ! -name '.ssh' \
   ! -name 'storage' \
-  ! -name 'upload' \
   ! -name 'logs' \
   -exec rm -rf {} +
 ```
@@ -114,8 +113,7 @@ Deploy removes server files that are not in the build, except:
 | Path | Why |
 |------|-----|
 | `.ssh` | Deploy keys live under `SSH_PATH` on this host |
-| `storage` | Uploads, `storage/app/.legacy-imported`, logs, framework runtime |
-| `upload` | Legacy climbing-team document files (import source) |
+| `storage` | Uploads, legacy document files, `storage/app/.legacy-imported`, logs, framework runtime |
 | `logs` | Host-level logs directory if present (not Laravel `storage/logs`) |
 
 `.env` is **not** excluded: each deploy ships a fresh file from GitHub secrets/vars. The maintenance-only rsync (down file) does not use `--delete`.
