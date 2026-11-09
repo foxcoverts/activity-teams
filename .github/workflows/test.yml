@@ -7,7 +7,9 @@ on:
       - main
   workflow_call:
     secrets:
-      COMPOSER_AUTH:
+      RALPHJSMIT_COMPOSER_USERNAME:
+        required: true
+      RALPHJSMIT_COMPOSER_PASSWORD:
         required: true
 
 concurrency:
@@ -22,7 +24,6 @@ jobs:
 
     env:
       APP_ENV: testing
-      COMPOSER_AUTH: ${{ secrets.COMPOSER_AUTH }}
       DB_CONNECTION: mariadb
       DB_HOST: 127.0.0.1
       DB_PORT: 3306
@@ -48,13 +49,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
 
-      - name: Require Composer auth
-        run: |
-          if [ -z "${COMPOSER_AUTH}" ]; then
-            echo "::error::COMPOSER_AUTH secret is required (Satis credentials for ralphjsmit packages)."
-            exit 1
-          fi
-
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
@@ -62,6 +56,19 @@ jobs:
           extensions: mbstring, dom, fileinfo, pdo_mysql, intl, gd
           coverage: none
           tools: composer:v2
+
+      - name: Authenticate private Composer packages
+        env:
+          RALPHJSMIT_COMPOSER_USERNAME: ${{ secrets.RALPHJSMIT_COMPOSER_USERNAME }}
+          RALPHJSMIT_COMPOSER_PASSWORD: ${{ secrets.RALPHJSMIT_COMPOSER_PASSWORD }}
+        run: |
+          if [ -z "${RALPHJSMIT_COMPOSER_USERNAME}" ] || [ -z "${RALPHJSMIT_COMPOSER_PASSWORD}" ]; then
+            echo "::error::RALPHJSMIT_COMPOSER_USERNAME and RALPHJSMIT_COMPOSER_PASSWORD secrets are required (Satis login for ralphjsmit packages)."
+            exit 1
+          fi
+          composer config http-basic.satis.ralphjsmit.com \
+            "${RALPHJSMIT_COMPOSER_USERNAME}" \
+            "${RALPHJSMIT_COMPOSER_PASSWORD}"
 
       - name: Get Composer cache directory
         id: composer-cache

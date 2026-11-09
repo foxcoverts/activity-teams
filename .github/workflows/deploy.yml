@@ -13,7 +13,8 @@ jobs:
     name: Test
     uses: ./.github/workflows/test.yml
     secrets:
-      COMPOSER_AUTH: ${{ secrets.COMPOSER_AUTH }}
+      RALPHJSMIT_COMPOSER_USERNAME: ${{ secrets.RALPHJSMIT_COMPOSER_USERNAME }}
+      RALPHJSMIT_COMPOSER_PASSWORD: ${{ secrets.RALPHJSMIT_COMPOSER_PASSWORD }}
 
   deployment:
     name: Deploy
@@ -26,8 +27,6 @@ jobs:
     environment:
       name: production
       url: https://climbfoxcoverts.co.uk/
-    env:
-      COMPOSER_AUTH: ${{ secrets.COMPOSER_AUTH }}
 
     steps:
       - name: Checkout
@@ -40,6 +39,19 @@ jobs:
           extensions: mbstring, dom, fileinfo, pdo_mysql, intl, gd
           coverage: none
           tools: composer:v2
+
+      - name: Authenticate private Composer packages
+        env:
+          RALPHJSMIT_COMPOSER_USERNAME: ${{ secrets.RALPHJSMIT_COMPOSER_USERNAME }}
+          RALPHJSMIT_COMPOSER_PASSWORD: ${{ secrets.RALPHJSMIT_COMPOSER_PASSWORD }}
+        run: |
+          if [ -z "${RALPHJSMIT_COMPOSER_USERNAME}" ] || [ -z "${RALPHJSMIT_COMPOSER_PASSWORD}" ]; then
+            echo "::error::RALPHJSMIT_COMPOSER_USERNAME and RALPHJSMIT_COMPOSER_PASSWORD secrets are required (Satis login for ralphjsmit packages)."
+            exit 1
+          fi
+          composer config http-basic.satis.ralphjsmit.com \
+            "${RALPHJSMIT_COMPOSER_USERNAME}" \
+            "${RALPHJSMIT_COMPOSER_PASSWORD}"
 
       - name: Get Composer cache directory
         id: composer-cache

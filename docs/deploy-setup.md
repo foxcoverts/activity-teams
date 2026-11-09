@@ -32,11 +32,20 @@ Set repository variable **`DEPLOY_ENABLED`** to `false` (or leave unset). The de
 
 ## E. Secrets
 
-### Repository secret (required for Test on every PR)
+### Repository secrets (required for Test on every PR)
+
+Same Satis login Composer prompts for locally against `https://satis.ralphjsmit.com` (ralphjsmit account email + password). Workflows run:
+
+`composer config http-basic.satis.ralphjsmit.com "$USERNAME" "$PASSWORD"`
+
+before `composer install` ([ralphjsmit’s GitHub Actions notes](https://ralphjsmit.com/github-actions-private-composer)).
 
 | Secret | Purpose |
 |--------|---------|
-| `COMPOSER_AUTH` | Composer auth JSON for private Satis (`ralphjsmit`); required for **test and deploy** |
+| `RALPHJSMIT_COMPOSER_USERNAME` | Satis username (usually your email) |
+| `RALPHJSMIT_COMPOSER_PASSWORD` | Satis password |
+
+Keep these as **repository** secrets so both the Test workflow and the deploy job can read them.
 
 ### Secrets on `production` (preferred for deploy)
 
@@ -49,8 +58,6 @@ Set repository variable **`DEPLOY_ENABLED`** to `false` (or leave unset). The de
 | `MAIL_PASSWORD` | SMTP / mail auth password if used |
 | `MAIL_WEBHOOK_SECRET` | ForwardEmail (or inbound) webhook shared secret |
 | Provider API keys | Any extra mail keys you already use (e.g. SendGrid / ForwardEmail) |
-
-`COMPOSER_AUTH` must also be visible to the deploy workflow (repository secret covers both jobs).
 
 ## F. Variables on `production`
 
