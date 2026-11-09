@@ -67,13 +67,20 @@ Keep these as **repository** secrets so both the Test workflow and the deploy jo
 | `SSH_USERNAME` | SSH user |
 | `SSH_PORT` | SSH port |
 | `SSH_PATH` | Absolute path to the web app root on the server |
+| `DB_CONNECTION` | Activity Teams DB driver (optional; defaults to `mariadb`) |
 | `DB_HOST` / `DB_PORT` / `DB_NAME` / `DB_USERNAME` | Activity Teams DB |
-| `LEGACY_DB_CONNECTION` / `LEGACY_DB_HOST` / `LEGACY_DB_PORT` / `LEGACY_DB_DATABASE` / `LEGACY_DB_USERNAME` | Co-located legacy DB |
+| `LEGACY_DB_CONNECTION` | Legacy DB driver (optional; falls back to `DB_CONNECTION`, then `mariadb`) |
+| `LEGACY_DB_HOST` / `LEGACY_DB_PORT` / `LEGACY_DB_DATABASE` / `LEGACY_DB_USERNAME` | Co-located legacy DB |
 | `LEGACY_DOCUMENTS_PATH` | Server path to legacy upload parent (omit if unused) |
 | `MAILER` / `MAIL_HOST` / `MAIL_PORT` / `MAIL_ENCRYPTION` / `MAIL_USERNAME` / `MAIL_FROM_ADDRESS` | Outbound mail as needed |
 | `MAIL_INBOUND_DOMAIN` | Keep `climbfoxcoverts.co.uk` unless you change inbound later |
 
-`APP_URL` is set in the deploy workflow to `https://climbfoxcoverts.co.uk` (change the workflow if the domain ever moves).
+`APP_URL`, `APP_NAME`, and `MAIL_FROM_NAME` are set in the deploy workflow (`https://climbfoxcoverts.co.uk`, quoted `Activity Teams`).
+
+### How `create-dotenv` writes `.env`
+
+- Every `DOTENV_*` key in the workflow is written. Unset GitHub vars become **empty** `.env` lines and override Laravel `env()` defaults — so optional drivers use workflow fallbacks (`vars.X || 'mariadb'`) instead of relying on PHP defaults.
+- Values are written **as-is**; the action does **not** auto-quote. Spaces, `#`, or embedded `"` in a value will break dotenv parsing unless the quotes are already in the workflow (as with `APP_NAME` / `MAIL_FROM_NAME`) or included in the GitHub variable/secret value itself (e.g. `"My App"`). Prefer values without spaces or `#` for hosts, paths, and passwords when you can.
 
 ## G. IONOS / server (before first real deploy)
 
@@ -84,6 +91,7 @@ Keep these as **repository** secrets so both the Test workflow and the deploy jo
 5. Install/authorize the deploy SSH public key for `SSH_USERNAME`.
 6. Confirm `SSH_PATH` is the directory that should receive the rsynced app (same model as climbing-team). On this host, **`.ssh` lives inside `SSH_PATH`** — never delete it.
 7. Point `LEGACY_DOCUMENTS_PATH` at the legacy upload tree under `storage` (rsync excludes all of `storage`, so those files survive deploy).
+8. Keep [`public/.htaccess`](../public/.htaccess) front-controller rule as `RewriteRule ^ /index.php [L]` (leading slash). Stock Laravel’s relative `index.php` target **500s** on this host for `/login` and other rewritten paths; `/` can still work via DirectoryIndex alone.
 
 ## H. First cutover (when ready)
 
@@ -123,3 +131,7 @@ Deploy removes server files that are not in the build, except:
 - **Import/verify failed:** site stays in maintenance; fix data/env; remove `storage/app/.legacy-imported` only if you need a full re-import; re-run deploy.
 - **Pause deploys:** set `DEPLOY_ENABLED=false`.
 - **Force re-import:** remove the marker on the server while the app is down, then re-deploy (destructive relative to already-imported data — follow the runbook).
+- **`/login` (or any path except `/`) returns 500:** check `public/.htaccess` uses `RewriteRule ^ /index.php [L]`. A relative `index.php` rewrite fails on IONOS; DirectoryIndex can still make `/` look fine.
+- **Missing `cache` during `optimize:clear` in deploy logs:** post-deploy migrates **before** clearing so database cache/session tables exist first. An older clear-before-migrate log line can be stale once migrate has run. Deploy requires `cache`, `sessions`, and `jobs` after migrate.
+- **“Nothing to migrate” but a required table is missing:** schema drift — do **not** `migrate:fresh` on production with imported data. Delete that migration’s row from `migrations` and re-run only that file with `--path=...`, or recreate the tables to match the migration.
+- **500 with nothing new in `storage/logs/laravel.log`:** `storage` is not rsynced; ensure the web SAPI can write `storage` and `bootstrap/cache` (post-deploy runs `chmod -R ug+rwX`). Also check the IONOS/PHP error log. Briefly enabling `APP_DEBUG=true` can surface the exception in the browser.

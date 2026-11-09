@@ -6,13 +6,24 @@ MARKER=storage/app/.legacy-imported
 
 echo "Running post-deploy scripts"
 
-mkdir -p storage/app/public storage/framework/{cache,sessions,testing,views} storage/logs
+mkdir -p storage/app/public storage/framework/{cache,sessions,testing,views} storage/logs bootstrap/cache
+chmod -R ug+rwX storage bootstrap/cache
 
 # Defensive: stay in maintenance even if the pre-rsync down file was missing
 $PHP artisan down --render=down.deploy --retry=60 --refresh=15 || true
 
-$PHP artisan optimize:clear || true
+# Migrate before optimize:clear — database cache/session stores need their tables first.
 $PHP artisan migrate --force -n
+
+$PHP artisan tinker --execute '
+foreach (["cache", "sessions", "jobs"] as $table) {
+    if (! Illuminate\Support\Facades\Schema::hasTable($table)) {
+        throw new RuntimeException("Required table missing after migrate: {$table}");
+    }
+}
+'
+
+$PHP artisan optimize:clear || true
 $PHP artisan storage:link --force -n
 
 if [[ ! -f "$MARKER" ]]; then
