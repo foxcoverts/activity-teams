@@ -146,6 +146,7 @@ jobs:
             tests
 
       - name: Put site into maintenance mode
+        # No --delete: this step only ships the down file into storage/framework.
         uses: easingthemes/ssh-deploy@v6.0.3
         with:
           REMOTE_HOST: ${{ vars.SSH_HOST }}
@@ -163,8 +164,10 @@ jobs:
           REMOTE_USER: ${{ vars.SSH_USERNAME }}
           REMOTE_PORT: ${{ vars.SSH_PORT }}
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          ARGS: "-rlgoDzvc -i --delete"
           TARGET: ${{ vars.SSH_PATH }}
-          EXCLUDE: ".git,.github,.gitattributes,.gitignore,.ssh,storage/app,storage/logs,storage/framework/sessions,storage/framework/cache,storage/framework/views"
+          # Persist host/SSH state and runtime data. Do not exclude .env — CI ships a fresh one.
+          EXCLUDE: ".git,.github,.gitattributes,.gitignore,.ssh,storage,upload,logs"
 
       - name: Run deploy scripts
         uses: appleboy/ssh-action@v1.2.5

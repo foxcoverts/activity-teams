@@ -83,16 +83,22 @@ Keep these as **repository** secrets so both the Test workflow and the deploy jo
 4. Note the on-server path to legacy document uploads for `LEGACY_DOCUMENTS_PATH`.
 5. Install/authorize the deploy SSH public key for `SSH_USERNAME`.
 6. Confirm `SSH_PATH` is the directory that should receive the rsynced app (same model as climbing-team). On this host, **`.ssh` lives inside `SSH_PATH`** — never delete it.
+7. If legacy document files still live under the web root (e.g. `upload/`), keep that path for `LEGACY_DOCUMENTS_PATH`; deploy rsync excludes `upload`.
 
 ## H. First cutover (when ready)
 
 1. Freeze legacy writes / put legacy into maintenance as per the [import runbook](legacy-import-runbook.md).
 2. Backup the current web root (tarball) and databases.
-3. Empty `SSH_PATH` **except `.ssh`** so leftover climbing-team files are not left beside the new app (rsync does not `--delete`). Example:
+3. Optional: empty `SSH_PATH` **except** paths deploy must preserve (see below). Full-app rsync uses `--delete`, so old climbing-team code not in the new tree is removed automatically; excluded paths are left alone. Example wipe that matches the excludes:
 
 ```bash
 cd "$SSH_PATH"   # the path from the GitHub variable
-find . -mindepth 1 -maxdepth 1 ! -name '.ssh' -exec rm -rf {} +
+find . -mindepth 1 -maxdepth 1 \
+  ! -name '.ssh' \
+  ! -name 'storage' \
+  ! -name 'upload' \
+  ! -name 'logs' \
+  -exec rm -rf {} +
 ```
 
 4. Set repository variable `DEPLOY_ENABLED=true`.
@@ -101,7 +107,18 @@ find . -mindepth 1 -maxdepth 1 ! -name '.ssh' -exec rm -rf {} +
 7. Spot-check login, bookings, keys, a document, calendar feeds.
 8. Leave `DEPLOY_ENABLED=true` for normal ongoing deploys, or set back to `false` to pause auto-deploy.
 
-The deploy workflow also **excludes `.ssh`** from rsync so later deploys cannot overwrite or remove it.
+### Rsync `--delete` excludes
+
+Deploy removes server files that are not in the build, except:
+
+| Path | Why |
+|------|-----|
+| `.ssh` | Deploy keys live under `SSH_PATH` on this host |
+| `storage` | Uploads, `storage/app/.legacy-imported`, logs, framework runtime |
+| `upload` | Legacy climbing-team document files (import source) |
+| `logs` | Host-level logs directory if present (not Laravel `storage/logs`) |
+
+`.env` is **not** excluded: each deploy ships a fresh file from GitHub secrets/vars. The maintenance-only rsync (down file) does not use `--delete`.
 
 ## I. If something goes wrong
 
