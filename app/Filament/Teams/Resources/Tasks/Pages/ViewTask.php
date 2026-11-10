@@ -5,10 +5,12 @@ namespace App\Filament\Teams\Resources\Tasks\Pages;
 use App\Filament\Tasks\Concerns\TogglesTaskCompletion;
 use App\Filament\Teams\Resources\Tasks\TaskResource;
 use App\Filament\Teams\Resources\Tasks\TaskStatusActions;
+use App\Filament\Teams\Resources\Tasks\TaskTimeline;
 use App\Livewire\TaskRelatedBookings;
 use App\Models\Task;
 use App\Models\User;
 use Filament\Resources\Pages\ViewRecord;
+use Filament\Schemas\Components\EmbeddedSchema;
 use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Group;
 use Filament\Schemas\Components\Livewire;
@@ -51,8 +53,19 @@ class ViewTask extends ViewRecord
                         ->extraAttributes(['class' => 'invite-panel'])
                         ->columnSpan(['default' => 1, 'lg' => 2])
                         ->visible(fn (): bool => $sidebar !== []),
+                    EmbeddedSchema::make('timeline')
+                        ->columnSpan(['default' => 1, 'lg' => 3]),
                 ]),
         ]);
+    }
+
+    public function timeline(Schema $schema): Schema
+    {
+        return $schema
+            ->record($this->getRecord())
+            ->components([
+                TaskTimeline::section(),
+            ]);
     }
 
     protected function getHeaderActions(): array

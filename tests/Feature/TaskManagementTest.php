@@ -6,6 +6,7 @@ use App\Enums\TaskStatus;
 use App\Enums\TeamFeature;
 use App\Filament\Teams\Resources\Bookings\Pages\ViewBooking;
 use App\Filament\Teams\Resources\Bookings\Schemas\BookingForm;
+use App\Filament\Teams\Resources\Members\MemberResource;
 use App\Filament\Teams\Resources\Tasks\Pages\CreateTask;
 use App\Filament\Teams\Resources\Tasks\Pages\EditTask;
 use App\Filament\Teams\Resources\Tasks\Pages\ListTasks;
@@ -209,6 +210,31 @@ class TaskManagementTest extends TestCase
 
         Livewire::test(ViewTask::class, ['record' => $cancelled->getRouteKey()])
             ->assertActionVisible('delete');
+    }
+
+    public function test_task_view_shows_recent_activity_timeline(): void
+    {
+        $team = Team::factory()->withTasks()->create();
+        $manager = User::factory()->teamManager($team)->create(['name' => "Manager O'Brien"]);
+
+        $this->actingAs($manager);
+        Filament::setTenant($team);
+
+        $task = Task::factory()->forTeam($team)->create(['summary' => 'Timeline task']);
+        $memberUrl = MemberResource::getUrl('view', ['record' => $manager], panel: 'teams', tenant: $team);
+
+        Livewire::test(ViewTask::class, ['record' => $task->getRouteKey()])
+            ->assertSee('Recent activity')
+            ->assertSeeHtml('created the task')
+            ->assertSeeHtml('href="'.$memberUrl.'"')
+            ->assertSeeHtml("Manager O'Brien")
+            ->assertDontSeeHtml('O&amp;#039;Brien');
+
+        $task->markCompleted();
+
+        Livewire::test(ViewTask::class, ['record' => $task->getRouteKey()])
+            ->assertSee('Recent activity')
+            ->assertSeeHtml('status');
     }
 
     public function test_complete_control_toggles_between_open_completed_and_cancelled(): void
