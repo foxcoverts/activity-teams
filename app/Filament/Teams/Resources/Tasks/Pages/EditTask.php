@@ -2,10 +2,14 @@
 
 namespace App\Filament\Teams\Resources\Tasks\Pages;
 
+use App\Actions\SaveTaskDetailsAction;
+use App\Filament\Teams\Resources\Tasks\Schemas\TaskForm;
 use App\Filament\Teams\Resources\Tasks\TaskResource;
-use Filament\Actions\DeleteAction;
+use App\Filament\Teams\Resources\Tasks\TaskStatusActions;
+use App\Models\Task;
 use Filament\Actions\ViewAction;
 use Filament\Resources\Pages\EditRecord;
+use Illuminate\Database\Eloquent\Model;
 
 class EditTask extends EditRecord
 {
@@ -15,8 +19,37 @@ class EditTask extends EditRecord
     {
         return [
             ViewAction::make(),
-            DeleteAction::make(),
+            TaskStatusActions::group(includeEdit: false),
         ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    protected function mutateFormDataBeforeFill(array $data): array
+    {
+        $record = $this->getRecord();
+
+        return $record instanceof Task
+            ? TaskForm::hydrateTaskFormData($data, $record)
+            : $data;
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    protected function mutateFormDataBeforeSave(array $data): array
+    {
+        return TaskForm::mergeVenueData($data);
+    }
+
+    protected function handleRecordUpdate(Model $record, array $data): Model
+    {
+        abort_unless($record instanceof Task, 404);
+
+        return app(SaveTaskDetailsAction::class)->update($record, $data);
     }
 
     protected function getRedirectUrl(): string

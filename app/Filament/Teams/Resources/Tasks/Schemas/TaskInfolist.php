@@ -2,7 +2,9 @@
 
 namespace App\Filament\Teams\Resources\Tasks\Schemas;
 
+use App\Enums\TaskStatus;
 use App\Models\Task;
+use App\Support\Palette;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
@@ -27,7 +29,15 @@ class TaskInfolist
                             ->placeholder('-')
                             ->columnSpanFull(),
                         TextEntry::make('location')
-                            ->placeholder('-'),
+                            ->label(__('Venue'))
+                            ->state(fn (Task $record): ?string => filled($record->location?->name)
+                                ? implode("\n", array_filter([
+                                    $record->location->name,
+                                    ...$record->location->addressArray(),
+                                ]))
+                                : null)
+                            ->placeholder('-')
+                            ->columnSpanFull(),
                         TextEntry::make('priority')
                             ->badge(),
                         TextEntry::make('status')
@@ -36,14 +46,16 @@ class TaskInfolist
                             ->label(__('Started'))
                             ->dateTime('j M Y, H:i')
                             ->timezone(fn (): string => auth()->user()?->timezoneName() ?? (string) config('app.timezone'))
-                            ->placeholder('-'),
+                            ->placeholder('-')
+                            ->visible(fn (Task $record): bool => $record->status === TaskStatus::InProcess
+                                || $record->started_at !== null),
                         TextEntry::make('due_at')
                             ->label(__('Due'))
                             ->dateTime('j M Y, H:i')
                             ->timezone(fn (): string => auth()->user()?->timezoneName() ?? (string) config('app.timezone'))
                             ->placeholder('-')
                             ->color(fn (Task $record): ?array => $record->isOverdue()
-                                ? $record->status->getColor()
+                                ? Palette::destructive()
                                 : null),
                         TextEntry::make('completed_at')
                             ->label(__('Completed'))

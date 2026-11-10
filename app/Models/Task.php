@@ -5,9 +5,12 @@ namespace App\Models;
 use App\Casts\AsSequence;
 use App\Enums\TaskPriority;
 use App\Enums\TaskStatus;
+use App\Support\Coords;
+use App\Support\Location;
 use Database\Factories\TaskFactory;
 use Filament\Facades\Filament;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -24,9 +27,9 @@ class Task extends Model
 
     protected $fillable = [
         'team_id',
+        'venue_id',
         'summary',
         'description',
-        'location',
         'priority',
         'status',
         'due_at',
@@ -38,6 +41,8 @@ class Task extends Model
         'status' => TaskStatus::NeedsAction->value,
         'priority' => TaskPriority::Medium->value,
     ];
+
+    public ?string $privateVenueIdForDeletion = null;
 
     protected function casts(): array
     {
@@ -68,9 +73,49 @@ class Task extends Model
 
             $task->summary = trim((string) $task->summary);
             $task->description = filled($task->description) ? trim((string) $task->description) : null;
-            $task->location = filled($task->location) ? trim((string) $task->location) : null;
+
+            $team = Team::query()->find($task->team_id);
+
+            if ($team === null) {
+                return;
+            }
+
+            $venueAssignmentChanging = ! $task->exists
+                || $task->isDirty(['venue_id', 'team_id']);
+
+            if ($venueAssignmentChanging && filled($task->venue_id)) {
+                $hasCatalogVenue = $team->venues()->whereKey($task->venue_id)->exists();
+                $hasPrivateVenue = $task->exists
+                    && Venue::onlyPrivate()
+                        ->whereKey($task->venue_id)
+                        ->where('task_id', $task->getKey())
+                        ->exists();
+
+                if (! $hasCatalogVenue && ! $hasPrivateVenue) {
+                    throw ValidationException::withMessages([
+                        'venue_id' => __('Choose a venue this team has been given.'),
+                    ]);
+                }
+            }
 
             $task->syncCompletionTimestamps();
+        });
+
+        static::deleting(function (Task $task): void {
+            if (
+                Venue::onlyPrivate()
+                    ->whereKey($task->venue_id)
+                    ->where('task_id', $task->getKey())
+                    ->exists()
+            ) {
+                $task->privateVenueIdForDeletion = (string) $task->venue_id;
+            }
+        });
+
+        static::deleted(function (Task $task): void {
+            if ($task->privateVenueIdForDeletion !== null) {
+                Venue::withPrivate()->find($task->privateVenueIdForDeletion)?->delete();
+            }
         });
     }
 
@@ -91,12 +136,18 @@ class Task extends Model
             'status',
             'due_at',
             'started_at',
+            'venue_id',
         ];
     }
 
     public function team(): BelongsTo
     {
         return $this->belongsTo(Team::class);
+    }
+
+    public function venue(): BelongsTo
+    {
+        return $this->belongsTo(Venue::class)->withoutGlobalScope('catalog');
     }
 
     public function bookings(): BelongsToMany
@@ -120,15 +171,40 @@ class Task extends Model
         $this->bookings()->detach($booking->getKey());
     }
 
+    /**
+     * @return Attribute<?Location, never>
+     */
+    protected function location(): Attribute
+    {
+        return Attribute::make(
+            get: fn (): ?Location => $this->venue?->location,
+        );
+    }
+
+    /**
+     * @return Attribute<?Coords, never>
+     */
+    protected function coords(): Attribute
+    {
+        return Attribute::make(
+            get: fn (): ?Coords => $this->venue?->coords,
+        );
+    }
+
     public function isComplete(): bool
     {
-        return $this->completed_at !== null
-            || in_array($this->status, [TaskStatus::Completed, TaskStatus::Cancelled], true);
+        return $this->status === TaskStatus::Completed
+            || $this->completed_at !== null;
+    }
+
+    public function isCancelled(): bool
+    {
+        return $this->status === TaskStatus::Cancelled;
     }
 
     public function isOverdue(): bool
     {
-        if ($this->isComplete() || $this->due_at === null) {
+        if ($this->isComplete() || $this->isCancelled() || $this->due_at === null) {
             return false;
         }
 
@@ -150,9 +226,22 @@ class Task extends Model
         $this->save();
     }
 
+    public function markCancelled(): void
+    {
+        $this->status = TaskStatus::Cancelled;
+        $this->save();
+    }
+
+    public function reopen(): void
+    {
+        $this->status = TaskStatus::NeedsAction;
+        $this->completed_at = null;
+        $this->save();
+    }
+
     public function toggleCompletion(): void
     {
-        if ($this->status === TaskStatus::Cancelled) {
+        if ($this->isCancelled()) {
             return;
         }
 

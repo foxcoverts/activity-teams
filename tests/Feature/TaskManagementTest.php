@@ -5,8 +5,10 @@ namespace Tests\Feature;
 use App\Enums\TaskStatus;
 use App\Enums\TeamFeature;
 use App\Filament\Teams\Resources\Bookings\Pages\ViewBooking;
+use App\Filament\Teams\Resources\Bookings\Schemas\BookingForm;
 use App\Filament\Teams\Resources\Tasks\Pages\CreateTask;
 use App\Filament\Teams\Resources\Tasks\Pages\ListTasks;
+use App\Filament\Teams\Resources\Tasks\Pages\ViewTask;
 use App\Filament\Teams\Resources\Tasks\TaskResource;
 use App\Livewire\BookingTasks;
 use App\Livewire\TaskRelatedBookings;
@@ -14,6 +16,7 @@ use App\Models\Booking;
 use App\Models\Task;
 use App\Models\Team;
 use App\Models\User;
+use App\Models\Venue;
 use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
@@ -51,11 +54,14 @@ class TaskManagementTest extends TestCase
         $this->actingAs($manager);
         Filament::setTenant($team);
 
+        $venue = Venue::factory()->create();
+        $team->addVenue($venue);
+
         Livewire::test(CreateTask::class)
             ->fillForm([
                 'summary' => 'Check bolts',
                 'priority' => 1,
-                'status' => TaskStatus::NeedsAction->value,
+                'venue_id' => $venue->getKey(),
             ])
             ->call('create')
             ->assertHasNoFormErrors();
@@ -63,6 +69,8 @@ class TaskManagementTest extends TestCase
         $task = Task::query()->where('summary', 'Check bolts')->first();
         $this->assertNotNull($task);
         $this->assertSame($team->getKey(), $task->team_id);
+        $this->assertSame($venue->getKey(), $task->venue_id);
+        $this->assertSame(TaskStatus::NeedsAction, $task->status);
 
         $this->actingAs($member);
         Filament::setTenant($team);
@@ -96,11 +104,13 @@ class TaskManagementTest extends TestCase
             ->callAction('addNew', data: [
                 'summary' => 'Brand new task',
                 'priority' => 5,
+                'venue_id' => $booking->venue_id,
             ])
             ->assertNotified();
 
         $created = Task::query()->where('summary', 'Brand new task')->first();
         $this->assertNotNull($created);
+        $this->assertSame($booking->venue_id, $created->venue_id);
         $this->assertTrue($booking->fresh()->tasks()->whereKey($created)->exists());
 
         Livewire::test(BookingTasks::class, ['record' => $booking->fresh()])
@@ -108,6 +118,68 @@ class TaskManagementTest extends TestCase
             ->assertSuccessful();
 
         $this->assertFalse($booking->fresh()->tasks()->whereKey($existing)->exists());
+    }
+
+    public function test_managers_can_create_a_task_at_a_private_other_venue(): void
+    {
+        $team = Team::factory()->withTasks()->create();
+        $manager = User::factory()->teamManager($team)->create();
+
+        $this->actingAs($manager);
+        Filament::setTenant($team);
+
+        Livewire::test(CreateTask::class)
+            ->fillForm([
+                'summary' => 'Private venue task',
+                'priority' => 5,
+                'venue_id' => BookingForm::OTHER_VENUE,
+                'name' => 'Temporary store cupboard',
+                'street' => '1 High Street',
+                'city' => 'Leicester',
+                'postcode' => 'LE1 1AA',
+                'country' => 'GB',
+            ])
+            ->call('create')
+            ->assertHasNoFormErrors();
+
+        $task = Task::query()->where('summary', 'Private venue task')->first();
+        $this->assertNotNull($task);
+
+        $privateVenue = Venue::onlyPrivate()
+            ->where('task_id', $task->getKey())
+            ->whereKey($task->venue_id)
+            ->first();
+
+        $this->assertNotNull($privateVenue);
+        $this->assertSame('Temporary store cupboard', $privateVenue->name);
+        $this->assertFalse($team->venues()->whereKey($privateVenue->getKey())->exists());
+    }
+
+    public function test_complete_and_cancel_actions_drive_task_status(): void
+    {
+        $team = Team::factory()->withTasks()->create();
+        $manager = User::factory()->teamManager($team)->create();
+        $task = Task::factory()->forTeam($team)->create();
+
+        $this->actingAs($manager);
+        Filament::setTenant($team);
+
+        Livewire::test(ViewTask::class, ['record' => $task->getRouteKey()])
+            ->callAction('completeTask');
+
+        $this->assertSame(TaskStatus::Completed, $task->fresh()->status);
+        $this->assertNotNull($task->fresh()->completed_at);
+
+        Livewire::test(ViewTask::class, ['record' => $task->getRouteKey()])
+            ->callAction('reopenTask');
+
+        $this->assertSame(TaskStatus::NeedsAction, $task->fresh()->status);
+        $this->assertNull($task->fresh()->completed_at);
+
+        Livewire::test(ViewTask::class, ['record' => $task->getRouteKey()])
+            ->callAction('cancelTask');
+
+        $this->assertTrue($task->fresh()->isCancelled());
     }
 
     public function test_booking_tasks_panel_is_hidden_when_feature_off(): void
@@ -156,7 +228,6 @@ class TaskManagementTest extends TestCase
             'summary' => 'Feed task',
             'priority' => 1,
             'description' => null,
-            'location' => null,
             'due_at' => null,
         ]);
         $task->attachBooking($booking);

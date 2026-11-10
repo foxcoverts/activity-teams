@@ -3,8 +3,8 @@
     use App\Models\Task;
 
     /** @var Task $task */
-    $cancelled = $task->status === TaskStatus::Cancelled;
-    $complete = $task->isComplete() && ! $cancelled;
+    $cancelled = $task->isCancelled();
+    $complete = $task->isComplete();
     $canToggle = ($canToggle ?? false) && ! $cancelled;
     $label = $complete ? __('Mark incomplete') : __('Mark complete');
 @endphp

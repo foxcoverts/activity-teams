@@ -47,7 +47,7 @@ class TaskIcsFactory
                 continue;
             }
 
-            $task->loadMissing('bookings');
+            $task->loadMissing(['bookings', 'venue']);
             $components[] = $this->todoComponent($task);
         }
 
@@ -67,7 +67,7 @@ class TaskIcsFactory
                 continue;
             }
 
-            $task->loadMissing('bookings');
+            $task->loadMissing(['bookings', 'venue']);
             $components[] = $this->todoComponent($task);
         }
 
@@ -117,8 +117,8 @@ class TaskIcsFactory
             $properties[] = new Property('DESCRIPTION', new TextValue((string) $task->description));
         }
 
-        if (filled($task->location)) {
-            $properties[] = new Property('LOCATION', new TextValue((string) $task->location));
+        if ($task->location !== null && filled($task->location->name)) {
+            $properties[] = new Property('LOCATION', new TextValue($task->location->name));
         }
 
         if ($task->due_at !== null) {

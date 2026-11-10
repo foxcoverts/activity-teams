@@ -53,7 +53,9 @@ class Venue extends Model
     protected static function booted(): void
     {
         static::addGlobalScope('catalog', function (Builder $query): void {
-            $query->whereNull($query->getModel()->qualifyColumn('booking_id'));
+            $query
+                ->whereNull($query->getModel()->qualifyColumn('booking_id'))
+                ->whereNull($query->getModel()->qualifyColumn('task_id'));
         });
 
         static::deleting(function (Venue $venue): void {
@@ -64,7 +66,7 @@ class Venue extends Model
         });
 
         static::saving(function (Venue $venue): void {
-            if (filled($venue->booking_id) || blank($venue->name)) {
+            if (filled($venue->booking_id) || filled($venue->task_id) || blank($venue->name)) {
                 return;
             }
 
@@ -215,7 +217,16 @@ class Venue extends Model
     {
         $query
             ->withoutGlobalScope('catalog')
-            ->whereNotNull($query->getModel()->qualifyColumn('booking_id'));
+            ->where(function (Builder $private): void {
+                $private
+                    ->whereNotNull($private->getModel()->qualifyColumn('booking_id'))
+                    ->orWhereNotNull($private->getModel()->qualifyColumn('task_id'));
+            });
+    }
+
+    public function tasks(): HasMany
+    {
+        return $this->hasMany(Task::class);
     }
 
     /**

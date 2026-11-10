@@ -4,10 +4,10 @@ namespace App\Filament\Teams\Resources\Tasks\Pages;
 
 use App\Filament\Tasks\Concerns\TogglesTaskCompletion;
 use App\Filament\Teams\Resources\Tasks\TaskResource;
+use App\Filament\Teams\Resources\Tasks\TaskStatusActions;
 use App\Livewire\TaskRelatedBookings;
 use App\Models\Task;
 use App\Models\User;
-use Filament\Actions\EditAction;
 use Filament\Resources\Pages\ViewRecord;
 use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Group;
@@ -58,7 +58,7 @@ class ViewTask extends ViewRecord
     protected function getHeaderActions(): array
     {
         return [
-            EditAction::make(),
+            TaskStatusActions::group(),
         ];
     }
 }

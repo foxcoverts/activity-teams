@@ -5,6 +5,7 @@ namespace App\Filament\Teams\Resources\Tasks\Tables;
 use App\Enums\TaskPriority;
 use App\Enums\TaskStatus;
 use App\Filament\Teams\Resources\Tasks\TaskResource;
+use App\Filament\Teams\Resources\Tasks\TaskStatusActions;
 use App\Models\Task;
 use App\Support\Palette;
 use Filament\Actions\ActionGroup;
@@ -51,7 +52,8 @@ class TasksTable
                     ->timezone(fn (): string => auth()->user()?->timezoneName() ?? (string) config('app.timezone'))
                     ->sortable()
                     ->placeholder('-'),
-                TextColumn::make('location')
+                TextColumn::make('venue.name')
+                    ->label(__('Venue'))
                     ->toggleable(isToggledHiddenByDefault: true)
                     ->placeholder('-'),
             ])
@@ -70,6 +72,7 @@ class TasksTable
                 ActionGroup::make([
                     ViewAction::make(),
                     EditAction::make(),
+                    ...TaskStatusActions::actions(),
                     DeleteAction::make(),
                 ]),
             ])

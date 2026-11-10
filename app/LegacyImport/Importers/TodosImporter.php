@@ -7,6 +7,7 @@ use App\LegacyImport\Contracts\Importer;
 use App\LegacyImport\ImportContext;
 use App\LegacyImport\ImportResult;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 final class TodosImporter implements Importer
 {
@@ -36,9 +37,9 @@ final class TodosImporter implements Importer
                 ['id' => $todo->id],
                 [
                     'team_id' => $team->getKey(),
+                    'venue_id' => null,
                     'summary' => $todo->summary,
                     'description' => $todo->description ?? null,
-                    'location' => $todo->location ?? null,
                     'priority' => (int) ($todo->priority ?? 5),
                     'status' => $todo->status ?? 'needs-action',
                     'due_at' => $todo->due_at ?? null,
@@ -49,6 +50,25 @@ final class TodosImporter implements Importer
                     'updated_at' => $todo->updated_at,
                 ],
             );
+
+            $location = trim((string) ($todo->location ?? ''));
+
+            if ($location !== '') {
+                $existing = DB::table('venues')->where('task_id', $todo->id)->first();
+                $venueId = $existing->id ?? (string) Str::ulid();
+
+                DB::table('venues')->updateOrInsert(
+                    ['id' => $venueId],
+                    [
+                        'name' => $location,
+                        'booking_id' => null,
+                        'task_id' => $todo->id,
+                        'created_at' => $existing->created_at ?? $todo->created_at,
+                        'updated_at' => $todo->updated_at,
+                    ],
+                );
+                DB::table('tasks')->where('id', $todo->id)->update(['venue_id' => $venueId]);
+            }
         }
 
         if (! $context->dryRun && $team !== null) {

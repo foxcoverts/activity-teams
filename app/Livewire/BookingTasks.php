@@ -2,22 +2,23 @@
 
 namespace App\Livewire;
 
+use App\Actions\SaveTaskDetailsAction;
 use App\Enums\TaskPriority;
-use App\Enums\TaskStatus;
 use App\Enums\TeamFeature;
 use App\Filament\Tasks\Concerns\TogglesTaskCompletion;
+use App\Filament\Teams\Resources\Bookings\Schemas\BookingForm;
+use App\Filament\Teams\Resources\Tasks\Schemas\TaskForm;
 use App\Filament\Teams\Resources\Tasks\TaskResource;
+use App\Filament\Venues\VenueLocationSchema;
 use App\Models\Booking;
 use App\Models\Task;
 use App\Models\Team;
 use App\Models\User;
+use App\Models\Venue;
 use Filament\Actions\Action;
 use Filament\Actions\Concerns\InteractsWithActions;
 use Filament\Actions\Contracts\HasActions;
-use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Select;
-use Filament\Forms\Components\Textarea;
-use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Filament\Schemas\Concerns\InteractsWithSchemas;
 use Filament\Schemas\Contracts\HasSchemas;
@@ -115,35 +116,42 @@ class BookingTasks extends Component implements HasActions, HasSchemas
             ->modalSubmitActionLabel(__('Create'))
             ->visible(fn (): bool => $this->record instanceof Booking
                 && $this->canManage($this->booking($this->record->getKey())))
-            ->schema([
-                TextInput::make('summary')
-                    ->label(__('Title'))
-                    ->required()
-                    ->maxLength(255),
-                Textarea::make('description')
-                    ->label(__('Notes'))
-                    ->rows(3),
-                Select::make('priority')
-                    ->options(TaskPriority::class)
-                    ->default(TaskPriority::Medium->value)
-                    ->required()
-                    ->native(false),
-                DateTimePicker::make('due_at')
-                    ->label(__('Due'))
-                    ->seconds(false),
-            ])
+            ->fillForm(function (): array {
+                $booking = $this->booking($this->record->getKey());
+
+                $data = [
+                    'priority' => TaskPriority::Medium->value,
+                    'venue_id' => $booking->venue_id,
+                ];
+
+                $privateVenue = Venue::onlyPrivate()
+                    ->where('booking_id', $booking->getKey())
+                    ->whereKey($booking->venue_id)
+                    ->first();
+
+                if ($privateVenue instanceof Venue) {
+                    $data['venue_id'] = BookingForm::OTHER_VENUE;
+
+                    foreach (VenueLocationSchema::venueAttributes() as $attribute) {
+                        $data[$attribute] = $privateVenue->{$attribute};
+                    }
+
+                    $data['has_map_pin'] = $privateVenue->coords !== null;
+                }
+
+                return $data;
+            })
+            ->schema(fn (): array => TaskForm::components())
             ->action(function (array $data): void {
                 $booking = $this->booking($this->record->getKey());
                 abort_unless($this->canManage($booking), 403);
+                $booking->loadMissing('team');
+                abort_unless($booking->team instanceof Team, 404);
 
-                $task = Task::query()->create([
-                    'team_id' => $booking->team_id,
-                    'summary' => $data['summary'],
-                    'description' => $data['description'] ?? null,
-                    'priority' => $data['priority'] ?? TaskPriority::Medium->value,
-                    'status' => TaskStatus::NeedsAction,
-                    'due_at' => $data['due_at'] ?? null,
-                ]);
+                $task = app(SaveTaskDetailsAction::class)->create(
+                    TaskForm::mergeVenueData($data),
+                    $booking->team,
+                );
 
                 $booking->attachTask($task);
                 $this->record = $booking->unsetRelation('tasks');
@@ -178,7 +186,7 @@ class BookingTasks extends Component implements HasActions, HasSchemas
                 'overdue' => $task->isOverdue(),
                 'priority' => $task->priority !== TaskPriority::Medium ? $task->priority->getLabel() : null,
                 'complete' => $task->isComplete(),
-                'cancelled' => $task->status === TaskStatus::Cancelled,
+                'cancelled' => $task->isCancelled(),
                 'canToggle' => $viewer->can('complete', $task),
                 'task' => $task,
             ];
