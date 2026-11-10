@@ -16,7 +16,7 @@ As an Activity Manager, I want to create, prioritise, assign, and track operatio
 - Team-scoped filtering with collaborative status updates (members can mark complete / incomplete via the status control: open ↔ completed, and cancelled → needs-action).
 - Task view shows a Recent activity timeline (same activitylog pattern as bookings), with teammate links for managers.
 - Per-team Features flag controls Tasks navigation and create/attach surfaces without heavy extra queries when the team is already loaded.
-- Tasks attach to bookings many-to-many (add existing / add new from a collapsed booking Tasks panel with a badge count; new tasks inherit the booking venue).
+- Tasks attach to bookings many-to-many (Add existing / Add new from an Add group on the booking Tasks panel, with a badge count; new tasks inherit the booking venue).
 - Todo-list style complete control to the left of the title (radio-style hollow / filled circle).
 - Subscription feeds: `tasks.ics` (VTODO) and `everything.ics` (bookings VEVENT + tasks VTODO), sharing `feed_token`. VTODO includes `RELATED-TO` booking UIDs when linked.
 - Legacy `todos` import into team tasks (legacy location becomes a private task venue) and enables the Climbing team Tasks feature.

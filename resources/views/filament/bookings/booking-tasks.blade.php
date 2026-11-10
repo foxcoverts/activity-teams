@@ -3,8 +3,6 @@
         <x-filament::section
             class="booking-tasks-panel"
             :heading="__('Tasks')"
-            collapsible
-            collapsed
             :has-content-el="false"
         >
             <x-slot name="afterHeader">
@@ -13,8 +11,7 @@
                         <x-filament::badge>{{ $count }}</x-filament::badge>
                     @endif
                     @if ($canManage)
-                        {{ $this->addExistingAction }}
-                        {{ $this->addNewAction }}
+                        {{ $this->addGroup() }}
                     @endif
                 </div>
             </x-slot>

@@ -16,12 +16,14 @@ use App\Models\Team;
 use App\Models\User;
 use App\Models\Venue;
 use Filament\Actions\Action;
+use Filament\Actions\ActionGroup;
 use Filament\Actions\Concerns\InteractsWithActions;
 use Filament\Actions\Contracts\HasActions;
 use Filament\Forms\Components\Select;
 use Filament\Notifications\Notification;
 use Filament\Schemas\Concerns\InteractsWithSchemas;
 use Filament\Schemas\Contracts\HasSchemas;
+use Filament\Support\Icons\Heroicon;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
@@ -80,12 +82,25 @@ class BookingTasks extends Component implements HasActions, HasSchemas
         Notification::make()->success()->title(__('Task added.'))->send();
     }
 
+    public function addGroup(): ActionGroup
+    {
+        return ActionGroup::make([
+            $this->addExistingAction(),
+            $this->addNewAction(),
+        ])
+            ->label(__('Add'))
+            ->icon(Heroicon::OutlinedPlus)
+            ->button()
+            ->color('gray')
+            ->visible(fn (): bool => $this->record instanceof Booking
+                && $this->canManage($this->booking($this->record->getKey())))
+            ->livewire($this);
+    }
+
     public function addExistingAction(): Action
     {
         return Action::make('addExisting')
             ->label(__('Add existing'))
-            ->button()
-            ->color('gray')
             ->modalHeading(__('Add existing task'))
             ->modalSubmitActionLabel(__('Add'))
             ->visible(fn (): bool => $this->record instanceof Booking
@@ -111,7 +126,6 @@ class BookingTasks extends Component implements HasActions, HasSchemas
     {
         return Action::make('addNew')
             ->label(__('Add new'))
-            ->button()
             ->modalHeading(__('Add new task'))
             ->modalSubmitActionLabel(__('Create'))
             ->visible(fn (): bool => $this->record instanceof Booking
