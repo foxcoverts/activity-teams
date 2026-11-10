@@ -5,16 +5,11 @@
             :heading="__('Tasks')"
             :has-content-el="false"
         >
-            <x-slot name="afterHeader">
-                <div class="flex flex-wrap items-center gap-2">
-                    @if ($count > 0)
-                        <x-filament::badge>{{ $count }}</x-filament::badge>
-                    @endif
-                    @if ($canManage)
-                        {{ $this->addGroup() }}
-                    @endif
-                </div>
-            </x-slot>
+            @if ($canManage)
+                <x-slot name="afterHeader">
+                    {{ $this->addGroup() }}
+                </x-slot>
+            @endif
 
             @forelse ($items as $item)
                 <div class="task-row" wire:key="booking-task-{{ $item['id'] }}-{{ $item['task']->status->value }}">
@@ -60,11 +55,6 @@
                             @if ($item['url'])
                                 <x-filament::dropdown.list.item :href="$item['url']" tag="a">
                                     {{ __('Open task') }}
-                                </x-filament::dropdown.list.item>
-                            @endif
-                            @if ($item['url'])
-                                <x-filament::dropdown.list.item :href="$item['url']" tag="a">
-                                    {{ __('Related bookings') }}
                                 </x-filament::dropdown.list.item>
                             @endif
                             @if ($canManage)

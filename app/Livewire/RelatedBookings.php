@@ -6,6 +6,7 @@ use App\Filament\Teams\Resources\Bookings\BookingResource as TeamsBookingResourc
 use App\Models\Booking;
 use App\Models\Team;
 use App\Models\User;
+use App\Support\Palette;
 use Filament\Actions\Action;
 use Filament\Actions\Concerns\InteractsWithActions;
 use Filament\Actions\Contracts\HasActions;
@@ -13,6 +14,7 @@ use Filament\Forms\Components\Select;
 use Filament\Notifications\Notification;
 use Filament\Schemas\Concerns\InteractsWithSchemas;
 use Filament\Schemas\Contracts\HasSchemas;
+use Filament\Support\Icons\Heroicon;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
@@ -72,7 +74,14 @@ class RelatedBookings extends Component implements HasActions, HasSchemas
     {
         return Action::make('add')
             ->label(__('Add'))
+            ->hiddenLabel()
+            ->tooltip(__('Add'))
+            ->icon(Heroicon::OutlinedPlus)
             ->button()
+            ->color(fn (): ?array => $this->record instanceof Booking
+                && $this->booking($this->record->getKey())->isPast()
+                ? Palette::neutral()
+                : null)
             ->modalHeading(__('Add related booking'))
             ->modalSubmitActionLabel(__('Add'))
             ->visible(fn (): bool => $this->record instanceof Booking

@@ -15,6 +15,7 @@ use App\Models\Task;
 use App\Models\Team;
 use App\Models\User;
 use App\Models\Venue;
+use App\Support\Palette;
 use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
 use Filament\Actions\Concerns\InteractsWithActions;
@@ -89,9 +90,14 @@ class BookingTasks extends Component implements HasActions, HasSchemas
             $this->addNewAction(),
         ])
             ->label(__('Add'))
+            ->hiddenLabel()
+            ->tooltip(__('Add'))
             ->icon(Heroicon::OutlinedPlus)
             ->button()
-            ->color('gray')
+            ->color(fn (): ?array => $this->record instanceof Booking
+                && $this->booking($this->record->getKey())->isPast()
+                ? Palette::neutral()
+                : null)
             ->visible(fn (): bool => $this->record instanceof Booking
                 && $this->canManage($this->booking($this->record->getKey())))
             ->livewire($this);
@@ -101,6 +107,7 @@ class BookingTasks extends Component implements HasActions, HasSchemas
     {
         return Action::make('addExisting')
             ->label(__('Add existing'))
+            ->icon(Heroicon::OutlinedArrowDownOnSquare)
             ->modalHeading(__('Add existing task'))
             ->modalSubmitActionLabel(__('Add'))
             ->visible(fn (): bool => $this->record instanceof Booking
@@ -126,6 +133,7 @@ class BookingTasks extends Component implements HasActions, HasSchemas
     {
         return Action::make('addNew')
             ->label(__('Add new'))
+            ->icon(Heroicon::OutlinedPencilSquare)
             ->modalHeading(__('Add new task'))
             ->modalSubmitActionLabel(__('Create'))
             ->visible(fn (): bool => $this->record instanceof Booking
@@ -206,7 +214,6 @@ class BookingTasks extends Component implements HasActions, HasSchemas
 
         return view('filament.bookings.booking-tasks', [
             'items' => $items,
-            'count' => $items->count(),
             'canManage' => $this->canManage($booking),
             'showPanel' => static::shouldShowPanel($booking, $viewer),
         ]);

@@ -15,6 +15,7 @@ use Filament\Forms\Components\Select;
 use Filament\Notifications\Notification;
 use Filament\Schemas\Concerns\InteractsWithSchemas;
 use Filament\Schemas\Contracts\HasSchemas;
+use Filament\Support\Icons\Heroicon;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
@@ -75,6 +76,9 @@ class TaskRelatedBookings extends Component implements HasActions, HasSchemas
     {
         return Action::make('add')
             ->label(__('Add'))
+            ->hiddenLabel()
+            ->tooltip(__('Add'))
+            ->icon(Heroicon::OutlinedPlus)
             ->button()
             ->modalHeading(__('Add related booking'))
             ->modalSubmitActionLabel(__('Add'))
