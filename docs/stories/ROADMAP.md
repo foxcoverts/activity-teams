@@ -2,11 +2,11 @@
 
 ## Goal and planning assumptions
 
-Target a relaunch-ready Activity Teams application by February 2027. US-47, Multiple Activity Teams, is the essential purpose of the rewrite and is marked done. US-18, US-19, and US-48 are operationally required. Other stories should be pulled forward when they restore a legacy workflow or are an especially useful, affordable improvement; February is not intended to mean only those four stories.
+**Activity Teams is live** on **`https://climbfoxcoverts.co.uk/`** (November 2026): legacy data imported, deploy on `main` with `DEPLOY_ENABLED=true`, outbound mail and the crontab queue worker in place. Climbing-team has been replaced on that host; most members are not yet using the new site day-to-day, which is the window for thorough acceptance and remaining parity work.
 
-Development time will include two clear weeks in December 2026 plus evenings and weekends, with other availability varying. The product owner considers a February 2027 relaunch probable, not guaranteed: work through the retained scope as capacity allows, review progress at checkpoints, and adjust scope or timing if needed. This is a dependency-ordered roadmap, not a promise of fixed weekly capacity. Do not assume every feature in the legacy repository must ship if the product owner confirms it is unused or deliberately retired.
+US-47, Multiple Activity Teams, is the essential purpose of the rewrite and is marked done. Operationally required stories for relaunch are largely implemented; remaining work is (1) product-owner end-to-end acceptance on the live site, (2) small parity and polish gaps found in that pass or already tracked as open extras, and (3) stretch extras only when they are useful and affordable. Do not assume every feature in the legacy repository must ship if the product owner confirms it is unused or deliberately retired.
 
-Story `status` describes implementation in Activity Teams. Story `scope` describes relaunch priority. Keep scope unset until it is confirmed; a story being present in the legacy code is evidence for review, not by itself a product decision.
+Development continues in small slices (evenings, weekends, and clear weeks when available). This is a dependency-ordered roadmap, not a promise of fixed weekly capacity. Story `status` describes implementation in Activity Teams. Story `scope` describes relaunch priority. A story being present in the legacy code is evidence for review, not by itself a product decision. Open stretch work is tracked on the GitHub Project linked to this repository; acceptance ticks live in [acceptance-checklist.md](acceptance-checklist.md).
 
 ## Confirmed scope decisions
 
@@ -15,7 +15,7 @@ Story `status` describes implementation in Activity Teams. Story `scope` describ
 - **Extra:** US-16, US-17, US-24, US-29, US-34, US-35, US-36, US-38, US-41, US-42, US-43, US-44, US-53, US-62, US-63, US-64, US-65, and US-68.
   - US-29 exists in the legacy application, but is not a relaunch priority.
   - US-38 is extra. Per-booking history is [US-39](US-39-member-booking-audit-stream.md) and stays done. The team-wide manager feed is not a relaunch requirement.
-  - US-45 is extra. Revisit it while outgoing mail is being implemented; include it if the chosen mail provider makes reliable delivery/bounce handling cheap or free.
+  - US-45 is extra. Outbound mail is live; include bounce/delivery tracking if ForwardEmail (or the chosen provider) makes it cheap or free to operate.
   - US-62 is extra and is not a Phase 0 parity gap. It depends on US-15 applying known-person iMIP replies and US-55 retaining unmapped ones.
   - US-63 is extra and done: catalog postal address and map pin. Bookings take `location` / `coords` from the venue. US-65 ICS precise location is done on the shared factory. US-64 catalog create, adoption lock, and private booking places, and US-68 Other activity and Activity name, are extra and done. US-13 stays done.
 - **Deferred:** [US-06 User Role & Status Badges](US-06-user-role-status-badges.md), [US-22 Task Management](US-22-task-management.md), and [US-50 Invite Someone Who Is Not on the Team](US-50-invite-non-members.md). US-22's legacy task and VTODO workflow is not needed for relaunch.
@@ -66,9 +66,9 @@ The owner has reviewed the retained workflow list against the live legacy system
 
 ### Current deployment and migration baseline
 
-Activity Teams deploys to IONOS at **`https://climbfoxcoverts.co.uk/`** (same host as the live climbing-team site; a domain rename is only a far-future possibility). Work lands via **branches and pull requests**; GitHub Actions runs the test suite on pull requests ([`.github/workflows/test.yml`](../../.github/workflows/test.yml)), and again via the deploy workflow when changes reach `main`. The deploy workflow ([`.github/workflows/deploy.yml`](../../.github/workflows/deploy.yml)) triggers on `main` (and `workflow_dispatch`) but the deployment job runs only when the repository variable **`DEPLOY_ENABLED`** is `true`, so merges to `main` are safe until cutover. Deploy uses PHP **8.5**, npm asset builds, SSH/rsync to Webspace, and [`.deploy/post.sh`](../../.deploy/post.sh) (`php8.5-cli`) for migrate, one-shot `legacy:import` + `legacy:verify` (marker `storage/app/.legacy-imported`), then `optimize` and `up`. Product-owner setup steps are in [`docs/deploy-setup.md`](../deploy-setup.md).
+**Live.** Activity Teams runs on IONOS at **`https://climbfoxcoverts.co.uk/`**. Work lands via **branches and pull requests**; GitHub Actions runs the test suite on pull requests ([`.github/workflows/test.yml`](../../.github/workflows/test.yml)), and deploys when changes reach `main` while **`DEPLOY_ENABLED`** is `true` ([`.github/workflows/deploy.yml`](../../.github/workflows/deploy.yml)). Deploy uses PHP **8.5**, npm asset builds, SSH/rsync to Webspace, and [`.deploy/post.sh`](../../.deploy/post.sh) (`php8.5-cli`) for migrate, then `optimize` and `up`. The one-shot `legacy:import` + `legacy:verify` already ran (marker `storage/app/.legacy-imported`); see the [legacy import runbook](../legacy-import-runbook.md) for how that cutover worked. Operator notes remain in [`docs/deploy-setup.md`](../deploy-setup.md).
 
-Activity Teams is a new Laravel application. Its Sail compose file provides MariaDB and Mailpit for local development; `.env.example` defaults to SQLite, log-based outgoing mail, and database-backed queues. These are development defaults, not production decisions. ForwardEmail provides the inbound email API and is also available as a possible outgoing mail service. Confirm the integration details, deliverability, and whether using it for both directions is suitable before production configuration; reconsider US-45 during that outgoing-mail decision. Cutover uses a blank Activity Teams database with a one-shot legacy import from the co-located climbing-team database on first deploy (see the [legacy import runbook](../legacy-import-runbook.md)).
+Production uses database-backed queues drained by crontab (`queue:work` with `flock`, plus `schedule:run`). ForwardEmail handles inbound webhooks; outbound mail is configured in production. Local Sail still defaults to Mailpit and optional sync queues — those are development defaults, not production. Reconsider [US-45](US-45-email-delivery-bounce-tracking.md) now that outbound mail is live, if provider bounce handling is cheap enough.
 
 ### Phase 0 — Confirm the cutover inventory
 
@@ -78,16 +78,15 @@ Activity Teams is a new Laravel application. Its Sail compose file provides Mari
 2. Compare each kept workflow with the current app and existing acceptance criteria. Add or split stories for real legacy gaps that have no story. The general legacy mail log is not required; US-55 captures the required inbound routing, retention, and failure-alert needs. **Complete for the known inventory:** US-54 through US-57 were added for identified gaps.
 3. Confirmed relaunch scope: booking lifecycle, qualifications, venues/keys, documents, incidents, per-booking history/comments, related bookings/ICS, and member self-service profile are retained. The team-wide manager change feed ([US-38](US-38-manager-activity-audit-feed.md)) is extra. US-06 and US-22 are deferred; US-30/31 and US-49 are required (US-30/31 are already done). US-23 and US-33 kit checks are deferred. Members may opt out of direct news distribution via US-61 `news.mail`. Password changes, personal-data access/export, and account deletion are captured in required US-57; notification preferences are US-61; registration remains invitation-only.
 4. Record observable release checks for the retained workflows, including authorization boundaries and both member and manager experiences. The high-risk acceptance expectations are summarized above and detailed in the relevant stories; verify them through the actual application surfaces rather than presumed APIs.
-5. Record the known operational approach and assign implementation follow-up: GitHub Actions deploys to IONOS when changes reach `main` and `DEPLOY_ENABLED` is true; production PHP is **8.5**; ForwardEmail provides inbound email and may be assessed for outbound. Confirm production mail/database configuration and complete [`docs/deploy-setup.md`](../deploy-setup.md) before flipping the kill-switch. The initial inbound-mail decision is to retain unmatched or failed messages in a restricted in-app review queue and alert the system owner. Legacy cutover is a blank AT database plus one-shot import on first deploy (`storage/app/.legacy-imported`).
+5. Record the known operational approach: GitHub Actions deploys to IONOS when changes reach `main` and `DEPLOY_ENABLED` is true; production PHP is **8.5**; ForwardEmail provides inbound email (and was assessed for outbound). Unmatched or failed inbound mail stays in a restricted in-app review queue with owner alerts. Legacy cutover was a blank AT database plus one-shot import on first deploy (`storage/app/.legacy-imported`).
 
-**Exit condition:** the owner has confirmed the retained live workflow inventory; relaunch scope is explicit; every retained workflow has a story or recorded acceptance checks; and remaining delivery/privacy risks have a named owner and a later checkpoint. Detailed data-migration design, production deployment verification, and controller retention policy review are assigned follow-ups, not prerequisites to freeze the Phase 0 inventory.
+**Exit condition:** the owner has confirmed the retained live workflow inventory; relaunch scope is explicit; every retained workflow has a story or recorded acceptance checks; and remaining delivery/privacy risks have a named owner and a later checkpoint. Detailed data-migration design, production deployment verification, and controller retention policy review were assigned follow-ups, not prerequisites to freeze the Phase 0 inventory.
 
-**Phase 0 status: complete.** The owner confirmed the live workflow inventory and relaunch scope, and the high-risk acceptance expectations are captured above and in the relevant stories. The following refinements remain assigned, but do not block Phase 0 closure:
+**Phase 0 status: complete.** The owner confirmed the live workflow inventory and relaunch scope, and the high-risk acceptance expectations are captured above and in the relevant stories. Follow-ups that remain after go-live:
 
-- **Product owner:** US-54 opt-out, live-edit, republish, and delivery-failure behavior are recorded in that story. US-55's webhook secret, safe diagnostics, manager alert, and keep-until-deleted review queue are recorded in that story. US-21's email-only report path and permanent delivery-failure alert are recorded in its story.
+- **Product owner:** walk through [acceptance-checklist.md](acceptance-checklist.md) on the live site (US-54/55/21 behaviours are recorded in those stories; prove them in production).
 - **Product owner/controller:** US-57 retention is recorded (named shell kept indefinitely; contact details purged after 30 days). The live privacy notice is the in-app `/privacy` page; solicitor review of lawful bases remains with the product owner.
-- **Implementation owner, during delivery:** verify ForwardEmail inbound authentication and routing, assess outbound mail and US-45 cost, and complete production setup per [`docs/deploy-setup.md`](../deploy-setup.md) before setting `DEPLOY_ENABLED=true`.
-- **Product owner and implementation owner, at cutover:** blank AT database + co-located legacy DB; first deploy runs import/verify automatically. Rehearse with backups and rollback beforehand.
+- **Implementation / ops:** keep deploy, mail, queue, and inbound webhook healthy; revisit US-45 if bounce tooling is worthwhile now outbound mail is live.
 
 ### Phase 1 — Secure the multi-team operating foundation
 
@@ -134,7 +133,7 @@ US-49 should precede changes that depend on controlled activity or venue catalog
 
 ### Phase 3 — Deliver remaining retained team workflows
 
-**Phase 3 status: complete (3 November 2026 live-site audit).** Required US-54, US-05, US-40, and US-21 are done. The authenticated audit compared the live legacy workflows with the stories and ROADMAP and found no new required relaunch gaps. Observed workflows map to done, deferred, extra, or retired scope. This closes the inventory confirmation; Phase 4 release verification remains.
+**Phase 3 status: complete (3 November 2026 live-site audit).** Required US-54, US-05, US-40, and US-21 are done. The authenticated audit compared the live legacy workflows with the stories and ROADMAP and found no new required relaunch gaps. Observed workflows map to done, deferred, extra, or retired scope. This closes the inventory confirmation; Phase 4 is live-site verification and remaining parity.
 
 The product owner has confirmed these legacy workflows should be retained; the listed order remains adjustable based on implementation sizing and operational risk.
 
@@ -142,52 +141,53 @@ The product owner has confirmed these legacy workflows should be retained; the l
 2. **Done: Safety and compliance.** Required US-21 incident reporting uses a team-selected email distribution path, queue retries, and permanent-failure alerts.
 3. **Done: Team operations.** Required US-05 document repository (team PDFs, combined member list with team filter, Teams trash).
 4. **Done: Audit and collaboration.** Required US-40 comments on bookings (separate panel, immediate threaded mail). Keep the existing US-39 booking timeline behavior. Extra US-38 (team-wide manager feed) is out of this phase.
-5. **Done: Legacy workflow audit.** The 3 November 2026 live-site audit confirmed that no additional required relaunch workflows were missing from Phase 0. The general-purpose legacy mail log stays retired; inbound routing and failure alerts are done in [US-55](US-55-inbound-email-routing-and-alerts.md). The audit's remaining parity and migration notes are product/documentation follow-ups, not new Phase 3 build work. Some write flows and empty-data paths were not exercised; the audit does not replace Phase 4 end-to-end release verification.
+5. **Done: Legacy workflow audit.** The 3 November 2026 live-site audit confirmed that no additional required relaunch workflows were missing from Phase 0. The general-purpose legacy mail log stays retired; inbound routing and failure alerts are done in [US-55](US-55-inbound-email-routing-and-alerts.md). The audit's remaining parity notes are product/documentation follow-ups for Phase 4, not new Phase 3 build work. Some write flows and empty-data paths were not exercised; the audit does not replace Phase 4 live acceptance.
 
-If a retained workflow is large, ship it as a vertical slice: authorization and data model, manager workflow, member workflow, then migration/operational checks. Do not use a broad story label as a substitute for proving the acceptance criteria.
+If a retained workflow is large, ship it as a vertical slice: authorization and data model, manager workflow, member workflow, then operational checks. Do not use a broad story label as a substitute for proving the acceptance criteria.
 
-### Phase 4 — Release verification and February 2027 relaunch
+### Phase 4 — Live verification and remaining parity
 
-Reserve time before cutover for integrated verification rather than adding features until the target date:
+**Phase 4 status: in progress (site live; acceptance and parity ongoing).** Cutover is done. Most members are not yet leaning on the new app, so this is the quiet window to prove workflows on production data and close leftover parity gaps before broader use.
 
-- Once the application is workable and its data model is stable, compare migrating the existing target database with importing legacy data into a fresh database. [US-66](US-66-audience-qualification-requirements.md) lands before that comparison: qualification rows belong to an activity–audience pairing, and keys stay on the activity. Choose the safer workable option, then rehearse it with representative data and verify team memberships, booking history, attendance, qualifications, keys, and contact/privacy fields.
-- Run feature tests for critical member/manager paths, cross-team isolation, suspended accounts, consent and time-window enforcement, and booking email/calendar behavior.
-- Manually test the responsive Livewire/Filament flows on the devices and browsers the team uses. Include keyboard and accessible disclosure behavior where relevant.
-- Verify outgoing email delivery, scheduled jobs, calendar feeds, monitoring, backups, and rollback in the target environment.
-- Have the product owner run an end-to-end acceptance pass against the agreed legacy workflow checklist.
-- Cut over only when the must-have workflows and data checks pass; record any accepted differences from the legacy app.
+Product-owner walkthrough ticks live in [acceptance-checklist.md](acceptance-checklist.md) (not the GitHub Project board). Prefer fixing real defects and small parity gaps found on the live site over starting large stretch features.
 
-**February target:** relaunch-ready is probable given the planned two clear weeks in December plus evenings and weekends, but is not a guarantee. Review progress and feasibility at checkpoints; if the retained scope cannot fit, adjust timing or agree explicit staging rather than silently dropping safety or access requirements.
+1. **Acceptance on production.** Work through the checklist: high-risk behaviours (isolation, US-58, contact windows, suspension, account rights, inbound mail, news, calendar/iMIP), plus responsive UI checks on the devices the team uses.
+2. **Ops confidence.** Confirm scheduled jobs and queue drain, calendar feeds and booking ICS, monitoring, backups, and a known rollback path remain sound now the site is live.
+3. **Parity follow-ups.** Close gaps found in acceptance or already known from the Phase 3 audit (write paths, empty-data paths, and any required workflow that feels incomplete next to climbing-team). Record accepted differences from the legacy app rather than pretending full UI identity.
+4. **Imported data spot-checks.** On live data, sample team memberships, booking history, attendance, qualifications, keys, and contact/privacy fields enough to trust the import for day-to-day use ([US-66](US-66-audience-qualification-requirements.md) shaped the qualification model before import).
+5. **Stretch only when deliberate.** Open extras stay on the GitHub Project; pull one when acceptance/parity is quiet and the slice is clearly valuable.
 
-## Stretch extras after parity sizing
+**Exit condition for “ready for wider member use”:** checklist complete (or residual risks explicitly accepted), no open defects that block retained required workflows, and the product owner is willing to point the team at Activity Teams as the day-to-day system.
 
-The following are explicitly extra. Recommend selecting them only after Phase 0 estimates the core work and checks the real operational value:
+## Stretch extras after go-live
+
+The following remain explicitly extra. Prefer them only after Phase 4 acceptance is moving and a clear operational need appears; they are not implicit go-live blockers.
 
 - **Opportunistic UI:** US-29 is a small-looking share action, but is deliberately low priority.
-- **Mail-provider dependent:** US-45 should be evaluated during outgoing-mail implementation. Do not add it if provider support requires a separate paid service or disproportionate operational work.
-- **Related implementation batches:** US-16 and US-44 both involve reminders; US-17 adds stateful rota-digest behavior. Assess shared scheduling and notification infrastructure before splitting effort across them.
+- **Mail-provider dependent:** US-45 — evaluate now that outbound mail is live; skip if bounce tooling needs a separate paid service or disproportionate ops work.
+- **Related implementation batches:** US-16 and US-44 both involve reminders; US-17 (done) already covers the combined digest. Assess shared scheduling before splitting reminder effort.
 - **Unmapped calendar replies:** [US-62](US-62-unmapped-calendar-reply-identity.md) depends on US-15 and US-55, which are done. It was never live in climbing-team; identity confirmation and a no-account contact path remain refinement.
 - **Venue and activity follow-ups:** [US-63](US-63-venue-address-and-coordinates.md), [US-64](US-64-booking-other-venue.md), [US-65](US-65-ics-precise-location.md), and [US-68](US-68-booking-other-activity.md) are done.
-- **Kit extensions:** US-34 and US-35 build on the retained US-23/33 kit-check capability.
+- **Kit extensions:** US-34 and US-35 build on deferred US-23/33 kit-check capability.
 - **Session follow-on:** US-43 depends on the debrief/history behavior in US-42.
-- **Other extras:** US-24, US-36, US-41, and US-53 should be ranked against user value and effort, not treated as implicit February commitments.
+- **Other extras:** US-24, US-36, US-38 (partial), US-41, and US-53 should be ranked against user value and effort, not treated as silent go-live commitments.
 
-US-50 remains deferred. US-47 and the operationally required stories take precedence over all extras.
+US-50 remains deferred. Required workflows and Phase 4 acceptance take precedence over all extras.
 
 ## Working cadence and delegation
 
 Capacity changes week to week, so plan in small, reviewable slices rather than fixed weekly story quotas.
 
-1. At each weekly Cursor credit reset, choose one bounded implementation slice with acceptance criteria and a clear test target. The next reset noted during planning is **24 October 2026**.
-2. Before spending credits, prepare the issue/story context, reproduction steps, expected UI behavior, and relevant tests. This makes a short work window useful even when spare time is limited.
+1. At each weekly Cursor credit reset, choose one bounded slice: either a Phase 4 defect/parity fix or one GitHub Project Todo with clear acceptance criteria and a test target.
+2. Before spending credits, prepare the issue/story context, reproduction steps (especially on the live site when relevant), expected UI behavior, and relevant tests.
 3. Use Copilot/Cursor especially for Livewire and front-end behavior, feature-test setup, and iteration on failures—the areas where AI assistance can best complement the product owner's experience.
-4. Keep product decisions, privacy choices, interpretation of live legacy behavior, release acceptance, credentials, and production operations with the product owner.
+4. Keep product decisions, privacy choices, interpretation of live legacy behaviour, release acceptance, credentials, and production operations with the product owner.
 5. Use Gemini for independent review of story clustering, dependencies, and alternative sequencing. Treat it as a source of questions, not evidence about the legacy application.
-6. For each slice, finish with tests, a manual UI check where applicable, and a short summary of changed behavior and remaining gaps before starting another slice.
+6. For each slice, finish with tests, a manual UI check where applicable (local and/or live), and a short summary of changed behaviour and remaining gaps before starting another slice.
 
 ## Evidence and references
 
 - The story index is [README.md](README.md); it defines implementation status separately from scope.
 - Legacy route inventory: [`climbing-team/routes/web.php`](https://github.com/foxcoverts/climbing-team/blob/main/routes/web.php).
 - Legacy feature areas are evidenced by the `Document`, `Incident`, `KitCheck`, `Todo`, and `ChangeComment` models and the corresponding controllers, routes, and migrations in [`foxcoverts/climbing-team`](https://github.com/foxcoverts/climbing-team).
-- Legacy source presence does not establish that a feature is actively used today. Phase 0 resolves that with the product owner and live-system review.
+- Legacy source presence does not establish that a feature is actively used today. Phase 0 resolved that with the product owner and live-system review; Phase 4 proves the retained workflows on production.
