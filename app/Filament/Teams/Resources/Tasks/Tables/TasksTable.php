@@ -43,9 +43,6 @@ class TasksTable
                     ->badge()
                     ->sortable()
                     ->toggleable(),
-                TextColumn::make('status')
-                    ->badge()
-                    ->sortable(),
                 TextColumn::make('due_at')
                     ->label(__('Due'))
                     ->dateTime('j M Y, H:i')
