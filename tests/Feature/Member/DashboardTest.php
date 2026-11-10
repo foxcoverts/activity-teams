@@ -3,9 +3,11 @@
 namespace Tests\Feature\Member;
 
 use App\Enums\BookingAttendeeStatus;
+use App\Enums\MembershipRole;
 use App\Filament\Member\Pages\Dashboard;
 use App\Filament\Member\Widgets\AllCaughtUpWidget;
 use App\Filament\Member\Widgets\LatestNewsWidget;
+use App\Filament\Member\Widgets\MyTeamsWidget;
 use App\Filament\Member\Widgets\NeedsResponseWidget;
 use App\Filament\Member\Widgets\NextLedBookingWidget;
 use App\Filament\Member\Widgets\ThisWeekWidget;
@@ -69,6 +71,7 @@ class DashboardTest extends TestCase
             NeedsResponseWidget::class,
             NextLedBookingWidget::class,
             AllCaughtUpWidget::class,
+            MyTeamsWidget::class,
             LatestNewsWidget::class,
         ], Livewire::test(Dashboard::class)->instance()->getWidgets());
 
@@ -77,12 +80,47 @@ class DashboardTest extends TestCase
 
     public function test_it_shows_all_caught_up_and_no_other_section_when_nothing_needs_attention(): void
     {
-        Livewire::test(AllCaughtUpWidget::class)->assertSee("You're all caught up");
+        Livewire::test(AllCaughtUpWidget::class)
+            ->assertSee("You're all caught up")
+            ->assertSee('Open a team below to get started.')
+            ->assertDontSee('Browse team bookings');
         Livewire::test(ThisWeekWidget::class)->assertDontSee('This week');
         Livewire::test(UnreadInboxWidget::class)->assertDontSee('Mark all read');
         Livewire::test(NeedsResponseWidget::class)->assertDontSee('Needs your response');
         Livewire::test(NextLedBookingWidget::class)->assertDontSee('Next booking you lead');
         Livewire::test(LatestNewsWidget::class)->assertDontSee('Latest news');
+    }
+
+    public function test_all_caught_up_omits_the_teams_prompt_when_the_member_has_no_teams(): void
+    {
+        $this->member->teams()->firstOrFail()->recordLeft($this->member);
+
+        Livewire::test(AllCaughtUpWidget::class)
+            ->assertSee("You're all caught up")
+            ->assertDontSee('Open a team below to get started.')
+            ->assertDontSee('Browse team bookings');
+    }
+
+    public function test_my_teams_lists_each_current_team_with_role_and_hides_when_none_remain(): void
+    {
+        $team = $this->member->teams()->firstOrFail();
+
+        Livewire::test(MyTeamsWidget::class)
+            ->assertSee('My Teams')
+            ->assertSee($team->name)
+            ->assertSee(MembershipRole::Member->getLabel());
+
+        $second = Team::factory()->create(['name' => 'Zulu Climbers']);
+        $second->grant($this->member, MembershipRole::Member);
+
+        Livewire::test(MyTeamsWidget::class)
+            ->assertSee($team->name)
+            ->assertSee('Zulu Climbers');
+
+        $team->recordLeft($this->member);
+        $second->recordLeft($this->member);
+
+        Livewire::test(MyTeamsWidget::class)->assertDontSee('My Teams');
     }
 
     public function test_this_week_lists_commitments_but_not_declined_or_cancelled_or_later_bookings(): void

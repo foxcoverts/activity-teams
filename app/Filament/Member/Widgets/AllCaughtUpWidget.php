@@ -2,7 +2,7 @@
 
 namespace App\Filament\Member\Widgets;
 
-use App\Filament\Member\Resources\Bookings\BookingResource;
+use App\Models\User;
 
 class AllCaughtUpWidget extends DashboardSection
 {
@@ -12,9 +12,13 @@ class AllCaughtUpWidget extends DashboardSection
 
     protected function sectionData(): array
     {
+        $user = auth()->user();
+        assert($user instanceof User);
+
         return [
             'caughtUp' => ! $this->dashboard()->hasAttention(),
-            'bookingsUrl' => BookingResource::getUrl('index'),
+            'bookingsUrl' => null,
+            'hasTeams' => $user->teams()->exists(),
         ];
     }
 }
