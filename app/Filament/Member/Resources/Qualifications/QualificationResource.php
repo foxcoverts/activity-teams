@@ -28,7 +28,7 @@ class QualificationResource extends Resource
 
     protected static string|\UnitEnum|null $navigationGroup = NavigationGroup::Personal;
 
-    protected static ?int $navigationSort = 1;
+    protected static ?int $navigationSort = 3;
 
     protected static ?string $navigationLabel = 'Qualifications';
 

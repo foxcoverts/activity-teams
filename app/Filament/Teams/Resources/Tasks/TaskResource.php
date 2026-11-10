@@ -33,7 +33,7 @@ class TaskResource extends Resource
 
     protected static string|\UnitEnum|null $navigationGroup = NavigationGroup::Team;
 
-    protected static ?int $navigationSort = 4;
+    protected static ?int $navigationSort = 7;
 
     protected static ?string $navigationLabel = 'Tasks';
 
