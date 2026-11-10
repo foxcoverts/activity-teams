@@ -1,0 +1,155 @@
+<?php
+
+namespace App\Support;
+
+use App\Enums\TaskStatus;
+use App\Models\Task;
+use DateInterval;
+use DateTimeImmutable;
+use DateTimeZone as PhpDateTimeZone;
+use Eluceo\iCal\Domain\ValueObject\DateTime as IcsDateTime;
+use Eluceo\iCal\Domain\ValueObject\EmailAddress;
+use Eluceo\iCal\Domain\ValueObject\Timestamp;
+use Eluceo\iCal\Presentation\Component;
+use Eluceo\iCal\Presentation\Component\Property;
+use Eluceo\iCal\Presentation\Component\Property\Parameter;
+use Eluceo\iCal\Presentation\Component\Property\Value\DateTimeValue;
+use Eluceo\iCal\Presentation\Component\Property\Value\DurationValue;
+use Eluceo\iCal\Presentation\Component\Property\Value\IntegerValue;
+use Eluceo\iCal\Presentation\Component\Property\Value\TextValue;
+use Eluceo\iCal\Presentation\Component\Property\Value\UriValue;
+
+class TaskIcsFactory
+{
+    /**
+     * @param  iterable<int, Task>  $tasks
+     */
+    public function make(
+        iterable $tasks,
+        string $title,
+        ?DateInterval $publishedTtl = null,
+    ): string {
+        $properties = [
+            new Property('PRODID', new TextValue('-//Activity Teams//EN')),
+            new Property('VERSION', new TextValue('2.0')),
+            new Property('CALSCALE', new TextValue('GREGORIAN')),
+            new Property('X-WR-CALNAME', new TextValue($title)),
+        ];
+
+        if ($publishedTtl instanceof DateInterval) {
+            $properties[] = new Property('X-PUBLISHED-TTL', new DurationValue($publishedTtl));
+        }
+
+        $components = [];
+
+        foreach ($tasks as $task) {
+            if (! $task instanceof Task) {
+                continue;
+            }
+
+            $task->loadMissing('bookings');
+            $components[] = $this->todoComponent($task);
+        }
+
+        return (string) new Component('VCALENDAR', $properties, $components);
+    }
+
+    /**
+     * @param  iterable<int, Task>  $tasks
+     * @return list<Component>
+     */
+    public function components(iterable $tasks): array
+    {
+        $components = [];
+
+        foreach ($tasks as $task) {
+            if (! $task instanceof Task) {
+                continue;
+            }
+
+            $task->loadMissing('bookings');
+            $components[] = $this->todoComponent($task);
+        }
+
+        return $components;
+    }
+
+    private function todoComponent(Task $task): Component
+    {
+        $properties = [
+            new Property('UID', new TextValue($task->uid)),
+            new Property('DTSTAMP', new DateTimeValue(new Timestamp(new DateTimeImmutable('now', new PhpDateTimeZone('UTC'))))),
+            new Property('SUMMARY', new TextValue($task->summary)),
+            new Property('SEQUENCE', new IntegerValue((int) $task->sequence)),
+            new Property('STATUS', new TextValue(match ($task->status) {
+                TaskStatus::NeedsAction => 'NEEDS-ACTION',
+                TaskStatus::InProcess => 'IN-PROCESS',
+                TaskStatus::Completed => 'COMPLETED',
+                TaskStatus::Cancelled => 'CANCELLED',
+            })),
+            new Property('PRIORITY', new IntegerValue($task->priority->value)),
+            new Property('CLASS', new TextValue('PRIVATE')),
+        ];
+
+        $fromEmail = (string) config('mail.from.address');
+        $fromName = (string) config('mail.from.name');
+
+        if (filled($fromEmail)) {
+            $organizerParams = filled($fromName)
+                ? [new Parameter('CN', new TextValue($fromName))]
+                : [];
+
+            $properties[] = new Property(
+                'ORGANIZER',
+                new UriValue((new EmailAddress($fromEmail))->toUri()),
+                $organizerParams,
+            );
+        }
+
+        if ($task->updated_at !== null) {
+            $properties[] = new Property(
+                'LAST-MODIFIED',
+                new DateTimeValue(new Timestamp($task->updated_at->toDateTimeImmutable())),
+            );
+        }
+
+        if (filled($task->description)) {
+            $properties[] = new Property('DESCRIPTION', new TextValue((string) $task->description));
+        }
+
+        if (filled($task->location)) {
+            $properties[] = new Property('LOCATION', new TextValue((string) $task->location));
+        }
+
+        if ($task->due_at !== null) {
+            $properties[] = new Property(
+                'DUE',
+                new DateTimeValue(new IcsDateTime($task->due_at->toDateTimeImmutable(), true)),
+            );
+        }
+
+        if ($task->started_at !== null) {
+            $properties[] = new Property(
+                'DTSTART',
+                new DateTimeValue(new IcsDateTime($task->started_at->toDateTimeImmutable(), true)),
+            );
+        }
+
+        if ($task->completed_at !== null) {
+            $properties[] = new Property(
+                'COMPLETED',
+                new DateTimeValue(new IcsDateTime($task->completed_at->toDateTimeImmutable(), true)),
+            );
+        }
+
+        foreach ($task->bookings as $booking) {
+            $properties[] = new Property(
+                'RELATED-TO',
+                new TextValue($booking->uid),
+                [new Parameter('RELTYPE', new TextValue('PARENT'))],
+            );
+        }
+
+        return new Component('VTODO', $properties);
+    }
+}

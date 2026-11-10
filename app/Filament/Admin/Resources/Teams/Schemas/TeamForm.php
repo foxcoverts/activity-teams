@@ -4,11 +4,14 @@ namespace App\Filament\Admin\Resources\Teams\Schemas;
 
 use App\Enums\BrandColor;
 use App\Enums\MembershipRole;
+use App\Enums\TeamFeature;
 use App\Support\Avatars;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
+use Filament\Support\Icons\Heroicon;
 
 class TeamForm
 {
@@ -51,6 +54,16 @@ class TeamForm
                                 'role' => MembershipRole::Manager,
                             ])
                             ->visible(fn (string $operation): bool => $operation === 'create'),
+                    ]),
+                Section::make(__('Features'))
+                    ->icon(Heroicon::OutlinedPuzzlePiece)
+                    ->columns(1)
+                    ->columnSpanFull()
+                    ->schema([
+                        Toggle::make('features.'.TeamFeature::Tasks->value)
+                            ->label(TeamFeature::Tasks->getLabel())
+                            ->helperText(__('Show Tasks in the team navigation and allow attaching tasks to bookings.'))
+                            ->default(false),
                     ]),
             ]);
     }

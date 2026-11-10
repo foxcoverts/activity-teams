@@ -9,6 +9,7 @@ use App\Filament\Teams\Resources\Bookings\BookingResource;
 use App\Filament\Teams\Resources\Bookings\BookingStatusActions;
 use App\Filament\Teams\Resources\Bookings\BookingTimeline;
 use App\Livewire\BookingComments;
+use App\Livewire\BookingTasks;
 use App\Livewire\RelatedBookings;
 use App\Models\Booking;
 use App\Models\User;
@@ -43,6 +44,12 @@ class ViewBooking extends ViewRecord
 
             if (RelatedBookings::shouldShowPanel($record, $user)) {
                 $sidebar[] = Livewire::make(RelatedBookings::class, [
+                    'record' => $record,
+                ]);
+            }
+
+            if (BookingTasks::shouldShowPanel($record, $user)) {
+                $sidebar[] = Livewire::make(BookingTasks::class, [
                     'record' => $record,
                 ]);
             }

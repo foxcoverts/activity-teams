@@ -458,6 +458,30 @@ class Booking extends Model implements Commentable
         $other->related()->detach($this->getKey());
     }
 
+    /**
+     * @return BelongsToMany<Task, $this>
+     */
+    public function tasks(): BelongsToMany
+    {
+        return $this->belongsToMany(Task::class, 'booking_task');
+    }
+
+    public function attachTask(Task $task): void
+    {
+        if ((string) $this->team_id !== (string) $task->team_id) {
+            throw ValidationException::withMessages([
+                'task_id' => __('Choose a task from this team.'),
+            ]);
+        }
+
+        $this->tasks()->syncWithoutDetaching([$task->getKey()]);
+    }
+
+    public function detachTask(Task $task): void
+    {
+        $this->tasks()->detach($task->getKey());
+    }
+
     public function relatedLabel(): string
     {
         $this->loadMissing('activity', 'audience');

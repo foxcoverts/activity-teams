@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\BrandColor;
 use App\Enums\MembershipRole;
+use App\Enums\TeamFeature;
 use App\Support\Avatars;
 use Database\Factories\TeamFactory;
 use Filament\Models\Contracts\HasAvatar;
@@ -26,13 +27,29 @@ class Team extends Model implements HasAvatar
         'name',
         'slug',
         'color',
+        'features',
     ];
 
     protected function casts(): array
     {
         return [
             'color' => BrandColor::class,
+            'features' => 'array',
         ];
+    }
+
+    public function featureEnabled(TeamFeature $feature): bool
+    {
+        $features = $this->features ?? [];
+
+        return ($features[$feature->value] ?? false) === true;
+    }
+
+    public function enableFeature(TeamFeature $feature): void
+    {
+        $features = $this->features ?? [];
+        $features[$feature->value] = true;
+        $this->features = $features;
     }
 
     protected static function booted(): void
@@ -200,6 +217,11 @@ class Team extends Model implements HasAvatar
     public function documents(): HasMany
     {
         return $this->hasMany(Document::class);
+    }
+
+    public function tasks(): HasMany
+    {
+        return $this->hasMany(Task::class);
     }
 
     private function addDefaultableRecord(Activity|Venue $record, string $relation, string $defaultAttribute): void

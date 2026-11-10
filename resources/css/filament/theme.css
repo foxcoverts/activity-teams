@@ -309,3 +309,42 @@
 .invite-footer {
     @apply flex justify-end gap-2;
 }
+
+.task-complete-control {
+    @apply inline-flex size-5 shrink-0 items-center justify-center rounded-full border-2 border-gray-400 bg-transparent text-transparent transition dark:border-gray-500;
+}
+
+.task-complete-control[aria-pressed='true'] {
+    @apply border-primary-600 bg-primary-600 text-white dark:border-primary-400 dark:bg-primary-400 dark:text-gray-950;
+}
+
+button.task-complete-control:hover,
+button.task-complete-control:focus-visible {
+    @apply border-primary-600 dark:border-primary-400;
+}
+
+button.task-complete-control:disabled {
+    @apply opacity-50;
+}
+
+.task-complete-control__mark {
+    @apply block size-2 rounded-full bg-current;
+}
+
+.task-row {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    @apply items-center gap-3 px-3 py-2.5;
+}
+
+.task-row+.task-row {
+    @apply border-t border-gray-200 dark:border-white/10;
+}
+
+.task-row__title {
+    @apply min-w-0 text-sm font-medium text-gray-950 dark:text-white;
+}
+
+.task-row__meta {
+    @apply mt-0.5 text-xs text-gray-500 dark:text-gray-400;
+}

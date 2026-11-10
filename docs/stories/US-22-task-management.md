@@ -1,9 +1,9 @@
 ---
 id: US-22
 title: "Team & Multi-Activity Task Management"
-status: not-started
+status: done
 area: safety
-scope: deferred
+scope: required
 ---
 
 ## Story
@@ -13,9 +13,13 @@ As an Activity Manager, I want to create, prioritise, assign, and track operatio
 ## Acceptance criteria
 
 - Managers add tasks with titles, notes, start and due dates, and priorities.
-- Generates standard iCalendar VTODO items.
-- Scoped and filtered by activity teams with collaborative status updates.
+- Team-scoped filtering with collaborative status updates (members can mark complete / incomplete).
+- Per-team Features flag controls Tasks navigation and create/attach surfaces without heavy extra queries when the team is already loaded.
+- Tasks attach to bookings many-to-many (add existing / add new from a collapsed booking Tasks panel with a badge count).
+- Todo-list style complete control to the left of the title (radio-style hollow / filled circle).
+- Subscription feeds: `tasks.ics` (VTODO) and `everything.ics` (bookings VEVENT + tasks VTODO), sharing `feed_token`. VTODO includes `RELATED-TO` booking UIDs when linked.
+- Legacy `todos` import into team tasks and enables the Climbing team Tasks feature.
 
 ## Progress
 
-An activity team is a team in this app. Not built yet. When task mail exists, add a `tasks` group to the [US-61](US-61-notification-settings.md) catalog and gate sends with `MailPreference::allows`.
+Done for the criteria above. Schema keeps UID/sequence for later calendar work. Assignees, task iMIP (`METHOD:REQUEST` / replies), per-task ICS download, and `rota.ics` including assigned tasks are [US-79](US-79-task-assignees-and-imip.md). When task mail exists, add a `tasks` group to the [US-61](US-61-notification-settings.md) catalog and gate sends with `MailPreference::allows`.

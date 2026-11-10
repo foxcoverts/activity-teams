@@ -747,10 +747,14 @@ class NewsPostsTest extends TestCase
         $atom = route('news.atom', $member);
         $rss = route('news.rss', $member);
         $ics = route('booking.ics', $member);
+        $tasks = route('task.ics', $member);
+        $everything = route('calendar.everything.ics', $member);
 
         $this->get($atom)->assertOk()->assertSee('Feed item', false);
         $this->get($rss)->assertOk();
         $this->get($ics)->assertOk();
+        $this->get($tasks)->assertOk();
+        $this->get($everything)->assertOk();
 
         Filament::setCurrentPanel('member');
         $this->actingAs($member);
@@ -763,6 +767,8 @@ class NewsPostsTest extends TestCase
         $this->get($atom)->assertUnauthorized();
         $this->get($rss)->assertUnauthorized();
         $this->get($ics)->assertUnauthorized();
+        $this->get($tasks)->assertUnauthorized();
+        $this->get($everything)->assertUnauthorized();
         $this->get(route('news.atom', $member))->assertOk();
         $this->assertFalse(Feeds::shouldRegisterNavigation());
     }
@@ -784,7 +790,9 @@ class NewsPostsTest extends TestCase
             ->assertSee('type="text/calendar"', false)
             ->assertSee(route('news.atom', $member), false)
             ->assertSee(route('booking.ics', $member), false)
-            ->assertSee(route('booking.rota.ics', $member), false);
+            ->assertSee(route('booking.rota.ics', $member), false)
+            ->assertSee(route('task.ics', $member), false)
+            ->assertSee(route('calendar.everything.ics', $member), false);
 
         Livewire::test(Feeds::class)
             ->callAction('regenerate');

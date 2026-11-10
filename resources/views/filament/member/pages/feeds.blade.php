@@ -12,6 +12,14 @@
                 <dd class="break-all text-sm">{{ $rotaUrl }}</dd>
             </div>
             <div>
+                <dt class="font-medium">{{ __('Tasks') }}</dt>
+                <dd class="break-all text-sm">{{ $tasksUrl }}</dd>
+            </div>
+            <div>
+                <dt class="font-medium">{{ __('Everything') }}</dt>
+                <dd class="break-all text-sm">{{ $everythingUrl }}</dd>
+            </div>
+            <div>
                 <dt class="font-medium">{{ __('News (Atom)') }}</dt>
                 <dd class="break-all text-sm">{{ $atomUrl }}</dd>
             </div>

@@ -3,6 +3,7 @@
 use App\Http\Controllers\BookingIcsController;
 use App\Http\Controllers\NewsFeedController;
 use App\Http\Controllers\PrivacyPolicyController;
+use App\Http\Controllers\TaskIcsController;
 use App\Http\Controllers\UnsubscribeMailController;
 use App\Http\Middleware\AuthenticateFromParam;
 use App\Livewire\AcceptInvitation;
@@ -38,6 +39,12 @@ Route::middleware(AuthenticateFromParam::class.':user')->group(function () {
         ->missing($missingToken);
     Route::get('ical/{user:feed_token}/rota.ics', [BookingIcsController::class, 'rota'])
         ->name('booking.rota.ics')
+        ->missing($missingToken);
+    Route::get('ical/{user:feed_token}/tasks.ics', [TaskIcsController::class, 'tasks'])
+        ->name('task.ics')
+        ->missing($missingToken);
+    Route::get('ical/{user:feed_token}/everything.ics', [TaskIcsController::class, 'everything'])
+        ->name('calendar.everything.ics')
         ->missing($missingToken);
     Route::get('feeds/{user:feed_token}/news.atom', [NewsFeedController::class, 'atom'])
         ->name('news.atom')

@@ -61,6 +61,8 @@ class Feeds extends Page
         return [
             'bookingsUrl' => route('booking.ics', $user),
             'rotaUrl' => route('booking.rota.ics', $user),
+            'tasksUrl' => route('task.ics', $user),
+            'everythingUrl' => route('calendar.everything.ics', $user),
             'atomUrl' => route('news.atom', $user),
             'rssUrl' => route('news.rss', $user),
         ];
