@@ -259,7 +259,8 @@ class AddBookingTest extends TestCase
             ->callFormComponentAction('activity_id', 'showAs')
             ->assertFormFieldVisible('activity_label')
             ->assertSeeText('Activity name')
-            ->assertSee('placeholder="Climbing"', false);
+            ->assertSee('placeholder="Climbing"', false)
+            ->assertSeeHtml('id="booking-activity-label"');
 
         $booking = Booking::factory()->create([
             'activity_label' => 'Tower Maintenance',
