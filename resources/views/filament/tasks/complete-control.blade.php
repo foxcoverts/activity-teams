@@ -1,33 +1,58 @@
 @php
     use App\Enums\TaskStatus;
     use App\Models\Task;
+    use Filament\Support\Icons\Heroicon;
 
     /** @var Task $task */
-    $cancelled = $task->isCancelled();
-    $complete = $task->isComplete();
-    $canToggle = ($canToggle ?? false) && ! $cancelled;
-    $label = $complete ? __('Mark incomplete') : __('Mark complete');
+    $status = $task->status;
+    $canToggle = (bool) ($canToggle ?? false);
+    $pressed = $status === TaskStatus::Completed;
+    $label = match ($status) {
+        TaskStatus::Completed => __('Mark incomplete'),
+        TaskStatus::Cancelled => __('Reopen'),
+        default => __('Mark complete'),
+    };
+    $title = match ($status) {
+        TaskStatus::NeedsAction => __('Needs action'),
+        TaskStatus::InProcess => __('In process'),
+        TaskStatus::Completed => __('Completed'),
+        TaskStatus::Cancelled => __('Cancelled'),
+    };
 @endphp
 
 @if ($canToggle)
     <button
         type="button"
         class="task-complete-control"
+        data-status="{{ $status->value }}"
         wire:click="toggleTaskComplete('{{ $task->getKey() }}')"
         wire:loading.attr="disabled"
-        aria-pressed="{{ $complete ? 'true' : 'false' }}"
+        aria-pressed="{{ $pressed ? 'true' : 'false' }}"
         aria-label="{{ $label }}"
         title="{{ $label }}"
     >
-        <span class="task-complete-control__mark" aria-hidden="true"></span>
+        @if ($status === TaskStatus::InProcess)
+            <span class="task-complete-control__mark task-complete-control__mark--dot" aria-hidden="true"></span>
+        @elseif ($status === TaskStatus::Completed)
+            <x-filament::icon :icon="Heroicon::Check" class="task-complete-control__icon" />
+        @elseif ($status === TaskStatus::Cancelled)
+            <x-filament::icon :icon="Heroicon::XMark" class="task-complete-control__icon" />
+        @endif
     </button>
 @else
     <span
         class="task-complete-control"
-        aria-pressed="{{ $complete ? 'true' : 'false' }}"
+        data-status="{{ $status->value }}"
+        aria-pressed="{{ $pressed ? 'true' : 'false' }}"
         aria-disabled="true"
-        title="{{ $cancelled ? __('Cancelled') : ($complete ? __('Completed') : __('Incomplete')) }}"
+        title="{{ $title }}"
     >
-        <span class="task-complete-control__mark" aria-hidden="true"></span>
+        @if ($status === TaskStatus::InProcess)
+            <span class="task-complete-control__mark task-complete-control__mark--dot" aria-hidden="true"></span>
+        @elseif ($status === TaskStatus::Completed)
+            <x-filament::icon :icon="Heroicon::Check" class="task-complete-control__icon" />
+        @elseif ($status === TaskStatus::Cancelled)
+            <x-filament::icon :icon="Heroicon::XMark" class="task-complete-control__icon" />
+        @endif
     </span>
 @endif

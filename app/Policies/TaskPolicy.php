@@ -2,7 +2,6 @@
 
 namespace App\Policies;
 
-use App\Enums\TaskStatus;
 use App\Enums\TeamFeature;
 use App\Models\Task;
 use App\Models\Team;
@@ -77,10 +76,6 @@ class TaskPolicy
             return false;
         }
 
-        if ($task->status === TaskStatus::Cancelled) {
-            return false;
-        }
-
         if ($user->isSystemAdmin()) {
             return true;
         }
@@ -95,7 +90,7 @@ class TaskPolicy
 
     public function delete(User $user, Task $task): bool
     {
-        return $this->update($user, $task);
+        return $task->isCancelled() && $this->update($user, $task);
     }
 
     public function restore(User $user, Task $task): bool

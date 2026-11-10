@@ -185,8 +185,6 @@ class BookingTasks extends Component implements HasActions, HasSchemas
                     : null,
                 'overdue' => $task->isOverdue(),
                 'priority' => $task->priority !== TaskPriority::Medium ? $task->priority->getLabel() : null,
-                'complete' => $task->isComplete(),
-                'cancelled' => $task->isCancelled(),
                 'canToggle' => $viewer->can('complete', $task),
                 'task' => $task,
             ];

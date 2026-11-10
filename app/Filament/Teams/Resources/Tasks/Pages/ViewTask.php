@@ -38,11 +38,11 @@ class ViewTask extends ViewRecord
                 ->schema([
                     Group::make([
                         SchemaView::make('filament.tasks.view-heading')
-                            ->viewData([
-                                'task' => $record,
-                                'canToggle' => $record instanceof Task
-                                    && $user instanceof User
-                                    && $user->can('complete', $record),
+                            ->viewData(fn (): array => [
+                                'task' => $this->getRecord(),
+                                'canToggle' => $this->getRecord() instanceof Task
+                                    && ($viewer = auth()->user()) instanceof User
+                                    && $viewer->can('complete', $this->getRecord()),
                             ]),
                         $this->getInfolistContentComponent(),
                     ])

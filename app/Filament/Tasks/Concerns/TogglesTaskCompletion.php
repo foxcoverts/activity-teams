@@ -14,12 +14,20 @@ trait TogglesTaskCompletion
 
         abort_unless($user?->can('complete', $task) ?? false, 403);
 
-        $wasComplete = $task->isComplete();
+        $wasCompleteOrCancelled = $task->isComplete() || $task->isCancelled();
         $task->toggleCompletion();
+
+        if (property_exists($this, 'record') && $this->record instanceof Task && (string) $this->record->getKey() === $taskId) {
+            $this->record = $task->fresh();
+        }
+
+        if (method_exists($this, 'flushCachedTableRecords')) {
+            $this->flushCachedTableRecords();
+        }
 
         Notification::make()
             ->success()
-            ->title($wasComplete ? __('Marked incomplete.') : __('Marked complete.'))
+            ->title($wasCompleteOrCancelled ? __('Marked incomplete.') : __('Marked complete.'))
             ->send();
     }
 }

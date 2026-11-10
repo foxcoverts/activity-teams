@@ -42,6 +42,15 @@ class TaskFactory extends Factory
         return $this->state(fn () => ['team_id' => $team->getKey()]);
     }
 
+    public function inProcess(): static
+    {
+        return $this->state(fn () => [
+            'status' => TaskStatus::InProcess,
+            'started_at' => now()->subHour(),
+            'completed_at' => null,
+        ]);
+    }
+
     public function completed(): static
     {
         return $this->state(fn () => [

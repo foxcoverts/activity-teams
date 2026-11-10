@@ -4,7 +4,7 @@
     /** @var Task $task */
 @endphp
 
-<div class="mb-4 flex items-start gap-3" wire:key="task-heading-{{ $task->getKey() }}-{{ $task->status->value }}">
+<div class="mb-4 flex items-start gap-3" wire:key="task-heading-{{ $task->getKey() }}-{{ $task->status->value }}-{{ $task->updated_at?->timestamp }}">
     @include('filament.tasks.complete-control', [
         'task' => $task,
         'canToggle' => $canToggle,

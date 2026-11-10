@@ -34,10 +34,24 @@ class TaskStatusActions
     public static function actions(): array
     {
         return [
+            self::start(),
             self::complete(),
             self::reopen(),
             self::cancel(),
         ];
+    }
+
+    public static function start(): Action
+    {
+        return Action::make('startTask')
+            ->label(__('Start'))
+            ->icon(Heroicon::OutlinedPlay)
+            ->color(TaskStatus::InProcess->getColor())
+            ->visible(fn (Task $record): bool => $record->status === TaskStatus::NeedsAction)
+            ->authorize(fn (Task $record): bool => self::canComplete($record))
+            ->action(function (Task $record): void {
+                $record->markStarted();
+            });
     }
 
     public static function complete(): Action
@@ -74,7 +88,7 @@ class TaskStatusActions
             ->color(TaskStatus::Cancelled->getColor())
             ->requiresConfirmation()
             ->modalHeading(__('Cancel task'))
-            ->modalDescription(__('Cancelled tasks stay on the team for history. You can reopen them later.'))
+            ->modalDescription(__('Cancelled tasks stay on the team for history. You can reopen them later, or delete them once cancelled.'))
             ->visible(fn (Task $record): bool => ! $record->isCancelled())
             ->authorize(fn (Task $record): bool => self::canUpdate($record))
             ->action(function (Task $record): void {

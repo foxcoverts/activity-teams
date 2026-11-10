@@ -7,6 +7,7 @@ use App\Enums\TeamFeature;
 use App\Filament\Teams\Resources\Bookings\Pages\ViewBooking;
 use App\Filament\Teams\Resources\Bookings\Schemas\BookingForm;
 use App\Filament\Teams\Resources\Tasks\Pages\CreateTask;
+use App\Filament\Teams\Resources\Tasks\Pages\EditTask;
 use App\Filament\Teams\Resources\Tasks\Pages\ListTasks;
 use App\Filament\Teams\Resources\Tasks\Pages\ViewTask;
 use App\Filament\Teams\Resources\Tasks\TaskResource;
@@ -165,6 +166,14 @@ class TaskManagementTest extends TestCase
         Filament::setTenant($team);
 
         Livewire::test(ViewTask::class, ['record' => $task->getRouteKey()])
+            ->assertActionVisible('startTask')
+            ->callAction('startTask');
+
+        $this->assertSame(TaskStatus::InProcess, $task->fresh()->status);
+        $this->assertNotNull($task->fresh()->started_at);
+
+        Livewire::test(ViewTask::class, ['record' => $task->getRouteKey()])
+            ->assertActionHidden('startTask')
             ->callAction('completeTask');
 
         $this->assertSame(TaskStatus::Completed, $task->fresh()->status);
@@ -180,6 +189,56 @@ class TaskManagementTest extends TestCase
             ->callAction('cancelTask');
 
         $this->assertTrue($task->fresh()->isCancelled());
+    }
+
+    public function test_delete_is_only_available_for_a_cancelled_task(): void
+    {
+        $team = Team::factory()->withTasks()->create();
+        $manager = User::factory()->teamManager($team)->create();
+        $open = Task::factory()->forTeam($team)->create();
+        $cancelled = Task::factory()->forTeam($team)->cancelled()->create();
+
+        $this->actingAs($manager);
+        Filament::setTenant($team);
+
+        $this->assertFalse($manager->can('delete', $open));
+        $this->assertTrue($manager->can('delete', $cancelled));
+
+        Livewire::test(EditTask::class, ['record' => $open->getRouteKey()])
+            ->assertActionHidden('delete');
+
+        Livewire::test(ViewTask::class, ['record' => $cancelled->getRouteKey()])
+            ->assertActionVisible('delete');
+    }
+
+    public function test_complete_control_toggles_between_open_completed_and_cancelled(): void
+    {
+        $team = Team::factory()->withTasks()->create();
+        $member = User::factory()->teamMember($team)->create();
+        $task = Task::factory()->forTeam($team)->inProcess()->create();
+
+        $this->actingAs($member);
+        Filament::setTenant($team);
+
+        Livewire::test(ViewTask::class, ['record' => $task->getRouteKey()])
+            ->call('toggleTaskComplete', $task->getKey())
+            ->assertSuccessful();
+
+        $this->assertSame(TaskStatus::Completed, $task->fresh()->status);
+
+        Livewire::test(ViewTask::class, ['record' => $task->getRouteKey()])
+            ->call('toggleTaskComplete', $task->getKey())
+            ->assertSuccessful();
+
+        $this->assertSame(TaskStatus::NeedsAction, $task->fresh()->status);
+
+        $task->markCancelled();
+
+        Livewire::test(ViewTask::class, ['record' => $task->getRouteKey()])
+            ->call('toggleTaskComplete', $task->getKey())
+            ->assertSuccessful();
+
+        $this->assertSame(TaskStatus::NeedsAction, $task->fresh()->status);
     }
 
     public function test_booking_tasks_panel_is_hidden_when_feature_off(): void

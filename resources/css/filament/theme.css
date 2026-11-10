@@ -311,11 +311,19 @@
 }
 
 .task-complete-control {
-    @apply inline-flex size-5 shrink-0 items-center justify-center rounded-full border-2 border-gray-400 bg-transparent text-transparent transition dark:border-gray-500;
+    @apply inline-flex size-5 shrink-0 items-center justify-center rounded-full border-2 border-gray-400 bg-transparent text-gray-400 transition dark:border-gray-500 dark:text-gray-500;
 }
 
-.task-complete-control[aria-pressed='true'] {
+.task-complete-control[data-status='in-process'] {
+    @apply border-sky-600 text-sky-600 dark:border-sky-400 dark:text-sky-400;
+}
+
+.task-complete-control[data-status='completed'] {
     @apply border-primary-600 bg-primary-600 text-white dark:border-primary-400 dark:bg-primary-400 dark:text-gray-950;
+}
+
+.task-complete-control[data-status='cancelled'] {
+    @apply border-danger-600 text-danger-600 dark:border-danger-400 dark:text-danger-400;
 }
 
 button.task-complete-control:hover,
@@ -323,12 +331,21 @@ button.task-complete-control:focus-visible {
     @apply border-primary-600 dark:border-primary-400;
 }
 
+button.task-complete-control[data-status='cancelled']:hover,
+button.task-complete-control[data-status='cancelled']:focus-visible {
+    @apply border-danger-600 dark:border-danger-400;
+}
+
 button.task-complete-control:disabled {
     @apply opacity-50;
 }
 
-.task-complete-control__mark {
-    @apply block size-2 rounded-full bg-current;
+.task-complete-control__mark--dot {
+    @apply block size-1.5 rounded-full bg-current;
+}
+
+.task-complete-control__icon {
+    @apply size-3;
 }
 
 .task-row {

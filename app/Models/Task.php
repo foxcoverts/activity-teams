@@ -226,6 +226,14 @@ class Task extends Model
         $this->save();
     }
 
+    public function markStarted(): void
+    {
+        $this->status = TaskStatus::InProcess;
+        $this->started_at ??= now();
+        $this->completed_at = null;
+        $this->save();
+    }
+
     public function markCancelled(): void
     {
         $this->status = TaskStatus::Cancelled;
@@ -241,12 +249,8 @@ class Task extends Model
 
     public function toggleCompletion(): void
     {
-        if ($this->isCancelled()) {
-            return;
-        }
-
-        if ($this->isComplete()) {
-            $this->markIncomplete();
+        if ($this->isComplete() || $this->isCancelled()) {
+            $this->reopen();
 
             return;
         }
