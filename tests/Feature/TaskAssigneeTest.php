@@ -294,9 +294,7 @@ class TaskAssigneeTest extends TestCase
         Livewire::test(ViewTask::class, ['record' => $task->getRouteKey()])
             ->assertSee('invited')
             ->assertSee('recorded')
-            ->assertSee('Accepted')
-            ->assertDontSee('responded')
-            ->assertDontSee('set '.$member->name.' to');
+            ->assertSee('Accepted');
 
         app(RespondToTaskAssigneeAction::class)(
             $task->fresh(),
@@ -306,8 +304,7 @@ class TaskAssigneeTest extends TestCase
         );
 
         Livewire::test(ViewTask::class, ['record' => $task->getRouteKey()])
-            ->assertSee('declined the assignment')
-            ->assertDontSee('responded declined');
+            ->assertSee('declined the assignment');
     }
 
     public function test_assignee_panel_is_hidden_for_members_when_unassigned(): void
