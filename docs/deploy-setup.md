@@ -77,6 +77,20 @@ Keep these as **repository** secrets so both the Test workflow and the deploy jo
 
 `APP_URL`, `APP_NAME`, and `MAIL_FROM_NAME` are set in the deploy workflow (`https://climbfoxcoverts.co.uk`, quoted `Activity Teams`).
 
+### ForwardEmail inbound aliases
+
+Only these aliases post to the site webhook (`https://climbfoxcoverts.co.uk/api/mail`). Everything else on the domain (including the catch-all) does **not**. In ForwardEmail, an alias for `something@` also receives `something+…@` — you do not configure the plus form separately.
+
+| Alias | Delivers to |
+|-------|-------------|
+| `booking@…` | Site webhook (also `booking+…@…` — booking calendar / replies) |
+| `task@…` | Site webhook (also `task+…@…` — task assignee calendar / replies) |
+| `key@…` | Site webhook (also `key+…@…` — key-pass replies) |
+| `teams@…` | Site webhook (also `teams+…@…` — team invitation / team-scoped replies) |
+| `team@…` | Climbing manager inbox (human forward — not the site) |
+
+When the app gains a new webhook local-part, add that bare alias in ForwardEmail before relying on replies. Keep `MAIL_WEBHOOK_SECRET` aligned with the domain’s webhook signature key.
+
 ### How `create-dotenv` writes `.env`
 
 - Every `DOTENV_*` key in the workflow is written. Unset GitHub vars become **empty** `.env` lines and override Laravel `env()` defaults — so optional drivers use workflow fallbacks (`vars.X || 'mariadb'`) instead of relying on PHP defaults.
