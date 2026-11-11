@@ -63,10 +63,9 @@ class TaskForm
                 ->label(__('Venue'))
                 ->options(fn (): array => BookingForm::venueOptions())
                 ->default(fn (): ?string => static::defaultVenueId())
-                ->selectablePlaceholder(false)
+                ->nullable()
                 ->searchable()
                 ->live()
-                ->required()
                 ->afterStateUpdated(function (mixed $state): void {
                     $team = Filament::getTenant();
 
@@ -249,7 +248,7 @@ class TaskForm
             ? Arr::only($data, VenueLocationSchema::venueAttributes())
             : null;
 
-        if ($isPrivateVenue) {
+        if ($isPrivateVenue || blank($data['venue_id'] ?? null)) {
             $data['venue_id'] = null;
         }
 
