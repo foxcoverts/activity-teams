@@ -1,6 +1,9 @@
 name: Deploy to Webspace
 
-concurrency: deploy-production
+# Bump the group suffix if a run wedges in "queued" with no jobs — pending
+# deploys wait forever on a stuck peer without cancel-in-progress.
+concurrency:
+  group: deploy-production-2
 
 on:
   push:
@@ -22,7 +25,7 @@ jobs:
     # Repository variable: set to "true" only when ready to deploy.
     # Environment-scoped vars are not reliable in job-level if conditions.
     if: ${{ vars.DEPLOY_ENABLED == 'true' }}
-    runs-on: ubuntu-26.04
+    runs-on: ubuntu-latest
     timeout-minutes: 30
     environment:
       name: production
