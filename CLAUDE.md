@@ -248,6 +248,7 @@ Prefer icons in this order:
 - **Empty values:** use `->placeholder('-')` on infolist entries that may be blank.
 - **Member-facing copy:** do not mention system admin, or other internal roles the member does not use.
 - **Selects that mix a special destination with people:** keep the special option visually separate (ungrouped or its own group) and wrap the people in an optgroup, as Pass does for cupboard vs Members.
+- **Dashboard widget meta:** item rows on member/team dashboard widgets use **chips only** for due time, priority, team, venue, and similar meta. Do not mix Filament badges into that chip row. Colour a chip with `get_color_css_variables(...)` and the palette/`HasColor` colour when it needs semantic colour (priority, team brand). Filament badges stay on tables, forms, infolists, and section chrome — not in widget chip rows.
 - **Boy scout:** when a Filament form or infolist is already being changed, bring it up to this layout. Do not open unrelated resources only to restyle them.
 
 ## Public form pages

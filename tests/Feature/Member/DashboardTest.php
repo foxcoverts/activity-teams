@@ -423,6 +423,25 @@ class DashboardTest extends TestCase
         Livewire::test(AllCaughtUpWidget::class)->assertDontSee("You're all caught up");
     }
 
+    public function test_your_tasks_see_all_count_includes_overdue_and_assigned(): void
+    {
+        $team = $this->enableTasks();
+        $this->assignedTask($team, TaskAttendeeStatus::Accepted, [
+            'summary' => 'Already overdue',
+            'due_at' => now()->subDay(),
+        ]);
+
+        foreach (range(1, 6) as $day) {
+            $this->assignedTask($team, TaskAttendeeStatus::Accepted, [
+                'summary' => "Assigned {$day}",
+                'due_at' => now()->addDays($day),
+                'priority' => TaskPriority::Medium,
+            ]);
+        }
+
+        Livewire::test(AssignedTasksWidget::class)->assertSee('All tasks');
+    }
+
     public function test_completing_a_task_from_the_dashboard_refreshes_sections(): void
     {
         $task = $this->assignedTask($this->enableTasks(), TaskAttendeeStatus::Accepted, [

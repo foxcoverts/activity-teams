@@ -38,9 +38,9 @@ enum TaskPriority: int implements HasColor, HasIcon, HasLabel
     public function getIcon(): Heroicon
     {
         return match ($this) {
-            self::High => Heroicon::OutlinedExclamationTriangle,
+            self::High => Heroicon::OutlinedChevronUp,
             self::Medium => Heroicon::OutlinedMinus,
-            self::Low => Heroicon::OutlinedArrowDown,
+            self::Low => Heroicon::OutlinedChevronDown,
         };
     }
 }

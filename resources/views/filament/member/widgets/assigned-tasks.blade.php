@@ -1,6 +1,8 @@
 @php
     $previewLimit = \App\Support\MemberDashboard::PREVIEW_LIMIT;
     $showTeam ??= true;
+    $tasksTotal = $overdueTotal + $assignedTotal;
+    $tasksShown = $overdue->count() + $assigned->count();
 @endphp
 <x-filament-widgets::widget :class="!$failed && ($overdue->isEmpty() && $assigned->isEmpty()) ? 'hidden' : ''">
     @if ($failed)
@@ -22,11 +24,6 @@
                         ])
                     @endforeach
                 </ul>
-                @if ($overdueTotal > $previewLimit)
-                    <x-filament::link :href="$tasksUrl" class="mt-2">
-                        {{ __('See all :count overdue tasks', ['count' => $overdueTotal]) }}
-                    </x-filament::link>
-                @endif
             @endif
 
             @if ($assigned->isNotEmpty())
@@ -45,11 +42,14 @@
                         ])
                     @endforeach
                 </ul>
-                @if ($assignedTotal > $previewLimit)
-                    <x-filament::link :href="$tasksUrl" class="mt-2">
-                        {{ __('See all :count tasks', ['count' => $assignedTotal]) }}
-                    </x-filament::link>
-                @endif
+            @endif
+
+            @if ($tasksTotal > $tasksShown)
+                <div
+                    class="mt-4 flex flex-wrap items-center justify-end gap-3 border-t border-gray-200 pt-4 dark:border-white/10">
+                    <x-filament::link :href="$tasksUrl" :icon="\Filament\Support\Icons\Heroicon::OutlinedArrowRight"
+                        icon-position="after">{{ __('All tasks') }}</x-filament::link>
+                </div>
             @endif
         </x-filament::section>
     @endif

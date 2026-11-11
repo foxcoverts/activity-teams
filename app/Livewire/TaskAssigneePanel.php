@@ -19,6 +19,7 @@ use Filament\Actions\Concerns\InteractsWithActions;
 use Filament\Actions\Contracts\HasActions;
 use Filament\Forms\Components\Select;
 use Filament\Notifications\Notification;
+use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Concerns\InteractsWithSchemas;
 use Filament\Schemas\Contracts\HasSchemas;
 use Filament\Support\Icons\Heroicon;
@@ -67,10 +68,14 @@ class TaskAssigneePanel extends Component implements HasActions, HasSchemas
                 : __('Assign'))
             ->icon(Heroicon::OutlinedUserPlus)
             ->visible(fn (): bool => $this->canManage())
-            ->fillForm(fn (): array => [
-                'assignee_id' => $this->task($this->record->getKey())->attendance?->user_id,
-                'invite' => true,
-            ])
+            ->fillForm(function (): array {
+                $task = $this->task($this->record->getKey());
+
+                return [
+                    'assignee_id' => $task->attendance?->user_id,
+                    'invite' => $task->attendance?->status === TaskAttendeeStatus::NeedsAction,
+                ];
+            })
             ->schema([
                 Select::make('assignee_id')
                     ->label(__('Assignee'))
@@ -78,7 +83,12 @@ class TaskAssigneePanel extends Component implements HasActions, HasSchemas
                     ->searchable()
                     ->required()
                     ->native(false)
-                    ->live(),
+                    ->live()
+                    ->afterStateUpdated(function (Set $set, mixed $state): void {
+                        if (TaskForm::assigneeChanged($state, livewire: $this)) {
+                            $set('invite', true);
+                        }
+                    }),
                 TaskForm::inviteToggle(),
             ])
             ->action(function (array $data): void {
@@ -90,8 +100,14 @@ class TaskAssigneePanel extends Component implements HasActions, HasSchemas
                     return;
                 }
 
+                $task = $this->task($this->record->getKey());
+
+                if ($task->isAssignedTo($assignee)) {
+                    return;
+                }
+
                 app(AssignTaskAction::class)(
-                    $this->task($this->record->getKey()),
+                    $task,
                     $assignee,
                     $actor,
                     invite: $invite,

@@ -11,6 +11,7 @@ use App\Enums\MailChannel;
 use App\Enums\MailGroup;
 use App\Enums\TaskAttendeeStatus;
 use App\Enums\TaskStatus;
+use App\Filament\Teams\Resources\Tasks\Pages\EditTask;
 use App\Filament\Teams\Resources\Tasks\Pages\ViewTask;
 use App\Jobs\SendTaskNotification;
 use App\Livewire\TaskAssigneePanel;
@@ -320,6 +321,37 @@ class TaskAssigneeTest extends TestCase
 
         $this->assertTrue(TaskAssigneePanel::shouldShowPanel($task->fresh(), $member));
         $this->assertTrue(TaskAssigneePanel::shouldShowPanel($task->fresh(), $manager));
+    }
+
+    public function test_invite_toggle_only_shows_when_the_assignee_changes(): void
+    {
+        [$team, $manager, $member, $task] = $this->taskContext();
+        $replacement = User::factory()->teamMember($team)->create();
+        app(AssignTaskAction::class)($task, $member, $manager, invite: false);
+
+        $this->actingAs($manager);
+        Filament::setCurrentPanel('teams');
+        Filament::setTenant($team);
+
+        Livewire::test(EditTask::class, ['record' => $task->getRouteKey()])
+            ->assertFormFieldIsHidden('invite', 'form')
+            ->fillForm([
+                'assignee_id' => $replacement->getKey(),
+            ])
+            ->assertFormFieldIsVisible('invite', 'form');
+
+        $panel = Livewire::test(TaskAssigneePanel::class, ['record' => $task->fresh()])
+            ->mountAction('assign');
+
+        $schema = $panel->instance()->getMountedActionSchemaName();
+        $this->assertNotNull($schema);
+
+        $panel
+            ->assertFormFieldIsHidden('invite', $schema)
+            ->fillForm([
+                'assignee_id' => $replacement->getKey(),
+            ], $schema)
+            ->assertFormFieldIsVisible('invite', $schema);
     }
 
     public function test_manager_can_assign_reassign_update_response_and_clear_from_panel(): void

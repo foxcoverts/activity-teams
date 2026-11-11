@@ -2,6 +2,7 @@
 
 namespace App\Filament\Teams\Resources\Tasks\Schemas;
 
+use App\Enums\TaskAttendeeStatus;
 use App\Enums\TaskPriority;
 use App\Enums\TaskStatus;
 use App\Filament\Teams\Resources\Bookings\Schemas\BookingForm;
@@ -20,11 +21,13 @@ use Filament\Forms\Components\ToggleButtons;
 use Filament\Schemas\Components\Component;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Components\Wizard;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Support\Arr;
 use Illuminate\Validation\ValidationException;
+use Livewire\Component as LivewireComponent;
 
 class TaskForm
 {
@@ -111,11 +114,12 @@ class TaskForm
             ...VenueLocationSchema::components(
                 visible: fn (Get $get): bool => $get('venue_id') === BookingForm::OTHER_VENUE,
             ),
-            Select::make('priority')
+            ToggleButtons::make('priority')
                 ->options(TaskPriority::class)
                 ->default(TaskPriority::Medium->value)
-                ->required()
-                ->native(false),
+                ->inline()
+                ->grouped()
+                ->required(),
             DateTimePicker::make('due_at')
                 ->label(__('Due'))
                 ->seconds(false),
@@ -126,6 +130,11 @@ class TaskForm
                 ->nullable()
                 ->native(false)
                 ->live()
+                ->afterStateUpdated(function (Set $set, mixed $state, ?Task $record, ?LivewireComponent $livewire): void {
+                    if (static::assigneeChanged($state, $record, $livewire)) {
+                        $set('invite', true);
+                    }
+                })
                 ->helperText(__('Optional. One person responsible for this task.')),
             static::inviteToggle(),
         ];
@@ -146,7 +155,40 @@ class TaskForm
             ])
             ->grouped()
             ->default(true)
-            ->visible(fn (Get $get): bool => filled($get('assignee_id')));
+            ->visible(fn (Get $get, ?Task $record = null, ?LivewireComponent $livewire = null): bool => static::assigneeChanged(
+                $get('assignee_id'),
+                $record,
+                $livewire,
+            ))
+            ->dehydrated(fn (Get $get, ?Task $record = null, ?LivewireComponent $livewire = null): bool => static::assigneeChanged(
+                $get('assignee_id'),
+                $record,
+                $livewire,
+            ));
+    }
+
+    /**
+     * Invite / Accepted only applies when choosing a new assignee (create, first assign, or reassign).
+     */
+    public static function assigneeChanged(mixed $assigneeId, ?Task $record = null, ?LivewireComponent $livewire = null): bool
+    {
+        if (blank($assigneeId)) {
+            return false;
+        }
+
+        $task = $record instanceof Task
+            ? $record
+            : (is_object($livewire) && property_exists($livewire, 'record') && $livewire->record instanceof Task
+                ? $livewire->record
+                : null);
+
+        $currentId = $task?->attendance?->user_id;
+
+        if ($currentId === null) {
+            return true;
+        }
+
+        return (string) $assigneeId !== (string) $currentId;
     }
 
     /**
@@ -176,7 +218,7 @@ class TaskForm
     {
         $task->loadMissing('attendance');
         $data['assignee_id'] = $task->attendance?->user_id;
-        $data['invite'] = true;
+        $data['invite'] = $task->attendance?->status === TaskAttendeeStatus::NeedsAction;
 
         $privateVenue = Venue::onlyPrivate()
             ->where('task_id', $task->getKey())

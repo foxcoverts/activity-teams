@@ -37,8 +37,17 @@
                         class="size-4" />{{ $due }}</span>
             @endif
             @if ($task->priority)
-                <span class="{{ $chip }}"><x-filament::icon :icon="$task->priority->getIcon()"
-                        class="size-4" />{{ $task->priority->getLabel() }}</span>
+                <span
+                    class="inline-flex items-center gap-1.5 rounded-full bg-color-50 px-2.5 py-1 text-sm text-color-600 dark:bg-color-400/10 dark:text-color-400"
+                    @style([
+                        \Filament\Support\get_color_css_variables(
+                            $task->priority->getColor(),
+                            shades: [50, 400, 600],
+                        ),
+                    ])
+                >
+                    <x-filament::icon :icon="$task->priority->getIcon()" class="size-4" />{{ $task->priority->getLabel() }}
+                </span>
             @endif
             @if ($showTeam && $task->team)
                 <span
