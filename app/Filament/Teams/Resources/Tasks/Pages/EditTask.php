@@ -36,12 +36,18 @@ class EditTask extends EditRecord
             : $data;
     }
 
+    protected ?string $assigneeIdForSave = null;
+
+    protected bool $inviteAssigneeForSave = true;
+
     /**
      * @param  array<string, mixed>  $data
      * @return array<string, mixed>
      */
     protected function mutateFormDataBeforeSave(array $data): array
     {
+        [$data, $this->assigneeIdForSave, $this->inviteAssigneeForSave] = TaskForm::extractAssigneeId($data);
+
         return TaskForm::mergeVenueData($data);
     }
 
@@ -49,7 +55,13 @@ class EditTask extends EditRecord
     {
         abort_unless($record instanceof Task, 404);
 
-        return app(SaveTaskDetailsAction::class)->update($record, $data);
+        return app(SaveTaskDetailsAction::class)->update(
+            $record,
+            $data,
+            $this->assigneeIdForSave,
+            syncAssignee: true,
+            invite: $this->inviteAssigneeForSave,
+        );
     }
 
     protected function getRedirectUrl(): string

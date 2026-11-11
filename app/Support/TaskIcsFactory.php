@@ -2,8 +2,11 @@
 
 namespace App\Support;
 
+use App\Enums\CalendarMethod;
+use App\Enums\TaskAttendeeStatus;
 use App\Enums\TaskStatus;
 use App\Models\Task;
+use App\Models\User;
 use DateInterval;
 use DateTimeImmutable;
 use DateTimeZone as PhpDateTimeZone;
@@ -27,6 +30,9 @@ class TaskIcsFactory
     public function make(
         iterable $tasks,
         string $title,
+        ?CalendarMethod $method = null,
+        ?User $forAssignee = null,
+        bool $rsvp = false,
         ?DateInterval $publishedTtl = null,
     ): string {
         $properties = [
@@ -35,6 +41,10 @@ class TaskIcsFactory
             new Property('CALSCALE', new TextValue('GREGORIAN')),
             new Property('X-WR-CALNAME', new TextValue($title)),
         ];
+
+        if ($method instanceof CalendarMethod) {
+            $properties[] = new Property('METHOD', new TextValue($method->value));
+        }
 
         if ($publishedTtl instanceof DateInterval) {
             $properties[] = new Property('X-PUBLISHED-TTL', new DurationValue($publishedTtl));
@@ -47,8 +57,8 @@ class TaskIcsFactory
                 continue;
             }
 
-            $task->loadMissing(['bookings', 'venue']);
-            $components[] = $this->todoComponent($task);
+            $task->loadMissing(['bookings', 'venue', 'attendance']);
+            $components[] = $this->todoComponent($task, $forAssignee, $rsvp);
         }
 
         return (string) new Component('VCALENDAR', $properties, $components);
@@ -58,7 +68,7 @@ class TaskIcsFactory
      * @param  iterable<int, Task>  $tasks
      * @return list<Component>
      */
-    public function components(iterable $tasks): array
+    public function components(iterable $tasks, ?User $forAssignee = null): array
     {
         $components = [];
 
@@ -67,14 +77,14 @@ class TaskIcsFactory
                 continue;
             }
 
-            $task->loadMissing(['bookings', 'venue']);
-            $components[] = $this->todoComponent($task);
+            $task->loadMissing(['bookings', 'venue', 'attendance']);
+            $components[] = $this->todoComponent($task, $forAssignee, rsvp: false);
         }
 
         return $components;
     }
 
-    private function todoComponent(Task $task): Component
+    private function todoComponent(Task $task, ?User $forAssignee = null, bool $rsvp = false): Component
     {
         $properties = [
             new Property('UID', new TextValue($task->uid)),
@@ -91,20 +101,13 @@ class TaskIcsFactory
             new Property('CLASS', new TextValue('PRIVATE')),
         ];
 
-        $fromEmail = (string) config('mail.from.address');
         $fromName = (string) config('mail.from.name');
 
-        if (filled($fromEmail)) {
-            $organizerParams = filled($fromName)
-                ? [new Parameter('CN', new TextValue($fromName))]
-                : [];
-
-            $properties[] = new Property(
-                'ORGANIZER',
-                new UriValue((new EmailAddress($fromEmail))->toUri()),
-                $organizerParams,
-            );
-        }
+        $properties[] = new Property(
+            'ORGANIZER',
+            new UriValue((new EmailAddress(InboundMailAddress::forTask($task)))->toUri()),
+            filled($fromName) ? [new Parameter('CN', new TextValue($fromName))] : [],
+        );
 
         if ($task->updated_at !== null) {
             $properties[] = new Property(
@@ -150,6 +153,38 @@ class TaskIcsFactory
             );
         }
 
+        $assignee = $this->resolveAssignee($task, $forAssignee);
+
+        if ($assignee instanceof User && filled($assignee->email)) {
+            $attendance = $task->attendance;
+            $partstat = $attendance?->status ?? TaskAttendeeStatus::NeedsAction;
+
+            $attendeeParams = [
+                new Parameter('CN', new TextValue($assignee->name)),
+                new Parameter('PARTSTAT', new TextValue($partstat->toPartstat())),
+                new Parameter('ROLE', new TextValue('REQ-PARTICIPANT')),
+            ];
+
+            if ($rsvp) {
+                $attendeeParams[] = new Parameter('RSVP', new TextValue('TRUE'));
+            }
+
+            $properties[] = new Property(
+                'ATTENDEE',
+                new UriValue((new EmailAddress($assignee->email))->toUri()),
+                $attendeeParams,
+            );
+        }
+
         return new Component('VTODO', $properties);
+    }
+
+    private function resolveAssignee(Task $task, ?User $forAssignee): ?User
+    {
+        if ($forAssignee instanceof User) {
+            return $forAssignee;
+        }
+
+        return $task->assignee();
     }
 }

@@ -69,7 +69,7 @@ class TaskResource extends Resource
             $query->whereBelongsTo($tenant);
         }
 
-        return $query;
+        return $query->with(['attendance.user']);
     }
 
     public static function canViewAny(): bool

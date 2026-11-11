@@ -54,6 +54,10 @@ class NotificationSetting extends Model
             return MailGroup::Bookings;
         }
 
+        if ($subject instanceof Task) {
+            return MailGroup::Tasks;
+        }
+
         return MailGroup::Bookings;
     }
 

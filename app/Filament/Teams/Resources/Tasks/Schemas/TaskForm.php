@@ -3,17 +3,20 @@
 namespace App\Filament\Teams\Resources\Tasks\Schemas;
 
 use App\Enums\TaskPriority;
+use App\Enums\TaskStatus;
 use App\Filament\Teams\Resources\Bookings\Schemas\BookingForm;
 use App\Filament\Venues\VenueLocationSchema;
 use App\Models\Task;
 use App\Models\Team;
 use App\Models\Venue;
+use App\Support\Palette;
 use Filament\Actions\Action;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\ToggleButtons;
 use Filament\Schemas\Components\Component;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
@@ -29,8 +32,11 @@ class TaskForm
     {
         return $schema
             ->components([
-                Section::make(__('Task'))
-                    ->icon(Heroicon::OutlinedClipboardDocumentList)
+                Section::make(fn (?Task $record): string => __(':Status task', [
+                    'status' => $record?->status?->getHeadingLabel() ?? __('New'),
+                ]))
+                    ->icon(fn (?Task $record): Heroicon => ($record?->status ?? TaskStatus::NeedsAction)->getIcon())
+                    ->iconColor(fn (?Task $record): array => ($record?->status ?? TaskStatus::NeedsAction)->getColor())
                     ->columns(1)
                     ->columnSpanFull()
                     ->schema(static::components()),
@@ -113,7 +119,53 @@ class TaskForm
             DateTimePicker::make('due_at')
                 ->label(__('Due'))
                 ->seconds(false),
+            Select::make('assignee_id')
+                ->label(__('Assignee'))
+                ->options(fn (): array => static::assigneeOptions())
+                ->searchable()
+                ->nullable()
+                ->native(false)
+                ->live()
+                ->helperText(__('Optional. One person responsible for this task.')),
+            static::inviteToggle(),
         ];
+    }
+
+    public static function inviteToggle(): ToggleButtons
+    {
+        return ToggleButtons::make('invite')
+            ->hiddenLabel()
+            ->boolean(__('Invite'), __('Accepted'))
+            ->colors([
+                1 => Palette::uncertain(),
+                0 => Palette::positive(),
+            ])
+            ->icons([
+                1 => Heroicon::OutlinedEnvelope,
+                0 => Heroicon::OutlinedCheckCircle,
+            ])
+            ->grouped()
+            ->default(true)
+            ->visible(fn (Get $get): bool => filled($get('assignee_id')));
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public static function assigneeOptions(): array
+    {
+        $team = Filament::getTenant();
+
+        if (! $team instanceof Team) {
+            return [];
+        }
+
+        return $team->members()
+            ->where('suspended', false)
+            ->whereNotNull('email_verified_at')
+            ->ordered()
+            ->pluck('users.name', 'users.id')
+            ->all();
     }
 
     /**
@@ -122,6 +174,10 @@ class TaskForm
      */
     public static function hydrateTaskFormData(array $data, Task $task): array
     {
+        $task->loadMissing('attendance');
+        $data['assignee_id'] = $task->attendance?->user_id;
+        $data['invite'] = true;
+
         $privateVenue = Venue::onlyPrivate()
             ->where('task_id', $task->getKey())
             ->whereKey($task->venue_id)
@@ -166,9 +222,28 @@ class TaskForm
             $data['status'],
             $data['started_at'],
             $data['completed_at'],
+            $data['assignee_id'],
+            $data['invite'],
         );
 
         return $data;
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @return array{0: array<string, mixed>, 1: ?string, 2: bool}
+     */
+    public static function extractAssigneeId(array $data): array
+    {
+        $assigneeId = $data['assignee_id'] ?? null;
+        $invite = (bool) ($data['invite'] ?? true);
+        unset($data['assignee_id'], $data['invite']);
+
+        return [
+            $data,
+            is_string($assigneeId) && $assigneeId !== '' ? $assigneeId : null,
+            $invite,
+        ];
     }
 
     private static function defaultVenueId(): ?string

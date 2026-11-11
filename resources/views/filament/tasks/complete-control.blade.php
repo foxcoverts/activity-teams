@@ -13,7 +13,7 @@
         default => __('Mark complete'),
     };
     $title = match ($status) {
-        TaskStatus::NeedsAction => __('Needs action'),
+        TaskStatus::NeedsAction => __('Not started'),
         TaskStatus::InProcess => __('In process'),
         TaskStatus::Completed => __('Completed'),
         TaskStatus::Cancelled => __('Cancelled'),

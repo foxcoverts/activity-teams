@@ -131,11 +131,13 @@
     @apply min-w-0 truncate text-sm font-medium text-gray-950 hover:underline dark:text-white;
 }
 
-.related-bookings-panel.fi-section:not(.fi-section-not-contained)>.fi-section-header {
+.related-bookings-panel.fi-section:not(.fi-section-not-contained)>.fi-section-header,
+.task-assignee-panel.fi-section:not(.fi-section-not-contained)>.fi-section-header {
     @apply p-4 sm:px-6;
 }
 
-.related-bookings-panel.fi-section:not(.fi-section-not-contained):not(.fi-divided)>.fi-section-content-ctn>.fi-section-content {
+.related-bookings-panel.fi-section:not(.fi-section-not-contained):not(.fi-divided)>.fi-section-content-ctn>.fi-section-content,
+.task-assignee-panel.fi-section:not(.fi-section-not-contained):not(.fi-divided)>.fi-section-content-ctn>.fi-section-content {
     @apply p-0;
 }
 

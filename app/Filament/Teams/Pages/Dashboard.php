@@ -4,6 +4,7 @@ namespace App\Filament\Teams\Pages;
 
 use App\Filament\Pages\Dashboard as BaseDashboard;
 use App\Filament\Teams\Widgets\AllCaughtUpWidget;
+use App\Filament\Teams\Widgets\AssignedTasksWidget;
 use App\Filament\Teams\Widgets\LatestNewsWidget;
 use App\Filament\Teams\Widgets\NeedsResponseWidget;
 use App\Filament\Teams\Widgets\NextLedBookingWidget;
@@ -75,6 +76,7 @@ class Dashboard extends BaseDashboard
         return [
             ThisWeekWidget::class,
             NeedsResponseWidget::class,
+            AssignedTasksWidget::class,
             NextLedBookingWidget::class,
             AllCaughtUpWidget::class,
             LatestNewsWidget::class,

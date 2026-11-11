@@ -4,8 +4,13 @@ namespace Tests\Feature\Member;
 
 use App\Enums\BookingAttendeeStatus;
 use App\Enums\MembershipRole;
+use App\Enums\TaskAttendeeStatus;
+use App\Enums\TaskPriority;
+use App\Enums\TeamFeature;
 use App\Filament\Member\Pages\Dashboard;
+use App\Filament\Member\Resources\Tasks\TaskResource;
 use App\Filament\Member\Widgets\AllCaughtUpWidget;
+use App\Filament\Member\Widgets\AssignedTasksWidget;
 use App\Filament\Member\Widgets\LatestNewsWidget;
 use App\Filament\Member\Widgets\MyTeamsWidget;
 use App\Filament\Member\Widgets\NeedsResponseWidget;
@@ -15,6 +20,8 @@ use App\Filament\Member\Widgets\UnreadInboxWidget;
 use App\Filament\Teams\Resources\NewsPosts\Pages\ViewNewsPost;
 use App\Models\Booking;
 use App\Models\NewsPost;
+use App\Models\Task;
+use App\Models\TaskAttendance;
 use App\Models\Team;
 use App\Models\User;
 use App\Notifications\LeadNeededNotification;
@@ -69,6 +76,7 @@ class DashboardTest extends TestCase
             UnreadInboxWidget::class,
             ThisWeekWidget::class,
             NeedsResponseWidget::class,
+            AssignedTasksWidget::class,
             NextLedBookingWidget::class,
             AllCaughtUpWidget::class,
             MyTeamsWidget::class,
@@ -87,6 +95,7 @@ class DashboardTest extends TestCase
         Livewire::test(ThisWeekWidget::class)->assertDontSee('This week');
         Livewire::test(UnreadInboxWidget::class)->assertDontSee('Mark all read');
         Livewire::test(NeedsResponseWidget::class)->assertDontSee('Needs your response');
+        Livewire::test(AssignedTasksWidget::class)->assertDontSee('Your tasks');
         Livewire::test(NextLedBookingWidget::class)->assertDontSee('Next booking you lead');
         Livewire::test(LatestNewsWidget::class)->assertDontSee('Latest news');
     }
@@ -362,5 +371,96 @@ class DashboardTest extends TestCase
         $this->travelTo(Carbon::parse('2026-11-03 07:00:00'));
 
         Livewire::test(ThisWeekWidget::class)->assertDontSeeHtml('opacity-60');
+    }
+
+    public function test_your_tasks_lists_overdue_before_assigned_and_includes_needs_action_invites(): void
+    {
+        $team = $this->enableTasks();
+        $overdue = $this->assignedTask($team, TaskAttendeeStatus::Accepted, [
+            'summary' => 'Overdue pad check',
+            'due_at' => now()->subDay(),
+            'priority' => TaskPriority::Low,
+        ]);
+        $invite = $this->assignedTask($team, TaskAttendeeStatus::NeedsAction, [
+            'summary' => 'Invite to restock',
+            'due_at' => now()->addDays(3),
+            'priority' => TaskPriority::High,
+        ]);
+        $laterLow = $this->assignedTask($team, TaskAttendeeStatus::Accepted, [
+            'summary' => 'Later low priority',
+            'due_at' => now()->addDays(5),
+            'priority' => TaskPriority::Low,
+        ]);
+        $this->assignedTask($team, TaskAttendeeStatus::Declined, [
+            'summary' => 'Declined task',
+            'due_at' => now()->addDay(),
+        ]);
+
+        $widget = Livewire::test(AssignedTasksWidget::class)
+            ->assertSee('Your tasks')
+            ->assertSee('Overdue')
+            ->assertSee('Assigned')
+            ->assertSee('Overdue pad check')
+            ->assertSee('overdue')
+            ->assertSee('Invite to restock')
+            ->assertSee('Awaiting response')
+            ->assertDontSee('Declined task');
+
+        $this->assertSame([$overdue->id], $widget->viewData('overdue')->pluck('id')->all());
+        $this->assertSame([$invite->id, $laterLow->id], $widget->viewData('assigned')->pluck('id')->all());
+        $this->assertSame(TaskResource::getUrl('index'), $widget->viewData('tasksUrl'));
+        Livewire::test(AllCaughtUpWidget::class)->assertDontSee("You're all caught up");
+    }
+
+    public function test_your_tasks_alone_prevents_all_caught_up(): void
+    {
+        $this->assignedTask($this->enableTasks(), TaskAttendeeStatus::Accepted, [
+            'summary' => 'Only open task',
+            'due_at' => now()->addWeek(),
+        ]);
+
+        Livewire::test(AssignedTasksWidget::class)->assertSee('Your tasks');
+        Livewire::test(AllCaughtUpWidget::class)->assertDontSee("You're all caught up");
+    }
+
+    public function test_completing_a_task_from_the_dashboard_refreshes_sections(): void
+    {
+        $task = $this->assignedTask($this->enableTasks(), TaskAttendeeStatus::Accepted, [
+            'summary' => 'Toggle me',
+            'due_at' => now()->addDay(),
+        ]);
+
+        Livewire::test(AssignedTasksWidget::class)
+            ->assertSee('Toggle me')
+            ->call('toggleTaskComplete', (string) $task->getKey())
+            ->assertDispatched('dashboard-updated')
+            ->assertDontSee('Your tasks');
+
+        $this->assertTrue($task->fresh()->isComplete());
+        Livewire::test(AllCaughtUpWidget::class)->assertSee("You're all caught up");
+    }
+
+    private function enableTasks(?Team $team = null): Team
+    {
+        $team ??= $this->member->teams()->firstOrFail();
+        $team->forceFill(['features' => [TeamFeature::Tasks->value => true]])->save();
+
+        return $team->fresh();
+    }
+
+    /**
+     * @param  array<string, mixed>  $attributes
+     */
+    private function assignedTask(Team $team, TaskAttendeeStatus $status, array $attributes = []): Task
+    {
+        $task = Task::factory()->forTeam($team)->create($attributes);
+
+        TaskAttendance::query()->create([
+            'task_id' => $task->getKey(),
+            'user_id' => $this->member->getKey(),
+            'status' => $status,
+        ]);
+
+        return $task->fresh(['attendance', 'team']);
     }
 }

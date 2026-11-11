@@ -4,6 +4,7 @@ namespace App\Support;
 
 use App\Models\Booking;
 use App\Models\Key;
+use App\Models\Task;
 use App\Models\Team;
 use App\Models\TeamInvitation;
 use Illuminate\Mail\Mailables\Address;
@@ -13,6 +14,11 @@ class MailReplyTo
     public static function booking(Booking $booking): Address
     {
         return new Address(InboundMailAddress::forBooking($booking));
+    }
+
+    public static function task(Task $task): Address
+    {
+        return new Address(InboundMailAddress::forTask($task));
     }
 
     public static function key(Key $ring): Address

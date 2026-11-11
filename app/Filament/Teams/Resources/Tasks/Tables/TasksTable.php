@@ -7,11 +7,11 @@ use App\Enums\TaskStatus;
 use App\Filament\Teams\Resources\Tasks\TaskResource;
 use App\Filament\Teams\Resources\Tasks\TaskStatusActions;
 use App\Models\Task;
-use App\Support\Palette;
 use Filament\Actions\ActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
+use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Columns\ViewColumn;
 use Filament\Tables\Filters\SelectFilter;
@@ -33,12 +33,24 @@ class TasksTable
                     ->label(__('Title'))
                     ->searchable()
                     ->sortable()
-                    ->description(fn (Task $record): ?string => $record->isOverdue()
-                        ? __('Overdue')
-                        : null)
-                    ->color(fn (Task $record): ?array => $record->isOverdue()
-                        ? Palette::destructive()
-                        : null),
+                    ->html()
+                    ->formatStateUsing(fn (?string $state, Task $record): string => view(
+                        'filament.tasks.title-with-overdue',
+                        [
+                            'title' => $state,
+                            'overdue' => $record->isOverdue(),
+                        ],
+                    )->render()),
+                ImageColumn::make('assignee_avatar')
+                    ->label(__('To'))
+                    ->state(fn (Task $record): ?string => $record->attendance?->user?->getFilamentAvatarUrl())
+                    ->alt(fn (Task $record): string => $record->attendance?->user?->name ?? '')
+                    ->tooltip(fn (Task $record): ?string => $record->attendance?->user?->name)
+                    ->imageSize(32)
+                    ->circular()
+                    ->width('1%')
+                    ->grow(false)
+                    ->alignCenter(),
                 TextColumn::make('priority')
                     ->badge()
                     ->sortable()

@@ -4,9 +4,11 @@ namespace App\Support;
 
 use App\Enums\BookingAttendeeStatus;
 use App\Enums\BookingStatus;
+use App\Enums\TaskAttendeeStatus;
 use App\Models\Booking;
 use App\Models\InboxNotification;
 use App\Models\NewsPost;
+use App\Models\Task;
 use App\Models\Team;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
@@ -103,14 +105,66 @@ class MemberDashboard
             ->values();
     }
 
+    /**
+     * Open tasks assigned to the member (including needs-action invites). Overdue rows are exclusive to that block.
+     *
+     * @return array{overdue: Collection<int, Task>, overdueTotal: int, assigned: Collection<int, Task>, assignedTotal: int}
+     */
+    public function assignedTasks(): array
+    {
+        $active = array_map(
+            fn (TaskAttendeeStatus $status): string => $status->value,
+            TaskAttendeeStatus::activeAssignments(),
+        );
+
+        $base = Task::query()
+            ->visibleTo($this->user)
+            ->open()
+            ->when($this->team instanceof Team, fn (Builder $query) => $query->forTeam($this->team))
+            ->whereHas(
+                'attendance',
+                fn (Builder $attendance): Builder => $attendance
+                    ->where('user_id', $this->user->getKey())
+                    ->whereIn('status', $active),
+            )
+            ->with([
+                'team',
+                'venue',
+                'attendance' => fn ($attendance) => $attendance->where('user_id', $this->user->getKey()),
+            ]);
+
+        $overdueAll = (clone $base)
+            ->whereNotNull('due_at')
+            ->where('due_at', '<', now())
+            ->orderBy('due_at')
+            ->get();
+
+        $overdueIds = $overdueAll->modelKeys();
+
+        $assignedAll = (clone $base)
+            ->when($overdueIds !== [], fn (Builder $query) => $query->whereKeyNot($overdueIds))
+            ->orderedForList()
+            ->get();
+
+        return [
+            'overdue' => $overdueAll->take(self::PREVIEW_LIMIT)->values(),
+            'overdueTotal' => $overdueAll->count(),
+            'assigned' => $assignedAll->take(self::PREVIEW_LIMIT)->values(),
+            'assignedTotal' => $assignedAll->count(),
+        ];
+    }
+
     public function hasAttention(): bool
     {
         $needs = $this->needsResponse();
+        $tasks = $this->assignedTasks();
 
         return $this->thisWeek()['rows']->isNotEmpty()
             || $this->unreadPreview()->isNotEmpty()
             || $needs['awaiting']->isNotEmpty()
             || $needs['maybe']->isNotEmpty()
+            || $tasks['overdue']->isNotEmpty()
+            || $tasks['assigned']->isNotEmpty()
             || $this->nextLedDay()->isNotEmpty();
     }
 

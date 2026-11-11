@@ -65,6 +65,18 @@ class TaskIcsController extends Controller
         );
     }
 
+    public function show(Request $request, Task $task): Response
+    {
+        Gate::authorize('view', $task);
+
+        $body = $this->calendar->tasksOnly(
+            collect([$task->load(['bookings', 'venue', 'attendance'])]),
+            $task->summary,
+        );
+
+        return $this->download($body, 'task-'.$task->id.'.ics');
+    }
+
     private function download(string $body, string $filename): Response
     {
         return response($body, 200, [

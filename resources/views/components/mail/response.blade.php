@@ -2,9 +2,14 @@
 
 @php
     [$background, $color] = match ($status) {
-        \App\Enums\BookingAttendeeStatus::Accepted => ['#f0f9ff', '#0c4a6e'],
-        \App\Enums\BookingAttendeeStatus::Tentative => ['#fffbeb', '#78350f'],
-        \App\Enums\BookingAttendeeStatus::Declined => ['#f1f5f9', '#1e293b'],
+        \App\Enums\BookingAttendeeStatus::Accepted,
+        \App\Enums\TaskAttendeeStatus::Accepted,
+        \App\Enums\TaskAttendeeStatus::Completed => ['#f0f9ff', '#0c4a6e'],
+        \App\Enums\BookingAttendeeStatus::Tentative,
+        \App\Enums\TaskAttendeeStatus::Tentative,
+        \App\Enums\TaskAttendeeStatus::InProcess => ['#fffbeb', '#78350f'],
+        \App\Enums\BookingAttendeeStatus::Declined,
+        \App\Enums\TaskAttendeeStatus::Declined => ['#f1f5f9', '#1e293b'],
         default => ['#f4f4f5', '#3f3f46'],
     };
 @endphp

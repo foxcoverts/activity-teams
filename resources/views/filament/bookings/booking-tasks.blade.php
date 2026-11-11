@@ -19,24 +19,23 @@
                     ])
 
                     <div class="min-w-0">
-                        @if ($item['url'])
-                            <a href="{{ $item['url'] }}" class="task-row__title hover:underline">
-                                {{ $item['summary'] }}
-                            </a>
-                        @else
-                            <div class="task-row__title">{{ $item['summary'] }}</div>
-                        @endif
-                        @if ($item['overdue'] || $item['priority'])
+                        <div class="flex min-w-0 flex-wrap items-center gap-2">
+                            @if ($item['url'])
+                                <a href="{{ $item['url'] }}" class="task-row__title hover:underline">
+                                    {{ $item['summary'] }}
+                                </a>
+                            @else
+                                <div class="task-row__title">{{ $item['summary'] }}</div>
+                            @endif
+                            @if ($item['overdue'])
+                                <x-filament::badge :color="\App\Support\Palette::destructive()" size="sm">
+                                    {{ __('Overdue') }}
+                                </x-filament::badge>
+                            @endif
+                        </div>
+                        @if ($item['priority'])
                             <div class="task-row__meta">
-                                @if ($item['overdue'])
-                                    <span class="text-danger-600 dark:text-danger-400">{{ __('Overdue') }}</span>
-                                @endif
-                                @if ($item['overdue'] && $item['priority'])
-                                    <span aria-hidden="true"> · </span>
-                                @endif
-                                @if ($item['priority'])
-                                    <span>{{ $item['priority'] }}</span>
-                                @endif
+                                <span>{{ $item['priority'] }}</span>
                             </div>
                         @endif
                     </div>

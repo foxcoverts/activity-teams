@@ -104,7 +104,7 @@ When an enum is shown in Filament, give it a label, and a color and icon when th
 - [US-21 Incident & Accident Reporting & Compliance](US-21-incident-accident-reporting.md) — `done`
 - [US-48 Suspend and Restore a Member](US-48-suspend-and-restore-a-member.md) — `done`
 - [US-22 Team & Multi-Activity Task Management](US-22-task-management.md) — `done`
-- [US-79 Task Assignees & iMIP](US-79-task-assignees-and-imip.md) — `not-started`
+- [US-79 Task Assignees & iMIP](US-79-task-assignees-and-imip.md) — `done`
 - [US-23 Instructor Personal Kit Compliance Tracking](US-23-instructor-kit-compliance.md) — `not-started`
 - [US-24 Equipment & Merchandise Allocation Tracking](US-24-equipment-merchandise-allocation.md) — `not-started`
 - [US-33 Kit Checker Inspection & Verification Workflow](US-33-kit-checker-inspection-workflow.md) — `not-started`

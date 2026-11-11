@@ -4,6 +4,7 @@ namespace App\Support;
 
 use App\Models\Booking;
 use App\Models\Task;
+use App\Models\User;
 use DateInterval;
 use Eluceo\iCal\Presentation\Component;
 
@@ -23,6 +24,7 @@ class CombinedCalendarIcs
         iterable $taskRecords,
         string $title,
         ?DateInterval $publishedTtl = null,
+        ?User $forTaskAssignee = null,
     ): string {
         $bookingBody = $this->bookings->make(
             $bookingRecords,
@@ -30,7 +32,7 @@ class CombinedCalendarIcs
             publishedTtl: $publishedTtl,
         );
 
-        $taskComponents = $this->tasks->components($taskRecords);
+        $taskComponents = $this->tasks->components($taskRecords, $forTaskAssignee);
 
         if ($taskComponents === []) {
             return $bookingBody;
@@ -58,6 +60,6 @@ class CombinedCalendarIcs
         string $title,
         ?DateInterval $publishedTtl = null,
     ): string {
-        return $this->tasks->make($taskRecords, $title, $publishedTtl);
+        return $this->tasks->make($taskRecords, $title, publishedTtl: $publishedTtl);
     }
 }

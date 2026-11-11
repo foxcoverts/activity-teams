@@ -242,6 +242,25 @@ class User extends Authenticatable implements FilamentUser, HasAvatar, HasDefaul
     }
 
     /**
+     * @return BelongsToMany<Task, $this>
+     */
+    public function assignedTasks(): BelongsToMany
+    {
+        return $this->belongsToMany(Task::class, 'task_user')
+            ->withTimestamps()
+            ->withPivot('comment', 'status', 'token', 'calendar_imip_at')
+            ->as('attendance');
+    }
+
+    /**
+     * @return HasMany<TaskAttendance, $this>
+     */
+    public function taskAttendances(): HasMany
+    {
+        return $this->hasMany(TaskAttendance::class);
+    }
+
+    /**
      * @return HasMany<Booking, $this>
      */
     public function ledBookings(): HasMany

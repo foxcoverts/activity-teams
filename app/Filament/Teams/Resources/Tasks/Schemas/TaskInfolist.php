@@ -16,14 +16,16 @@ class TaskInfolist
     {
         return $schema
             ->components([
-                Section::make(__('Task'))
-                    ->icon(fn (Task $record): Heroicon => $record->status->getIcon())
-                    ->iconColor(fn (Task $record): array => $record->status->getColor())
+                Section::make(fn (?Task $record): string => __(':Status task', [
+                    'status' => ($record?->status ?? TaskStatus::NeedsAction)->getHeadingLabel(),
+                ]))
+                    ->icon(fn (?Task $record): Heroicon => ($record?->status ?? TaskStatus::NeedsAction)->getIcon())
+                    ->iconColor(fn (?Task $record): array => $record?->isOverdue()
+                        ? Palette::destructive()
+                        : ($record?->status ?? TaskStatus::NeedsAction)->getColor())
                     ->columns(1)
                     ->columnSpanFull()
                     ->schema([
-                        TextEntry::make('summary')
-                            ->label(__('Title')),
                         TextEntry::make('description')
                             ->label(__('Notes'))
                             ->placeholder('-')

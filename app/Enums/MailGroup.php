@@ -14,11 +14,13 @@ enum MailGroup: string implements HasIcon, HasLabel
     case News = 'news';
     case Manager = 'manager';
     case Account = 'account';
+    case Tasks = 'tasks';
 
     public function getLabel(): string
     {
         return match ($this) {
             self::Bookings => __('Bookings'),
+            self::Tasks => __('Tasks'),
             self::Keys => __('Keys'),
             self::News => __('News'),
             self::Manager => __('Manager'),
@@ -30,6 +32,7 @@ enum MailGroup: string implements HasIcon, HasLabel
     {
         return match ($this) {
             self::Bookings => Heroicon::OutlinedCalendarDays,
+            self::Tasks => Heroicon::OutlinedClipboardDocumentCheck,
             self::Keys => Heroicon::OutlinedKey,
             self::News => Heroicon::OutlinedNewspaper,
             self::Manager => Heroicon::OutlinedShieldCheck,
@@ -63,7 +66,7 @@ enum MailGroup: string implements HasIcon, HasLabel
     public function isReleased(): bool
     {
         return match ($this) {
-            self::Bookings, self::Keys, self::News, self::Manager => true,
+            self::Bookings, self::Tasks, self::Keys, self::News, self::Manager => true,
             self::Account => false,
         };
     }
@@ -94,6 +97,7 @@ enum MailGroup: string implements HasIcon, HasLabel
     {
         return match ($this) {
             self::Bookings => MailChannel::BookingsMail,
+            self::Tasks => MailChannel::TasksMail,
             self::Keys => MailChannel::KeysMail,
             self::News => MailChannel::NewsMail,
             default => null,

@@ -38,4 +38,18 @@ class InboundCalendar
 
         return collect($events);
     }
+
+    /**
+     * @return Collection<int, InboundCalendarTodo>
+     */
+    public function todos(): Collection
+    {
+        $todos = [];
+
+        foreach ($this->vcalendar->VTODO ?? [] as $vtodo) {
+            $todos[] = new InboundCalendarTodo($vtodo);
+        }
+
+        return collect($todos);
+    }
 }

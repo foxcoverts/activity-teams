@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use App\Enums\BookingAttendeeStatus;
+use App\Enums\TaskAttendeeStatus;
 use App\Models\User;
 use Sabre\VObject\Property;
 
@@ -29,5 +30,10 @@ class InboundCalendarAttendee
             'TENTATIVE' => BookingAttendeeStatus::Tentative,
             default => null,
         };
+    }
+
+    public function taskStatus(): ?TaskAttendeeStatus
+    {
+        return TaskAttendeeStatus::tryFromPartstat((string) ($this->vattendee['PARTSTAT'] ?? ''));
     }
 }

@@ -3,8 +3,10 @@
 namespace App\Models;
 
 use App\Casts\AsSequence;
+use App\Enums\TaskAttendeeStatus;
 use App\Enums\TaskPriority;
 use App\Enums\TaskStatus;
+use App\Events\TaskAssigneeChanged;
 use App\Support\Coords;
 use App\Support\Location;
 use Database\Factories\TaskFactory;
@@ -16,6 +18,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Validation\ValidationException;
 use Spatie\Activitylog\Models\Concerns\LogsActivity;
 use Spatie\Activitylog\Support\LogOptions;
@@ -155,6 +158,86 @@ class Task extends Model
         return $this->belongsToMany(Booking::class, 'booking_task');
     }
 
+    public function attendance(): HasOne
+    {
+        return $this->hasOne(TaskAttendance::class);
+    }
+
+    public function assignee(): ?User
+    {
+        $this->loadMissing('attendance.user');
+
+        return $this->attendance?->user;
+    }
+
+    public function isAssignedTo(User $user): bool
+    {
+        return $this->attendance?->user_id === $user->getKey();
+    }
+
+    public function markCalendarChannel(User $user): void
+    {
+        if (! $this->isAssignedTo($user)) {
+            return;
+        }
+
+        $this->attendance()->where('user_id', $user->getKey())->update([
+            'calendar_imip_at' => now(),
+        ]);
+        $this->unsetRelation('attendance');
+    }
+
+    public function clearCalendarChannel(?User $user = null): void
+    {
+        $query = $this->attendance();
+
+        if ($user instanceof User) {
+            $query->where('user_id', $user->getKey());
+        }
+
+        $query->update(['calendar_imip_at' => null]);
+        $this->unsetRelation('attendance');
+    }
+
+    public function assigneeHasCalendarChannel(): bool
+    {
+        return $this->attendance?->hasCalendarChannel() ?? false;
+    }
+
+    public function bumpSequence(): void
+    {
+        $this->sequence = ((int) $this->sequence) + 1;
+        $this->save();
+    }
+
+    /**
+     * Keep the sole assignee PARTSTAT aligned with task work status.
+     */
+    public function syncAssigneePartstatFromTaskStatus(): void
+    {
+        $attendance = $this->attendance;
+
+        if (! $attendance instanceof TaskAttendance) {
+            return;
+        }
+
+        $next = match ($this->status) {
+            TaskStatus::InProcess => TaskAttendeeStatus::InProcess,
+            TaskStatus::Completed => TaskAttendeeStatus::Completed,
+            TaskStatus::NeedsAction => $attendance->status === TaskAttendeeStatus::NeedsAction
+                ? TaskAttendeeStatus::NeedsAction
+                : TaskAttendeeStatus::Accepted,
+            TaskStatus::Cancelled => $attendance->status,
+        };
+
+        if ($attendance->status === $next) {
+            return;
+        }
+
+        $attendance->status = $next;
+        $attendance->save();
+    }
+
     public function attachBooking(Booking $booking): void
     {
         if ($booking->team_id !== $this->team_id) {
@@ -217,6 +300,8 @@ class Task extends Model
         $this->completed_at ??= now();
         $this->started_at ??= $this->completed_at;
         $this->save();
+        $this->syncAssigneePartstatFromTaskStatus();
+        $this->notifyAssigneeUpdated(['status']);
     }
 
     public function markIncomplete(): void
@@ -224,6 +309,8 @@ class Task extends Model
         $this->status = TaskStatus::NeedsAction;
         $this->completed_at = null;
         $this->save();
+        $this->syncAssigneePartstatFromTaskStatus();
+        $this->notifyAssigneeUpdated(['status']);
     }
 
     public function markStarted(): void
@@ -232,12 +319,22 @@ class Task extends Model
         $this->started_at ??= now();
         $this->completed_at = null;
         $this->save();
+        $this->syncAssigneePartstatFromTaskStatus();
+        $this->notifyAssigneeUpdated(['status']);
     }
 
     public function markCancelled(): void
     {
+        $this->loadMissing('attendance.user');
+        $assignee = $this->assignee();
+        $hadChannel = $this->assigneeHasCalendarChannel();
+
         $this->status = TaskStatus::Cancelled;
         $this->save();
+
+        if ($assignee instanceof User && $hadChannel) {
+            event(new TaskAssigneeChanged($this, $assignee, cancelled: true));
+        }
     }
 
     public function reopen(): void
@@ -245,6 +342,23 @@ class Task extends Model
         $this->status = TaskStatus::NeedsAction;
         $this->completed_at = null;
         $this->save();
+        $this->syncAssigneePartstatFromTaskStatus();
+        $this->notifyAssigneeUpdated(['status']);
+    }
+
+    /**
+     * @param  list<string>  $changes
+     */
+    public function notifyAssigneeUpdated(array $changes = []): void
+    {
+        $this->loadMissing('attendance.user');
+        $assignee = $this->assignee();
+
+        if (! $assignee instanceof User || $assignee->isSuspended()) {
+            return;
+        }
+
+        event(new TaskAssigneeChanged($this, $assignee, updateOnly: true, changes: $changes));
     }
 
     public function toggleCompletion(): void

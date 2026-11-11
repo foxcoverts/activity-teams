@@ -70,7 +70,7 @@ class TaskPolicy
             return false;
         }
 
-        $task->loadMissing('team');
+        $task->loadMissing(['team', 'attendance']);
 
         if (! $task->team instanceof Team || ! $task->team->featureEnabled(TeamFeature::Tasks)) {
             return false;
@@ -80,7 +80,34 @@ class TaskPolicy
             return true;
         }
 
-        return $user->isCurrentMemberOf($task->team);
+        if (! $user->isCurrentMemberOf($task->team)) {
+            return false;
+        }
+
+        if ($user->manages($task->team)) {
+            return true;
+        }
+
+        if ($task->attendance === null) {
+            return true;
+        }
+
+        return $task->isAssignedTo($user);
+    }
+
+    public function respondAsAssignee(User $user, Task $task): bool
+    {
+        if ($user->isSuspended()) {
+            return false;
+        }
+
+        $task->loadMissing(['team', 'attendance']);
+
+        if (! $task->team instanceof Team || ! $task->team->featureEnabled(TeamFeature::Tasks)) {
+            return false;
+        }
+
+        return $task->isAssignedTo($user);
     }
 
     public function attachBooking(User $user, Task $task): bool

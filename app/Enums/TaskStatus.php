@@ -18,10 +18,21 @@ enum TaskStatus: string implements HasColor, HasIcon, HasLabel
     public function getLabel(): string
     {
         return match ($this) {
-            self::NeedsAction => __('Needs action'),
+            self::NeedsAction => __('Not started'),
             self::InProcess => __('In process'),
             self::Completed => __('Completed'),
             self::Cancelled => __('Cancelled'),
+        };
+    }
+
+    /**
+     * Shorter adjective for “:Status task” section headings.
+     */
+    public function getHeadingLabel(): string
+    {
+        return match ($this) {
+            self::NeedsAction => __('Pending'),
+            default => $this->getLabel(),
         };
     }
 

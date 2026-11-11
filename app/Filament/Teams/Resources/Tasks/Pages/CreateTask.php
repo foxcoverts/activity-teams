@@ -20,17 +20,23 @@ class CreateTask extends CreateRecord
      * @param  array<string, mixed>  $data
      * @return array<string, mixed>
      */
+    protected ?string $assigneeIdForCreate = null;
+
+    protected bool $inviteAssigneeForCreate = true;
+
     protected function mutateFormDataBeforeCreate(array $data): array
     {
         $status = TaskStatus::tryFrom((string) ($data['status'] ?? ''));
 
         if ($status !== null && $status !== TaskStatus::NeedsAction) {
             throw ValidationException::withMessages([
-                'status' => __('A new task starts as needs action.'),
+                'status' => __('A new task starts as not started.'),
             ]);
         }
 
         unset($data['status'], $data['started_at'], $data['completed_at']);
+
+        [$data, $this->assigneeIdForCreate, $this->inviteAssigneeForCreate] = TaskForm::extractAssigneeId($data);
 
         return TaskForm::mergeVenueData($data);
     }
@@ -40,7 +46,12 @@ class CreateTask extends CreateRecord
         $team = Filament::getTenant();
         abort_unless($team instanceof Team, 404);
 
-        return app(SaveTaskDetailsAction::class)->create($data, $team);
+        return app(SaveTaskDetailsAction::class)->create(
+            $data,
+            $team,
+            $this->assigneeIdForCreate,
+            invite: $this->inviteAssigneeForCreate,
+        );
     }
 
     protected function getRedirectUrl(): string
