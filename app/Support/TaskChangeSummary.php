@@ -34,7 +34,7 @@ class TaskChangeSummary
 
         foreach ([
             'summary' => __('Summary'),
-            'description' => __('Description'),
+            'description' => __('Notes'),
             'venue_id' => __('Venue'),
             'due_at' => __('Due'),
             'priority' => __('Priority'),

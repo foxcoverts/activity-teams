@@ -28,6 +28,7 @@ class TaskInfolist
                     ->schema([
                         TextEntry::make('description')
                             ->label(__('Notes'))
+                            ->markdown()
                             ->placeholder('-')
                             ->columnSpanFull(),
                         TextEntry::make('location')
