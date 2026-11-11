@@ -3,7 +3,7 @@
 @endphp
 **{{ __('Summary') }}:** {{ $task->summary }}{{ $changeList?->suffix('summary') }}<br>
 @if (filled($task->description) || $changeList?->has('description'))
-**{{ __('Description') }}:** {{ filled($task->description) ? $task->description : '-' }}{{ $changeList?->suffix('description') }}<br>
+**{{ __('Notes') }}:** {{ filled($task->description) ? $task->plainNotes() : '-' }}{{ $changeList?->suffix('description') }}<br>
 @endif
 @if (filled($task->location?->name ?? $task->venue?->name) || $changeList?->has('venue_id'))
 **{{ __('Venue') }}:** {{ $task->location?->name ?? $task->venue?->name ?? '-' }}{{ $changeList?->suffix('venue_id') }}<br>

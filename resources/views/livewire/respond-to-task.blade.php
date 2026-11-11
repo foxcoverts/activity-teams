@@ -24,8 +24,13 @@
         </div>
         @if (filled($task->description))
             <div>
-                <dt class="font-medium">{{ __('Description') }}</dt>
-                <dd class="whitespace-pre-line">{{ $task->description }}</dd>
+                <dt class="font-medium">{{ __('Notes') }}</dt>
+                <dd class="space-y-2 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5">
+                    {!! \Illuminate\Support\Str::markdown((string) $task->description, [
+                        'html_input' => 'strip',
+                        'allow_unsafe_links' => false,
+                    ]) !!}
+                </dd>
             </div>
         @endif
         @if (filled($task->location?->name ?? $task->venue?->name))

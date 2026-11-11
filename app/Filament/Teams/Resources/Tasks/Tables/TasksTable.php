@@ -41,7 +41,8 @@ class TasksTable
                             'title' => $state,
                             'overdue' => $record->isOverdue(),
                         ],
-                    )->render()),
+                    )->render())
+                    ->description(fn (Task $record): ?string => $record->plainNotes(160)),
                 ImageColumn::make('assignee_avatar')
                     ->label(__('To'))
                     ->state(fn (Task $record): ?string => $record->attendance?->user?->getFilamentAvatarUrl())

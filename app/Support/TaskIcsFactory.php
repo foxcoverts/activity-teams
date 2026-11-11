@@ -21,6 +21,7 @@ use Eluceo\iCal\Presentation\Component\Property\Value\DurationValue;
 use Eluceo\iCal\Presentation\Component\Property\Value\IntegerValue;
 use Eluceo\iCal\Presentation\Component\Property\Value\TextValue;
 use Eluceo\iCal\Presentation\Component\Property\Value\UriValue;
+use Illuminate\Support\Str;
 
 class TaskIcsFactory
 {
@@ -116,8 +117,13 @@ class TaskIcsFactory
             );
         }
 
-        if (filled($task->description)) {
-            $properties[] = new Property('DESCRIPTION', new TextValue((string) $task->description));
+        [$textDescription, $htmlDescription] = $this->descriptions($task);
+
+        if (filled($textDescription)) {
+            $properties[] = new Property('DESCRIPTION', new TextValue($textDescription));
+            $properties[] = new Property('X-ALT-DESC', new TextValue($htmlDescription), [
+                new Parameter('FMTTYPE', new TextValue('text/html')),
+            ]);
         }
 
         if ($task->location !== null && filled($task->location->name)) {
@@ -186,5 +192,31 @@ class TaskIcsFactory
         }
 
         return $task->assignee();
+    }
+
+    /**
+     * @return array{0: ?string, 1: string}
+     */
+    private function descriptions(Task $task): array
+    {
+        $text = $task->plainNotes();
+
+        if ($text === null) {
+            return [null, ''];
+        }
+
+        $html = '<!DOCTYPE html><html lang="en"><body>'
+            .Str::markdown((string) $task->description, [
+                'renderer' => [
+                    'block_separator' => "\n",
+                    'inner_separator' => "\n",
+                    'soft_break' => '<br \\>',
+                ],
+                'html_input' => 'strip',
+                'allow_unsafe_links' => false,
+            ])
+            .'</body></html>';
+
+        return [$text, $html];
     }
 }

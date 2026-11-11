@@ -14,8 +14,8 @@ use App\Support\Palette;
 use Filament\Actions\Action;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\DateTimePicker;
+use Filament\Forms\Components\MarkdownEditor;
 use Filament\Forms\Components\Select;
-use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\ToggleButtons;
 use Filament\Schemas\Components\Component;
@@ -56,9 +56,9 @@ class TaskForm
                 ->label(__('Title'))
                 ->required()
                 ->maxLength(255),
-            Textarea::make('description')
+            MarkdownEditor::make('description')
                 ->label(__('Notes'))
-                ->rows(4),
+                ->columnSpanFull(),
             Select::make('venue_id')
                 ->label(__('Venue'))
                 ->options(fn (): array => BookingForm::venueOptions())

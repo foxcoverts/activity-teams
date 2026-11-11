@@ -302,6 +302,42 @@ class TaskManagementTest extends TestCase
             ->assertSee($past->relatedLabel());
     }
 
+    public function test_task_notes_render_as_markdown_on_the_view(): void
+    {
+        $team = Team::factory()->withTasks()->create();
+        $manager = User::factory()->teamManager($team)->create();
+        $task = Task::factory()->forTeam($team)->create([
+            'description' => "Check the **bolts**.\n\n- Bring a wrench",
+        ]);
+
+        $this->actingAs($manager);
+        Filament::setTenant($team);
+
+        Livewire::test(ViewTask::class, ['record' => $task->getRouteKey()])
+            ->assertSuccessful()
+            ->assertSeeHtml('<strong>bolts</strong>')
+            ->assertSeeHtml('<li>Bring a wrench</li>');
+    }
+
+    public function test_task_list_shows_a_plain_notes_summary_under_the_title(): void
+    {
+        $team = Team::factory()->withTasks()->create();
+        $manager = User::factory()->teamManager($team)->create();
+        $task = Task::factory()->forTeam($team)->create([
+            'summary' => 'Pad check',
+            'description' => "Check the **bolts**.\n\nBring a wrench",
+        ]);
+
+        $this->actingAs($manager);
+        Filament::setTenant($team);
+
+        Livewire::test(ListTasks::class)
+            ->assertSuccessful()
+            ->assertSee('Pad check')
+            ->assertSee('Check the bolts. Bring a wrench')
+            ->assertDontSee('**bolts**');
+    }
+
     public function test_tasks_and_everything_feeds_include_vtodo_and_related_to(): void
     {
         $team = Team::factory()->withTasks()->create();
@@ -312,7 +348,7 @@ class TaskManagementTest extends TestCase
         $task = Task::factory()->forTeam($team)->create([
             'summary' => 'Feed task',
             'priority' => 1,
-            'description' => null,
+            'description' => 'Replace the **signs**.',
             'due_at' => null,
         ]);
         $task->attachBooking($booking);
@@ -323,6 +359,10 @@ class TaskManagementTest extends TestCase
 
         $this->assertStringContainsString('BEGIN:VTODO', $tasksFeed);
         $this->assertStringContainsString('SUMMARY:Feed task', $tasksFeed);
+        $this->assertStringContainsString('DESCRIPTION:Replace the signs.', $tasksFeed);
+        $this->assertStringNotContainsString('DESCRIPTION:Replace the **signs**.', $tasksFeed);
+        $this->assertStringContainsString('X-ALT-DESC;FMTTYPE=text/html:', $tasksFeed);
+        $this->assertStringContainsString('<strong>signs</strong>', $tasksFeed);
         $this->assertStringContainsString('RELATED-TO', $tasksFeed);
         $this->assertStringContainsString($booking->uid, $tasksFeed);
 

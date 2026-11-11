@@ -19,6 +19,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Spatie\Activitylog\Models\Concerns\LogsActivity;
 use Spatie\Activitylog\Support\LogOptions;
@@ -272,6 +273,31 @@ class Task extends Model
         return Attribute::make(
             get: fn (): ?Coords => $this->venue?->coords,
         );
+    }
+
+    /**
+     * Plain-text notes for ICS and list summaries (markdown stripped).
+     */
+    public function plainNotes(?int $limit = null): ?string
+    {
+        if (! filled($this->description)) {
+            return null;
+        }
+
+        $text = Str::of((string) $this->description)
+            ->markdown([
+                'html_input' => 'strip',
+                'allow_unsafe_links' => false,
+            ])
+            ->stripTags()
+            ->squish()
+            ->value();
+
+        if ($text === '') {
+            return null;
+        }
+
+        return $limit === null ? $text : Str::limit($text, $limit);
     }
 
     public function isComplete(): bool

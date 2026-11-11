@@ -115,7 +115,8 @@ class TaskResource extends Resource
                             'title' => $state,
                             'overdue' => $record->isOverdue(),
                         ],
-                    )->render()),
+                    )->render())
+                    ->description(fn (Task $record): ?string => $record->plainNotes(160)),
                 TextColumn::make('priority')
                     ->badge()
                     ->sortable()
