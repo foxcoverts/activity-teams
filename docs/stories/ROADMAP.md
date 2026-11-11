@@ -15,7 +15,7 @@ Development continues in small slices (evenings, weekends, and clear weeks when 
 - **Extra:** US-16, US-17, US-24, US-29, US-34, US-35, US-36, US-38, US-41, US-42, US-43, US-44, US-53, US-62, US-63, US-64, US-65, and US-68.
   - US-29 exists in the legacy application, but is not a relaunch priority.
   - US-38 is extra. Per-booking history is [US-39](US-39-member-booking-audit-stream.md) and stays done. The team-wide manager feed is not a relaunch requirement.
-  - US-45 is extra. Outbound mail is live; include bounce/delivery tracking if ForwardEmail (or the chosen provider) makes it cheap or free to operate.
+  - US-45 is done for sent/bounced via ForwardEmail webhooks. Delivered receipts stay deferred; manager bounce triage is [US-80](US-80-manager-bounce-triage-dashboard.md).
   - US-62 is extra and is not a Phase 0 parity gap. It depends on US-15 / US-79 applying known-person iMIP replies (bookings and tasks) and US-55 retaining unmapped ones.
   - US-63 is extra and done: catalog postal address and map pin. Bookings take `location` / `coords` from the venue. US-65 ICS precise location is done on the shared factory. US-64 catalog create, adoption lock, and private booking places, and US-68 Other activity and Activity name, are extra and done. US-13 stays done.
 - **Deferred:** [US-06 User Role & Status Badges](US-06-user-role-status-badges.md) and [US-50 Invite Someone Who Is Not on the Team](US-50-invite-non-members.md).
@@ -68,7 +68,7 @@ The owner has reviewed the retained workflow list against the live legacy system
 
 **Live.** Activity Teams runs on IONOS at **`https://climbfoxcoverts.co.uk/`**. Work lands via **branches and pull requests**; GitHub Actions runs the test suite on pull requests ([`.github/workflows/test.yml`](../../.github/workflows/test.yml)), and deploys when changes reach `main` while **`DEPLOY_ENABLED`** is `true` ([`.github/workflows/deploy.yml`](../../.github/workflows/deploy.yml)). Deploy uses PHP **8.5**, npm asset builds, SSH/rsync to Webspace, and [`.deploy/post.sh`](../../.deploy/post.sh) (`php8.5-cli`) for migrate, then `optimize` and `up`. The one-shot `legacy:import` + `legacy:verify` already ran (marker `storage/app/.legacy-imported`); see the [legacy import runbook](../legacy-import-runbook.md) for how that cutover worked. Operator notes remain in [`docs/deploy-setup.md`](../deploy-setup.md).
 
-Production uses database-backed queues drained by crontab (`queue:work` with `flock`, plus `schedule:run`). ForwardEmail handles inbound webhooks; outbound mail is configured in production. Local Sail still defaults to Mailpit and optional sync queues — those are development defaults, not production. Reconsider [US-45](US-45-email-delivery-bounce-tracking.md) now that outbound mail is live, if provider bounce handling is cheap enough.
+Production uses database-backed queues drained by crontab (`queue:work` with `flock`, plus `schedule:run`). ForwardEmail handles inbound and bounce webhooks; outbound mail is configured in production. Local Sail still defaults to Mailpit and optional sync queues — those are development defaults, not production. [US-45](US-45-email-delivery-bounce-tracking.md) records sent/bounced; [US-80](US-80-manager-bounce-triage-dashboard.md) is the remaining triage UI.
 
 ### Phase 0 — Confirm the cutover inventory
 
@@ -86,7 +86,7 @@ Production uses database-backed queues drained by crontab (`queue:work` with `fl
 
 - **Product owner:** walk through [acceptance-checklist.md](acceptance-checklist.md) on the live site (US-54/55/21 behaviours are recorded in those stories; prove them in production).
 - **Product owner/controller:** US-57 retention is recorded (named shell kept indefinitely; contact details purged after 30 days). The live privacy notice is the in-app `/privacy` page; solicitor review of lawful bases remains with the product owner.
-- **Implementation / ops:** keep deploy, mail, queue, and inbound webhook healthy; revisit US-45 if bounce tooling is worthwhile now outbound mail is live.
+- **Implementation / ops:** keep deploy, mail, queue, and inbound/bounce webhooks healthy; point ForwardEmail bounce URL at `/api/webhooks/forwardemail/bounces` and prefer the canonical inbound path.
 
 ### Phase 1 — Secure the multi-team operating foundation
 
@@ -164,7 +164,7 @@ Product-owner walkthrough ticks live in [acceptance-checklist.md](acceptance-che
 The following remain explicitly extra. Prefer them only after Phase 4 acceptance is moving and a clear operational need appears; they are not implicit go-live blockers.
 
 - **Opportunistic UI:** US-29 is a small-looking share action, but is deliberately low priority.
-- **Mail-provider dependent:** US-45 — evaluate now that outbound mail is live; skip if bounce tooling needs a separate paid service or disproportionate ops work.
+- **Mail bounce follow-ups:** US-45 sent/bounced tracking is done. [US-80](US-80-manager-bounce-triage-dashboard.md) is the manager triage list; true delivered receipts wait on provider capability.
 - **Related implementation batches:** US-16 and US-44 both involve reminders; US-17 (done) already covers the combined digest. Assess shared scheduling before splitting reminder effort.
 - **Unmapped calendar replies:** [US-62](US-62-unmapped-calendar-reply-identity.md) depends on US-15 and US-55 (and task replies from US-79), which are done for known people. It was never live in climbing-team; identity confirmation and a no-account contact path remain refinement for both booking and task replies.
 - **Venue and activity follow-ups:** [US-63](US-63-venue-address-and-coordinates.md), [US-64](US-64-booking-other-venue.md), [US-65](US-65-ics-precise-location.md), and [US-68](US-68-booking-other-activity.md) are done.

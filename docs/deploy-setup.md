@@ -77,9 +77,21 @@ Keep these as **repository** secrets so both the Test workflow and the deploy jo
 
 `APP_URL`, `APP_NAME`, and `MAIL_FROM_NAME` are set in the deploy workflow (`https://climbfoxcoverts.co.uk`, quoted `Activity Teams`).
 
+### ForwardEmail webhooks
+
+Configure these ForwardEmail domain settings against production:
+
+| Purpose | URL |
+|---------|-----|
+| Inbound alias webhook (canonical) | `https://climbfoxcoverts.co.uk/api/webhooks/forwardemail/mail` |
+| Bounce webhook | `https://climbfoxcoverts.co.uk/api/webhooks/forwardemail/bounces` |
+| Deprecated inbound alias (remove after switchover) | `https://climbfoxcoverts.co.uk/api/mail` |
+
+Both inbound URLs use the same adapter and `MAIL_WEBHOOK_SECRET` / `X-Webhook-Signature` verification. Prefer the canonical path for new alias configuration.
+
 ### ForwardEmail inbound aliases
 
-Only these aliases post to the site webhook (`https://climbfoxcoverts.co.uk/api/mail`). Everything else on the domain (including the catch-all) does **not**. In ForwardEmail, an alias for `something@` also receives `something+…@` — you do not configure the plus form separately.
+Only these aliases post to the site inbound webhook. Everything else on the domain (including the catch-all) does **not**. In ForwardEmail, an alias for `something@` also receives `something+…@` — you do not configure the plus form separately.
 
 | Alias | Delivers to |
 |-------|-------------|
