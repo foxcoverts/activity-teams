@@ -220,6 +220,34 @@ class BookingPreviewAndIcsTest extends TestCase
         $this->assertStringContainsString('UID:'.$saturday->uid, $ics);
     }
 
+    public function test_feeds_page_lists_everything_and_rota_before_specific_feeds(): void
+    {
+        $user = User::factory()->teamMember()->create([
+            'feed_token' => User::generateToken(),
+        ]);
+
+        Filament::setCurrentPanel('member');
+        $this->actingAs($user);
+
+        Livewire::test(Feeds::class)
+            ->assertSeeInOrder([
+                __('Everything'),
+                __('My rota'),
+                __('All bookings'),
+                __('Tasks'),
+                __('Atom'),
+                __('RSS'),
+            ])
+            ->assertSee(__('Show password'), false)
+            ->assertSee(__('Copy link'), false)
+            ->assertSet('data.everything', route('calendar.everything.ics', $user))
+            ->assertSet('data.rota', route('booking.rota.ics', $user))
+            ->assertSet('data.bookings', route('booking.ics', $user))
+            ->assertSet('data.tasks', route('task.ics', $user))
+            ->assertSet('data.atom', route('news.atom', $user))
+            ->assertSet('data.rss', route('news.rss', $user));
+    }
+
     public function test_regenerating_calendar_links_stops_the_old_token(): void
     {
         $user = User::factory()->teamMember()->create([
