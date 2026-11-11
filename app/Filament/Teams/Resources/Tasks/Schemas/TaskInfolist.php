@@ -39,7 +39,7 @@ class TaskInfolist
                                     ...$record->location->addressArray(),
                                 ]))
                                 : null)
-                            ->placeholder('-')
+                            ->visible(fn (Task $record): bool => filled($record->location?->name))
                             ->columnSpanFull(),
                         TextEntry::make('priority')
                             ->badge(),

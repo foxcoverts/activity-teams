@@ -19,6 +19,7 @@ use App\Models\Task;
 use App\Models\Team;
 use App\Models\User;
 use App\Models\Venue;
+use App\Support\TaskIcsFactory;
 use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
@@ -155,6 +156,87 @@ class TaskManagementTest extends TestCase
         $this->assertNotNull($privateVenue);
         $this->assertSame('Temporary store cupboard', $privateVenue->name);
         $this->assertFalse($team->venues()->whereKey($privateVenue->getKey())->exists());
+    }
+
+    public function test_managers_can_create_and_clear_tasks_without_a_venue(): void
+    {
+        $team = Team::factory()->withTasks()->create();
+        $manager = User::factory()->teamManager($team)->create();
+
+        $this->actingAs($manager);
+        Filament::setTenant($team);
+
+        Livewire::test(CreateTask::class)
+            ->fillForm([
+                'summary' => 'No venue task',
+                'priority' => 5,
+                'venue_id' => null,
+            ])
+            ->call('create')
+            ->assertHasNoFormErrors();
+
+        $task = Task::query()->where('summary', 'No venue task')->first();
+        $this->assertNotNull($task);
+        $this->assertNull($task->venue_id);
+
+        Livewire::test(ViewTask::class, ['record' => $task->getRouteKey()])
+            ->assertSuccessful()
+            ->assertDontSee(__('Venue'));
+
+        $ics = app(TaskIcsFactory::class)->make([$task->fresh(['venue', 'bookings', 'attendance'])], 'Tasks');
+        $this->assertStringContainsString('BEGIN:VTODO', $ics);
+        $this->assertStringNotContainsString('LOCATION', $ics);
+
+        $venue = Venue::factory()->create();
+        $team->addVenue($venue);
+        $task->update(['venue_id' => $venue->getKey()]);
+
+        Livewire::test(EditTask::class, ['record' => $task->getRouteKey()])
+            ->fillForm([
+                'venue_id' => null,
+            ])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $this->assertNull($task->fresh()->venue_id);
+    }
+
+    public function test_clearing_venue_deletes_a_private_task_venue(): void
+    {
+        $team = Team::factory()->withTasks()->create();
+        $manager = User::factory()->teamManager($team)->create();
+
+        $this->actingAs($manager);
+        Filament::setTenant($team);
+
+        Livewire::test(CreateTask::class)
+            ->fillForm([
+                'summary' => 'Clear private venue',
+                'priority' => 5,
+                'venue_id' => BookingForm::OTHER_VENUE,
+                'name' => 'Temporary store cupboard',
+                'street' => '1 High Street',
+                'city' => 'Leicester',
+                'postcode' => 'LE1 1AA',
+                'country' => 'GB',
+            ])
+            ->call('create')
+            ->assertHasNoFormErrors();
+
+        $task = Task::query()->where('summary', 'Clear private venue')->first();
+        $this->assertNotNull($task);
+        $privateVenueId = $task->venue_id;
+        $this->assertNotNull($privateVenueId);
+
+        Livewire::test(EditTask::class, ['record' => $task->getRouteKey()])
+            ->fillForm([
+                'venue_id' => null,
+            ])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $this->assertNull($task->fresh()->venue_id);
+        $this->assertNull(Venue::withPrivate()->find($privateVenueId));
     }
 
     public function test_complete_and_cancel_actions_drive_task_status(): void
