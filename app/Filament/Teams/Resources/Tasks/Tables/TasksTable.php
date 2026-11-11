@@ -27,6 +27,7 @@ class TasksTable
                 ViewColumn::make('complete')
                     ->label('')
                     ->view('filament.tasks.complete-control-column')
+                    ->disabledClick()
                     ->alignCenter()
                     ->width('2.5rem'),
                 TextColumn::make('summary')

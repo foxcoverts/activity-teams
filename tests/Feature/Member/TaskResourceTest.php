@@ -81,4 +81,28 @@ class TaskResourceTest extends TestCase
             TaskResource::viewUrl($mine->fresh('team')),
         );
     }
+
+    public function test_assignees_can_complete_a_task_from_the_member_list(): void
+    {
+        $member = User::factory()->teamMember()->create();
+        $team = $member->teams()->firstOrFail();
+        $team->forceFill(['features' => [TeamFeature::Tasks->value => true]])->save();
+
+        $task = Task::factory()->forTeam($team)->create(['summary' => 'Finish me']);
+        TaskAttendance::query()->create([
+            'task_id' => $task->getKey(),
+            'user_id' => $member->getKey(),
+            'status' => TaskAttendeeStatus::Accepted,
+        ]);
+
+        $this->actingAs($member);
+
+        Livewire::test(ListTasks::class)
+            ->assertCanSeeTableRecords([$task])
+            ->call('toggleTaskComplete', $task->getKey())
+            ->assertSuccessful()
+            ->assertCanNotSeeTableRecords([$task]);
+
+        $this->assertTrue($task->fresh()->isComplete());
+    }
 }

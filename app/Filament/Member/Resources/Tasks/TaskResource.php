@@ -15,6 +15,7 @@ use Filament\Actions\ViewAction;
 use Filament\Resources\Resource;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Columns\ViewColumn;
 use Filament\Tables\Contracts\HasTable;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
@@ -97,6 +98,12 @@ class TaskResource extends Resource
             ->recordTitleAttribute('summary')
             ->recordUrl(fn (Task $record): string => static::viewUrl($record))
             ->columns([
+                ViewColumn::make('complete')
+                    ->label('')
+                    ->view('filament.tasks.complete-control-column')
+                    ->disabledClick()
+                    ->alignCenter()
+                    ->width('2.5rem'),
                 TextColumn::make('summary')
                     ->label(__('Title'))
                     ->searchable()

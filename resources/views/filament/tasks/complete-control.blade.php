@@ -25,7 +25,8 @@
         type="button"
         class="task-complete-control"
         data-status="{{ $status->value }}"
-        wire:click="toggleTaskComplete('{{ $task->getKey() }}')"
+        wire:click.stop="toggleTaskComplete('{{ $task->getKey() }}')"
+        x-on:click.stop
         wire:loading.attr="disabled"
         aria-pressed="{{ $pressed ? 'true' : 'false' }}"
         aria-label="{{ $label }}"
