@@ -16,7 +16,7 @@ Development continues in small slices (evenings, weekends, and clear weeks when 
   - US-29 exists in the legacy application, but is not a relaunch priority.
   - US-38 is extra. Per-booking history is [US-39](US-39-member-booking-audit-stream.md) and stays done. The team-wide manager feed is not a relaunch requirement.
   - US-45 is extra. Outbound mail is live; include bounce/delivery tracking if ForwardEmail (or the chosen provider) makes it cheap or free to operate.
-  - US-62 is extra and is not a Phase 0 parity gap. It depends on US-15 applying known-person iMIP replies and US-55 retaining unmapped ones.
+  - US-62 is extra and is not a Phase 0 parity gap. It depends on US-15 / US-79 applying known-person iMIP replies (bookings and tasks) and US-55 retaining unmapped ones.
   - US-63 is extra and done: catalog postal address and map pin. Bookings take `location` / `coords` from the venue. US-65 ICS precise location is done on the shared factory. US-64 catalog create, adoption lock, and private booking places, and US-68 Other activity and Activity name, are extra and done. US-13 stays done.
 - **Deferred:** [US-06 User Role & Status Badges](US-06-user-role-status-badges.md) and [US-50 Invite Someone Who Is Not on the Team](US-50-invite-non-members.md).
 - **Deferred:** [US-23 Instructor Kit Compliance](US-23-instructor-kit-compliance.md) and [US-33 Kit Checker Inspection](US-33-kit-checker-inspection-workflow.md). Kit checks are not needed for relaunch.
@@ -166,7 +166,7 @@ The following remain explicitly extra. Prefer them only after Phase 4 acceptance
 - **Opportunistic UI:** US-29 is a small-looking share action, but is deliberately low priority.
 - **Mail-provider dependent:** US-45 — evaluate now that outbound mail is live; skip if bounce tooling needs a separate paid service or disproportionate ops work.
 - **Related implementation batches:** US-16 and US-44 both involve reminders; US-17 (done) already covers the combined digest. Assess shared scheduling before splitting reminder effort.
-- **Unmapped calendar replies:** [US-62](US-62-unmapped-calendar-reply-identity.md) depends on US-15 and US-55, which are done. It was never live in climbing-team; identity confirmation and a no-account contact path remain refinement.
+- **Unmapped calendar replies:** [US-62](US-62-unmapped-calendar-reply-identity.md) depends on US-15 and US-55 (and task replies from US-79), which are done for known people. It was never live in climbing-team; identity confirmation and a no-account contact path remain refinement for both booking and task replies.
 - **Venue and activity follow-ups:** [US-63](US-63-venue-address-and-coordinates.md), [US-64](US-64-booking-other-venue.md), [US-65](US-65-ics-precise-location.md), and [US-68](US-68-booking-other-activity.md) are done.
 - **Kit extensions:** US-34 and US-35 build on deferred US-23/33 kit-check capability.
 - **Session follow-on:** US-43 depends on the debrief/history behavior in US-42.

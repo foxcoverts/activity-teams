@@ -24,7 +24,7 @@ As a team member, I want my dashboard to show what needs my attention, most urge
 - If the attention sections are empty, the all-caught-up message points the member to open a team from My Teams below. It does not send them to the personal rota list under a "browse team bookings" label.
 - A section that fails to load shows an error or is left out and logged. It is never presented as empty or as all caught up.
 - Responding to a booking or marking an inbox item read updates the affected sections without a page reload, and a section disappears when its last item is removed.
-- Each section shows only data the member may already see. Bookings, news, and inbox rows are scoped to the member's own teams and rows, and suspended or removed team memberships contribute nothing. Phone numbers, emails, and emergency details are not shown.
+- Each section shows only data the member may already see. Bookings, tasks, news, and inbox rows are scoped to the member's own teams and rows, and suspended or removed team memberships contribute nothing. Phone numbers, emails, and emergency details are not shown.
 - Cancelled and past bookings never appear.
 - Dates and times follow the display rules already used on the booking screens and omit seconds.
 - The manage and admin panels are out of scope. Their attention needs differ, so each needs its own dashboard stories.

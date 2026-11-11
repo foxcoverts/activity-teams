@@ -25,4 +25,4 @@ As a team manager, I want to assign one person to a task and keep their calendar
 
 ## Progress
 
-Done. Single-assignee model (not a multi-person guest list). Builds on [US-22](US-22-task-management.md) task model, UID/sequence, and subscription `tasks.ics` / `everything.ics` feeds. Booking iMIP patterns: [US-15](US-15-inbound-calendar-response-parsing.md), [US-76](US-76-booking-calendar-channel-and-force-send.md). Board: [#29](https://github.com/foxcoverts/activity-teams/issues/29).
+Done. Single-assignee model (not a multi-person guest list). Builds on [US-22](US-22-task-management.md) task model, UID/sequence, and subscription `tasks.ics` / `everything.ics` feeds. Booking iMIP patterns: [US-15](US-15-inbound-calendar-response-parsing.md), [US-76](US-76-booking-calendar-channel-and-force-send.md). Unmapped task calendar replies stay in the inbound queue with booking ones until [US-62](US-62-unmapped-calendar-reply-identity.md). Board: [#29](https://github.com/foxcoverts/activity-teams/issues/29).

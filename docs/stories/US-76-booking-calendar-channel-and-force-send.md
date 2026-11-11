@@ -24,4 +24,4 @@ As a team member on a booking, I want to download or email myself the current ca
 
 ## Progress
 
-Implemented: `calendar_imip_at` on `booking_user`, mark on inbound REPLY/REFRESH, clear after outbound cancel ICS, preference bypass while the channel is active, forced resend for guest-list Send to Email and inbound REFRESH/stale REPLY, and guest-list header action groups. Cross-links [US-15](US-15-inbound-calendar-response-parsing.md), [US-61](US-61-notification-settings.md), and [US-67](US-67-member-notification-inbox.md).
+Implemented: `calendar_imip_at` on `booking_user`, mark on inbound REPLY/REFRESH, clear after outbound cancel ICS, preference bypass while the channel is active, forced resend for guest-list Send to Email and inbound REFRESH/stale REPLY, and guest-list header action groups. Cross-links [US-15](US-15-inbound-calendar-response-parsing.md), [US-61](US-61-notification-settings.md), and [US-67](US-67-member-notification-inbox.md). Task assignees use the same calendar-channel idea on `task_user` under [US-79](US-79-task-assignees-and-imip.md); this story stays booking-scoped.
