@@ -101,8 +101,17 @@ class TaskResourceTest extends TestCase
             ->assertCanSeeTableRecords([$task])
             ->call('toggleTaskComplete', $task->getKey())
             ->assertSuccessful()
+            ->assertNotified(__('Marked complete.'))
             ->assertCanNotSeeTableRecords([$task]);
 
         $this->assertTrue($task->fresh()->isComplete());
+
+        Livewire::test(ListTasks::class)
+            ->call('undoTaskComplete', (string) $task->getKey())
+            ->assertSuccessful()
+            ->assertNotified(__('Marked incomplete.'))
+            ->assertCanSeeTableRecords([$task]);
+
+        $this->assertFalse($task->fresh()->isComplete());
     }
 }

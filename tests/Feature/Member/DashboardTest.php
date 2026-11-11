@@ -430,7 +430,7 @@ class DashboardTest extends TestCase
             'due_at' => now()->addDay(),
         ]);
 
-        Livewire::test(AssignedTasksWidget::class)
+        $widget = Livewire::test(AssignedTasksWidget::class)
             ->assertSee('Toggle me')
             ->call('toggleTaskComplete', (string) $task->getKey())
             ->assertDispatched('dashboard-updated')
@@ -438,6 +438,14 @@ class DashboardTest extends TestCase
 
         $this->assertTrue($task->fresh()->isComplete());
         Livewire::test(AllCaughtUpWidget::class)->assertSee("You're all caught up");
+
+        $widget
+            ->call('undoTaskComplete', (string) $task->getKey())
+            ->assertDispatched('dashboard-updated')
+            ->assertSee('Your tasks')
+            ->assertSee('Toggle me');
+
+        $this->assertFalse($task->fresh()->isComplete());
     }
 
     private function enableTasks(?Team $team = null): Team

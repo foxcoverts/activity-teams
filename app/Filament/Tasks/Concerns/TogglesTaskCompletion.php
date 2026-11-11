@@ -3,7 +3,9 @@
 namespace App\Filament\Tasks\Concerns;
 
 use App\Models\Task;
+use Filament\Actions\Action;
 use Filament\Notifications\Notification;
+use Livewire\Attributes\On;
 
 trait TogglesTaskCompletion
 {
@@ -28,6 +30,20 @@ trait TogglesTaskCompletion
         Notification::make()
             ->success()
             ->title($wasCompleteOrCancelled ? __('Marked incomplete.') : __('Marked complete.'))
+            ->actions([
+                Action::make('undo')
+                    ->label(__('Undo'))
+                    ->button()
+                    ->color('gray')
+                    ->dispatchTo($this->getName(), 'undo-task-complete', [(string) $taskId])
+                    ->close(),
+            ])
             ->send();
+    }
+
+    #[On('undo-task-complete')]
+    public function undoTaskComplete(string $taskId): void
+    {
+        $this->toggleTaskComplete($taskId);
     }
 }
