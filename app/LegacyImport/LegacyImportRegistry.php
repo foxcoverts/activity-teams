@@ -78,7 +78,7 @@ final class LegacyImportRegistry
             'documents' => ['class' => DocumentsImporter::class, 'core' => true],
             'notifications' => ['class' => NotificationSettingsImporter::class, 'core' => true],
             'changes' => ['class' => BookingChangesImporter::class, 'core' => true],
-            'todos' => ['class' => TodosImporter::class, 'core' => false],
+            'todos' => ['class' => TodosImporter::class, 'core' => true],
             'kit_checks' => ['class' => KitChecksImporter::class, 'core' => false],
         ];
     }

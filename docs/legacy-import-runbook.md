@@ -62,7 +62,7 @@ touch storage/app/.legacy-imported
 
 6. Spot-check login, qualifications, bookings, key holders, a document download, and calendar feeds if tokens were preserved.
 7. Leave the legacy app offline or read-only; traffic remains on `https://climbfoxcoverts.co.uk/`.
-8. Keep the legacy database until deferred todos/kit checks are imported (`--only=todos` / `--only=kit_checks` once those stories ship) or you explicitly abandon them. Then take a final dump and drop the legacy DB.
+8. Keep the legacy database until deferred kit checks are imported (`--only=kit_checks` once that story ships) or you explicitly abandon them. Todos import with the core set (US-22). Then take a final dump and drop the legacy DB.
 
 ### Re-running import
 
@@ -70,9 +70,9 @@ Import runs only when `storage/app/.legacy-imported` is absent. To force a full 
 
 ## Importer domains
 
-Core (default): `catalog`, `users`, `qualifications`, `keys`, `bookings`, `news`, `documents`, `notifications`, `changes`.
+Core (default): `catalog`, `users`, `qualifications`, `keys`, `bookings`, `news`, `documents`, `notifications`, `changes`, `todos`.
 
-Deferred stubs (refuse until built): `todos`, `kit_checks`.
+Deferred stubs (refuse until built): `kit_checks`.
 
 ```bash
 php artisan legacy:import --only=users --only=bookings

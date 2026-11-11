@@ -8,7 +8,7 @@ use App\Support\LeadAttendanceWarning;
 
 class NextLedBookingWidget extends DashboardSection
 {
-    protected static ?int $sort = 4;
+    protected static ?int $sort = 5;
 
     protected string $view = 'filament.member.widgets.next-led-booking';
 

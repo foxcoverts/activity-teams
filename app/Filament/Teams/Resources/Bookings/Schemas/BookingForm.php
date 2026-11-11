@@ -32,7 +32,9 @@ use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Js;
 use Illuminate\Validation\ValidationException;
+use Livewire\Component as LivewireComponent;
 
 class BookingForm
 {
@@ -96,13 +98,20 @@ class BookingForm
                             && $get('activity_id') !== self::OTHER_ACTIVITY
                             && ! static::activityRequiresLabel(is_string($get('activity_id')) ? $get('activity_id') : null)
                             && ! $get('show_activity_label'))
-                        ->action(fn (Set $set) => $set('show_activity_label', true)),
+                        ->action(function (Set $set, LivewireComponent $livewire): void {
+                            $set('show_activity_label', true);
+
+                            $livewire->js(
+                                'setTimeout(() => document.getElementById('.Js::from('booking-activity-label')->toHtml().')?.focus(), 50)',
+                            );
+                        }),
                 ),
             Hidden::make('show_activity_label')
                 ->default(false)
                 ->dehydrated(false),
             TextInput::make('activity_label')
                 ->label(__('Activity name'))
+                ->id('booking-activity-label')
                 ->placeholder(function (Get $get): ?string {
                     $activityId = $get('activity_id');
 

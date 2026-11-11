@@ -21,7 +21,7 @@ As a volunteer participant who belongs to multiple activity teams, I want a dedi
 
 ## Progress
 
-- Met: the teams panel (`/teams/{team}`) shows a dashboard, bookings, documents, news and a Leaders page, each scoped to the active team (criteria 1 and 3). The member panel lists bookings, documents and news and links through to the teams panel. Managers share this Teams booking experience and add create/edit/status and guest-list management there.
+- Met: the teams panel (`/teams/{team}`) shows a dashboard, bookings, documents, news, tasks (when the feature is on) and a Leaders page, each scoped to the active team (criteria 1 and 3). The member panel lists bookings, documents, news and assigned tasks and links through to the teams panel. Managers share this Teams booking experience and add create/edit/status and guest-list management there.
 - Met: the tenant switcher keeps the current team when moving between pages and resources (criterion 2, confirmed manually).
 - Met: Inbox, Qualifications and Keys stay in the member panel as the global account area (criterion 4). Revisit if they should also be reachable from team pages.
 - Met: the Leaders page lists the team's active managers as cards (avatar and name, two columns on large screens, alphabetical). A Contact action shows email and phone only after the US-58 acknowledgement.

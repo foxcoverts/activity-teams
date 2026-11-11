@@ -165,7 +165,15 @@ final class LegacyFixtureSchema
         Schema::connection($connection)->create('todos', function (Blueprint $table): void {
             $table->string('id', 26)->primary();
             $table->string('summary');
-            $table->timestamps();
+            $table->text('description')->nullable();
+            $table->string('location')->nullable();
+            $table->unsignedTinyInteger('priority')->default(5);
+            $table->string('status')->default('needs-action');
+            $table->timestamp('due_at', 6)->nullable();
+            $table->timestamp('started_at', 6)->nullable();
+            $table->timestamp('completed_at', 6)->nullable();
+            $table->unsignedInteger('sequence')->default(0);
+            $table->timestamps(6);
         });
 
         Schema::connection($connection)->create('kit_checks', function (Blueprint $table): void {

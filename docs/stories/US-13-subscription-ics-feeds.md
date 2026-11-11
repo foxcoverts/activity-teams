@@ -20,4 +20,4 @@ As a Team Member, I want a secure, token-based .ics calendar feed link so I can 
 
 ## Progress
 
-Feeds, per-user tokens (including revoke/regenerate), CLASS:PRIVATE, and sibling RELATED-TO are in place. Precise LOCATION and GEO are [US-65](US-65-ics-precise-location.md) and are done; do not treat that follow-up as reopening this story.
+Feeds, per-user tokens (including revoke/regenerate), CLASS:PRIVATE, and sibling RELATED-TO are in place. Precise LOCATION and GEO are [US-65](US-65-ics-precise-location.md) and are done; do not treat that follow-up as reopening this story. [US-22](US-22-task-management.md) adds `tasks.ics` and `everything.ics` on the same `feed_token` without reopening this story. [US-79](US-79-task-assignees-and-imip.md) extends `rota.ics` with assigned-task VTODOs (accepted / tentative / in-process).

@@ -8,7 +8,7 @@ use App\Models\User;
 
 class MyTeamsWidget extends DashboardSection
 {
-    protected static ?int $sort = 6;
+    protected static ?int $sort = 7;
 
     protected string $view = 'filament.member.widgets.my-teams';
 

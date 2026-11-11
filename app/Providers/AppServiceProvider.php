@@ -61,6 +61,8 @@ class AppServiceProvider extends ServiceProvider
                     'rssUrl' => route('news.rss', $user),
                     'bookingsUrl' => route('booking.ics', $user),
                     'rotaUrl' => route('booking.rota.ics', $user),
+                    'tasksUrl' => route('task.ics', $user),
+                    'everythingUrl' => route('calendar.everything.ics', $user),
                 ]);
             },
         );

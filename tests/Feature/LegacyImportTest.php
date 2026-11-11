@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Enums\TeamFeature;
 use App\LegacyImport\Support\LegacyFixtureSchema;
 use App\Models\Booking;
 use App\Models\Comment;
@@ -152,8 +153,23 @@ class LegacyImportTest extends TestCase
 
     public function test_deferred_importers_refuse_until_stories_ship(): void
     {
-        $this->artisan('legacy:import', ['--only' => ['todos']])
+        $this->artisan('legacy:import', ['--only' => ['kit_checks']])
             ->assertFailed();
+    }
+
+    public function test_todos_import_as_tasks_and_enable_the_team_feature(): void
+    {
+        $this->artisan('legacy:import', ['--only' => ['catalog', 'todos']])->assertSuccessful();
+
+        $this->assertDatabaseHas('tasks', [
+            'summary' => 'Signage',
+            'status' => 'needs-action',
+            'priority' => 1,
+        ]);
+
+        $team = Team::query()->where('slug', 'climbing')->first();
+        $this->assertNotNull($team);
+        $this->assertTrue($team->featureEnabled(TeamFeature::Tasks));
     }
 
     public function test_verify_passes_after_import(): void
@@ -493,6 +509,14 @@ class LegacyImportTest extends TestCase
         $legacy->table('todos')->insert([
             'id' => (string) Str::ulid(),
             'summary' => 'Signage',
+            'description' => 'Replace trail signs',
+            'location' => null,
+            'priority' => 1,
+            'status' => 'needs-action',
+            'due_at' => null,
+            'started_at' => null,
+            'completed_at' => null,
+            'sequence' => 0,
             'created_at' => $now,
             'updated_at' => $now,
         ]);

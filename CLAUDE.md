@@ -17,6 +17,10 @@ The gitignored file `.agent-accounts.json` lists local logins that are safe for 
 - If you change an account you created, update its entry. If a listed password fails, stop and tell the product owner; do not reset a password you did not just set.
 - Feature tests keep using factories. Do not create users only to fill this file.
 
+## Filament actions on Livewire components
+
+On Livewire components that use `InteractsWithActions`, Filament resolves mounted actions by method name after each request. `Action::make('assign')` must be returned from `assignAction()` (or a method literally named `assign`). Nested actions in an `ActionGroup` follow the same rule. A mismatch (for example `Action::make('assignTask')` on `assignAction()`) renders the trigger but clicks do nothing. Prefer `BookingTasks` / `TaskAssigneePanel` as the naming pattern, and cover new panel actions with `callAction` / `mountAction` tests.
+
 <laravel-boost-guidelines>
 === foundation rules ===
 
@@ -171,6 +175,7 @@ This project has domain-specific skills available in `**/skills/**`. You MUST ac
 - When creating models for tests, use the factories for the models. Check if the factory has custom states that can be used before manually setting up the model.
 - Faker: Use methods such as `$this->faker->word()` or `fake()->randomDigit()`. Follow existing conventions whether to use `$this->faker` or `fake()`.
 - When creating tests, make use of `vendor/bin/sail artisan make:test [options] {name}` to create a feature test, and pass `--unit` to create a unit test. Most tests should be feature tests.
+- Negative UI assertions (`assertDontSee` / `assertDontSeeHtml`) stay when they lock visibility or toggle behaviour — empty widgets, excluded records, actions that disappear after a state change, and similar. Do not keep negatives that only prove discarded copy or temporary scaffolding from an earlier draft is gone; assert the desired positive copy instead. Boy-scout those leftovers when a test file is already being changed; do not open unrelated tests only to strip them.
 
 === pint/core rules ===
 
@@ -244,7 +249,8 @@ Prefer icons in this order:
 - **Empty values:** use `->placeholder('-')` on infolist entries that may be blank.
 - **Member-facing copy:** do not mention system admin, or other internal roles the member does not use.
 - **Selects that mix a special destination with people:** keep the special option visually separate (ungrouped or its own group) and wrap the people in an optgroup, as Pass does for cupboard vs Members.
-- **Boy scout:** when a Filament form or infolist is already being changed, bring it up to this layout. Do not open unrelated resources only to restyle them.
+- **Dashboard widget meta:** item rows on member/team dashboard widgets use **chips only** for due time, priority, team, venue, and similar meta. Do not mix Filament badges into that chip row. Colour a chip with `get_color_css_variables(...)` and the palette/`HasColor` colour when it needs semantic colour (priority, team brand). Filament badges stay on tables, forms, infolists, and section chrome — not in widget chip rows.
+- **Boy scout:** when already working in an area, bring nearby code up to the standards that apply there; do not open unrelated files only to clean them. Known cases: Filament forms/infolists already being changed → this layout; test files already being changed → drop discarded-copy `assertDontSee` scaffolding (see Testing).
 
 ## Public form pages
 

@@ -131,11 +131,13 @@
     @apply min-w-0 truncate text-sm font-medium text-gray-950 hover:underline dark:text-white;
 }
 
-.related-bookings-panel.fi-section:not(.fi-section-not-contained)>.fi-section-header {
+.related-bookings-panel.fi-section:not(.fi-section-not-contained)>.fi-section-header,
+.task-assignee-panel.fi-section:not(.fi-section-not-contained)>.fi-section-header {
     @apply p-4 sm:px-6;
 }
 
-.related-bookings-panel.fi-section:not(.fi-section-not-contained):not(.fi-divided)>.fi-section-content-ctn>.fi-section-content {
+.related-bookings-panel.fi-section:not(.fi-section-not-contained):not(.fi-divided)>.fi-section-content-ctn>.fi-section-content,
+.task-assignee-panel.fi-section:not(.fi-section-not-contained):not(.fi-divided)>.fi-section-content-ctn>.fi-section-content {
     @apply p-0;
 }
 
@@ -308,4 +310,60 @@
 
 .invite-footer {
     @apply flex justify-end gap-2;
+}
+
+.task-complete-control {
+    @apply inline-flex size-5 shrink-0 items-center justify-center rounded-full border-2 border-gray-400 bg-transparent text-gray-400 transition dark:border-gray-500 dark:text-gray-500;
+}
+
+.task-complete-control[data-status='in-process'] {
+    @apply border-sky-600 text-sky-600 dark:border-sky-400 dark:text-sky-400;
+}
+
+.task-complete-control[data-status='completed'] {
+    @apply border-primary-600 bg-primary-600 text-white dark:border-primary-400 dark:bg-primary-400 dark:text-gray-950;
+}
+
+.task-complete-control[data-status='cancelled'] {
+    @apply border-danger-600 text-danger-600 dark:border-danger-400 dark:text-danger-400;
+}
+
+button.task-complete-control:hover,
+button.task-complete-control:focus-visible {
+    @apply border-primary-600 dark:border-primary-400;
+}
+
+button.task-complete-control[data-status='cancelled']:hover,
+button.task-complete-control[data-status='cancelled']:focus-visible {
+    @apply border-danger-600 dark:border-danger-400;
+}
+
+button.task-complete-control:disabled {
+    @apply opacity-50;
+}
+
+.task-complete-control__mark--dot {
+    @apply block size-1.5 rounded-full bg-current;
+}
+
+.task-complete-control__icon {
+    @apply size-3;
+}
+
+.task-row {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    @apply items-center gap-3 px-3 py-2.5;
+}
+
+.task-row+.task-row {
+    @apply border-t border-gray-200 dark:border-white/10;
+}
+
+.task-row__title {
+    @apply min-w-0 text-sm font-medium text-gray-950 dark:text-white;
+}
+
+.task-row__meta {
+    @apply mt-0.5 text-xs text-gray-500 dark:text-gray-400;
 }

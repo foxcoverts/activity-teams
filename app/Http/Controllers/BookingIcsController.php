@@ -3,9 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Enums\BookingAttendeeStatus;
+use App\Enums\TaskAttendeeStatus;
 use App\Models\Booking;
+use App\Models\Task;
 use App\Models\User;
 use App\Support\BookingIcsFactory;
+use App\Support\CombinedCalendarIcs;
 use DateInterval;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -13,6 +16,8 @@ use Illuminate\Support\Facades\Gate;
 
 class BookingIcsController extends Controller
 {
+    public function __construct(private CombinedCalendarIcs $combined) {}
+
     public function index(Request $request, User $user): Response
     {
         Gate::authorize('viewAny', Booking::class);
@@ -30,19 +35,41 @@ class BookingIcsController extends Controller
     {
         Gate::authorize('viewOwn', Booking::class);
 
+        $viewer = $request->user();
+        assert($viewer instanceof User);
+
         $bookings = Booking::query()
-            ->attendeeStatus($request->user(), [
+            ->attendeeStatus($viewer, [
                 BookingAttendeeStatus::Accepted,
                 BookingAttendeeStatus::Tentative,
             ])
             ->with(['activity', 'venue', 'related'])
             ->get();
 
-        return $this->download(
+        $tasks = Task::query()
+            ->whereHas('attendance', function ($query) use ($viewer): void {
+                $query->where('user_id', $viewer->getKey())
+                    ->whereIn('status', array_map(
+                        fn (TaskAttendeeStatus $status): string => $status->value,
+                        TaskAttendeeStatus::onRota(),
+                    ));
+            })
+            ->with(['bookings', 'venue', 'attendance'])
+            ->orderedForList()
+            ->get();
+
+        $body = $this->combined->make(
             $bookings,
+            $tasks,
             __(':Name Rota', ['name' => config('app.name')]),
-            'rota.ics',
+            DateInterval::createFromDateString('7 days') ?: null,
+            forTaskAssignee: $viewer,
         );
+
+        return response($body, 200, [
+            'Content-Type' => 'text/calendar; charset=utf-8',
+            'Content-Disposition' => 'attachment; filename="rota.ics"',
+        ]);
     }
 
     public function show(Request $request, Booking $booking): Response

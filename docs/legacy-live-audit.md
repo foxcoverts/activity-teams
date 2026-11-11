@@ -57,7 +57,7 @@ Started: 2026-11-03. Findings appended during an authenticated Cursor browser wa
 
 **URL:** `/todo` (menu “Tasks”; `/task` 404). Add Task; status filters; sample “Signage”; Complete task. Per-todo ICS exists in legacy routes.
 
-**Mapping:** **deferred** — US-22 (incl. VTODO).
+**Mapping:** **implemented** — US-22 Tasks (team feature flag, booking links, `tasks.ics` / `everything.ics`). Assignees and task iMIP are US-79.
 
 ---
 
@@ -208,7 +208,7 @@ Everything in the primary nav maps to **done**, **deferred**, **extra**, or **re
 | US-38 Changes / team-wide manager feed | extra |
 | US-29 Share link / post copy helpers | extra |
 | US-23/33 Kit checks | deferred |
-| US-22 Tasks / VTODO | deferred |
+| US-22 Tasks / VTODO | implemented (feeds; iMIP/assignees → US-79) |
 | General Mail Log UI | retired → US-55 |
 | US-16 nudges, US-45 bounce tracking, US-50/53 invite edges, US-62 unmapped replies | extra / not-started (not all exercised in this UI walk) |
 
