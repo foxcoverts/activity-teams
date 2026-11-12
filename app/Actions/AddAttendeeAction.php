@@ -5,6 +5,7 @@ namespace App\Actions;
 use App\Enums\BookingAttendeeStatus;
 use App\Models\Booking;
 use App\Models\User;
+use App\Support\DeclinedSessions;
 use Illuminate\Validation\ValidationException;
 
 class AddAttendeeAction
@@ -38,16 +39,30 @@ class AddAttendeeAction
             ]);
         }
 
-        if ($booking->attendees()->whereKey($attendee->getKey())->exists()) {
-            throw ValidationException::withMessages([
-                'user_id' => __('This person is already on the booking.'),
-            ]);
+        $existing = $booking->attendees()->whereKey($attendee->getKey())->first();
+
+        if ($existing !== null) {
+            if (! $existing->attendance?->isEligibleForReinvite($booking)) {
+                throw ValidationException::withMessages([
+                    'user_id' => __('This person is already on the booking.'),
+                ]);
+            }
+
+            app(OverrideAttendanceAction::class)($booking, $attendee, $manager, $status, $comment);
+
+            return;
         }
 
-        $booking->attendees()->attach($attendee->getKey(), [
+        $pivot = [
             'status' => $status->value,
             'comment' => filled($comment) ? $comment : null,
-        ]);
+        ];
+
+        if ($status === BookingAttendeeStatus::Declined) {
+            $pivot['declined_sessions'] = DeclinedSessions::fromBooking($booking)->toArray();
+        }
+
+        $booking->attendees()->attach($attendee->getKey(), $pivot);
 
         app(OverrideAttendanceAction::class)($booking, $attendee, $manager, $status, $comment);
     }

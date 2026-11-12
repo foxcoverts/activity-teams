@@ -17,4 +17,4 @@ As an Activity Manager, I want to clearly see who has already been invited or ha
 
 ## Progress
 
-The invite picker keeps someone who was already invited or has answered, shows that status, and does not let them be queued again. Recording the session details attached to a decline and making that person eligible again after the session changes is tracked separately in [US-53](US-53-reinvite-after-declined-session-changes.md).
+The invite picker keeps someone who was already invited or has answered, shows that status, and does not let them be queued again—except after a declined session no longer matches the live booking, when [US-53](US-53-reinvite-after-declined-session-changes.md) makes them manually re-invitable without auto-queuing.
