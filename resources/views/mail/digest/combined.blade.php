@@ -12,7 +12,9 @@
 @endif
 
 @if (is_array($invitationNudges) && $invitationNudges !== [])
-# {{ __('Please respond') }}
+# {{ __('Invitations') }}
+
+{{ __('You still need to reply to these invitations.') }}
 
 @foreach ($invitationNudges as $line)
 - {{ $line }}
@@ -29,7 +31,9 @@
 
 @if ((is_array($invitationNudges) && $invitationNudges !== []) || (is_array($sessionReminders) && $sessionReminders !== []))
 <x-mail::button :url="$dashboardUrl">
-{{ __('Open dashboard') }}
+{{ is_array($invitationNudges) && $invitationNudges !== [] && (! is_array($sessionReminders) || $sessionReminders === [])
+    ? __('View invitations')
+    : __('View bookings') }}
 </x-mail::button>
 @endif
 

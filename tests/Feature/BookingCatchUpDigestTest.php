@@ -181,8 +181,9 @@ class BookingCatchUpDigestTest extends TestCase
             return $mail->outstanding === 1
                 && is_array($mail->invitationNudges)
                 && str_contains($mail->invitationNudges[0], $nudgeBooking->activity->name)
-                && str_contains($mail->render(), 'Please respond')
-                && str_contains($mail->render(), 'Open dashboard')
+                && str_contains($mail->render(), 'Invitations')
+                && str_contains($mail->render(), 'You still need to reply to these invitations.')
+                && str_contains($mail->render(), 'View invitations')
                 && str_contains($mail->render(), Dashboard::getUrl(panel: 'member'));
         });
 
