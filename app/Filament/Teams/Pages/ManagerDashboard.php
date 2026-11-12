@@ -85,7 +85,10 @@ class ManagerDashboard extends BaseDashboard
             return null;
         }
 
-        $total = ManagerAttention::for($team)->summary()['total'];
+        $user = auth()->user();
+        assert($user instanceof User);
+
+        $total = ManagerAttention::for($team, $user)->summary()['total'];
 
         return $total > 0 ? (string) $total : null;
     }
@@ -98,7 +101,10 @@ class ManagerDashboard extends BaseDashboard
             return null;
         }
 
-        return ManagerAttention::for($team)->summary()['severity']?->filamentColor();
+        $user = auth()->user();
+        assert($user instanceof User);
+
+        return ManagerAttention::for($team, $user)->summary()['severity']?->filamentColor();
     }
 
     /**

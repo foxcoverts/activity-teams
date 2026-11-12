@@ -3,6 +3,7 @@
 namespace App\Filament\Teams\Widgets\Manager;
 
 use App\Models\Team;
+use App\Models\User;
 use App\Support\ManagerAttention;
 use Filament\Facades\Filament;
 use Filament\Widgets\Widget;
@@ -21,6 +22,20 @@ abstract class ManagerSection extends Widget
      * @return array<string, mixed>
      */
     abstract protected function sectionData(): array;
+
+    /**
+     * Booking triage widgets stay hidden when the viewer cannot manage the team
+     * (BookingPolicy grants booking access through manages, not system admin alone).
+     */
+    public static function canViewBookingTriage(): bool
+    {
+        $user = auth()->user();
+        $team = Filament::getTenant();
+
+        return $user instanceof User
+            && $team instanceof Team
+            && $user->manages($team);
+    }
 
     /**
      * @return array<string, mixed>

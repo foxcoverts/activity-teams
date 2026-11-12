@@ -14,6 +14,11 @@ class NeedsStaffingWidget extends ManagerSection
 
     protected string $view = 'filament.teams.widgets.manager.needs-staffing';
 
+    public static function canView(): bool
+    {
+        return static::canViewBookingTriage();
+    }
+
     protected function sectionData(): array
     {
         $attention = $this->attention();

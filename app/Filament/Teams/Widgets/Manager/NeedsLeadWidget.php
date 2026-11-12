@@ -13,6 +13,11 @@ class NeedsLeadWidget extends ManagerSection
 
     protected string $view = 'filament.teams.widgets.manager.booking-section';
 
+    public static function canView(): bool
+    {
+        return static::canViewBookingTriage();
+    }
+
     protected function sectionData(): array
     {
         $rows = $this->attention()->needsLead();

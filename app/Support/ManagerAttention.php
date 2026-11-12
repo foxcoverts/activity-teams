@@ -21,11 +21,14 @@ final class ManagerAttention
 
     public const CACHE_TTL_SECONDS = 120;
 
-    public function __construct(private Team $team) {}
+    public function __construct(
+        private Team $team,
+        private ?User $viewer = null,
+    ) {}
 
-    public static function for(Team $team): self
+    public static function for(Team $team, ?User $viewer = null): self
     {
-        return new self($team);
+        return new self($team, $viewer ?? auth()->user());
     }
 
     public static function cacheKey(string $teamId): string
@@ -50,28 +53,47 @@ final class ManagerAttention
     }
 
     /**
+     * Booking triage is for team managers. System admins may open Manager for bounce triage
+     * but BookingPolicy does not grant them booking access.
+     */
+    public function includesBookingTriage(): bool
+    {
+        return $this->viewer instanceof User && $this->viewer->manages($this->team);
+    }
+
+    /**
      * @return array{total: int, severity: AttentionSeverity|null}
      */
     public function summary(): array
     {
+        if (! $this->includesBookingTriage()) {
+            return $this->computeSummary(includeBookings: false);
+        }
+
         return Cache::remember(
             self::cacheKey($this->team->getKey()),
             self::CACHE_TTL_SECONDS,
-            fn (): array => $this->computeSummary(),
+            fn (): array => $this->computeSummary(includeBookings: true),
         );
     }
 
     /**
      * @return array{total: int, severity: AttentionSeverity|null}
      */
-    public function computeSummary(): array
+    public function computeSummary(bool $includeBookings = true): array
     {
-        $contributors = [
-            ['count' => $this->needsLead()->count(), 'severity' => AttentionSeverity::Uncertain],
-            ['count' => $this->atRisk()->count(), 'severity' => AttentionSeverity::Uncertain],
-            ['count' => $this->unstaffed()->count(), 'severity' => AttentionSeverity::Uncertain],
-            ['count' => $this->bouncedMembers()->count(), 'severity' => AttentionSeverity::Destructive],
-        ];
+        $contributors = [];
+
+        if ($includeBookings) {
+            $contributors = [
+                ...$contributors,
+                ['count' => $this->needsLead()->count(), 'severity' => AttentionSeverity::Uncertain],
+                ['count' => $this->atRisk()->count(), 'severity' => AttentionSeverity::Uncertain],
+                ['count' => $this->unstaffed()->count(), 'severity' => AttentionSeverity::Uncertain],
+            ];
+        }
+
+        $contributors[] = ['count' => $this->bouncedMembers()->count(), 'severity' => AttentionSeverity::Destructive];
 
         $total = 0;
         $severity = null;
@@ -221,6 +243,10 @@ final class ManagerAttention
      */
     private function upcomingTentatives(): Collection
     {
+        if (! $this->includesBookingTriage()) {
+            return collect();
+        }
+
         return Booking::query()
             ->where('team_id', $this->team->getKey())
             ->where('status', BookingStatus::Tentative)

@@ -77,6 +77,40 @@ class ManagerAttentionDashboardTest extends TestCase
         $this->get(ManagerDashboard::getUrl(tenant: $this->team))->assertOk();
     }
 
+    public function test_system_admins_see_bounces_but_not_booking_triage(): void
+    {
+        $admin = User::factory()->systemAdmin()->create();
+        $bounced = User::factory()->create([
+            'name' => 'Bounced For Admin',
+            'email_bounced_at' => now(),
+        ]);
+        $this->team->grant($bounced, MembershipRole::Member);
+
+        Booking::factory()->forTeam($this->team)->create([
+            'activity_label' => 'Hidden from system admin',
+            'lead_needed_at' => now(),
+            'start_at' => now()->addDays(2),
+            'end_at' => now()->addDays(2)->addHours(2),
+        ]);
+
+        $this->actingAs($admin);
+        Filament::setTenant($this->team);
+
+        $attention = ManagerAttention::for($this->team, $admin);
+        $this->assertFalse($attention->includesBookingTriage());
+        $this->assertTrue($attention->needsLead()->isEmpty());
+        $this->assertSame([$bounced->getKey()], $attention->bouncedMembers()->pluck('id')->all());
+        $this->assertSame(1, $attention->summary()['total']);
+        $this->assertSame(AttentionSeverity::Destructive, $attention->summary()['severity']);
+
+        $this->assertFalse(NeedsLeadWidget::canView());
+        $this->assertFalse(ReadyToConfirmWidget::canView());
+        $this->assertFalse(NeedsStaffingWidget::canView());
+
+        Livewire::test(EmailBouncesWidget::class)->assertSee('Bounced For Admin');
+        Livewire::test(NeedsLeadWidget::class)->assertDontSee('Hidden from system admin');
+    }
+
     public function test_clearing_a_confirmed_lead_stamps_lead_needed_and_resolves_inbox_when_fixed(): void
     {
         $this->actingAs($this->manager);

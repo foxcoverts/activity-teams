@@ -14,17 +14,20 @@ class ManagerAllCaughtUpWidget extends ManagerSection
     protected function sectionData(): array
     {
         $attention = $this->attention();
+        $canBrowseBookings = static::canViewBookingTriage();
 
         return [
             'caughtUp' => $attention->needsLead()->isEmpty()
                 && $attention->readyToConfirm()->isEmpty()
                 && $attention->needsStaffing()->isEmpty()
                 && $attention->bouncedMembers()->isEmpty(),
-            'bookingsUrl' => BookingResource::getUrl('index', [
-                'tableFilters' => [
-                    'status' => ['value' => 'tentative'],
-                ],
-            ]),
+            'bookingsUrl' => $canBrowseBookings
+                ? BookingResource::getUrl('index', [
+                    'tableFilters' => [
+                        'status' => ['value' => 'tentative'],
+                    ],
+                ])
+                : null,
             'previewLimit' => ManagerAttention::PREVIEW_LIMIT,
         ];
     }

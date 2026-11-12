@@ -29,7 +29,7 @@
                                         class="size-4" />{{ __('Bounced :age', ['age' => $age]) }}</span>
                             @endif
                             @if (filled($category))
-                                <span class="{{ $chip }}">{{ $category }}</span>
+                                <span class="{{ $chip }}">{{ \Illuminate\Support\Str::headline($category) }}</span>
                             @endif
                         </div>
                     </li>
