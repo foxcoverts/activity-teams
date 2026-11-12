@@ -32,4 +32,4 @@ As a team member, I want my dashboard to show what needs my attention, most urge
 ## Notes
 
 - The news feed (`/news/{team:slug}`) and the member bookings and tasks lists (Filament team filters) already have team filters. Your tasks shows Overdue then Assigned; See all opens the member Tasks list.
-- Teams manager attention and admin dashboard stories are deferred.
+- Teams manager attention is delivered on the Teams **Manager** dashboard ([US-41](US-41-tentative-booking-triage.md), [US-80](US-80-manager-bounce-triage-dashboard.md)). Admin dashboard stories remain deferred.

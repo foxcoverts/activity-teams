@@ -10,12 +10,17 @@ use App\Events\BookingConfirmed;
 use App\Events\BookingRestored;
 use App\Models\Booking;
 use App\Models\User;
+use App\Support\ClearLeadNeeded;
+use App\Support\ManagerAttention;
 use Illuminate\Support\Arr;
 use Illuminate\Validation\ValidationException;
 
 class UpdateBookingStatusAction
 {
-    public function __construct(private SaveBookingDetailsAction $saveBookingDetails) {}
+    public function __construct(
+        private SaveBookingDetailsAction $saveBookingDetails,
+        private ClearLeadNeeded $clearLeadNeeded,
+    ) {}
 
     public function __invoke(Booking $booking, User $actor, ?string $cancelReason = null): void
     {
@@ -96,6 +101,8 @@ class UpdateBookingStatusAction
         $booking->status = BookingStatus::Confirmed;
         $details['status'] = BookingStatus::Confirmed;
         $this->saveBookingDetails->update($booking, $details);
+        ($this->clearLeadNeeded)($booking->fresh());
+        ManagerAttention::flush($booking->team_id);
 
         $this($booking, $actor);
     }
@@ -119,6 +126,8 @@ class UpdateBookingStatusAction
         $booking->cancellationReason = $reason;
         $booking->status = BookingStatus::Cancelled;
         $booking->save();
+        ($this->clearLeadNeeded)($booking->fresh());
+        ManagerAttention::flush($booking->team_id);
 
         $this($booking, $actor, $reason);
     }
@@ -184,6 +193,8 @@ class UpdateBookingStatusAction
 
         $booking->lead_instructor_id = $leadId;
         $booking->save();
+        ($this->clearLeadNeeded)($booking->fresh());
+        ManagerAttention::flush($booking->team_id);
 
         $this($booking, $actor);
     }

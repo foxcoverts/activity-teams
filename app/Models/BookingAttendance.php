@@ -6,6 +6,7 @@ use App\Casts\AsDeclinedSessions;
 use App\Enums\BookingAttendeeStatus;
 use App\Enums\InvitationNudgeTier;
 use App\Support\DeclinedSessions;
+use App\Support\ManagerAttention;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\Pivot;
 use Illuminate\Support\Str;
@@ -39,6 +40,16 @@ class BookingAttendance extends Pivot
             }
 
             $attendance->declined_sessions = DeclinedSessions::from($attendance->declined_sessions);
+        });
+
+        static::saved(function (BookingAttendance $attendance): void {
+            if ($attendance->wasChanged('status')) {
+                ManagerAttention::flush($attendance->booking?->team_id ?? Booking::query()->whereKey($attendance->booking_id)->value('team_id'));
+            }
+        });
+
+        static::deleted(function (BookingAttendance $attendance): void {
+            ManagerAttention::flush($attendance->booking?->team_id ?? Booking::query()->whereKey($attendance->booking_id)->value('team_id'));
         });
     }
 
