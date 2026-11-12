@@ -251,6 +251,7 @@ Prefer icons in this order:
 - **Selects that mix a special destination with people:** keep the special option visually separate (ungrouped or its own group) and wrap the people in an optgroup, as Pass does for cupboard vs Members.
 - **Dashboard widget meta:** item rows on member/team dashboard widgets use **chips only** for due time, priority, team, venue, and similar meta. Do not mix Filament badges into that chip row. Colour a chip with `get_color_css_variables(...)` and the palette/`HasColor` colour when it needs semantic colour (priority, team brand). Filament badges stay on tables, forms, infolists, and section chrome — not in widget chip rows.
 - **Boy scout:** when already working in an area, bring nearby code up to the standards that apply there; do not open unrelated files only to clean them. Known cases: Filament forms/infolists already being changed → this layout; test files already being changed → drop discarded-copy `assertDontSee` scaffolding (see Testing).
+- **Textarea submit shortcut:** when a Filament action modal (or similar panel form) includes a `Textarea` where submitting from the keyboard is useful, wire `App\Filament\Support\SubmitsOnModEnter::attributes()` via `extraAlpineAttributes` so Cmd/Ctrl+Enter submits the enclosing form while plain Enter keeps newlines. Prefer that helper over one-off Alpine. Do not use it where Enter already means send (booking comments use Enter / Shift+Enter).
 
 ## Public form pages
 

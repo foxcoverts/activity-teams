@@ -7,6 +7,7 @@ use App\Actions\OverrideAttendanceAction;
 use App\Actions\ResendBookingIcsAction;
 use App\Enums\BookingAttendeeResponse;
 use App\Enums\BookingAttendeeStatus;
+use App\Filament\Support\SubmitsOnModEnter;
 use App\Filament\Teams\Resources\Members\MemberResource;
 use App\Models\Booking;
 use App\Models\BookingAttendance;
@@ -383,7 +384,8 @@ class AttendeesRelationManager extends RelationManager
                 ->options(BookingAttendeeResponse::class)
                 ->inline()
                 ->required(),
-            Textarea::make('comment'),
+            Textarea::make('comment')
+                ->extraAlpineAttributes(SubmitsOnModEnter::attributes()),
         ];
     }
 

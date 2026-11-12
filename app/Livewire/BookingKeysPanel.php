@@ -5,6 +5,7 @@ namespace App\Livewire;
 use App\Actions\InviteAttendeesAction;
 use App\Actions\OverrideAttendanceAction;
 use App\Enums\BookingAttendeeResponse;
+use App\Filament\Support\SubmitsOnModEnter;
 use App\Filament\Teams\Resources\Members\MemberResource;
 use App\Models\Booking;
 use App\Models\BookingAttendance;
@@ -111,7 +112,8 @@ class BookingKeysPanel extends Component implements HasActions, HasSchemas
                     ->options(BookingAttendeeResponse::class)
                     ->inline()
                     ->required(),
-                Textarea::make('comment'),
+                Textarea::make('comment')
+                    ->extraAlpineAttributes(SubmitsOnModEnter::attributes()),
             ])
             ->action(function (array $arguments, array $data): void {
                 $manager = auth()->user();
