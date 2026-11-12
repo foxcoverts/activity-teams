@@ -437,6 +437,8 @@ class InboxDigestTest extends TestCase
         $booking->attendees()->attach($user->getKey(), [
             'status' => BookingAttendeeStatus::Accepted->value,
             'token' => BookingAttendance::generateToken(),
+            // Avoid US-16 session reminders interfering with rota-only digest assertions.
+            'session_reminded_at' => now(),
         ]);
     }
 

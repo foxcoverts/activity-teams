@@ -11,6 +11,32 @@
 </x-mail::button>
 @endif
 
+@if (is_array($invitationNudges) && $invitationNudges !== [])
+# {{ __('Invitations') }}
+
+{{ __('You still need to reply to these invitations.') }}
+
+@foreach ($invitationNudges as $line)
+- {{ $line }}
+@endforeach
+@endif
+
+@if (is_array($sessionReminders) && $sessionReminders !== [])
+# {{ __('Coming up') }}
+
+@foreach ($sessionReminders as $line)
+- {{ $line }}
+@endforeach
+@endif
+
+@if ((is_array($invitationNudges) && $invitationNudges !== []) || (is_array($sessionReminders) && $sessionReminders !== []))
+<x-mail::button :url="$dashboardUrl">
+{{ is_array($invitationNudges) && $invitationNudges !== [] && (! is_array($sessionReminders) || $sessionReminders === [])
+    ? __('View invitations')
+    : __('View bookings') }}
+</x-mail::button>
+@endif
+
 @if (is_array($rota))
 # {{ __('Your rota') }}
 

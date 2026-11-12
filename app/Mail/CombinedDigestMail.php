@@ -15,12 +15,17 @@ class CombinedDigestMail extends Mailable implements ShouldQueue
 
     /**
      * @param  array{changed: bool, additions: list<string>, removals: list<string>, remaining: list<string>}|null  $rota
+     * @param  list<string>|null  $invitationNudges
+     * @param  list<string>|null  $sessionReminders
      */
     public function __construct(
         public ?int $outstanding,
         public int $unreadRemainder,
         public ?array $rota,
+        public ?array $invitationNudges,
+        public ?array $sessionReminders,
         public string $inboxUrl,
+        public string $dashboardUrl,
     ) {
         $this->afterCommit();
     }
@@ -28,7 +33,9 @@ class CombinedDigestMail extends Mailable implements ShouldQueue
     public function envelope(): Envelope
     {
         $subject = $this->outstanding === null
-            ? __('Your rota')
+            ? ($this->invitationNudges !== null || $this->sessionReminders !== null
+                ? __('Booking catch-up')
+                : __('Your rota'))
             : trans_choice('You have :count new notification|You have :count new notifications', $this->outstanding, [
                 'count' => $this->outstanding,
             ]);

@@ -2,22 +2,30 @@
 
 namespace App\Support;
 
+use App\Enums\InvitationNudgeTier;
+use App\Filament\Member\Pages\Dashboard;
 use App\Filament\Member\Resources\Inbox\InboxResource;
+use App\Mail\BookingInvitationNudgeMail;
+use App\Mail\BookingSessionReminderMail;
 use App\Mail\CombinedDigestMail;
+use App\Models\Booking;
+use App\Models\BookingAttendance;
 use App\Models\InboxNotification;
-use App\Models\OutboundMail;
 use App\Models\User;
 use App\Notifications\Concerns\RecordsInbox;
 use Illuminate\Mail\Mailable;
 use Illuminate\Notifications\Channels\MailChannel;
 use Illuminate\Notifications\Notification;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Str;
 
 final class CombinedDigest
 {
     public function __construct(
         private RotaDigest $rota,
         private InboundReviewNudge $inbound,
+        private BookingCatchUp $catchUp,
     ) {}
 
     public function sendAll(): void
@@ -26,6 +34,7 @@ final class CombinedDigest
 
         $ids = InboxNotification::query()->outstanding()->pluck('notifiable_id')
             ->merge($this->rota->candidateUserIds())
+            ->merge($this->catchUp->candidateUserIds())
             ->unique()
             ->filter()
             ->values();
@@ -42,12 +51,21 @@ final class CombinedDigest
         $emailable = $outstanding->filter(fn (InboxNotification $row): bool => $this->emailable($user, $row));
         $count = $emailable->count();
         $rotaChanged = $rota['changed'];
+        $nudges = $this->catchUp->dueInvitationNudges($user);
+        $reminders = $this->catchUp->dueSessionReminders($user);
+        $catchUpCount = $nudges->count() + $reminders->count();
 
-        if ($count === 0 && ! $rotaChanged) {
+        if ($count === 0 && ! $rotaChanged && $catchUpCount === 0) {
             return;
         }
 
-        if ($count === 1 && ! $rotaChanged) {
+        if ($count === 0 && ! $rotaChanged && $catchUpCount === 1) {
+            $this->sendFocusedCatchUp($user, $nudges, $reminders);
+
+            return;
+        }
+
+        if ($count === 1 && ! $rotaChanged && $catchUpCount === 0) {
             $row = $emailable->first();
 
             if ($row instanceof InboxNotification) {
@@ -63,13 +81,52 @@ final class CombinedDigest
             outstanding: $count === 0 ? null : $outstanding->count(),
             unreadRemainder: $count === 0 ? 0 : $unreadRemainder,
             rota: $rotaChanged ? $rota : null,
+            invitationNudges: $nudges->isEmpty() ? null : $nudges->pluck('label')->all(),
+            sessionReminders: $reminders->isEmpty() ? null : $reminders->pluck('label')->all(),
             inboxUrl: InboxResource::getUrl(panel: 'member'),
+            dashboardUrl: Dashboard::getUrl(panel: 'member'),
         ));
 
         if ($count > 0) {
             $outstanding->each(function (InboxNotification $row): void {
                 $row->forceFill(['digest_notified_at' => now()])->save();
             });
+        }
+
+        $this->stampCatchUp($nudges, $reminders);
+    }
+
+    /**
+     * @param  Collection<int, array{attendance: BookingAttendance, booking: Booking, tier: InvitationNudgeTier, label: string}>  $nudges
+     * @param  Collection<int, array{attendance: BookingAttendance, booking: Booking, label: string}>  $reminders
+     */
+    private function sendFocusedCatchUp(User $user, Collection $nudges, Collection $reminders): void
+    {
+        if ($nudges->count() === 1) {
+            $item = $nudges->first();
+            Mail::to($user)->send(new BookingInvitationNudgeMail($item['booking'], $user));
+            $this->catchUp->markInvitationNudge($item['attendance'], $item['tier']);
+
+            return;
+        }
+
+        $item = $reminders->first();
+        Mail::to($user)->send(new BookingSessionReminderMail($item['booking'], $user));
+        $this->catchUp->markSessionReminder($item['attendance']);
+    }
+
+    /**
+     * @param  Collection<int, array{attendance: BookingAttendance, booking: Booking, tier: InvitationNudgeTier, label: string}>  $nudges
+     * @param  Collection<int, array{attendance: BookingAttendance, booking: Booking, label: string}>  $reminders
+     */
+    private function stampCatchUp(Collection $nudges, Collection $reminders): void
+    {
+        foreach ($nudges as $item) {
+            $this->catchUp->markInvitationNudge($item['attendance'], $item['tier']);
+        }
+
+        foreach ($reminders as $item) {
+            $this->catchUp->markSessionReminder($item['attendance']);
         }
     }
 
@@ -114,15 +171,10 @@ final class CombinedDigest
             app(MailChannel::class)->send($user, $notification);
         }
 
-        $messageId = OutboundMail::query()
-            ->where('recipient', strtolower((string) $user->email))
-            ->latest('created_at')
-            ->value('message_id');
-
         $row->forceFill([
             'read_at' => now(),
             'digest_notified_at' => now(),
-            'outbound_message_id' => $messageId,
+            'outbound_message_id' => (string) Str::uuid(),
         ])->save();
     }
 }
