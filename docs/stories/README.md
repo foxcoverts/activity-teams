@@ -69,7 +69,8 @@ When an enum is shown in Filament, give it a label, and a color and icon when th
 - [US-29 Booking Share Link Copy Action](US-29-booking-share-link-copy.md) — `not-started`
 - [US-30 Standard URL Sharing Capability](US-30-standard-url-sharing.md) — `done`
 - [US-31 Open Graph Meta Tags for Link Previews](US-31-open-graph-link-previews.md) — `done`
-- [US-45 Outgoing Email Delivery Tracking & Bounce Management](US-45-email-delivery-bounce-tracking.md) — `not-started`
+- [US-45 Outgoing Email Delivery Tracking & Bounce Management](US-45-email-delivery-bounce-tracking.md) — `done`
+- [US-80 Manager Bounce / Contact-Failure Triage](US-80-manager-bounce-triage-dashboard.md) — `not-started`
 - [US-54 Team News Posts & Distribution](US-54-team-news-posts.md) — `done`
 - [US-55 Inbound Email Routing & Failure Alerts](US-55-inbound-email-routing-and-alerts.md) — `done`
 - [US-61 Notification Settings](US-61-notification-settings.md) — `done`
@@ -124,7 +125,7 @@ When an enum is shown in Filament, give it a label, and a color and icon when th
   - US-69 to US-74 are the member dashboard. Their scope is a proposal and is open for the product owner to decide.
   - US-29 has a UI action in the legacy climbing-team app, but not in Activity Teams; it is not a release priority.
   - US-38 is extra. Per-booking history is [US-39](US-39-member-booking-audit-stream.md) and stays done. The team-wide manager feed is not a relaunch requirement.
-  - US-45 is extra and should be reconsidered during outgoing-mail reimplementation; include delivery/bounce tracking if the mail provider makes it cheap or free.
+  - US-45 is done for sent/bounced tracking via ForwardEmail webhooks; delivered receipts and the manager triage list are deferred ([US-80](US-80-manager-bounce-triage-dashboard.md)).
   - US-63 is extra and done: catalog postal address and map pin. Bookings take `location` / `coords` from the venue. US-65 ICS precise location is done on the shared factory. US-64 catalog create, adoption lock, and private booking places, and US-68 Other activity and Activity name, are extra and done. US-13 stays done.
 - **Deferred:** [US-06 User Role & Status Badges](US-06-user-role-status-badges.md), [US-50 Invite Someone Who Is Not on the Team](US-50-invite-non-members.md), [US-23 Instructor Kit Compliance](US-23-instructor-kit-compliance.md), and [US-33 Kit Checker Inspection](US-33-kit-checker-inspection-workflow.md). These are deliberately held back from relaunch.
 

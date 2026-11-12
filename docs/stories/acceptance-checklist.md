@@ -15,7 +15,8 @@ Most members are not yet using Activity Teams day-to-day; use that quiet window 
 - [ ] **Contact windows (US-18/19):** phone and emergency windows in the booking timezone; lead vs attendee visibility; denial without US-58 / wrong role
 - [ ] **Suspension (US-48):** suspended member loses access and optional notifications; manager exceptions still work and stay silent
 - [ ] **Account and data rights (US-57):** invitation-only signup, password change/reset, export, confirmed deletion, privacy notice, last-admin refusal, 30-day contact purge with named shell
-- [ ] **Inbound email (US-55):** ForwardEmail site aliases (`booking@`, `task@`, `key@`, `teams@` — each covers its `+` form); `team@` stays a human forward; known iMIP REPLY/REFRESH; unrouted/failed stay in admin queue; manager alerts without raw body; unauthenticated webhook rejected and not stored
+- [ ] **Inbound email (US-55):** ForwardEmail site aliases (`booking@`, `task@`, `key@`, `teams@` — each covers its `+` form) to `/api/webhooks/forwardemail/mail`; `team@` stays a human forward; known iMIP REPLY/REFRESH; unrouted/failed stay in admin queue; manager alerts without raw body; unauthenticated webhook rejected and not stored
+- [ ] **Outbound bounce tracking (US-45):** ForwardEmail bounce webhook to `/api/webhooks/forwardemail/bounces`; hard bounce flags the member and notifies managers with a profile link; soft bounce logs only; changing email clears the flag
 - [ ] **News (US-54):** manager publish; team feed isolation; digest to opted-in only; opt-out keeps feed access
 - [ ] **Calendar feeds (US-13):** token access; regenerate/revoke stops the old URL; ICS content looks right (timezone, location, related siblings as applicable)
 - [ ] **Booking calendar / iMIP (US-15 / US-76):** invite loads in Gmail/calendar; REPLY updates attendance; force-send / Send to Email when needed

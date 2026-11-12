@@ -77,6 +77,7 @@ class User extends Authenticatable implements FilamentUser, HasAvatar, HasDefaul
     {
         return [
             'email_verified_at' => 'datetime',
+            'email_bounced_at' => 'datetime',
             'privacy_notice_accepted_at' => 'datetime',
             'profile_confirmed_at' => 'datetime',
             'password' => 'hashed',
@@ -99,6 +100,13 @@ class User extends Authenticatable implements FilamentUser, HasAvatar, HasDefaul
             }
         });
 
+        static::updating(function (User $user): void {
+            if ($user->isDirty('email')) {
+                $user->email_bounced_at = null;
+                $user->email_bounce_category = null;
+            }
+        });
+
         static::deleting(function (User $user): void {
             if (! $user->isForceDeleting()) {
                 return;
@@ -106,6 +114,11 @@ class User extends Authenticatable implements FilamentUser, HasAvatar, HasDefaul
 
             $user->qualifications()->get()->each->delete();
         });
+    }
+
+    public function hasBouncedEmail(): bool
+    {
+        return $this->email_bounced_at !== null;
     }
 
     public function notifications(): MorphMany

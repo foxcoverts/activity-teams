@@ -5,13 +5,13 @@ namespace App\Support;
 use App\Filament\Member\Resources\Inbox\InboxResource;
 use App\Mail\CombinedDigestMail;
 use App\Models\InboxNotification;
+use App\Models\OutboundMail;
 use App\Models\User;
 use App\Notifications\Concerns\RecordsInbox;
 use Illuminate\Mail\Mailable;
 use Illuminate\Notifications\Channels\MailChannel;
 use Illuminate\Notifications\Notification;
 use Illuminate\Support\Facades\Mail;
-use Illuminate\Support\Str;
 
 final class CombinedDigest
 {
@@ -114,10 +114,15 @@ final class CombinedDigest
             app(MailChannel::class)->send($user, $notification);
         }
 
+        $messageId = OutboundMail::query()
+            ->where('recipient', strtolower((string) $user->email))
+            ->latest('created_at')
+            ->value('message_id');
+
         $row->forceFill([
             'read_at' => now(),
             'digest_notified_at' => now(),
-            'outbound_message_id' => (string) Str::uuid(),
+            'outbound_message_id' => $messageId,
         ])->save();
     }
 }

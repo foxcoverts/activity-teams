@@ -96,6 +96,11 @@ class PersonalDataSection
             ->state(fn (User $record): ?string => $record->isPlaceholder()
                 ? $record->invitation?->email
                 : $record->email)
+            ->placeholder('-')
+            ->helperText(fn (User $record): ?string => $record->hasBouncedEmail()
+                ? __('Delivery failed for this address. Update it so the member does not miss invitations.')
+                : null)
+            ->color(fn (User $record): ?array => $record->hasBouncedEmail() ? Palette::destructive() : null)
             ->visible(fn (User $record): bool => $record->isPlaceholder()
                 ? filled($record->invitation?->email)
                 : true);
@@ -107,6 +112,7 @@ class PersonalDataSection
             $record === null => '',
             $record->isPlaceholder() && $record->invitation === null => __('No invitation'),
             $record->isPlaceholder() => $record->invitationStatus()->getLabel(),
+            $record->hasBouncedEmail() => __('Email bounced'),
             $record->hasVerifiedEmail() => __('Email verified'),
             default => __('Email not verified'),
         })
@@ -117,6 +123,7 @@ class PersonalDataSection
                 $record === null => Heroicon::ExclamationCircle,
                 $record->isPlaceholder() && $record->invitation === null => Heroicon::ExclamationTriangle,
                 $record->isPlaceholder() => $record->invitationStatus()->getIcon(),
+                $record->hasBouncedEmail() => Heroicon::ExclamationTriangle,
                 $record->hasVerifiedEmail() => Heroicon::CheckCircle,
                 default => Heroicon::ExclamationCircle,
             })
@@ -124,6 +131,7 @@ class PersonalDataSection
                 $record === null => Palette::uncertain(),
                 $record->isPlaceholder() && $record->invitation === null => Palette::uncertain(),
                 $record->isPlaceholder() => $record->invitationStatus()->getColor(),
+                $record->hasBouncedEmail() => Palette::destructive(),
                 $record->hasVerifiedEmail() => Palette::positive(),
                 default => Palette::uncertain(),
             });
