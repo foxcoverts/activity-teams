@@ -8,7 +8,10 @@ use App\Actions\RespondToBookingAction;
 use App\Actions\UpdateBookingStatusAction;
 use App\Enums\BookingAttendeeStatus;
 use App\Enums\BookingStatus;
+use App\Events\BookingChanged;
+use App\Jobs\SendBookingNotification;
 use App\Livewire\InviteAttendees;
+use App\Mail\BookingChangedMail;
 use App\Models\Booking;
 use App\Models\BookingAttendance;
 use App\Models\User;
@@ -16,6 +19,8 @@ use App\Models\Venue;
 use App\Support\DeclinedSessions;
 use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Queue;
 use Livewire\Livewire;
 use Tests\TestCase;
 
@@ -209,6 +214,75 @@ class DeclinedSessionReinviteTest extends TestCase
         ]);
 
         $this->assertTrue($this->attendance($booking, $member)->isEligibleForReinvite($booking->fresh()));
+    }
+
+    public function test_declined_guest_skips_ordinary_updates_until_the_session_changes(): void
+    {
+        [$booking, $member, $manager] = $this->declinedOnCurrentSession();
+
+        Queue::fake();
+        Mail::fake();
+
+        event(new BookingChanged($booking->fresh(), $manager, ['notes'], null));
+
+        foreach (Queue::pushed(SendBookingNotification::class) as $job) {
+            $job->handle();
+        }
+
+        Mail::assertNotSent(BookingChangedMail::class, fn (BookingChangedMail $mail): bool => $mail->hasTo($member->email));
+
+        $booking->update([
+            'start_at' => $booking->start_at->copy()->addHours(1),
+            'end_at' => $booking->end_at->copy()->addHours(1),
+        ]);
+
+        Queue::fake();
+        Mail::fake();
+
+        event(new BookingChanged($booking->fresh(), $manager, ['start_at', 'end_at'], null));
+
+        foreach (Queue::pushed(SendBookingNotification::class) as $job) {
+            $job->handle();
+        }
+
+        Mail::assertSent(BookingChangedMail::class, function (BookingChangedMail $mail) use ($member): bool {
+            if (! $mail->hasTo($member->email)) {
+                return false;
+            }
+
+            $html = $mail->render();
+
+            return str_contains($html, 'choice=accepted')
+                && str_contains($html, 'choice=declined')
+                && str_contains($html, 'choice=tentative')
+                && ! str_contains($html, 'View response');
+        });
+    }
+
+    public function test_declined_guest_with_calendar_channel_still_gets_ordinary_updates(): void
+    {
+        [$booking, $member, $manager] = $this->declinedOnCurrentSession();
+        $booking->markCalendarChannel($member);
+
+        Queue::fake();
+        Mail::fake();
+
+        event(new BookingChanged($booking->fresh(), $manager, ['notes'], null));
+
+        foreach (Queue::pushed(SendBookingNotification::class) as $job) {
+            $job->handle();
+        }
+
+        Mail::assertSent(BookingChangedMail::class, function (BookingChangedMail $mail) use ($member): bool {
+            if (! $mail->hasTo($member->email)) {
+                return false;
+            }
+
+            $html = $mail->render();
+
+            return str_contains($html, 'View response')
+                && ! str_contains($html, 'choice=accepted');
+        });
     }
 
     /**
