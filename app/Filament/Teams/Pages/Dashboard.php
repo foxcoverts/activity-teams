@@ -3,6 +3,7 @@
 namespace App\Filament\Teams\Pages;
 
 use App\Filament\Pages\Dashboard as BaseDashboard;
+use App\Filament\Teams\Widgets\AdminTeamVisitorWidget;
 use App\Filament\Teams\Widgets\AllCaughtUpWidget;
 use App\Filament\Teams\Widgets\AssignedTasksWidget;
 use App\Filament\Teams\Widgets\LatestNewsWidget;
@@ -34,8 +35,8 @@ class Dashboard extends BaseDashboard
     {
         $tenant = Filament::getTenant();
 
-        if ($tenant) {
-            return __(':Team Overview', ['team' => $tenant->name]); // Custom dynamic title
+        if ($tenant instanceof Team) {
+            return __(':Team Overview', ['team' => $tenant->name]);
         }
 
         return __('filament-panels::pages/dashboard.title');
@@ -67,12 +68,18 @@ class Dashboard extends BaseDashboard
     }
 
     /**
-     * The member dashboard sections, scoped to the active team. The inbox stays on the member dashboard because notices are not team-specific.
+     * Member-scoped sections for people on the team. System admins who are not members get a visitor panel instead.
      *
      * @return array<class-string>
      */
     public function getWidgets(): array
     {
+        if (AdminTeamVisitorWidget::viewerIsNonMemberAdmin()) {
+            return [
+                AdminTeamVisitorWidget::class,
+            ];
+        }
+
         return [
             ThisWeekWidget::class,
             NeedsResponseWidget::class,

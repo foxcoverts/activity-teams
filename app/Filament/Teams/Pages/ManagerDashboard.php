@@ -51,7 +51,7 @@ class ManagerDashboard extends BaseDashboard
 
         return $user instanceof User
             && $team instanceof Team
-            && $user->manages($team);
+            && ($user->manages($team) || $user->isSystemAdmin());
     }
 
     public static function shouldRegisterNavigation(): bool

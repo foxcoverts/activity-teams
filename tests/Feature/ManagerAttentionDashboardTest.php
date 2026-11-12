@@ -66,6 +66,17 @@ class ManagerAttentionDashboardTest extends TestCase
         $this->get(ManagerDashboard::getUrl(tenant: $this->team))->assertOk();
     }
 
+    public function test_system_admins_can_open_the_manager_dashboard_without_membership(): void
+    {
+        $admin = User::factory()->systemAdmin()->create();
+
+        $this->actingAs($admin);
+        Filament::setTenant($this->team);
+
+        $this->assertTrue(ManagerDashboard::canAccess());
+        $this->get(ManagerDashboard::getUrl(tenant: $this->team))->assertOk();
+    }
+
     public function test_clearing_a_confirmed_lead_stamps_lead_needed_and_resolves_inbox_when_fixed(): void
     {
         $this->actingAs($this->manager);
