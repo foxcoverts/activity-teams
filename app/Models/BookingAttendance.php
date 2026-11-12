@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\BookingAttendeeStatus;
+use App\Enums\InvitationNudgeTier;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\Pivot;
 use Illuminate\Support\Str;
@@ -18,6 +19,8 @@ class BookingAttendance extends Pivot
         'comment',
         'token',
         'calendar_imip_at',
+        'invitation_nudge_tier',
+        'session_reminded_at',
     ];
 
     protected $attributes = [
@@ -39,6 +42,8 @@ class BookingAttendance extends Pivot
         return [
             'status' => BookingAttendeeStatus::class,
             'calendar_imip_at' => 'datetime',
+            'invitation_nudge_tier' => InvitationNudgeTier::class,
+            'session_reminded_at' => 'datetime',
         ];
     }
 

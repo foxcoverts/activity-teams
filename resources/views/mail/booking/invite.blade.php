@@ -1,7 +1,7 @@
 <x-mail::message>
-# {{ __('You have been invited') }}
+# {{ $title ?? __('You have been invited') }}
 
-{{ __('You have been invited to help with a booking.') }}
+{{ $intro ?? __('You have been invited to help with a booking.') }}
 
 **{{ __('Activity') }}:** {{ $booking->activityTitle() }}<br>
 **{{ __('Audience') }}:** {{ $booking->audience?->name }}  
