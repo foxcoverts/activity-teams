@@ -17,6 +17,8 @@ class CombinedDigestMail extends Mailable implements ShouldQueue
      * @param  array{changed: bool, additions: list<string>, removals: list<string>, remaining: list<string>}|null  $rota
      * @param  list<string>|null  $invitationNudges
      * @param  list<string>|null  $sessionReminders
+     * @param  list<string>|null  $attentionNew
+     * @param  list<string>|null  $attentionOutstanding
      */
     public function __construct(
         public ?int $outstanding,
@@ -24,23 +26,34 @@ class CombinedDigestMail extends Mailable implements ShouldQueue
         public ?array $rota,
         public ?array $invitationNudges,
         public ?array $sessionReminders,
+        public ?array $attentionNew,
+        public ?array $attentionOutstanding,
         public string $inboxUrl,
         public string $dashboardUrl,
+        public ?string $managerUrl,
     ) {
         $this->afterCommit();
     }
 
     public function envelope(): Envelope
     {
-        $subject = $this->outstanding === null
-            ? ($this->invitationNudges !== null || $this->sessionReminders !== null
-                ? __('Booking catch-up')
-                : __('Your rota'))
-            : trans_choice('You have :count new notification|You have :count new notifications', $this->outstanding, [
-                'count' => $this->outstanding,
-            ]);
+        if ($this->outstanding !== null) {
+            return new Envelope(subject: trans_choice(
+                'You have :count new notification|You have :count new notifications',
+                $this->outstanding,
+                ['count' => $this->outstanding],
+            ));
+        }
 
-        return new Envelope(subject: $subject);
+        if ($this->attentionNew !== null) {
+            return new Envelope(subject: __('Manager attention'));
+        }
+
+        if ($this->invitationNudges !== null || $this->sessionReminders !== null) {
+            return new Envelope(subject: __('Booking catch-up'));
+        }
+
+        return new Envelope(subject: __('Your rota'));
     }
 
     public function content(): Content
