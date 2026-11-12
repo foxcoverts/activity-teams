@@ -384,7 +384,7 @@ class Booking extends Model implements Commentable
     {
         return $this->belongsToMany(User::class)
             ->withTimestamps()
-            ->withPivot('comment', 'status', 'token', 'calendar_imip_at')->as('attendance')
+            ->withPivot('comment', 'status', 'token', 'calendar_imip_at', 'declined_sessions')->as('attendance')
             ->using(BookingAttendance::class);
     }
 

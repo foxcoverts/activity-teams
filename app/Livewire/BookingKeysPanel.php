@@ -274,7 +274,11 @@ class BookingKeysPanel extends Component implements HasActions, HasSchemas
             return false;
         }
 
-        return $this->booking->attendees->find($person->getKey()) === null
+        $attendee = $this->booking->attendees->find($person->getKey());
+        $available = $attendee === null
+            || ($attendee->attendance?->isEligibleForReinvite($this->booking) ?? false);
+
+        return $available
             && ! $person->isSuspended()
             && $person->hasVerifiedEmail()
             && $this->booking->team !== null

@@ -337,9 +337,19 @@ class AttendeesRelationManager extends RelationManager
             return [];
         }
 
+        $booking->loadMissing('attendees');
+
+        $onBookingIds = $booking->attendees
+            ->reject(fn (User $attendee): bool => $attendee->attendance?->isEligibleForReinvite($booking) ?? false)
+            ->map(fn (User $attendee): string => (string) $attendee->getKey())
+            ->all();
+
         return $booking->team->members()
             ->where('suspended', false)
-            ->whereDoesntHave('bookings', fn (Builder $query) => $query->where('booking_id', $booking->id))
+            ->when(
+                $onBookingIds !== [],
+                fn (Builder $query) => $query->whereKeyNot($onBookingIds),
+            )
             ->ordered()
             ->pluck('users.name', 'users.id')
             ->all();

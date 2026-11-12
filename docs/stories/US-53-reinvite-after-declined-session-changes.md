@@ -1,7 +1,7 @@
 ---
 id: US-53
 title: "Re-invite After Declined Session Changes"
-status: not-started
+status: done
 area: bookings
 scope: extra
 ---
@@ -12,8 +12,12 @@ As an Activity Manager, I want a member who declined an invitation to become eli
 
 ## Acceptance criteria
 
-- When a member declines an invitation, record the booking's start, end, and venue with that decline.
-- In the invitation picker, make the member eligible to be invited again when the booking's current start, end, or venue differs from the values recorded with their decline. This includes a session moved to a different time on the same day.
-- Keep the decline in place when the booking is restored or edited but its start, end, and venue still match the declined session.
-- If the member declines again after being invited to a changed session, associate that decline with the new start, end, and venue.
+- When a member declines an invitation, add the booking's current start, end, and venue to a set of declined sessions on that attendance row.
+- In the invitation picker, make the member eligible to be invited again when the booking's live start, end, and venue do not exactly match any retained declined session. This includes a session moved to a different time on the same day. Eligible declined people stay in the bottom picker (not auto-queued) and keep their Declined badge.
+- Keep the decline in place when the booking is restored or edited but its live session still matches a retained declined session.
+- If the member declines again after being invited to a changed session, add that new session to the set without forgetting earlier ones.
 - Apply this behavior to every decline, regardless of how the response was recorded. Recording that a reply arrived by iMIP, and using that provenance to determine calendar cancellation behavior, remains the separate scope of [US-15](US-15-inbound-calendar-response-parsing.md).
+
+## Progress
+
+`booking_user.declined_sessions` stores a set of `{start_at, end_at, venue_id}` triples via `DeclinedSessions` / `AsDeclinedSessions`. Every decline path (`RespondToBookingAction`, `OverrideAttendanceAction`, `AddAttendeeAction`) adds the live session to that set. History survives re-invite and Accept; it is removed only when the attendee is detached. The invite picker, Keys invite, and Add-member options treat Declined + non-matching live session as re-invitable; opening auto-queue still skips them. Update mail goes to declined guests only when their calendar channel is open or the live session is re-invitable; those session-change updates show Yes/No/Maybe instead of View response.

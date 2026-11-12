@@ -20,7 +20,7 @@ As a team member on a booking, I want to download or email myself the current ca
 - A per-booking attendee **calendar channel** (`booking_user.calendar_imip_at`) is set only when inbound `REPLY` or `REFRESH` is handled for that person on that booking. Outbound invite, update, cancel, and force-send do not open the channel.
 - While the channel is active, lifecycle booking mail that carries ICS (invite, update, confirm, cancel) still sends even when `bookings.mail` / `bookings.updates` would block, and does not write a held inbox row for that send.
 - Without a channel, optional-mail off still skips ICS and writes a held inbox item as in [US-61](US-61-notification-settings.md) / [US-67](US-67-member-notification-inbox.md).
-- The channel is cleared after a successful outbound `METHOD:CANCEL` send to that attendee. An inbound Declined `REPLY` leaves the channel set; declined attendees already skip ordinary updates. Cancel inclusion for prior iMIP declines stays on `via: imip` ([US-28](US-28-booking-cancellation-reasons.md)).
+- The channel is cleared after a successful outbound `METHOD:CANCEL` send to that attendee. An inbound Declined `REPLY` leaves the channel set. Declined attendees skip ordinary updates unless the calendar channel is open (ICS must stay in sync) or the live session is re-invitable under [US-53](US-53-reinvite-after-declined-session-changes.md). Cancel inclusion for prior iMIP declines stays on `via: imip` ([US-28](US-28-booking-cancellation-reasons.md)).
 
 ## Progress
 

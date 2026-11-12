@@ -2,8 +2,10 @@
 
 namespace App\Models;
 
+use App\Casts\AsDeclinedSessions;
 use App\Enums\BookingAttendeeStatus;
 use App\Enums\InvitationNudgeTier;
+use App\Support\DeclinedSessions;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\Pivot;
 use Illuminate\Support\Str;
@@ -21,6 +23,7 @@ class BookingAttendance extends Pivot
         'calendar_imip_at',
         'invitation_nudge_tier',
         'session_reminded_at',
+        'declined_sessions',
     ];
 
     protected $attributes = [
@@ -34,6 +37,8 @@ class BookingAttendance extends Pivot
             if (blank($attendance->token)) {
                 $attendance->token = static::generateToken();
             }
+
+            $attendance->declined_sessions = DeclinedSessions::from($attendance->declined_sessions);
         });
     }
 
@@ -44,12 +49,33 @@ class BookingAttendance extends Pivot
             'calendar_imip_at' => 'datetime',
             'invitation_nudge_tier' => InvitationNudgeTier::class,
             'session_reminded_at' => 'datetime',
+            'declined_sessions' => AsDeclinedSessions::class,
         ];
     }
 
     public function hasCalendarChannel(): bool
     {
         return $this->calendar_imip_at !== null;
+    }
+
+    /**
+     * @return array{declined_sessions: DeclinedSessions}
+     */
+    public function recordDeclinedSession(Booking $booking): array
+    {
+        return [
+            'declined_sessions' => DeclinedSessions::from($this->declined_sessions)->withBooking($booking),
+        ];
+    }
+
+    public function sessionWasDeclined(Booking $booking): bool
+    {
+        return DeclinedSessions::from($this->declined_sessions)->containsBooking($booking);
+    }
+
+    public function isEligibleForReinvite(Booking $booking): bool
+    {
+        return $this->isDeclined() && ! $this->sessionWasDeclined($booking);
     }
 
     public static function build(Booking $booking, User $user): static

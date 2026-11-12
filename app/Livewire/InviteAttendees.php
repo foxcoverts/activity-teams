@@ -186,7 +186,10 @@ class InviteAttendees extends Component
         }
 
         return $this->roster()
-            ->filter(fn (array $person): bool => $person['qualified'] && $person['can_add'] && ! $person['is_parent'])
+            ->filter(fn (array $person): bool => $person['qualified']
+                && $person['can_add']
+                && ! $person['is_parent']
+                && $person['status'] === null)
             ->map(fn (array $person): string => $person['id'])
             ->values()
             ->all();
@@ -311,7 +314,10 @@ class InviteAttendees extends Component
                     'key_badge' => $badges[$id] ?? null,
                     'mail_off' => ! MailPreference::allows($user, MailChannel::BookingsMail, $this->booking),
                     'status' => $onBooking ? $attendee->attendance?->status : null,
-                    'can_add' => $member instanceof User && ! $onBooking,
+                    'can_add' => $member instanceof User && (
+                        ! $onBooking
+                        || ($attendee->attendance?->isEligibleForReinvite($this->booking) ?? false)
+                    ),
                 ];
             })
             ->sortBy('name', SORT_NATURAL | SORT_FLAG_CASE)

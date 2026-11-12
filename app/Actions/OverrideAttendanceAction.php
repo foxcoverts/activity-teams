@@ -6,6 +6,7 @@ use App\Enums\BookingAttendeeStatus;
 use App\Models\Booking;
 use App\Models\User;
 use App\Notifications\AttendanceRecordedNotification;
+use App\Support\DeclinedSessions;
 use Illuminate\Validation\ValidationException;
 
 class OverrideAttendanceAction
@@ -41,11 +42,19 @@ class OverrideAttendanceAction
 
         $comment = filled($comment) ? $comment : null;
 
+        $pivot = [
+            'status' => $status->value,
+            'comment' => $comment,
+        ];
+
+        if ($status === BookingAttendeeStatus::Declined) {
+            $pivot['declined_sessions'] = DeclinedSessions::from($existing->declined_sessions)
+                ->withBooking($booking)
+                ->toArray();
+        }
+
         $booking->attendees()->syncWithoutDetaching([
-            $attendee->getKey() => [
-                'status' => $status->value,
-                'comment' => $comment,
-            ],
+            $attendee->getKey() => $pivot,
         ]);
 
         $clearLead = $booking->lead_instructor_id === $attendee->getKey()

@@ -72,7 +72,7 @@ class SendBookingNotification implements ShouldQueue
                 $attendee,
                 $pending['changes'] ?? [],
                 $pending['previous_schedule'] ?? null,
-            ), onlyUserIds: $pending['recipient_user_ids'] ?? null);
+            ), skipOrdinaryDeclined: true, onlyUserIds: $pending['recipient_user_ids'] ?? null);
 
             return;
         }
@@ -84,15 +84,24 @@ class SendBookingNotification implements ShouldQueue
      * @param  callable(User): BookingChangedMail|BookingConfirmedMail|BookingCancelledMail  $message
      * @param  list<string>|null  $onlyUserIds
      */
-    private function sendStatus(Booking $booking, callable $message, bool $skipDeclined = false, ?array $onlyUserIds = null): void
-    {
+    private function sendStatus(
+        Booking $booking,
+        callable $message,
+        bool $skipDeclined = false,
+        bool $skipOrdinaryDeclined = false,
+        ?array $onlyUserIds = null,
+    ): void {
         foreach ($booking->attendees as $attendee) {
             if ($onlyUserIds !== null && ! in_array((string) $attendee->getKey(), $onlyUserIds, true)) {
                 continue;
             }
 
-            if ($skipDeclined && $attendee->attendance?->status === BookingAttendeeStatus::Declined) {
-                if (! $this->declinedViaImip($booking, $attendee)) {
+            if ($attendee->attendance?->status === BookingAttendeeStatus::Declined) {
+                if ($skipDeclined && ! $this->declinedViaImip($booking, $attendee)) {
+                    continue;
+                }
+
+                if ($skipOrdinaryDeclined && ! $this->declinedReceivesUpdate($booking, $attendee)) {
                     continue;
                 }
             }
@@ -165,5 +174,14 @@ class SendBookingNotification implements ShouldQueue
             ->first();
 
         return $activity?->getProperty('via') === 'imip';
+    }
+
+    private function declinedReceivesUpdate(Booking $booking, User $attendee): bool
+    {
+        if ($booking->attendeeHasCalendarChannel($attendee)) {
+            return true;
+        }
+
+        return $attendee->attendance?->isEligibleForReinvite($booking) ?? false;
     }
 }

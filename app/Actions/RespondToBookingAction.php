@@ -5,6 +5,7 @@ namespace App\Actions;
 use App\Enums\BookingAttendeeStatus;
 use App\Models\Booking;
 use App\Models\User;
+use App\Support\DeclinedSessions;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 
@@ -46,11 +47,19 @@ class RespondToBookingAction
             $clearLead = $this->booking->lead_instructor_id === $attendeeId
                 && $status !== BookingAttendeeStatus::Accepted;
 
+            $pivot = [
+                'status' => $status->value,
+                'comment' => $comment ?? $attendance?->comment,
+            ];
+
+            if ($status === BookingAttendeeStatus::Declined) {
+                $pivot['declined_sessions'] = DeclinedSessions::from($attendance?->declined_sessions)
+                    ->withBooking($this->booking)
+                    ->toArray();
+            }
+
             $this->booking->attendees()->syncWithoutDetaching([
-                $attendeeId => [
-                    'status' => $status->value,
-                    'comment' => $comment ?? $attendance?->comment,
-                ],
+                $attendeeId => $pivot,
             ]);
 
             $properties = [

@@ -45,7 +45,7 @@ When an enum is shown in Filament, give it a label, and a color and icon when th
 - [US-11 Lead Instructor Assignment Notifications](US-11-lead-instructor-assignment-notifications.md) — `done`
 - [US-52 Lead Instructor Session Roster](US-52-lead-instructor-session-roster.md) — `done`
 - [US-25 Historical Roster & Response Transparency](US-25-historical-roster-transparency.md) — `done`
-- [US-53 Re-invite After Declined Session Changes](US-53-reinvite-after-declined-session-changes.md) — `not-started`
+- [US-53 Re-invite After Declined Session Changes](US-53-reinvite-after-declined-session-changes.md) — `done`
 - [US-26 Filterable Roster Additions & Batch Management](US-26-filterable-roster-additions.md) — `done`
 - [US-27 Manager-Overridden Attendance Updates](US-27-manager-overridden-attendance.md) — `done`
 - [US-28 Booking Cancellation Reasons & Participant Notification](US-28-booking-cancellation-reasons.md) — `done`
