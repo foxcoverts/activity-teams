@@ -4,6 +4,7 @@ namespace App\Filament\Teams\Resources\Bookings;
 
 use App\Actions\UpdateBookingStatusAction;
 use App\Enums\BookingStatus;
+use App\Filament\Support\SubmitsOnModEnter;
 use App\Filament\Teams\Resources\Bookings\Actions\EditAction;
 use App\Filament\Teams\Resources\Bookings\Schemas\BookingForm;
 use App\Models\Booking;
@@ -107,7 +108,8 @@ class BookingStatusActions
             ->schema([
                 Textarea::make('reason')
                     ->label(__('Reason'))
-                    ->required(),
+                    ->required()
+                    ->extraAlpineAttributes(SubmitsOnModEnter::attributes()),
             ])
             ->action(function (Booking $record, array $data, Action $action): void {
                 app(UpdateBookingStatusAction::class)->cancel($record, self::actor(), (string) $data['reason']);
