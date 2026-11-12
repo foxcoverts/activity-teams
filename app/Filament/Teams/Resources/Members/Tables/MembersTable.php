@@ -59,6 +59,9 @@ class MembersTable
                 Filter::make('not_accepted')
                     ->label('Not yet accepted')
                     ->query(fn (Builder $query): Builder => $query->whereNull('users.email')->whereNull('users.deleted_at')),
+                Filter::make('email_bounced')
+                    ->label(__('Email bounced'))
+                    ->query(fn (Builder $query): Builder => $query->whereNotNull('users.email_bounced_at')),
                 SelectFilter::make('key')
                     ->label(__('Locks'))
                     ->options(fn (): array => MemberResource::teamLocks()->pluck('name', 'id')->all())

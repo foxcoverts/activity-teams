@@ -4,10 +4,13 @@ namespace Tests\Feature\Teams;
 
 use App\Enums\BookingAttendeeStatus;
 use App\Enums\MembershipRole;
+use App\Filament\Teams\Pages\Dashboard;
 use App\Filament\Teams\Pages\Leaders;
 use App\Filament\Teams\Resources\Bookings\BookingResource;
 use App\Filament\Teams\Resources\Bookings\Pages\ListBookings;
 use App\Filament\Teams\Resources\NewsPosts\NewsPostResource;
+use App\Filament\Teams\Widgets\AdminTeamVisitorWidget;
+use App\Filament\Teams\Widgets\AllCaughtUpWidget;
 use App\Filament\Teams\Widgets\LatestNewsWidget;
 use App\Filament\Teams\Widgets\ThisWeekWidget;
 use App\Livewire\TeamLeaderContactDetails;
@@ -198,5 +201,49 @@ class TeamsPanelResourcesTest extends TestCase
             ->assertActionMounted('contact')
             ->assertSee('Abe Leader')
             ->assertDontSee('abe@example.test');
+    }
+
+    public function test_a_system_admin_who_is_not_a_member_sees_the_visitor_overview(): void
+    {
+        $admin = User::factory()->systemAdmin()->create();
+        $start = now()->addDays(2)->setTime(18, 0);
+        $booking = Booking::factory()->forTeam($this->climbing)->confirmed()->create([
+            'start_at' => $start,
+            'end_at' => $start->copy()->addHours(2),
+            'activity_label' => 'Admin should not see this as personal rota',
+        ]);
+        $booking->attendees()->attach($this->member->id, ['status' => 'accepted']);
+
+        $this->actingAs($admin);
+        Filament::setTenant($this->climbing);
+
+        $this->assertSame(
+            [AdminTeamVisitorWidget::class],
+            Livewire::test(Dashboard::class)->instance()->getWidgets(),
+        );
+
+        Livewire::test(AdminTeamVisitorWidget::class)
+            ->assertSee('Viewing as system admin')
+            ->assertSee('Climbing')
+            ->assertSee('Open Manager')
+            ->assertSee('Browse members');
+
+        Livewire::test(ThisWeekWidget::class)
+            ->assertDontSee('Admin should not see this as personal rota');
+    }
+
+    public function test_a_system_admin_who_is_a_member_keeps_the_personal_overview(): void
+    {
+        $admin = User::factory()->systemAdmin()->create();
+        $this->climbing->grant($admin, MembershipRole::Member);
+
+        $this->actingAs($admin);
+        Filament::setTenant($this->climbing);
+
+        $widgets = Livewire::test(Dashboard::class)->instance()->getWidgets();
+
+        $this->assertContains(ThisWeekWidget::class, $widgets);
+        $this->assertContains(AllCaughtUpWidget::class, $widgets);
+        $this->assertNotContains(AdminTeamVisitorWidget::class, $widgets);
     }
 }

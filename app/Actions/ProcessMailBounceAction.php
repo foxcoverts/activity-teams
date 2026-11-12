@@ -9,6 +9,7 @@ use App\Models\OutboundMail;
 use App\Models\User;
 use App\Notifications\EmailBouncedNotification;
 use App\Support\BounceReport;
+use App\Support\ManagerAttention;
 use Illuminate\Support\Facades\Notification;
 
 class ProcessMailBounceAction
@@ -101,6 +102,8 @@ class ProcessMailBounceAction
             'email_bounced_at' => $report->bouncedAt,
             'email_bounce_category' => $report->category,
         ])->save();
+
+        ManagerAttention::flushForUser($user);
 
         if ($alreadyFlagged) {
             return;

@@ -47,6 +47,7 @@ class Booking extends Model implements Commentable
         'notes',
         'lead_instructor_id',
         'lead_instructor_notes',
+        'lead_needed_at',
         'requires_lead_instructor',
     ];
 
@@ -68,6 +69,7 @@ class Booking extends Model implements Commentable
             'sequence' => AsSequence::class,
             'timezone' => AsTimezone::class,
             'requires_lead_instructor' => 'boolean',
+            'lead_needed_at' => 'datetime',
         ];
     }
 

@@ -18,4 +18,4 @@ As an Activity Manager, I want to receive automated periodic reminders and diges
 
 ## Progress
 
-This is manager mail. [US-61](US-61-notification-settings.md) keeps it always-on: no preference toggle and no preferences footer.
+Not started for mail. Shared readiness / attention queries live in `App\Support\ManagerAttention` (used by the [US-41](US-41-tentative-booking-triage.md) Manager dashboard). Digest delivery on the CombinedDigest job is still outstanding. [US-61](US-61-notification-settings.md) keeps this always-on: no preference toggle and no preferences footer.

@@ -1,7 +1,7 @@
 ---
 id: US-80
 title: "Manager Bounce / Contact-Failure Triage"
-status: not-started
+status: done
 area: communications
 scope: extra
 ---
@@ -19,4 +19,4 @@ As an Activity Manager, I want a Teams dashboard surface that lists members whos
 
 ## Progress
 
-Not started. Same family as [US-41](US-41-tentative-booking-triage.md) and the deferred Teams manager attention note on [US-69](US-69-member-dashboard.md). [US-45](US-45-email-delivery-bounce-tracking.md) covers flagging, profile visibility, and the manager notice with a profile link.
+Done on the Teams **Manager** dashboard email-bounces section. Rows link to the member profile; the Members table has an **Email bounced** filter for “See all”. Bounce count contributes to the Manager nav badge (`destructive` severity). Same family as [US-41](US-41-tentative-booking-triage.md).

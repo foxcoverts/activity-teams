@@ -9,6 +9,7 @@ use App\Enums\InvitationStatus;
 use App\Enums\MembershipRole;
 use App\Enums\PersonalDataSection;
 use App\Support\Avatars;
+use App\Support\ManagerAttention;
 use Database\Factories\UserFactory;
 use Filament\Auth\Notifications\VerifyEmail;
 use Filament\Facades\Filament;
@@ -104,6 +105,12 @@ class User extends Authenticatable implements FilamentUser, HasAvatar, HasDefaul
             if ($user->isDirty('email')) {
                 $user->email_bounced_at = null;
                 $user->email_bounce_category = null;
+            }
+        });
+
+        static::updated(function (User $user): void {
+            if ($user->wasChanged(['email_bounced_at', 'email_bounce_category', 'email'])) {
+                ManagerAttention::flushForUser($user);
             }
         });
 
