@@ -7,8 +7,9 @@ use App\Support\Palette;
 enum AttentionSeverity: int
 {
     case Neutral = 0;
-    case Uncertain = 1;
-    case Destructive = 2;
+    case Positive = 1;
+    case Uncertain = 2;
+    case Destructive = 3;
 
     /**
      * @return array<int, string>|string
@@ -18,6 +19,7 @@ enum AttentionSeverity: int
         return match ($this) {
             self::Destructive => Palette::destructive(),
             self::Uncertain => Palette::uncertain(),
+            self::Positive => Palette::positive(),
             self::Neutral => Palette::neutral(),
         };
     }
@@ -27,6 +29,7 @@ enum AttentionSeverity: int
         return match ($this) {
             self::Destructive => 'danger',
             self::Uncertain => 'warning',
+            self::Positive => 'success',
             self::Neutral => 'gray',
         };
     }

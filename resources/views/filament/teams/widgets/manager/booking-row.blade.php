@@ -10,7 +10,7 @@
         : $start->isoFormat('HH:mm') . ' – ' . $end->isoFormat('ddd D MMM HH:mm');
     $chip =
         'inline-flex items-center gap-1.5 rounded-full bg-gray-100 px-2.5 py-1 text-sm text-gray-700 dark:bg-white/10 dark:text-gray-300';
-    $triageColor = $triage instanceof TentativeTriage ? $triage->severity()->color() : null;
+    $triageColor = $triage instanceof TentativeTriage ? $triage->color() : null;
 @endphp
 
 <li class="relative flex flex-col gap-4 py-4 first:pt-0 last:pb-0 sm:flex-row sm:items-center"

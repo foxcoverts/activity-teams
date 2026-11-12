@@ -247,13 +247,19 @@ class ManagerAttentionDashboardTest extends TestCase
             ->assertDontSee('Other Team Bounce');
     }
 
-    public function test_nav_badge_summary_excludes_ready_and_uses_highest_severity(): void
+    public function test_nav_badge_summary_includes_ready_and_uses_highest_severity(): void
     {
         Booking::factory()->forTeam($this->team)->create([
             'requires_lead_instructor' => false,
             'start_at' => now()->addDays(20),
             'end_at' => now()->addDays(20)->addHours(2),
         ])->attendees()->attach($this->member->getKey(), ['status' => BookingAttendeeStatus::Accepted->value]);
+
+        $readyOnly = ManagerAttention::for($this->team)->summary();
+        $this->assertSame(1, $readyOnly['total']);
+        $this->assertSame(AttentionSeverity::Positive, $readyOnly['severity']);
+        $this->assertSame('success', $readyOnly['severity']->filamentColor());
+        ManagerAttention::flush($this->team->getKey());
 
         Booking::factory()->forTeam($this->team)->create([
             'requires_lead_instructor' => false,
@@ -268,7 +274,7 @@ class ManagerAttentionDashboardTest extends TestCase
         ]);
 
         $summary = ManagerAttention::for($this->team)->summary();
-        $this->assertSame(2, $summary['total']);
+        $this->assertSame(3, $summary['total']);
         $this->assertSame(AttentionSeverity::Uncertain, $summary['severity']);
 
         $bounced = User::factory()->create(['email_bounced_at' => now()]);
@@ -276,13 +282,13 @@ class ManagerAttentionDashboardTest extends TestCase
         ManagerAttention::flush($this->team->getKey());
 
         $summary = ManagerAttention::for($this->team)->summary();
-        $this->assertSame(3, $summary['total']);
+        $this->assertSame(4, $summary['total']);
         $this->assertSame(AttentionSeverity::Destructive, $summary['severity']);
 
         Cache::put(ManagerAttention::cacheKey($this->team->getKey()), ['total' => 99, 'severity' => AttentionSeverity::Uncertain], 60);
         $this->assertSame(99, ManagerAttention::for($this->team)->summary()['total']);
         ManagerAttention::flush($this->team->getKey());
-        $this->assertSame(3, ManagerAttention::for($this->team)->summary()['total']);
+        $this->assertSame(4, ManagerAttention::for($this->team)->summary()['total']);
     }
 
     public function test_widgets_show_triage_sections(): void

@@ -2,6 +2,7 @@
 
 namespace App\Enums;
 
+use App\Support\Palette;
 use Filament\Support\Contracts\HasLabel;
 
 enum TentativeTriage: string implements HasLabel
@@ -21,16 +22,27 @@ enum TentativeTriage: string implements HasLabel
         };
     }
 
+    /**
+     * @return array<int, string>
+     */
+    public function color(): array
+    {
+        return match ($this) {
+            self::ReadyToConfirm => Palette::positive(),
+            self::NeedsLead, self::AtRisk, self::Unstaffed => Palette::uncertain(),
+        };
+    }
+
     public function severity(): AttentionSeverity
     {
         return match ($this) {
             self::NeedsLead, self::AtRisk, self::Unstaffed => AttentionSeverity::Uncertain,
-            self::ReadyToConfirm => AttentionSeverity::Neutral,
+            self::ReadyToConfirm => AttentionSeverity::Positive,
         };
     }
 
     public function countsTowardBadge(): bool
     {
-        return $this !== self::ReadyToConfirm;
+        return true;
     }
 }

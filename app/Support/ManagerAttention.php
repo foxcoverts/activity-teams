@@ -90,6 +90,7 @@ final class ManagerAttention
                 ['count' => $this->needsLead()->count(), 'severity' => AttentionSeverity::Uncertain],
                 ['count' => $this->atRisk()->count(), 'severity' => AttentionSeverity::Uncertain],
                 ['count' => $this->unstaffed()->count(), 'severity' => AttentionSeverity::Uncertain],
+                ['count' => $this->readyToConfirm()->count(), 'severity' => AttentionSeverity::Positive],
             ];
         }
 
