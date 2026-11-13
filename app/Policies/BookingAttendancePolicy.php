@@ -2,7 +2,6 @@
 
 namespace App\Policies;
 
-use App\Enums\BookingAttendeeStatus;
 use App\Models\Booking;
 use App\Models\BookingAttendance;
 use App\Models\User;
@@ -165,11 +164,10 @@ class BookingAttendancePolicy
     {
         $booking->loadMissing('attendees');
 
-        return in_array(
-            $booking->attendees->find($user->getKey())?->attendance?->status,
-            [BookingAttendeeStatus::Accepted, BookingAttendeeStatus::Tentative],
-            true,
-        );
+        $attendance = $booking->attendees->find($user->getKey())?->attendance;
+
+        return $attendance !== null
+            && ($attendance->isAccepted() || $attendance->isTentative());
     }
 
     private function windowStart(Booking $booking): CarbonImmutable

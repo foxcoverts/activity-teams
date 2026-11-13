@@ -4,6 +4,7 @@ namespace App\Support;
 
 use App\Enums\BookingAttendeeStatus;
 use App\Enums\MembershipRole;
+use App\Enums\PastBookingAttendeeStatus;
 use App\Models\Booking;
 use App\Models\TeamMembership;
 use App\Models\User;
@@ -15,7 +16,7 @@ class BookingGuestList
      * @param  iterable<int, User>  $attendees
      * @param  list<BookingAttendeeStatus>  $visibleStatuses
      * @return array{
-     *     groups: list<array{key: string, label: string, open: bool, people: list<array{id: string, name: string, avatar_url: string, status: BookingAttendeeStatus, guest: bool, under_18: bool, is_parent: bool, qualified: bool, key_badge: ?string}>}>,
+     *     groups: list<array{key: string, label: string, open: bool, people: list<array{id: string, name: string, avatar_url: string, status: BookingAttendeeStatus|PastBookingAttendeeStatus, guest: bool, under_18: bool, is_parent: bool, qualified: bool, key_badge: ?string}>}>,
      *     show_qualified: bool,
      *     show_keys: bool
      * }
@@ -58,7 +59,7 @@ class BookingGuestList
             ->map(function (User $person) use ($booking, $keyBadges, $memberRoles, $requiresQualification): ?array {
                 $status = $person->attendance?->status;
 
-                if (! $status instanceof BookingAttendeeStatus) {
+                if (! $status instanceof BookingAttendeeStatus && ! $status instanceof PastBookingAttendeeStatus) {
                     return null;
                 }
 
@@ -92,9 +93,13 @@ class BookingGuestList
         }
 
         foreach ($visibleStatuses as $status) {
+            $groupStatus = $booking->isPast()
+                ? PastBookingAttendeeStatus::from($status->value)
+                : $status;
+
             $groupPeople = $rows
                 ->reject(fn (array $person): bool => $person['id'] === (string) $booking->lead_instructor_id)
-                ->filter(fn (array $person): bool => $person['status'] === $status)
+                ->filter(fn (array $person): bool => $person['status']->isSame($status))
                 ->sort(fn (array $first, array $second): int => strnatcasecmp($first['name'], $second['name'])
                     ?: strcmp($first['id'], $second['id']))
                 ->values()
@@ -105,8 +110,8 @@ class BookingGuestList
             }
 
             $groups[] = [
-                'key' => $status->value,
-                'label' => $status->getLabel(),
+                'key' => $groupStatus->value,
+                'label' => $groupStatus->getLabel(),
                 'open' => $status === BookingAttendeeStatus::Accepted,
                 'people' => $groupPeople,
             ];

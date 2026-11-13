@@ -5,6 +5,7 @@ namespace App\Filament\Bookings;
 use App\Actions\RespondToBookingAction;
 use App\Enums\BookingAttendeeResponse;
 use App\Enums\BookingAttendeeStatus;
+use App\Enums\PastBookingAttendeeStatus;
 use App\Models\Booking;
 use App\Models\User;
 use App\Support\LeadAttendanceWarning;
@@ -70,7 +71,7 @@ class BookingResponseChoices
     /**
      * @return array<int, BookingAttendeeResponse>
      */
-    public static function availableFor(?BookingAttendeeStatus $status): array
+    public static function availableFor(BookingAttendeeStatus|PastBookingAttendeeStatus|null $status): array
     {
         $current = BookingAttendeeResponse::tryFromStatus($status);
 
@@ -80,7 +81,7 @@ class BookingResponseChoices
         ));
     }
 
-    public static function currentStatus(Booking $record): BookingAttendeeStatus
+    public static function currentStatus(Booking $record): BookingAttendeeStatus|PastBookingAttendeeStatus
     {
         $user = auth()->user();
 

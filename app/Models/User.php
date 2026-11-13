@@ -257,7 +257,14 @@ class User extends Authenticatable implements FilamentUser, HasAvatar, HasDefaul
     {
         return $this->belongsToMany(Booking::class)
             ->withTimestamps()
-            ->withPivot('comment', 'status', 'token')->as('attendance')
+            ->withPivot(
+                'comment',
+                'status',
+                'token',
+                'calendar_imip_at',
+                'declined_sessions',
+                'attendance_confirmed_at',
+            )->as('attendance')
             ->using(BookingAttendance::class);
     }
 

@@ -3,6 +3,7 @@
 namespace App\Filament\Bookings;
 
 use App\Enums\BookingAttendeeStatus;
+use App\Enums\PastBookingAttendeeStatus;
 use App\Models\Booking;
 use App\Support\Palette;
 use Filament\Actions\Action;
@@ -58,9 +59,9 @@ class DashboardRespondActions
         return $group;
     }
 
-    public static function triggerLabel(BookingAttendeeStatus $status): string
+    public static function triggerLabel(BookingAttendeeStatus|PastBookingAttendeeStatus $status): string
     {
-        return $status === BookingAttendeeStatus::Tentative
+        return $status->isSame(BookingAttendeeStatus::Tentative)
             ? __('Confirm')
             : __('Respond');
     }
@@ -68,9 +69,9 @@ class DashboardRespondActions
     /**
      * @return string|array<int, string>
      */
-    public static function triggerColor(BookingAttendeeStatus $status): string|array
+    public static function triggerColor(BookingAttendeeStatus|PastBookingAttendeeStatus $status): string|array
     {
-        return $status === BookingAttendeeStatus::Tentative
+        return $status->isSame(BookingAttendeeStatus::Tentative)
             ? Palette::uncertain()
             : 'primary';
     }

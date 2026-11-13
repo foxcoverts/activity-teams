@@ -319,11 +319,12 @@ class AttendeesRelationManager extends RelationManager
         $attendee = $booking->attendees()->whereKey($actor->getKey())->first();
         $status = $attendee?->attendance?->status;
 
-        return in_array($status, [
-            BookingAttendeeStatus::NeedsAction,
-            BookingAttendeeStatus::Accepted,
-            BookingAttendeeStatus::Tentative,
-        ], true);
+        return $status !== null
+            && (
+                $status->isSame(BookingAttendeeStatus::NeedsAction)
+                || $status->isSame(BookingAttendeeStatus::Accepted)
+                || $status->isSame(BookingAttendeeStatus::Tentative)
+            );
     }
 
     /**

@@ -5,6 +5,7 @@ namespace App\Support;
 use App\Enums\BookingAttendeeStatus;
 use App\Enums\KeyHolderAttendance;
 use App\Enums\KeySituation;
+use App\Enums\PastBookingAttendeeStatus;
 use App\Models\ActivityQualificationRequirement;
 use App\Models\Booking;
 use App\Models\Key;
@@ -66,7 +67,7 @@ class BookingPeople
         $booking->loadMissing('attendees');
 
         $accepted = $booking->attendees->filter(
-            fn (User $person): bool => $person->attendance?->status === BookingAttendeeStatus::Accepted,
+            fn (User $person): bool => $person->attendance?->isAccepted() ?? false,
         );
 
         return in_array('holder', self::keyBadges($booking, $accepted), true)
@@ -195,7 +196,7 @@ class BookingPeople
     }
 
     /**
-     * @param  Collection<string, BookingAttendeeStatus|null>  $statusById
+     * @param  Collection<string, BookingAttendeeStatus|PastBookingAttendeeStatus|null>  $statusById
      */
     private static function situation(Key $ring, Collection $statusById): KeySituation
     {
@@ -205,10 +206,15 @@ class BookingPeople
 
         $status = $statusById->get((string) $ring->holder_id);
 
-        return match ($status) {
-            BookingAttendeeStatus::Accepted => KeySituation::Attending,
-            BookingAttendeeStatus::Declined => KeySituation::CannotMakeIt,
-            BookingAttendeeStatus::Tentative, BookingAttendeeStatus::NeedsAction => KeySituation::Invited,
+        if (! $status instanceof BookingAttendeeStatus && ! $status instanceof PastBookingAttendeeStatus) {
+            return KeySituation::NotInvited;
+        }
+
+        return match (true) {
+            $status->isSame(BookingAttendeeStatus::Accepted) => KeySituation::Attending,
+            $status->isSame(BookingAttendeeStatus::Declined) => KeySituation::CannotMakeIt,
+            $status->isSame(BookingAttendeeStatus::Tentative),
+            $status->isSame(BookingAttendeeStatus::NeedsAction) => KeySituation::Invited,
             default => KeySituation::NotInvited,
         };
     }

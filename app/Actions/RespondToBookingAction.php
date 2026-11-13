@@ -39,7 +39,7 @@ class RespondToBookingAction
         $author = $this->user ?? (is_string($attendee) ? User::findOrFail($attendee) : $attendee);
 
         $attendance = $this->booking->attendees()->find($attendeeId)?->attendance;
-        if (($attendance?->status === $status) && ($attendance?->comment === $comment)) {
+        if (($attendance?->status?->isSame($status) ?? false) && ($attendance?->comment === $comment)) {
             return;
         }
 
