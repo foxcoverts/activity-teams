@@ -11,6 +11,34 @@
 </x-mail::button>
 @endif
 
+@if (is_array($attentionNew) && $attentionNew !== [])
+# {{ __('Needs your attention') }}
+
+{{ __('These tentative bookings need a fresh look.') }}
+
+@foreach ($attentionNew as $line)
+- {{ $line }}
+@endforeach
+@endif
+
+@if (is_array($attentionOutstanding) && $attentionOutstanding !== [])
+# {{ __('Still outstanding') }}
+
+{{ __('These still need attention from earlier.') }}
+
+@foreach ($attentionOutstanding as $line)
+- {{ $line }}
+@endforeach
+@endif
+
+@if ((is_array($attentionNew) && $attentionNew !== []) || (is_array($attentionOutstanding) && $attentionOutstanding !== []))
+@if ($managerUrl)
+<x-mail::button :url="$managerUrl">
+{{ __('Open Manager') }}
+</x-mail::button>
+@endif
+@endif
+
 @if (is_array($invitationNudges) && $invitationNudges !== [])
 # {{ __('Invitations') }}
 

@@ -1,7 +1,7 @@
 ---
 id: US-44
 title: "Tentative Booking Manager Nudges & Reminder Alerts"
-status: not-started
+status: done
 area: safety
 scope: extra
 ---
@@ -18,4 +18,4 @@ As an Activity Manager, I want to receive automated periodic reminders and diges
 
 ## Progress
 
-Not started for mail. Shared readiness / attention queries live in `App\Support\ManagerAttention` (used by the [US-41](US-41-tentative-booking-triage.md) Manager dashboard). Digest delivery on the CombinedDigest job is still outstanding. [US-61](US-61-notification-settings.md) keeps this always-on: no preference toggle and no preferences footer.
+Done on the CombinedDigest job. `ManagerAttentionCatchUp` classifies each managed team's [US-41](US-41-tentative-booking-triage.md) buckets (Needs lead, Ready to confirm, Unstaffed, At risk) into **new** (never stamped, or triage changed) vs **outstanding** (same triage as last stamp). Per-manager stamps live in `manager_attention_notifications`. Mail sends when there is at least one new item: a single new item uses focused `ManagerAttentionNudgeMail` with booking `References`; otherwise CombinedDigest sections **Needs your attention** then **Still outstanding**. Outstanding-only days do not send attention mail. Always-on ([US-61](US-61-notification-settings.md)): no preference toggle and no preferences footer. CTA opens the Teams Manager dashboard. Needs-lead **email** is via this attention path only; the LeadNeeded inbox row stays for in-app and is not replayed as digest mail.

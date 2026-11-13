@@ -26,11 +26,11 @@ use App\Models\Team;
 use App\Models\TeamInvitation;
 use App\Models\User;
 use App\Notifications\BookingHeldNotification;
+use App\Notifications\EmailBouncedNotification;
 use App\Notifications\InboundReviewNotification;
 use App\Notifications\KeyHolderLeavingNotification;
 use App\Notifications\KeyPassedToNotification;
 use App\Notifications\LastManagerLeavingNotification;
-use App\Notifications\LeadNeededNotification;
 use App\Notifications\TeamInvitationDeclinedNotification;
 use App\Notifications\TeamInvitationNotification;
 use App\Support\CombinedDigest;
@@ -59,24 +59,23 @@ class InboxDigestTest extends TestCase
     public function test_a_single_outstanding_item_emails_the_existing_mail_and_marks_it_read(): void
     {
         $manager = User::factory()->teamManager()->create();
-        $booking = Booking::factory()->create(['team_id' => $manager->managedTeams()->first()->getKey()]);
+        $member = User::factory()->create(['name' => 'Bounced Member']);
+        $manager->managedTeams()->first()->grant($member, MembershipRole::Member);
 
-        $manager->notify(new LeadNeededNotification($booking, null));
+        $manager->notify(new EmailBouncedNotification($member));
 
         app(CombinedDigest::class)->send($manager);
 
         $sent = app('mail.manager')->mailer()->getSymfonyTransport()->messages();
         $this->assertCount(1, $sent);
         $message = $sent->first()->getOriginalMessage();
-        $this->assertStringContainsString('Lead needed', $message->getSubject());
-        $this->assertStringContainsString($booking->activity->name, $message->getHtmlBody());
-        $this->assertStringContainsString('This booking is tentative and needs a lead instructor.', $message->getHtmlBody());
+        $this->assertStringContainsString('Email delivery failed', $message->getSubject());
+        $this->assertStringContainsString('Bounced Member', $message->getHtmlBody());
 
         $row = $manager->notifications()->first();
         $this->assertNotNull($row->read_at);
         $this->assertNotNull($row->digest_notified_at);
         $this->assertNotNull($row->outbound_message_id);
-        $this->assertStringNotContainsString('This booking is tentative', $row->data['body']);
     }
 
     public function test_a_row_read_before_the_run_is_left_out_and_a_second_empty_run_sends_nothing(): void
@@ -84,8 +83,9 @@ class InboxDigestTest extends TestCase
         Mail::fake();
 
         $manager = User::factory()->teamManager()->create();
-        $booking = Booking::factory()->create(['team_id' => $manager->managedTeams()->first()->getKey()]);
-        $manager->notify(new LeadNeededNotification($booking, null));
+        $member = User::factory()->create();
+        $manager->managedTeams()->first()->grant($member, MembershipRole::Member);
+        $manager->notify(new EmailBouncedNotification($member));
         $manager->notifications()->first()->markReadForDelivery();
 
         app(CombinedDigest::class)->sendAll();
@@ -103,13 +103,16 @@ class InboxDigestTest extends TestCase
         Mail::fake();
 
         $manager = User::factory()->teamManager()->create();
-        $teamId = $manager->managedTeams()->first()->getKey();
-        $bookings = collect(range(1, 3))->map(
-            fn (): Booking => Booking::factory()->create(['team_id' => $teamId]),
-        );
+        $team = $manager->managedTeams()->first();
+        $members = collect(range(1, 3))->map(function () use ($team): User {
+            $member = User::factory()->create();
+            $team->grant($member, MembershipRole::Member);
 
-        foreach ($bookings as $booking) {
-            $manager->notify(new LeadNeededNotification($booking, null));
+            return $member;
+        });
+
+        foreach ($members as $member) {
+            $manager->notify(new EmailBouncedNotification($member));
         }
 
         $manager->notifications()->reorder()->orderBy('created_at')->first()->forceFill(['digest_notified_at' => now()])->save();
@@ -296,13 +299,15 @@ class InboxDigestTest extends TestCase
     public function test_a_correlated_bounce_clears_the_read_markers(): void
     {
         $manager = User::factory()->teamManager()->create();
-        $booking = Booking::factory()->create(['team_id' => $manager->managedTeams()->first()->getKey()]);
-        $manager->notify(new LeadNeededNotification($booking, null));
+        $member = User::factory()->create();
+        $manager->managedTeams()->first()->grant($member, MembershipRole::Member);
+        $manager->notify(new EmailBouncedNotification($member));
 
         Mail::fake();
         app(CombinedDigest::class)->send($manager);
 
         $row = $manager->notifications()->first();
+        $this->assertNotNull($row->read_at);
         $row->releaseAfterBounce();
         $row->refresh();
 

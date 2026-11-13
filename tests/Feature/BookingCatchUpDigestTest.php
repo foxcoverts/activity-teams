@@ -6,14 +6,17 @@ use App\Enums\BookingAttendeeStatus;
 use App\Enums\InvitationNudgeTier;
 use App\Enums\MailChannel;
 use App\Enums\MailGroup;
+use App\Enums\MembershipRole;
+use App\Enums\TentativeTriage;
 use App\Filament\Member\Pages\Dashboard;
 use App\Mail\BookingInvitationNudgeMail;
 use App\Mail\BookingSessionReminderMail;
 use App\Mail\CombinedDigestMail;
 use App\Models\Booking;
 use App\Models\BookingAttendance;
+use App\Models\ManagerAttentionNotification;
 use App\Models\User;
-use App\Notifications\LeadNeededNotification;
+use App\Notifications\EmailBouncedNotification;
 use App\Support\BookingCatchUp;
 use App\Support\BookingMailThread;
 use App\Support\CombinedDigest;
@@ -168,12 +171,21 @@ class BookingCatchUpDigestTest extends TestCase
         Mail::fake();
 
         $member = User::factory()->teamManager()->create();
-        $teamId = $member->managedTeams()->first()->getKey();
-        $leadBooking = Booking::factory()->create(['team_id' => $teamId]);
-        $member->notify(new LeadNeededNotification($leadBooking, null));
+        $team = $member->managedTeams()->first();
+        $bounced = User::factory()->create();
+        $team->grant($bounced, MembershipRole::Member);
+        $member->notify(new EmailBouncedNotification($bounced));
 
-        $nudgeBooking = $this->futureBooking(20, $teamId);
+        $nudgeBooking = $this->futureBooking(20, $team->getKey());
         $this->invite($nudgeBooking, $member, ageDays: 15);
+
+        // Stamp the team's tentative attention so this case is inbox + nudge only.
+        ManagerAttentionNotification::query()->create([
+            'user_id' => $member->getKey(),
+            'booking_id' => $nudgeBooking->getKey(),
+            'triage' => TentativeTriage::Unstaffed,
+            'notified_at' => now()->subDay(),
+        ]);
 
         app(CombinedDigest::class)->send($member);
 
