@@ -64,6 +64,10 @@ class TeamForm
                             ->label(TeamFeature::Tasks->getLabel())
                             ->helperText(__('Show Tasks in the team navigation and allow attaching tasks to bookings.'))
                             ->default(false),
+                        Toggle::make('features.'.TeamFeature::Debrief->value)
+                            ->label(TeamFeature::Debrief->getLabel())
+                            ->helperText(__('Expect a post-session debrief, chase the lead, and show outstanding debriefs to managers. Turning this on starts chasing from now; older sessions can still be debriefed but are not chased.'))
+                            ->default(false),
                     ]),
             ]);
     }

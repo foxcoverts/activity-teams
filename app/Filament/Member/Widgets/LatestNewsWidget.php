@@ -6,7 +6,7 @@ use App\Models\NewsPost;
 
 class LatestNewsWidget extends DashboardSection
 {
-    protected static ?int $sort = 8;
+    protected static ?int $sort = 9;
 
     protected string $view = 'filament.member.widgets.latest-news';
 

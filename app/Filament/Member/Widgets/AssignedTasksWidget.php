@@ -12,7 +12,7 @@ class AssignedTasksWidget extends DashboardSection
         toggleTaskComplete as protected toggleTaskCompleteBase;
     }
 
-    protected static ?int $sort = 4;
+    protected static ?int $sort = 5;
 
     protected string $view = 'filament.member.widgets.assigned-tasks';
 

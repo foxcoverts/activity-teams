@@ -10,7 +10,7 @@ use Filament\Support\Icons\Heroicon;
 
 class ReadyToConfirmWidget extends ManagerSection
 {
-    protected static ?int $sort = 3;
+    protected static ?int $sort = 4;
 
     protected string $view = 'filament.teams.widgets.manager.booking-section';
 

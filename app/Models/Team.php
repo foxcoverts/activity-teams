@@ -6,14 +6,18 @@ use App\Enums\BrandColor;
 use App\Enums\MembershipRole;
 use App\Enums\TeamFeature;
 use App\Support\Avatars;
+use Carbon\CarbonInterface;
 use Database\Factories\TeamFactory;
 use Filament\Models\Contracts\HasAvatar;
+use Illuminate\Database\Eloquent\Attributes\Scope;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -40,16 +44,104 @@ class Team extends Model implements HasAvatar
 
     public function featureEnabled(TeamFeature $feature): bool
     {
-        $features = $this->features ?? [];
+        $value = ($this->features ?? [])[$feature->value] ?? false;
 
-        return ($features[$feature->value] ?? false) === true;
+        if (is_array($value)) {
+            return ($value['enabled'] ?? false) === true;
+        }
+
+        return $value === true;
     }
 
-    public function enableFeature(TeamFeature $feature): void
+    public function featureActivatedAt(TeamFeature $feature): ?CarbonInterface
+    {
+        $value = ($this->features ?? [])[$feature->value] ?? null;
+
+        if (! is_array($value) || blank($value['activated_at'] ?? null)) {
+            return null;
+        }
+
+        return Carbon::parse($value['activated_at']);
+    }
+
+    public function enableFeature(TeamFeature $feature, ?CarbonInterface $activatedAt = null): void
     {
         $features = $this->features ?? [];
-        $features[$feature->value] = true;
+
+        if ($feature === TeamFeature::Debrief) {
+            $features[$feature->value] = [
+                'enabled' => true,
+                'activated_at' => ($activatedAt ?? now())->toIso8601String(),
+            ];
+        } else {
+            $features[$feature->value] = true;
+        }
+
         $this->features = $features;
+    }
+
+    public function disableFeature(TeamFeature $feature): void
+    {
+        $features = $this->features ?? [];
+        $previous = $features[$feature->value] ?? null;
+
+        if ($feature === TeamFeature::Debrief) {
+            $features[$feature->value] = [
+                'enabled' => false,
+                'activated_at' => is_array($previous) ? ($previous['activated_at'] ?? null) : null,
+            ];
+        } else {
+            $features[$feature->value] = false;
+        }
+
+        $this->features = $features;
+    }
+
+    /**
+     * Persist a Debrief toggle from admin forms: refresh activated_at only when turning on.
+     *
+     * @param  array<string, mixed>  $features
+     * @return array<string, mixed>
+     */
+    public function featuresWithDebriefToggle(array $features, bool $enabled): array
+    {
+        $wasEnabled = $this->featureEnabled(TeamFeature::Debrief);
+        $previous = ($this->features ?? [])[TeamFeature::Debrief->value] ?? null;
+        $previousActivatedAt = is_array($previous) ? ($previous['activated_at'] ?? null) : null;
+
+        if ($enabled) {
+            $features[TeamFeature::Debrief->value] = [
+                'enabled' => true,
+                'activated_at' => $wasEnabled && filled($previousActivatedAt)
+                    ? $previousActivatedAt
+                    : now()->toIso8601String(),
+            ];
+        } else {
+            $features[TeamFeature::Debrief->value] = [
+                'enabled' => false,
+                'activated_at' => $previousActivatedAt,
+            ];
+        }
+
+        return $features;
+    }
+
+    #[Scope]
+    protected function whereFeatureIsEnabled(Builder $query, TeamFeature $feature): void
+    {
+        $key = $feature->value;
+
+        if ($feature === TeamFeature::Debrief) {
+            $query->where(function (Builder $inner) use ($key): void {
+                $inner
+                    ->where('features->'.$key, true)
+                    ->orWhere('features->'.$key.'->enabled', true);
+            });
+
+            return;
+        }
+
+        $query->where('features->'.$key, true);
     }
 
     protected static function booted(): void
@@ -222,6 +314,11 @@ class Team extends Model implements HasAvatar
     public function tasks(): HasMany
     {
         return $this->hasMany(Task::class);
+    }
+
+    public function equipmentSets(): HasMany
+    {
+        return $this->hasMany(EquipmentSet::class);
     }
 
     private function addDefaultableRecord(Activity|Venue $record, string $relation, string $defaultAttribute): void

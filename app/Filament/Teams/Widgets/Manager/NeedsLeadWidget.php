@@ -9,7 +9,7 @@ use Filament\Support\Icons\Heroicon;
 
 class NeedsLeadWidget extends ManagerSection
 {
-    protected static ?int $sort = 2;
+    protected static ?int $sort = 3;
 
     protected string $view = 'filament.teams.widgets.manager.booking-section';
 

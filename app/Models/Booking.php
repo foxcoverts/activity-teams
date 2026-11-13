@@ -7,6 +7,7 @@ use App\Casts\AsTimezone;
 use App\Contracts\Commentable;
 use App\Enums\BookingAttendeeStatus;
 use App\Enums\BookingStatus;
+use App\Enums\TeamFeature;
 use App\Support\Coords;
 use App\Support\Location;
 use Carbon\Carbon;
@@ -21,6 +22,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Support\Collection;
 use Illuminate\Validation\ValidationException;
@@ -70,6 +72,8 @@ class Booking extends Model implements Commentable
             'timezone' => AsTimezone::class,
             'requires_lead_instructor' => 'boolean',
             'lead_needed_at' => 'datetime',
+            'debrief_nudged_at' => 'datetime',
+            'debrief_week_nudged_at' => 'datetime',
         ];
     }
 
@@ -407,6 +411,33 @@ class Booking extends Model implements Commentable
                 'attendance_confirmed_at',
             )->as('attendance')
             ->using(BookingAttendance::class);
+    }
+
+    public function debrief(): HasOne
+    {
+        return $this->hasOne(BookingDebrief::class);
+    }
+
+    public function needsDebrief(): bool
+    {
+        $this->loadMissing(['team', 'debrief']);
+
+        if (
+            $this->team === null
+            || ! $this->team->featureEnabled(TeamFeature::Debrief)
+            || $this->isCancelled()
+            || $this->debrief !== null
+            || $this->end_at === null
+            || ! $this->end_at->copy()->addHour()->isPast()
+            || ! ($this->isConfirmed() || ($this->isTentative() && $this->lead_instructor_id !== null))
+        ) {
+            return false;
+        }
+
+        $activatedAt = $this->team->featureActivatedAt(TeamFeature::Debrief);
+
+        return $activatedAt !== null
+            && $this->end_at->greaterThanOrEqualTo($activatedAt);
     }
 
     public function attendeeHasCalendarChannel(User $attendee): bool

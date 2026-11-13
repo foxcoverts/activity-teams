@@ -11,6 +11,7 @@ use App\Filament\Member\Pages\Dashboard;
 use App\Filament\Member\Resources\Tasks\TaskResource;
 use App\Filament\Member\Widgets\AllCaughtUpWidget;
 use App\Filament\Member\Widgets\AssignedTasksWidget;
+use App\Filament\Member\Widgets\DebriefsDueWidget;
 use App\Filament\Member\Widgets\LatestNewsWidget;
 use App\Filament\Member\Widgets\MyTeamsWidget;
 use App\Filament\Member\Widgets\NeedsResponseWidget;
@@ -76,6 +77,7 @@ class DashboardTest extends TestCase
             UnreadInboxWidget::class,
             ThisWeekWidget::class,
             NeedsResponseWidget::class,
+            DebriefsDueWidget::class,
             AssignedTasksWidget::class,
             NextLedBookingWidget::class,
             AllCaughtUpWidget::class,

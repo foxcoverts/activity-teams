@@ -19,6 +19,7 @@ class CombinedDigestMail extends Mailable implements ShouldQueue
      * @param  list<string>|null  $sessionReminders
      * @param  list<string>|null  $attentionNew
      * @param  list<string>|null  $attentionOutstanding
+     * @param  list<string>|null  $debriefsDue
      */
     public function __construct(
         public ?int $outstanding,
@@ -28,6 +29,7 @@ class CombinedDigestMail extends Mailable implements ShouldQueue
         public ?array $sessionReminders,
         public ?array $attentionNew,
         public ?array $attentionOutstanding,
+        public ?array $debriefsDue,
         public string $inboxUrl,
         public string $dashboardUrl,
         public ?string $managerUrl,
@@ -51,6 +53,10 @@ class CombinedDigestMail extends Mailable implements ShouldQueue
 
         if ($this->invitationNudges !== null || $this->sessionReminders !== null) {
             return new Envelope(subject: __('Booking catch-up'));
+        }
+
+        if ($this->debriefsDue !== null) {
+            return new Envelope(subject: __('Debriefs still due'));
         }
 
         return new Envelope(subject: __('Your rota'));

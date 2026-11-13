@@ -4,6 +4,7 @@ namespace App\Filament\Member\Pages;
 
 use App\Filament\Member\Widgets\AllCaughtUpWidget;
 use App\Filament\Member\Widgets\AssignedTasksWidget;
+use App\Filament\Member\Widgets\DebriefsDueWidget;
 use App\Filament\Member\Widgets\LatestNewsWidget;
 use App\Filament\Member\Widgets\MyTeamsWidget;
 use App\Filament\Member\Widgets\NeedsResponseWidget;
@@ -44,6 +45,7 @@ class Dashboard extends BaseDashboard
             UnreadInboxWidget::class,
             ThisWeekWidget::class,
             NeedsResponseWidget::class,
+            DebriefsDueWidget::class,
             AssignedTasksWidget::class,
             NextLedBookingWidget::class,
             AllCaughtUpWidget::class,

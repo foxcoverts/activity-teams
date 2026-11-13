@@ -131,6 +131,10 @@ class ConfirmAttendeesAction
             return false;
         }
 
+        if (CompleteDebriefAction::isAvailable($booking, $user)) {
+            return false;
+        }
+
         $booking->loadMissing('team');
 
         return $booking->isLead($user)

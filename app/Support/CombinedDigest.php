@@ -32,6 +32,7 @@ final class CombinedDigest
         private InboundReviewNudge $inbound,
         private BookingCatchUp $catchUp,
         private ManagerAttentionCatchUp $managerAttention,
+        private DebriefCatchUp $debriefs,
     ) {}
 
     public function sendAll(): void
@@ -42,6 +43,7 @@ final class CombinedDigest
             ->merge($this->rota->candidateUserIds())
             ->merge($this->catchUp->candidateUserIds())
             ->merge($this->managerAttention->candidateUserIds())
+            ->merge($this->debriefs->candidateUserIds())
             ->unique()
             ->filter()
             ->values();
@@ -67,24 +69,46 @@ final class CombinedDigest
             ? collect()
             : $attention['outstanding'];
         $attentionNewCount = $attentionNew->count();
+        $debriefFocused = $this->debriefs->dueFocusedNudges($user);
+        $debriefFocusedCount = $debriefFocused->count();
+        $debriefSummary = $this->debriefs->outstandingSummary($user);
 
-        if ($count === 0 && ! $rotaChanged && $catchUpCount === 0 && $attentionNewCount === 0) {
+        if (
+            $count === 0
+            && ! $rotaChanged
+            && $catchUpCount === 0
+            && $attentionNewCount === 0
+            && $debriefFocusedCount === 0
+        ) {
             return;
         }
 
-        if ($count === 0 && ! $rotaChanged && $catchUpCount === 1 && $attentionNewCount === 0) {
+        if (
+            $count === 0
+            && ! $rotaChanged
+            && $catchUpCount === 0
+            && $attentionNewCount === 0
+            && $debriefFocusedCount === 1
+        ) {
+            $item = $debriefFocused->first();
+            $this->debriefs->sendFocused($user, $item['booking'], $item['week']);
+
+            return;
+        }
+
+        if ($count === 0 && ! $rotaChanged && $catchUpCount === 1 && $attentionNewCount === 0 && $debriefFocusedCount === 0) {
             $this->sendFocusedCatchUp($user, $nudges, $reminders);
 
             return;
         }
 
-        if ($count === 0 && ! $rotaChanged && $catchUpCount === 0 && $attentionNewCount === 1 && $attentionOutstanding->isEmpty()) {
+        if ($count === 0 && ! $rotaChanged && $catchUpCount === 0 && $attentionNewCount === 1 && $attentionOutstanding->isEmpty() && $debriefFocusedCount === 0) {
             $this->sendFocusedAttention($user, $attentionNew);
 
             return;
         }
 
-        if ($count === 1 && ! $rotaChanged && $catchUpCount === 0 && $attentionNewCount === 0) {
+        if ($count === 1 && ! $rotaChanged && $catchUpCount === 0 && $attentionNewCount === 0 && $debriefFocusedCount === 0) {
             $row = $emailable->first();
 
             if ($row instanceof InboxNotification) {
@@ -95,6 +119,8 @@ final class CombinedDigest
         }
 
         $unreadRemainder = max(0, $user->unreadNotifications()->count() - $outstanding->count());
+        $includeDebriefSummary = $debriefSummary->isNotEmpty()
+            && ($count > 0 || $rotaChanged || $catchUpCount > 0 || $attentionNewCount > 0 || $debriefFocusedCount > 0);
 
         Mail::to($user)->send(new CombinedDigestMail(
             outstanding: $count === 0 ? null : $outstanding->count(),
@@ -104,6 +130,7 @@ final class CombinedDigest
             sessionReminders: $reminders->isEmpty() ? null : $reminders->pluck('label')->all(),
             attentionNew: $attentionNew->isEmpty() ? null : $attentionNew->pluck('label')->all(),
             attentionOutstanding: $attentionOutstanding->isEmpty() ? null : $attentionOutstanding->pluck('label')->all(),
+            debriefsDue: $includeDebriefSummary ? $debriefSummary->pluck('label')->all() : null,
             inboxUrl: InboxResource::getUrl(panel: 'member'),
             dashboardUrl: Dashboard::getUrl(panel: 'member'),
             managerUrl: $this->managerUrl($attentionNew->merge($attentionOutstanding)),
@@ -117,6 +144,10 @@ final class CombinedDigest
 
         $this->stampCatchUp($nudges, $reminders);
         $this->managerAttention->stamp($user, $attentionNew->merge($attentionOutstanding));
+
+        foreach ($debriefFocused as $item) {
+            $this->debriefs->mark($item['booking'], $item['week']);
+        }
     }
 
     /**

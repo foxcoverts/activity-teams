@@ -30,4 +30,16 @@ class TeamFactory extends Factory
             'features' => [TeamFeature::Tasks->value => true],
         ]);
     }
+
+    public function withDebrief(): static
+    {
+        return $this->state(fn (): array => [
+            'features' => [
+                TeamFeature::Debrief->value => [
+                    'enabled' => true,
+                    'activated_at' => now()->subYear()->toIso8601String(),
+                ],
+            ],
+        ]);
+    }
 }

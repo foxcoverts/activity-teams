@@ -3,7 +3,9 @@
 namespace App\Filament\Teams\Resources\Bookings\Schemas;
 
 use App\Enums\BookingStatus;
+use App\Enums\TeamFeature;
 use App\Filament\Bookings\LocationMapAction;
+use App\Filament\Teams\Resources\Members\MemberResource;
 use App\Models\Booking;
 use App\Models\User;
 use App\Support\BookingWhen;
@@ -89,6 +91,48 @@ class BookingInfolist
                                 && ($record->isLead($user) || $user->manages($record->team));
                         })
                         ->columnSpanFull(),
+                ]),
+            Section::make(__('Debrief'))
+                ->icon(Heroicon::OutlinedDocumentCheck)
+                ->columns(1)
+                ->columnSpanFull()
+                ->visible(function (Booking $record): bool {
+                    $record->loadMissing(['team', 'debrief.equipmentSets', 'debrief.completedBy']);
+
+                    return $record->team !== null
+                        && $record->team->featureEnabled(TeamFeature::Debrief)
+                        && $record->debrief !== null;
+                })
+                ->schema([
+                    TextEntry::make('debrief.hours')
+                        ->label(__('Operating hours'))
+                        ->placeholder('-'),
+                    TextEntry::make('debrief.participant_count')
+                        ->label(__('Participant numbers'))
+                        ->placeholder('-'),
+                    TextEntry::make('debrief.weather')
+                        ->label(__('Weather'))
+                        ->placeholder('-'),
+                    TextEntry::make('debrief.notes')
+                        ->label(__('Notes'))
+                        ->visible(fn (Booking $record): bool => filled($record->debrief?->notes)),
+                    TextEntry::make('debrief.equipmentSets.name')
+                        ->label(__('Equipment used'))
+                        ->badge()
+                        ->placeholder('-')
+                        ->visible(fn (Booking $record): bool => $record->debrief?->equipmentSets->isNotEmpty() ?? false),
+                    TextEntry::make('debrief.completed_at')
+                        ->label(__('Completed'))
+                        ->dateTime('j M Y, H:i')
+                        ->placeholder('-'),
+                    TextEntry::make('debrief.completedBy.name')
+                        ->label(__('Completed by'))
+                        ->placeholder('-')
+                        ->url(fn (Booking $record): ?string => MemberResource::viewUrlFor(
+                            $record->debrief?->completedBy,
+                            $record->team,
+                        ))
+                        ->color('primary'),
                 ]),
         ];
     }

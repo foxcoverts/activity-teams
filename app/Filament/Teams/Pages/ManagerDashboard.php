@@ -7,6 +7,7 @@ use App\Filament\Teams\Widgets\Manager\EmailBouncesWidget;
 use App\Filament\Teams\Widgets\Manager\ManagerAllCaughtUpWidget;
 use App\Filament\Teams\Widgets\Manager\NeedsLeadWidget;
 use App\Filament\Teams\Widgets\Manager\NeedsStaffingWidget;
+use App\Filament\Teams\Widgets\Manager\OutstandingDebriefsWidget;
 use App\Filament\Teams\Widgets\Manager\ReadyToConfirmWidget;
 use App\Models\Team;
 use App\Models\User;
@@ -114,6 +115,7 @@ class ManagerDashboard extends BaseDashboard
     {
         return [
             ManagerAllCaughtUpWidget::class,
+            OutstandingDebriefsWidget::class,
             NeedsLeadWidget::class,
             ReadyToConfirmWidget::class,
             NeedsStaffingWidget::class,

@@ -61,6 +61,11 @@ class Activity extends Model
         return $this->hasMany(Booking::class);
     }
 
+    public function equipmentSets(): BelongsToMany
+    {
+        return $this->belongsToMany(EquipmentSet::class);
+    }
+
     public function activityAudiences(): HasMany
     {
         return $this->hasMany(ActivityAudience::class);
