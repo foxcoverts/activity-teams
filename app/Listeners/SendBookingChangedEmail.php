@@ -2,7 +2,6 @@
 
 namespace App\Listeners;
 
-use App\Enums\BookingAttendeeStatus;
 use App\Events\BookingChanged;
 use App\Events\BookingRestored;
 use App\Models\User;
@@ -17,7 +16,7 @@ class SendBookingChangedEmail
         if ($event instanceof BookingRestored) {
             $event->booking->loadMissing('attendees');
             $recipientUserIds = $event->booking->attendees
-                ->filter(fn (User $attendee): bool => $attendee->attendance?->status === BookingAttendeeStatus::NeedsAction)
+                ->filter(fn (User $attendee): bool => $attendee->attendance?->needsAction() ?? false)
                 ->map(fn (User $attendee): string => (string) $attendee->getKey())
                 ->values()
                 ->all();

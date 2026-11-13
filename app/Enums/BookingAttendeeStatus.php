@@ -67,12 +67,21 @@ enum BookingAttendeeStatus: string implements HasColor, HasIcon, HasLabel
         return [self::NeedsAction, self::Tentative];
     }
 
-    public function compare(BookingAttendeeStatus $other): int
+    public function isSame(BookingAttendeeStatus|PastBookingAttendeeStatus|string|null $other): bool
+    {
+        if ($other === null) {
+            return false;
+        }
+
+        return $this->value === (is_string($other) ? $other : $other->value);
+    }
+
+    public function compare(BookingAttendeeStatus|PastBookingAttendeeStatus $other): int
     {
         return $this->rank() <=> $other->rank();
     }
 
-    protected function rank(): int
+    public function rank(): int
     {
         return match ($this) {
             self::Accepted => 0,

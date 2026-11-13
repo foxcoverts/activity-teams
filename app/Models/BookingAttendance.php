@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Casts\AsBookingAttendeeStatus;
 use App\Casts\AsDeclinedSessions;
 use App\Enums\BookingAttendeeStatus;
 use App\Enums\InvitationNudgeTier;
@@ -24,6 +25,7 @@ class BookingAttendance extends Pivot
         'calendar_imip_at',
         'invitation_nudge_tier',
         'session_reminded_at',
+        'attendance_confirmed_at',
         'declined_sessions',
     ];
 
@@ -56,12 +58,18 @@ class BookingAttendance extends Pivot
     protected function casts(): array
     {
         return [
-            'status' => BookingAttendeeStatus::class,
+            'status' => AsBookingAttendeeStatus::class,
             'calendar_imip_at' => 'datetime',
             'invitation_nudge_tier' => InvitationNudgeTier::class,
             'session_reminded_at' => 'datetime',
+            'attendance_confirmed_at' => 'datetime',
             'declined_sessions' => AsDeclinedSessions::class,
         ];
+    }
+
+    public function isAttendanceConfirmed(): bool
+    {
+        return $this->attendance_confirmed_at !== null;
     }
 
     public function hasCalendarChannel(): bool
@@ -120,17 +128,22 @@ class BookingAttendance extends Pivot
 
     public function isAccepted(): bool
     {
-        return $this->status === BookingAttendeeStatus::Accepted;
+        return $this->status?->isSame(BookingAttendeeStatus::Accepted) ?? false;
     }
 
     public function isDeclined(): bool
     {
-        return $this->status === BookingAttendeeStatus::Declined;
+        return $this->status?->isSame(BookingAttendeeStatus::Declined) ?? false;
+    }
+
+    public function isTentative(): bool
+    {
+        return $this->status?->isSame(BookingAttendeeStatus::Tentative) ?? false;
     }
 
     public function needsAction(): bool
     {
-        return $this->status === BookingAttendeeStatus::NeedsAction;
+        return $this->status?->isSame(BookingAttendeeStatus::NeedsAction) ?? false;
     }
 
     public function isLeadInstructor(): bool

@@ -3,7 +3,6 @@
 namespace App\Actions;
 
 use App\Contracts\Commentable;
-use App\Enums\BookingAttendeeStatus;
 use App\Enums\MailChannel;
 use App\Mail\BookingCommentMail;
 use App\Models\Booking;
@@ -80,7 +79,7 @@ class PostCommentAction
                 continue;
             }
 
-            $declined = $attendee->attendance?->status === BookingAttendeeStatus::Declined;
+            $declined = $attendee->attendance?->isDeclined() ?? false;
             $manages = $team instanceof Team && $attendee->manages($team);
 
             if ($declined && ! $manages) {

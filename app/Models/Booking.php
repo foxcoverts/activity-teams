@@ -262,8 +262,20 @@ class Booking extends Model implements Commentable
         $this->loadMissing('attendees');
 
         return $this->attendees
-            ->filter(fn (User $attendee): bool => $attendee->attendance?->status === BookingAttendeeStatus::Accepted)
+            ->filter(fn (User $attendee): bool => $attendee->attendance?->isAccepted() ?? false)
             ->values();
+    }
+
+    public function isOnOrAfterSessionDay(): bool
+    {
+        if ($this->start_at === null) {
+            return false;
+        }
+
+        $timezone = $this->timezone;
+        $sessionDay = $this->start_at->copy()->timezone($timezone)->startOfDay();
+
+        return ! now($timezone)->startOfDay()->lt($sessionDay);
     }
 
     /**
@@ -386,7 +398,14 @@ class Booking extends Model implements Commentable
     {
         return $this->belongsToMany(User::class)
             ->withTimestamps()
-            ->withPivot('comment', 'status', 'token', 'calendar_imip_at', 'declined_sessions')->as('attendance')
+            ->withPivot(
+                'comment',
+                'status',
+                'token',
+                'calendar_imip_at',
+                'declined_sessions',
+                'attendance_confirmed_at',
+            )->as('attendance')
             ->using(BookingAttendance::class);
     }
 

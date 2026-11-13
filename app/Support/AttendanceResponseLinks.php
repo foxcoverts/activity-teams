@@ -19,7 +19,7 @@ class AttendanceResponseLinks
         }
 
         $canChoose = $attendance->needsAction()
-            || $attendance->status === BookingAttendeeStatus::Tentative
+            || $attendance->isTentative()
             || $attendance->isEligibleForReinvite($booking);
 
         if (! $canChoose) {

@@ -96,7 +96,7 @@ class SendBookingNotification implements ShouldQueue
                 continue;
             }
 
-            if ($attendee->attendance?->status === BookingAttendeeStatus::Declined) {
+            if ($attendee->attendance?->isDeclined()) {
                 if ($skipDeclined && ! $this->declinedViaImip($booking, $attendee)) {
                     continue;
                 }

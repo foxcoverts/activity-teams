@@ -2,7 +2,6 @@
 
 namespace App\Filament\Member\Widgets;
 
-use App\Enums\BookingAttendeeStatus;
 use App\Models\Booking;
 use App\Support\LeadAttendanceWarning;
 
@@ -19,7 +18,7 @@ class NextLedBookingWidget extends DashboardSection
         return [
             'rows' => $rows,
             'warnings' => $rows->mapWithKeys(fn (Booking $booking): array => [
-                $booking->getKey() => $booking->attendees->first()?->attendance?->status === BookingAttendeeStatus::Accepted
+                $booking->getKey() => $booking->attendees->first()?->attendance?->isAccepted()
                     ? null
                     : LeadAttendanceWarning::message($booking),
             ])->all(),

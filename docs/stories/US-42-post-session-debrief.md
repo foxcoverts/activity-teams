@@ -1,7 +1,7 @@
 ---
 id: US-42
 title: "Post-Session Debrief, Timing Nudges & Attendance Sign-Off"
-status: not-started
+status: partial
 area: safety
 scope: extra
 ---
@@ -16,3 +16,8 @@ As a Lead Instructor, I want to complete a digital post-session debrief shortly 
 - The nudge is about one booking and may set `References` to that booking's current revision. The subject can stay distinct from the invite and update subjects.
 - Provides a structured debrief form to capture operating hours, total participant numbers, weather conditions, and associated equipment sets.
 - Integrates attendee confirmation directly with the booking's existing calendar attendance records to verify who actually showed up.
+
+## Progress
+
+- **Done (Phase A):** Past-tense attendance labels via twin enum + cast; revisitable **Confirm attendees** rollcall (lead or manager, from session calendar day); per-attendee `attendance_confirmed_at`; ternary Skip / Attended / Did not attend; iMIP refresh on status change only (no attendance-recorded mail).
+- **Remaining (Phase B):** `TeamFeature::Debrief`, debrief form/kit sets, tentative confirm-on-rollcall/debrief, lead nudges + digest outstanding, manager widgets.

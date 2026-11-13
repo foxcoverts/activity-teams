@@ -4,6 +4,7 @@ namespace App\Livewire;
 
 use App\Actions\RespondToBookingAction;
 use App\Enums\BookingAttendeeStatus;
+use App\Enums\PastBookingAttendeeStatus;
 use App\Filament\Teams\Resources\Bookings\BookingResource;
 use App\Models\Booking;
 use App\Models\User;
@@ -20,7 +21,7 @@ class RespondToBooking extends Component
 
     public string $invite = '';
 
-    public BookingAttendeeStatus $response;
+    public BookingAttendeeStatus|PastBookingAttendeeStatus $response;
 
     public bool $changing = false;
 
@@ -90,7 +91,7 @@ class RespondToBooking extends Component
 
         $aboutToAnswer = $this->pendingChoice !== null
             || $this->changing
-            || $this->response === BookingAttendeeStatus::NeedsAction;
+            || $this->response->isSame(BookingAttendeeStatus::NeedsAction);
 
         if (! $aboutToAnswer) {
             return null;
@@ -124,7 +125,7 @@ class RespondToBooking extends Component
 
         $status = BookingAttendeeStatus::tryFrom($choice);
 
-        if ($status === null || $status === BookingAttendeeStatus::NeedsAction || $status === $this->response) {
+        if ($status === null || $status === BookingAttendeeStatus::NeedsAction || $status->isSame($this->response)) {
             return null;
         }
 

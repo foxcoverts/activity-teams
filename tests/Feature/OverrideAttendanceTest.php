@@ -197,7 +197,9 @@ class OverrideAttendanceTest extends TestCase
         $booking->refresh();
         $this->assertSame(BookingStatus::Confirmed, $booking->status);
         $this->assertNull($booking->lead_instructor_id);
-        $this->assertSame(BookingAttendeeStatus::Declined, $booking->attendees()->find($lead)->attendance->status);
+        $this->assertTrue(
+            $booking->attendees()->find($lead)->attendance->status->isSame(BookingAttendeeStatus::Declined),
+        );
         Mail::assertNothingSent();
         Mail::assertNothingQueued();
     }
@@ -328,7 +330,9 @@ class OverrideAttendanceTest extends TestCase
                 'comment' => 'Did not attend',
             ]);
 
-        $this->assertSame(BookingAttendeeStatus::Declined, $booking->attendees()->find($member)->attendance->status);
+        $attendance = $booking->attendees()->find($member)->attendance;
+        $this->assertTrue($attendance->status->isSame(BookingAttendeeStatus::Declined));
+        $this->assertSame(__('Did not attend'), $attendance->status->getLabel());
         Mail::assertNothingSent();
         Mail::assertNothingQueued();
     }

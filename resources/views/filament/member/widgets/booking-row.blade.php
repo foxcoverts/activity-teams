@@ -16,7 +16,12 @@
         ? $start->isoFormat('HH:mm') . ' – ' . $end->isoFormat('HH:mm')
         : $start->isoFormat('HH:mm') . ' – ' . $end->isoFormat('ddd D MMM HH:mm');
     $needsAnswer =
-        $showResponse && $booking->acceptsInvites() && in_array($own, BookingAttendeeStatus::outstanding(), true);
+        $showResponse
+        && $booking->acceptsInvites()
+        && $own !== null
+        && collect(BookingAttendeeStatus::outstanding())->contains(
+            fn (BookingAttendeeStatus $status): bool => $own->isSame($status),
+        );
     $chip =
         'inline-flex items-center gap-1.5 rounded-full bg-gray-100 px-2.5 py-1 text-sm text-gray-700 dark:bg-white/10 dark:text-gray-300';
 @endphp
@@ -90,7 +95,7 @@
     @if ($needsAnswer)
         <div class="relative flex shrink-0 flex-col items-start gap-2 sm:items-end">
             <p class="text-sm text-gray-600 dark:text-gray-400">
-                {{ $own === BookingAttendeeStatus::Tentative ? __('Please confirm if you can make it') : __('Can you help with this?') }}
+                {{ $own->isSame(BookingAttendeeStatus::Tentative) ? __('Please confirm if you can make it') : __('Can you help with this?') }}
             </p>
             {!! $this->respondGroupFor($booking)->toHtml() !!}
         </div>

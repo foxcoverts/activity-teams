@@ -204,7 +204,7 @@ class UpdateBookingStatusAction
         $booking->loadMissing('attendees');
         $lead = $booking->attendees->find($leadId);
 
-        if ($lead === null || $lead->attendance?->status !== BookingAttendeeStatus::Accepted) {
+        if ($lead === null || ! ($lead->attendance?->isAccepted() ?? false)) {
             throw ValidationException::withMessages([
                 'lead_instructor_id' => __('A lead instructor must be attending.'),
             ]);
@@ -225,7 +225,7 @@ class UpdateBookingStatusAction
 
         foreach ($booking->attendees as $attendee) {
             $attendance = $attendee->attendance;
-            $status = $attendance->status === BookingAttendeeStatus::Declined
+            $status = $attendance->isDeclined()
                 ? BookingAttendeeStatus::Declined
                 : BookingAttendeeStatus::NeedsAction;
 
