@@ -5,6 +5,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{{ $title ?? config('app.name') }}</title>
+    @include('partials.browser-icons')
     @filamentStyles
     @livewireStyles
     <script src="https://cdn.tailwindcss.com"></script>

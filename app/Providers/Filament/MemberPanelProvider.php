@@ -46,6 +46,7 @@ class MemberPanelProvider extends PanelProvider
             ->colors([
                 'primary' => Color::Sky,
             ])
+            ->favicon(asset('icon.svg'))
             ->viteTheme('resources/css/filament/theme.css')
             ->plugin(FilamentActivitylog::make())
             ->navigationGroups(NavigationGroup::class)

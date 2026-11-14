@@ -28,6 +28,8 @@
     <meta name="twitter:card" content="summary" />
     <meta name="twitter:site" content="@FoxCoverts" />
 
+    @include('partials.browser-icons')
+
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 
