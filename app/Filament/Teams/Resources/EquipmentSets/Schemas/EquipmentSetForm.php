@@ -4,6 +4,8 @@ namespace App\Filament\Teams\Resources\EquipmentSets\Schemas;
 
 use App\Filament\Teams\Resources\EquipmentSets\EquipmentSetResource;
 use App\Models\Activity;
+use App\Models\EquipmentSetGroup;
+use App\Models\Team;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Components\Section;
@@ -34,6 +36,34 @@ class EquipmentSetForm
                                     : $rule->where('team_id', $team->getKey());
                             },
                         ),
+                    Select::make('equipment_set_group_id')
+                        ->label(__('Group'))
+                        ->required()
+                        ->options(function (): array {
+                            $team = EquipmentSetResource::currentTeam();
+
+                            if (! $team instanceof Team) {
+                                return [];
+                            }
+
+                            EquipmentSetGroup::ensureDefaultFor($team);
+
+                            return $team->equipmentSetGroups()
+                                ->orderBy('rank')
+                                ->pluck('label', 'id')
+                                ->all();
+                        })
+                        ->default(function (): ?string {
+                            $team = EquipmentSetResource::currentTeam();
+
+                            if (! $team instanceof Team) {
+                                return null;
+                            }
+
+                            return EquipmentSetGroup::ensureDefaultFor($team)->getKey();
+                        })
+                        ->searchable()
+                        ->preload(),
                     Select::make('activities')
                         ->label(__('Activities'))
                         ->helperText(__('Shown on debriefs for these activities. Leave empty to keep the set unused until linked.'))

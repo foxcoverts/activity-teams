@@ -35,7 +35,7 @@ class BookingDebriefResourceTest extends TestCase
         Filament::setTenant($team);
 
         $this->assertFalse(BookingDebriefResource::canViewAny());
-        $this->assertFalse(BookingDebriefResource::shouldRegisterNavigation());
+        $this->assertFalse(BookingDebriefResource::canAccess());
     }
 
     public function test_team_members_can_list_and_view_debriefs_when_feature_enabled(): void
@@ -71,7 +71,7 @@ class BookingDebriefResourceTest extends TestCase
         Filament::setTenant($team);
 
         $this->assertTrue(BookingDebriefResource::canViewAny());
-        $this->assertTrue(BookingDebriefResource::shouldRegisterNavigation());
+        $this->assertTrue(BookingDebriefResource::canAccess());
 
         Livewire::test(ListBookingDebriefs::class)
             ->assertCanSeeTableRecords([$debrief])

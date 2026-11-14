@@ -20,7 +20,7 @@ class BookingDebriefFactory extends Factory
             'booking_id' => Booking::factory(),
             'hours' => fake()->randomFloat(2, 1, 8),
             'participant_count' => fake()->numberBetween(1, 20),
-            'weather' => fake()->optional()->sentence(3),
+            'weather' => fake()->randomElement(['Dry', 'Wet', 'Windy', 'Clear', 'Overcast']),
             'notes' => fake()->optional()->sentence(),
             'completed_at' => now(),
             'completed_by_id' => User::factory(),

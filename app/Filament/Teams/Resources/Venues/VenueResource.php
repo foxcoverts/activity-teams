@@ -34,7 +34,7 @@ class VenueResource extends Resource
 
     protected static string|\UnitEnum|null $navigationGroup = NavigationGroup::Setup;
 
-    protected static ?int $navigationSort = 2;
+    protected static ?int $navigationSort = 3;
 
     protected static ?string $navigationLabel = 'Venues';
 
@@ -50,11 +50,6 @@ class VenueResource extends Resource
         return $user instanceof User
             && $team instanceof Team
             && ($user->manages($team) || $user->isSystemAdmin());
-    }
-
-    public static function canCreate(): bool
-    {
-        return auth()->user()?->can('create', Venue::class) ?? false;
     }
 
     public static function getEloquentQuery(): Builder

@@ -45,7 +45,7 @@ class TaskManagementTest extends TestCase
         Filament::setTenant($team);
 
         $this->get(TaskResource::getUrl('index', tenant: $team))->assertForbidden();
-        $this->assertFalse(TaskResource::shouldRegisterNavigation());
+        $this->assertFalse(TaskResource::canAccess());
     }
 
     public function test_managers_can_create_and_members_can_complete_tasks_when_enabled(): void

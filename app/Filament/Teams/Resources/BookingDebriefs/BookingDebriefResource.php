@@ -2,7 +2,6 @@
 
 namespace App\Filament\Teams\Resources\BookingDebriefs;
 
-use App\Enums\TeamFeature;
 use App\Filament\Teams\NavigationGroup;
 use App\Filament\Teams\Resources\BookingDebriefs\Pages\ListBookingDebriefs;
 use App\Filament\Teams\Resources\BookingDebriefs\Pages\ViewBookingDebrief;
@@ -10,7 +9,6 @@ use App\Filament\Teams\Resources\BookingDebriefs\Schemas\BookingDebriefInfolist;
 use App\Filament\Teams\Resources\BookingDebriefs\Tables\BookingDebriefsTable;
 use App\Models\BookingDebrief;
 use App\Models\Team;
-use App\Models\User;
 use BackedEnum;
 use Filament\Facades\Filament;
 use Filament\Resources\Resource;
@@ -87,33 +85,6 @@ class BookingDebriefResource extends Resource
         );
     }
 
-    public static function canViewAny(): bool
-    {
-        $user = auth()->user();
-
-        return $user instanceof User && $user->can('viewAny', BookingDebrief::class);
-    }
-
-    public static function shouldRegisterNavigation(): bool
-    {
-        return static::canViewAny() && static::debriefEnabled();
-    }
-
-    public static function canCreate(): bool
-    {
-        return false;
-    }
-
-    public static function canEdit(Model $record): bool
-    {
-        return false;
-    }
-
-    public static function canDelete(Model $record): bool
-    {
-        return false;
-    }
-
     public static function getPages(): array
     {
         return [
@@ -127,12 +98,5 @@ class BookingDebriefResource extends Resource
         $tenant = Filament::getTenant();
 
         return $tenant instanceof Team ? $tenant : null;
-    }
-
-    public static function debriefEnabled(): bool
-    {
-        $team = static::currentTeam();
-
-        return $team instanceof Team && $team->featureEnabled(TeamFeature::Debrief);
     }
 }

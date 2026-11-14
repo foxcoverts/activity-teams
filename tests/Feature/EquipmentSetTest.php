@@ -8,6 +8,7 @@ use App\Filament\Teams\Resources\EquipmentSets\Pages\CreateEquipmentSet;
 use App\Filament\Teams\Resources\EquipmentSets\Pages\ListEquipmentSets;
 use App\Models\Activity;
 use App\Models\EquipmentSet;
+use App\Models\EquipmentSetGroup;
 use App\Models\Team;
 use App\Models\User;
 use Filament\Facades\Filament;
@@ -39,9 +40,12 @@ class EquipmentSetTest extends TestCase
         $this->actingAs($manager);
         Filament::setTenant($team);
 
+        $defaultGroup = EquipmentSetGroup::ensureDefaultFor($team);
+
         Livewire::test(CreateEquipmentSet::class)
             ->fillForm([
                 'name' => 'Belay kit',
+                'equipment_set_group_id' => $defaultGroup->getKey(),
                 'activities' => [$activity->getKey()],
             ])
             ->call('create')
@@ -50,6 +54,7 @@ class EquipmentSetTest extends TestCase
         $set = EquipmentSet::query()->where('team_id', $team->getKey())->where('name', 'Belay kit')->first();
         $this->assertNotNull($set);
         $this->assertTrue($set->activities->contains($activity));
+        $this->assertSame((string) $defaultGroup->getKey(), (string) $set->equipment_set_group_id);
     }
 
     public function test_equipment_sets_nav_hidden_without_debrief_feature(): void
@@ -62,7 +67,7 @@ class EquipmentSetTest extends TestCase
         Filament::setTenant($team);
 
         $this->assertFalse(EquipmentSetResource::canViewAny());
-        $this->assertFalse(EquipmentSetResource::shouldRegisterNavigation());
+        $this->assertFalse(EquipmentSetResource::canAccess());
     }
 
     public function test_system_admin_can_manage_sets_without_being_manager(): void

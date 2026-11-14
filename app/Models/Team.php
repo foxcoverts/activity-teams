@@ -151,6 +151,12 @@ class Team extends Model implements HasAvatar
                 $team->slug = Str::slug($team->name);
             }
         });
+
+        static::saved(function (Team $team): void {
+            if ($team->featureEnabled(TeamFeature::Debrief)) {
+                EquipmentSetGroup::ensureDefaultFor($team);
+            }
+        });
     }
 
     public function getRouteKeyName(): string
@@ -319,6 +325,11 @@ class Team extends Model implements HasAvatar
     public function equipmentSets(): HasMany
     {
         return $this->hasMany(EquipmentSet::class);
+    }
+
+    public function equipmentSetGroups(): HasMany
+    {
+        return $this->hasMany(EquipmentSetGroup::class)->orderBy('rank');
     }
 
     private function addDefaultableRecord(Activity|Venue $record, string $relation, string $defaultAttribute): void

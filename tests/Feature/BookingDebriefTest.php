@@ -75,6 +75,9 @@ class BookingDebriefTest extends TestCase
         $this->attend($booking, $lead, BookingAttendeeStatus::Accepted);
 
         app(CompleteDebriefAction::class)($booking, $lead, [
+            'hours' => 2,
+            'participant_count' => 0,
+            'weather' => 'Clear',
             'marks' => [
                 (string) $member->getKey() => ConfirmAttendanceAction::MARK_CONFIRM,
                 (string) $lead->getKey() => ConfirmAttendanceAction::MARK_CONFIRM,
@@ -82,6 +85,38 @@ class BookingDebriefTest extends TestCase
         ]);
 
         $this->assertTrue($booking->fresh()->isConfirmed());
+    }
+
+    public function test_complete_debrief_requires_session_fields(): void
+    {
+        $lead = User::factory()->teamMember()->create();
+        $booking = $this->pastBooking(lead: $lead, debrief: true);
+
+        $this->expectException(ValidationException::class);
+
+        app(CompleteDebriefAction::class)($booking, $lead, [
+            'hours' => null,
+            'participant_count' => null,
+            'weather' => null,
+            'marks' => [],
+        ]);
+    }
+
+    public function test_complete_debrief_allows_zero_participant_numbers(): void
+    {
+        $lead = User::factory()->teamMember()->create();
+        $booking = $this->pastBooking(lead: $lead, debrief: true);
+
+        $debrief = app(CompleteDebriefAction::class)($booking, $lead, [
+            'hours' => 1.5,
+            'participant_count' => 0,
+            'weather' => 'Dry',
+            'marks' => [],
+        ]);
+
+        $this->assertSame(0, $debrief->participant_count);
+        $this->assertSame('1.50', (string) $debrief->hours);
+        $this->assertSame('Dry', $debrief->weather);
     }
 
     public function test_confirm_attendees_also_confirms_tentative_when_debrief_enabled(): void
@@ -167,6 +202,149 @@ class BookingDebriefTest extends TestCase
         $this->assertSame(4, $booking->fresh()->debrief->participant_count);
     }
 
+    public function test_complete_debrief_leaves_skipped_tentative_as_maybe(): void
+    {
+        $lead = User::factory()->teamMember()->create();
+        $member = User::factory()->teamMember()->create();
+        $booking = $this->pastBooking(lead: $lead, debrief: true);
+        $this->attend($booking, $member, BookingAttendeeStatus::Tentative);
+
+        $debrief = app(CompleteDebriefAction::class)($booking, $lead, [
+            'hours' => 2,
+            'participant_count' => 0,
+            'weather' => 'Clear',
+            'marks' => [
+                (string) $member->getKey() => ConfirmAttendanceAction::MARK_SKIP,
+            ],
+        ]);
+
+        $this->assertInstanceOf(BookingDebrief::class, $debrief);
+        $attendance = $booking->fresh()->attendees()->find($member)->attendance;
+        $this->assertTrue($attendance->isTentative());
+        $this->assertNull($attendance->attendance_confirmed_at);
+    }
+
+    public function test_complete_debrief_form_prefills_operating_hours_from_booking_duration(): void
+    {
+        $lead = User::factory()->teamMember()->create();
+        $booking = $this->pastBooking(lead: $lead, debrief: true);
+
+        $this->actingAs($lead);
+
+        $form = Livewire::test(ViewBooking::class, ['record' => $booking->getRouteKey()])
+            ->mountAction('completeDebrief');
+
+        $this->assertSame(
+            round($booking->start_at->floatDiffInHours($booking->end_at), 2),
+            (float) $form->get('mountedActions.0.data.hours'),
+        );
+    }
+
+    public function test_complete_debrief_add_person_field_stays_hidden_until_revealed(): void
+    {
+        $lead = User::factory()->teamMember()->create();
+        $booking = $this->pastBooking(lead: $lead, debrief: true);
+
+        $this->actingAs($lead);
+
+        Livewire::test(ViewBooking::class, ['record' => $booking->getRouteKey()])
+            ->mountAction('completeDebrief')
+            ->assertFormFieldHidden('add_user_id')
+            ->assertSet('mountedActions.0.data.show_add_person', false)
+            ->set('mountedActions.0.data.show_add_person', true)
+            ->assertFormFieldVisible('add_user_id');
+    }
+
+    public function test_complete_debrief_can_confirm_a_walk_in_from_the_add_list(): void
+    {
+        $lead = User::factory()->teamMember()->create();
+        $booking = $this->pastBooking(lead: $lead, debrief: true);
+        $walkIn = User::factory()->teamMember($booking->team)->create();
+        $this->attend($booking, $walkIn, BookingAttendeeStatus::Declined);
+
+        $this->actingAs($lead);
+
+        Livewire::test(ViewBooking::class, ['record' => $booking->getRouteKey()])
+            ->callAction('completeDebrief', data: [
+                'hours' => 2,
+                'participant_count' => 1,
+                'weather' => 'Clear',
+                'notes' => null,
+                'equipment_set_ids' => [],
+                'needs_confirming' => [[
+                    'user_id' => (string) $walkIn->getKey(),
+                    'name' => $walkIn->name,
+                    'mark' => ConfirmAttendanceAction::MARK_CONFIRM,
+                ]],
+                'confirmed' => [],
+            ]);
+
+        $attendance = $booking->fresh()->attendees()->find($walkIn)->attendance;
+        $this->assertTrue($attendance->isAccepted());
+        $this->assertNotNull($attendance->attendance_confirmed_at);
+        $this->assertNotNull($booking->fresh()->debrief);
+    }
+
+    public function test_complete_debrief_preconfirms_people_added_from_search(): void
+    {
+        $lead = User::factory()->teamMember()->create();
+        $booking = $this->pastBooking(lead: $lead, debrief: true);
+        $walkIn = User::factory()->teamMember($booking->team)->create(['name' => 'Walk In']);
+        $this->attend($booking, $walkIn, BookingAttendeeStatus::Declined);
+
+        $this->actingAs($lead);
+
+        $form = Livewire::test(ViewBooking::class, ['record' => $booking->getRouteKey()])
+            ->mountAction('completeDebrief')
+            ->set('mountedActions.0.data.show_add_person', true)
+            ->set('mountedActions.0.data.add_user_id', (string) $walkIn->getKey());
+
+        $needs = collect($form->get('mountedActions.0.data.needs_confirming') ?? [])->values();
+        $added = $needs->firstWhere('user_id', (string) $walkIn->getKey());
+
+        $this->assertNotNull($added);
+        $this->assertSame(ConfirmAttendanceAction::MARK_CONFIRM, $added['mark'] ?? null);
+        $this->assertNull($form->get('mountedActions.0.data.add_user_id'));
+    }
+
+    public function test_complete_debrief_form_does_not_default_unconfirmed_to_attended(): void
+    {
+        $lead = User::factory()->teamMember()->create();
+        $member = User::factory()->teamMember()->create();
+        $booking = $this->pastBooking(lead: $lead, debrief: true);
+        $this->attend($booking, $member, BookingAttendeeStatus::Tentative);
+
+        $this->actingAs($lead);
+
+        $form = Livewire::test(ViewBooking::class, ['record' => $booking->getRouteKey()])
+            ->mountAction('completeDebrief');
+
+        $needs = collect($form->get('mountedActions.0.data.needs_confirming') ?? [])->values();
+        $this->assertCount(1, $needs);
+        $this->assertSame((string) $member->getKey(), $needs[0]['user_id']);
+        $this->assertNull($needs[0]['mark'] ?? null);
+
+        Livewire::test(ViewBooking::class, ['record' => $booking->getRouteKey()])
+            ->callAction('completeDebrief', data: [
+                'hours' => 2,
+                'participant_count' => 0,
+                'weather' => 'Clear',
+                'notes' => null,
+                'equipment_set_ids' => [],
+                'needs_confirming' => [[
+                    'user_id' => (string) $member->getKey(),
+                    'name' => $member->name,
+                    'mark' => null,
+                ]],
+                'confirmed' => [],
+            ]);
+
+        $this->assertNotNull($booking->fresh()->debrief);
+        $attendance = $booking->fresh()->attendees()->find($member)->attendance;
+        $this->assertTrue($attendance->isTentative());
+        $this->assertNull($attendance->attendance_confirmed_at);
+    }
+
     public function test_focused_debrief_nudge_sends_after_grace_period(): void
     {
         Mail::fake();
@@ -227,6 +405,9 @@ class BookingDebriefTest extends TestCase
         $this->attend($booking, $member, BookingAttendeeStatus::Accepted);
 
         app(CompleteDebriefAction::class)($booking, $lead, [
+            'hours' => 2,
+            'participant_count' => 1,
+            'weather' => 'Clear',
             'marks' => [
                 (string) $member->getKey() => ConfirmAttendanceAction::MARK_CONFIRM,
             ],
@@ -235,6 +416,9 @@ class BookingDebriefTest extends TestCase
         $this->expectException(ValidationException::class);
 
         app(CompleteDebriefAction::class)($booking->fresh(), $lead, [
+            'hours' => 2,
+            'participant_count' => 1,
+            'weather' => 'Clear',
             'marks' => [
                 (string) $member->getKey() => ConfirmAttendanceAction::MARK_CONFIRM,
             ],

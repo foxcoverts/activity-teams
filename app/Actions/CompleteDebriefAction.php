@@ -14,9 +14,9 @@ class CompleteDebriefAction
 {
     /**
      * @param  array{
-     *     hours?: float|string|null,
-     *     participant_count?: int|string|null,
-     *     weather?: string|null,
+     *     hours: float|string|int,
+     *     participant_count: int|string,
+     *     weather: string,
      *     notes?: string|null,
      *     equipment_set_ids?: list<string>,
      *     marks: array<string, string>
@@ -56,30 +56,36 @@ class CompleteDebriefAction
             ]);
         }
 
+        $hours = $this->requiredDecimal($data['hours'] ?? null, 'hours', __('Operating hours are required.'));
+        $participantCount = $this->requiredInt(
+            $data['participant_count'] ?? null,
+            'participant_count',
+            __('Participant numbers are required.'),
+        );
+        $weather = $this->requiredString($data['weather'] ?? null, 'weather', __('Weather is required.'));
+
         $marks = $data['marks'] ?? [];
 
-        if ($marks === []) {
-            throw ValidationException::withMessages([
-                'marks' => __('Confirm attendance for everyone on the debrief.'),
-            ]);
-        }
-
         foreach ($marks as $mark) {
-            if (! in_array($mark, [ConfirmAttendanceAction::MARK_CONFIRM, ConfirmAttendanceAction::MARK_DECLINE], true)) {
+            if (! in_array($mark, [
+                ConfirmAttendanceAction::MARK_CONFIRM,
+                ConfirmAttendanceAction::MARK_DECLINE,
+                ConfirmAttendanceAction::MARK_SKIP,
+            ], true)) {
                 throw ValidationException::withMessages([
-                    'marks' => __('Choose attended or did not attend for each person.'),
+                    'marks' => __('Choose attended, did not attend, or leave blank for each person.'),
                 ]);
             }
         }
 
-        return DB::transaction(function () use ($booking, $actor, $data, $marks): BookingDebrief {
+        return DB::transaction(function () use ($booking, $actor, $data, $marks, $hours, $participantCount, $weather): BookingDebrief {
             app(ConfirmAttendanceAction::class)($booking, $actor, $marks);
 
             $debrief = BookingDebrief::query()->create([
                 'booking_id' => $booking->getKey(),
-                'hours' => $this->nullableDecimal($data['hours'] ?? null),
-                'participant_count' => $this->nullableInt($data['participant_count'] ?? null),
-                'weather' => filled($data['weather'] ?? null) ? trim((string) $data['weather']) : null,
+                'hours' => $hours,
+                'participant_count' => $participantCount,
+                'weather' => $weather,
                 'notes' => filled($data['notes'] ?? null) ? trim((string) $data['notes']) : null,
                 'completed_at' => now(),
                 'completed_by_id' => $actor->getKey(),
@@ -110,21 +116,44 @@ class CompleteDebriefAction
         });
     }
 
-    private function nullableDecimal(mixed $value): ?string
+    private function requiredDecimal(mixed $value, string $field, string $message): string
     {
         if ($value === null || $value === '') {
-            return null;
+            throw ValidationException::withMessages([
+                $field => $message,
+            ]);
         }
 
         return number_format((float) $value, 2, '.', '');
     }
 
-    private function nullableInt(mixed $value): ?int
+    private function requiredInt(mixed $value, string $field, string $message): int
     {
         if ($value === null || $value === '') {
-            return null;
+            throw ValidationException::withMessages([
+                $field => $message,
+            ]);
         }
 
         return (int) $value;
+    }
+
+    private function requiredString(mixed $value, string $field, string $message): string
+    {
+        if (! is_string($value) && ! is_numeric($value)) {
+            throw ValidationException::withMessages([
+                $field => $message,
+            ]);
+        }
+
+        $trimmed = trim((string) $value);
+
+        if ($trimmed === '') {
+            throw ValidationException::withMessages([
+                $field => $message,
+            ]);
+        }
+
+        return $trimmed;
     }
 }

@@ -16,12 +16,18 @@ class EquipmentSet extends Model
 
     protected $fillable = [
         'team_id',
+        'equipment_set_group_id',
         'name',
     ];
 
     public function team(): BelongsTo
     {
         return $this->belongsTo(Team::class);
+    }
+
+    public function equipmentSetGroup(): BelongsTo
+    {
+        return $this->belongsTo(EquipmentSetGroup::class);
     }
 
     public function activities(): BelongsToMany
