@@ -2,7 +2,6 @@
 
 namespace App\Providers\Filament;
 
-use App\Filament\Admin\Pages\Dashboard as AdminDashboard;
 use App\Filament\Auth\EditProfile;
 use App\Filament\Auth\Login;
 use App\Filament\Auth\Register;
@@ -10,8 +9,8 @@ use App\Filament\Member\NavigationGroup;
 use App\Filament\Member\Pages\Dashboard;
 use App\Filament\Member\Pages\Feeds;
 use App\Filament\Member\Pages\NotificationSettings;
+use App\Filament\Navigation\CrossPanelLinks;
 use App\Filament\Pages\ChangePassword;
-use App\Filament\Teams\Pages\Dashboard as TeamsDashboard;
 use App\Http\Middleware\RequireProfileConfirmation;
 use App\Http\Middleware\ShowPublicBookingSummary;
 use Filament\Http\Middleware\Authenticate;
@@ -61,10 +60,7 @@ class MemberPanelProvider extends PanelProvider
                 Feeds::userMenuItem(),
                 ChangePassword::userMenuItem(),
             ])
-            ->navigationItems([
-                TeamsDashboard::navigationItem(),
-                AdminDashboard::navigationItem(),
-            ])
+            ->navigationItems(CrossPanelLinks::forMemberPanel())
             ->discoverWidgets(in: app_path('Filament/Member/Widgets'), for: 'App\\Filament\\Member\\Widgets')
             ->widgets([
                 AccountWidget::class,

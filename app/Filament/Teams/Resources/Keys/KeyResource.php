@@ -2,7 +2,6 @@
 
 namespace App\Filament\Teams\Resources\Keys;
 
-use App\Filament\Teams\NavigationGroup;
 use App\Filament\Teams\Resources\Keys\Pages\ListKeys;
 use App\Filament\Teams\Resources\Keys\Pages\ViewKey;
 use App\Filament\Teams\Resources\Keys\Schemas\KeyInfolist;
@@ -24,8 +23,6 @@ class KeyResource extends Resource
     protected static ?string $model = Key::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedKey;
-
-    protected static string|\UnitEnum|null $navigationGroup = NavigationGroup::Team;
 
     protected static ?int $navigationSort = 3;
 

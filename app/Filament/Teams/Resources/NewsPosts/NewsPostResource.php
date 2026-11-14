@@ -2,7 +2,6 @@
 
 namespace App\Filament\Teams\Resources\NewsPosts;
 
-use App\Filament\Teams\NavigationGroup;
 use App\Filament\Teams\Resources\NewsPosts\Pages\CreateNewsPost;
 use App\Filament\Teams\Resources\NewsPosts\Pages\EditNewsPost;
 use App\Filament\Teams\Resources\NewsPosts\Pages\ListNewsPosts;
@@ -27,8 +26,6 @@ class NewsPostResource extends Resource
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedNewspaper;
 
     protected static ?string $recordTitleAttribute = 'title';
-
-    protected static string|\UnitEnum|null $navigationGroup = NavigationGroup::Team;
 
     protected static ?int $navigationSort = 6;
 

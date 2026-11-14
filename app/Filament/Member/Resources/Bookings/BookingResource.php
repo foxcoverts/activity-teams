@@ -4,7 +4,6 @@ namespace App\Filament\Member\Resources\Bookings;
 
 use App\Enums\BookingAttendeeStatus;
 use App\Enums\BookingStatus;
-use App\Filament\Member\NavigationGroup;
 use App\Filament\Member\Resources\Bookings\Pages\ListBookings;
 use App\Filament\Teams\Resources\Bookings\BookingResource as TeamsBookingResource;
 use App\Models\Booking;
@@ -25,8 +24,6 @@ class BookingResource extends Resource
     protected static ?string $model = Booking::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedCalendarDays;
-
-    protected static string|\UnitEnum|null $navigationGroup = NavigationGroup::Team;
 
     protected static ?int $navigationSort = 1;
 

@@ -2,7 +2,6 @@
 
 namespace App\Filament\Teams\Pages;
 
-use App\Filament\Teams\NavigationGroup;
 use App\Models\Team;
 use App\Models\User;
 use BackedEnum;
@@ -23,8 +22,6 @@ class Leaders extends Page implements HasActions
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedStar;
 
     protected static string|BackedEnum|null $activeNavigationIcon = Heroicon::Star;
-
-    protected static string|\UnitEnum|null $navigationGroup = NavigationGroup::Team;
 
     protected static ?string $title = 'Team Leaders';
 

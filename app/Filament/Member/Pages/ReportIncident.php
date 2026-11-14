@@ -5,6 +5,7 @@ namespace App\Filament\Member\Pages;
 use App\Enums\Incident\Gender;
 use App\Enums\Incident\Injury;
 use App\Enums\Incident\MembershipType;
+use App\Filament\Member\NavigationGroup;
 use App\Filament\Schemas\ContactFields;
 use App\Mail\IncidentReport as IncidentReportMail;
 use App\Models\Team;
@@ -54,6 +55,10 @@ class ReportIncident extends Page
     ];
 
     protected static ?string $slug = 'report-incident';
+
+    protected static string|\UnitEnum|null $navigationGroup = NavigationGroup::Personal;
+
+    protected static ?int $navigationSort = 5;
 
     protected static string|\BackedEnum|null $navigationIcon = Heroicon::OutlinedExclamationTriangle;
 

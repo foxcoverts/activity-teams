@@ -2,12 +2,11 @@
 
 namespace App\Providers\Filament;
 
-use App\Filament\Admin\Pages\Dashboard as AdminDashboard;
 use App\Filament\Auth\EditProfile;
 use App\Filament\Auth\Login;
-use App\Filament\Member\Pages\Dashboard as MemberDashboard;
 use App\Filament\Member\Pages\Feeds;
 use App\Filament\Member\Pages\NotificationSettings;
+use App\Filament\Navigation\CrossPanelLinks;
 use App\Filament\Pages\ChangePassword;
 use App\Filament\Teams\NavigationGroup;
 use App\Filament\Teams\Pages\Dashboard;
@@ -62,10 +61,7 @@ class TeamsPanelProvider extends PanelProvider
                 Feeds::userMenuItem(),
                 ChangePassword::userMenuItem(),
             ])
-            ->navigationItems([
-                MemberDashboard::navigationItem(),
-                AdminDashboard::navigationItem(),
-            ])
+            ->navigationItems(CrossPanelLinks::forTeamsPanel())
             ->discoverWidgets(in: app_path('Filament/Teams/Widgets'), for: 'App\\Filament\\Teams\\Widgets')
             ->widgets([
                 AccountWidget::class,

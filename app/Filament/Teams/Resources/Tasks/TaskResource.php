@@ -2,7 +2,6 @@
 
 namespace App\Filament\Teams\Resources\Tasks;
 
-use App\Filament\Teams\NavigationGroup;
 use App\Filament\Teams\Resources\Tasks\Pages\CreateTask;
 use App\Filament\Teams\Resources\Tasks\Pages\EditTask;
 use App\Filament\Teams\Resources\Tasks\Pages\ListTasks;
@@ -27,8 +26,6 @@ class TaskResource extends Resource
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedClipboardDocumentList;
 
     protected static ?string $recordTitleAttribute = 'summary';
-
-    protected static string|\UnitEnum|null $navigationGroup = NavigationGroup::Team;
 
     protected static ?int $navigationSort = 7;
 

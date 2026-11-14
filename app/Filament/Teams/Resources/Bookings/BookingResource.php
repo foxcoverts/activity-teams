@@ -2,7 +2,6 @@
 
 namespace App\Filament\Teams\Resources\Bookings;
 
-use App\Filament\Teams\NavigationGroup;
 use App\Filament\Teams\Resources\Bookings\Pages\CreateBooking;
 use App\Filament\Teams\Resources\Bookings\Pages\EditBooking;
 use App\Filament\Teams\Resources\Bookings\Pages\ListBookings;
@@ -27,8 +26,6 @@ class BookingResource extends Resource
     protected static ?string $model = Booking::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedCalendarDays;
-
-    protected static string|\UnitEnum|null $navigationGroup = NavigationGroup::Team;
 
     protected static ?int $navigationSort = 1;
 

@@ -2,7 +2,6 @@
 
 namespace App\Filament\Teams\Resources\Documents;
 
-use App\Filament\Teams\NavigationGroup;
 use App\Filament\Teams\Resources\Documents\Pages\CreateDocument;
 use App\Filament\Teams\Resources\Documents\Pages\EditDocument;
 use App\Filament\Teams\Resources\Documents\Pages\ListDocuments;
@@ -28,8 +27,6 @@ class DocumentResource extends Resource
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedDocument;
 
     protected static ?string $recordTitleAttribute = 'title';
-
-    protected static string|\UnitEnum|null $navigationGroup = NavigationGroup::Team;
 
     protected static ?int $navigationSort = 2;
 

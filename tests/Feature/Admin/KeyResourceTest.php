@@ -3,6 +3,7 @@
 namespace Tests\Feature\Admin;
 
 use App\Filament\Admin\Resources\Keys\Pages\ListKeys;
+use App\Filament\Admin\Resources\Locks\LockResource;
 use App\Models\Key;
 use App\Models\User;
 use Filament\Facades\Filament;
@@ -32,5 +33,16 @@ class KeyResourceTest extends TestCase
 
         Livewire::test(ListKeys::class)
             ->assertCanSeeTableRecords([$archery, $climbing, $zebra], inOrder: true);
+    }
+
+    public function test_the_keys_list_links_to_locks(): void
+    {
+        $admin = User::factory()->systemAdmin()->create();
+
+        $this->actingAs($admin);
+
+        Livewire::test(ListKeys::class)
+            ->assertActionVisible('locks')
+            ->assertActionHasUrl('locks', LockResource::getUrl(panel: 'admin'));
     }
 }

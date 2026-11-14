@@ -331,8 +331,10 @@ class ActivityTeamsTest extends TestCase
             ->get('/teams/'.$team->slug)
             ->assertOk()
             ->assertSeeTextInOrder([
-                'Team',
+                'Dashboard',
+                'Home',
                 'Bookings',
+                'Personal',
             ]);
     }
 

@@ -23,6 +23,8 @@ class Dashboard extends BaseDashboard
 
     protected static ?string $title = 'Dashboard';
 
+    protected static ?string $navigationLabel = 'Home';
+
     protected static ?int $navigationSort = -5;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedHome;
