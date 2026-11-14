@@ -55,6 +55,7 @@ When an enum is shown in Filament, give it a label, and a color and icon when th
 - [US-68 Booking Other Activity](US-68-booking-other-activity.md) — `done`
 - [US-77 Required Activity Label on Catalog Activity](US-77-required-activity-label.md) — `done`
 - [US-78 Optional Lead Instructor on Booking](US-78-optional-lead-instructor.md) — `done`
+- [US-81 Combined / Composite Catalog Activities](US-81-combined-catalog-activities.md) — `not-started`
 
 ## Communications, ICS & Calendar Integration
 

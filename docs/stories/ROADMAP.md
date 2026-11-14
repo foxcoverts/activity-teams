@@ -167,7 +167,7 @@ The following remain explicitly extra. Prefer them only after Phase 4 acceptance
 - **Mail bounce follow-ups:** US-45 sent/bounced tracking is done. [US-80](US-80-manager-bounce-triage-dashboard.md) is on the Manager dashboard; true delivered receipts wait on provider capability.
 - **Related implementation batches:** US-16 invitation/session catch-up is done on the US-17 digest job. Manager attention UI is US-41/US-80; [US-44](US-44-tentative-booking-manager-nudges.md) digests are on the same CombinedDigest job.
 - **Unmapped calendar replies:** [US-62](US-62-unmapped-calendar-reply-identity.md) depends on US-15 and US-55 (and task replies from US-79), which are done for known people. It was never live in climbing-team; identity confirmation and a no-account contact path remain refinement for both booking and task replies.
-- **Venue and activity follow-ups:** [US-63](US-63-venue-address-and-coordinates.md), [US-64](US-64-booking-other-venue.md), [US-65](US-65-ics-precise-location.md), and [US-68](US-68-booking-other-activity.md) are done.
+- **Venue and activity follow-ups:** [US-63](US-63-venue-address-and-coordinates.md), [US-64](US-64-booking-other-venue.md), [US-65](US-65-ics-precise-location.md), and [US-68](US-68-booking-other-activity.md) are done. Combined / composite catalog activities ([US-81](US-81-combined-catalog-activities.md)) are deferred; interim practice is a single catalog activity plus `activity_label`.
 - **Kit extensions:** US-34 and US-35 build on deferred US-23/33 kit-check capability.
 - **Session follow-on:** US-43 depends on the debrief/history behavior in US-42.
 - **Other extras:** US-24, US-36, US-38 (partial), and US-53 should be ranked against user value and effort, not treated as silent go-live commitments.
