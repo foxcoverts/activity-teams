@@ -21,6 +21,10 @@ The gitignored file `.agent-accounts.json` lists local logins that are safe for 
 
 On Livewire components that use `InteractsWithActions`, Filament resolves mounted actions by method name after each request. `Action::make('assign')` must be returned from `assignAction()` (or a method literally named `assign`). Nested actions in an `ActionGroup` follow the same rule. A mismatch (for example `Action::make('assignTask')` on `assignAction()`) renders the trigger but clicks do nothing. Prefer `BookingTasks` / `TaskAssigneePanel` as the naming pattern, and cover new panel actions with `callAction` / `mountAction` tests.
 
+## System admin is not a team manager
+
+`User::isSystemAdmin()` does **not** imply `manages($team)`. Prefer `manages($team)` (or lead checks) for booking create/update, attendance override/rollcall, debrief complete, and manager booking triage. Allow `isSystemAdmin() || manages($team)` only where product rules intentionally let admins act without membership (equipment sets, catalog give, members/roles, Manager bounce dashboard access without triage). Do not invent a helper that treats every admin as a manager.
+
 <laravel-boost-guidelines>
 === foundation rules ===
 

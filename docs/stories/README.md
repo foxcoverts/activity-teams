@@ -21,6 +21,43 @@ There is no US-32. Original ids are preserved.
 
 When an enum is shown in Filament, give it a label, and a color and icon when they help someone tell the values apart. `BookingStatus` is the pattern: confirmed is green with a check circle, tentative is yellow with a question-mark circle, and cancelled is red with an x circle. Give each enum this treatment when it next appears in the interface. Accreditation, membership role, attendee status, and the permit, qualification, and task enums from [climbing-team pull 303](https://github.com/foxcoverts/climbing-team/pull/303) are the reference.
 
+## Roles
+
+Roles live on different axes. A person can hold several at once (for example a **Manager** who is also **Lead Instructor** on one booking, or a **System admin** who also **manages** a team). **System admin does not imply team manager** — booking create/update, attendance, rollcall, and debrief complete need `manages($team)` or lead, not admin alone ([US-49](US-49-system-administration.md)).
+
+### Account (site-wide)
+
+| Role | What it is | Typical access |
+| --- | --- | --- |
+| **User** | Any authenticated account (`User` model). Base identity for profile, inbox, notifications, personal logbook. | Member panel. May also open Teams/Admin depending on the roles below. |
+| **Oversight** | Account flag (`oversight`). Directory / compliance style access, not day-to-day team ops. | Admin panel (Users directory, qualifications read paths). Does **not** get a Teams tenant from oversight alone ([US-47](US-47-multiple-activity-teams.md)). |
+| **System admin** | Account flag (`is_system_admin`). Site setup and break-glass. | Admin panel (teams, catalogs, keys, inbound mail). On Teams: can open any tenant; may manage equipment sets, members/roles, and Manager **bounce** triage **without** being a manager. **Cannot** create bookings or manage attendance/rollcall/debrief unless they also manage that team. |
+
+### Team membership (`team_user.role`)
+
+| Role | What it is | Typical access |
+| --- | --- | --- |
+| **Member** | Ordinary current membership on a team. | Sees confirmed team bookings; roster bookings they are on; Members panel tools; Teams panel for that team when they have a current tenant. |
+| **Manager** | Team manager membership (`manages($team)`). Still a member of the team. | Bookings (any status), guest list, rollcall/debrief when allowed, equipment sets, news, Manager dashboard triage, member PII after [US-58](US-58-personal-data-viewing-acknowledgement.md). |
+| **Parent** | Membership role in the schema (`MembershipRole::Parent`). Reserved / lightly used; treat like a non-manager team affiliation unless a story says otherwise. |
+
+A person may belong to several teams with different membership roles on each.
+
+### Booking-scoped (not membership)
+
+| Role | What it is | Typical access |
+| --- | --- | --- |
+| **Attendee** | On a booking roster (`booking_user`) with an attendance status (Accepted, Tentative, Declined, Needs action, …). | `BookingPolicy::view` that booking; update **their own** attendance while the booking is not past/cancelled (`BookingAttendancePolicy::update` / `acceptsInvites()`). Does **not** by itself grant team-wide member or manager powers — roster access can outlive team membership (Teams tenant via past invite). Guest list UI still requires current team membership (or manager update). |
+| **Lead instructor** | Person named on a booking (`lead_instructor_id`). Often also a team member/manager, but the lead powers are per booking. | Complete debrief from the booking header when allowed; Confirm attendees when allowed (action is lead\|manager; guest-list UI also needs current membership or manager). Lead contact windows ([US-18](US-18-lead-instructor-contact-access.md)); lead debrief nudges and lead dashboard “debriefs due”. Does **not** grant booking edit, attendance override, or other team-wide manager powers. |
+
+### Related states (not roles)
+
+These show up next to roles in UI and stories — do not treat them as the same thing:
+
+- **Placeholder** — invited account shell before claim (no password / often no user email yet).
+- **Suspended** / **Deleted** — account lifecycle ([US-48](US-48-suspend-and-restore-a-member.md), [US-57](US-57-member-account-privacy-controls.md)); blocks normal access.
+- **Key holder** — holds a key that opens a relevant lock; a capability badge, not a membership role ([US-03](US-03-booking-venue-access-logistics.md)).
+
 ## Core Qualifications & Team Management
 
 - [US-01 Member Qualification & Permit Management](US-01-member-qualification-permit-management.md) — `done`
@@ -114,7 +151,7 @@ When an enum is shown in Filament, give it a label, and a color and icon when th
 - [US-35 Member Kit Self-Certification](US-35-member-kit-self-certification.md) — `not-started`
 - [US-36 Merchandise & Stash Requests](US-36-merchandise-stash-requests.md) — `not-started`
 - [US-41 Intelligent Tentative Booking Triage & Readiness Dashboard](US-41-tentative-booking-triage.md) — `done`
-- [US-42 Post-Session Debrief, Timing Nudges & Attendance Sign-Off](US-42-post-session-debrief.md) — `partial`
+- [US-42 Post-Session Debrief, Timing Nudges & Attendance Sign-Off](US-42-post-session-debrief.md) — `done`
 - [US-43 Instructor Experience Logbook & Optional Personal Notes](US-43-instructor-experience-logbook.md) — `done`
 - [US-44 Tentative Booking Manager Nudges & Reminder Alerts](US-44-tentative-booking-manager-nudges.md) — `done`
 
