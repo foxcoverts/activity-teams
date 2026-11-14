@@ -5,7 +5,6 @@ namespace App\Filament\Member\Resources\Tasks;
 use App\Enums\TaskAttendeeStatus;
 use App\Enums\TaskPriority;
 use App\Enums\TaskStatus;
-use App\Filament\Member\NavigationGroup;
 use App\Filament\Member\Resources\Tasks\Pages\ListTasks;
 use App\Filament\Teams\Resources\Tasks\TaskResource as TeamsTaskResource;
 use App\Models\Task;
@@ -27,8 +26,6 @@ class TaskResource extends Resource
     protected static ?string $model = Task::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedClipboardDocumentList;
-
-    protected static string|\UnitEnum|null $navigationGroup = NavigationGroup::Team;
 
     protected static ?int $navigationSort = 3;
 

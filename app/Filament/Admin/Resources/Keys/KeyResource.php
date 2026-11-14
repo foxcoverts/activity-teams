@@ -37,9 +37,9 @@ class KeyResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedKey;
 
-    protected static string|\UnitEnum|null $navigationGroup = NavigationGroup::Inventory;
+    protected static string|\UnitEnum|null $navigationGroup = NavigationGroup::Catalog;
 
-    protected static ?int $navigationSort = 1;
+    protected static ?int $navigationSort = 3;
 
     protected static ?string $recordTitleAttribute = 'name';
 

@@ -2,7 +2,6 @@
 
 namespace App\Filament\Teams\Resources\BookingDebriefs;
 
-use App\Filament\Teams\NavigationGroup;
 use App\Filament\Teams\Resources\BookingDebriefs\Pages\ListBookingDebriefs;
 use App\Filament\Teams\Resources\BookingDebriefs\Pages\ViewBookingDebrief;
 use App\Filament\Teams\Resources\BookingDebriefs\Schemas\BookingDebriefInfolist;
@@ -23,8 +22,6 @@ class BookingDebriefResource extends Resource
     protected static ?string $model = BookingDebrief::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedDocumentCheck;
-
-    protected static string|\UnitEnum|null $navigationGroup = NavigationGroup::Team;
 
     protected static ?string $navigationParentItem = 'Bookings';
 

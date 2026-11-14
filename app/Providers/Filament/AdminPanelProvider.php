@@ -5,11 +5,10 @@ namespace App\Providers\Filament;
 use App\Filament\Admin\NavigationGroup;
 use App\Filament\Admin\Pages\Dashboard;
 use App\Filament\Auth\EditProfile;
-use App\Filament\Member\Pages\Dashboard as MemberDashboard;
 use App\Filament\Member\Pages\Feeds;
 use App\Filament\Member\Pages\NotificationSettings;
+use App\Filament\Navigation\CrossPanelLinks;
 use App\Filament\Pages\ChangePassword;
-use App\Filament\Teams\Pages\Dashboard as TeamsDashboard;
 use App\Http\Middleware\RequireProfileConfirmation;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
@@ -54,10 +53,7 @@ class AdminPanelProvider extends PanelProvider
                 Feeds::userMenuItem(),
                 ChangePassword::userMenuItem(),
             ])
-            ->navigationItems([
-                MemberDashboard::navigationItem(),
-                TeamsDashboard::navigationItem(),
-            ])
+            ->navigationItems(CrossPanelLinks::forAdminPanel())
             ->discoverWidgets(in: app_path('Filament/Admin/Widgets'), for: 'App\Filament\Admin\Widgets')
             ->widgets([
                 AccountWidget::class,

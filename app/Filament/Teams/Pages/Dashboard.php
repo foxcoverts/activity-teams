@@ -24,9 +24,11 @@ class Dashboard extends BaseDashboard
 {
     protected static ?string $title = 'Teams';
 
+    protected static ?string $navigationLabel = 'Dashboard';
+
     protected static string $panel = 'teams';
 
-    protected static ?int $navigationSort = -4;
+    protected static ?int $navigationSort = -5;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedUserGroup;
 
