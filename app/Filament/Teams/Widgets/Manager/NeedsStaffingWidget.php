@@ -10,7 +10,7 @@ use Filament\Support\Icons\Heroicon;
 
 class NeedsStaffingWidget extends ManagerSection
 {
-    protected static ?int $sort = 4;
+    protected static ?int $sort = 5;
 
     protected string $view = 'filament.teams.widgets.manager.needs-staffing';
 

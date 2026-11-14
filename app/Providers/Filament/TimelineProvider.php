@@ -48,12 +48,20 @@ class TimelineProvider extends ServiceProvider
                 ->itemIconColor('attendance_updated', function (ActivityLog $activity): array {
                     return static::attendanceStatus($activity)?->getColor() ?? Palette::neutral();
                 }, Booking::class)
+                ->itemIcon('attendance_confirmed', function (ActivityLog $activity): Heroicon {
+                    return static::attendanceStatus($activity)?->getIcon() ?? Heroicon::OutlinedUser;
+                }, Booking::class)
+                ->itemIconColor('attendance_confirmed', function (ActivityLog $activity): array {
+                    return static::attendanceStatus($activity)?->getColor() ?? Palette::neutral();
+                }, Booking::class)
                 ->itemIcon('lead_stepped_down', function (ActivityLog $activity): Heroicon {
                     return static::attendanceStatus($activity)?->getIcon() ?? Heroicon::OutlinedUserMinus;
                 }, Booking::class)
                 ->itemIconColor('lead_stepped_down', function (ActivityLog $activity): array {
                     return static::attendanceStatus($activity)?->getColor() ?? Palette::uncertain();
                 }, Booking::class)
+                ->itemIcon('debrief_completed', Heroicon::OutlinedDocumentCheck, Booking::class)
+                ->itemIconColor('debrief_completed', Palette::positive(), Booking::class)
                 ->itemIconColor('updated', function (ActivityLog $activity): array {
                     return static::bookingStatus($activity)?->getColor() ?? Palette::neutral();
                 }, Booking::class)
@@ -99,7 +107,9 @@ class TimelineProvider extends ServiceProvider
                 ->eventDescription('attendees_invited', fn (ActivityLog $activity, ?string $causerName, Timeline $timeline): HtmlString => static::withActor($timeline, $activity, $causerName, static::invitedUpdate($timeline, $activity), escape: false), Booking::class)
                 ->eventDescription('attendee_removed', fn (ActivityLog $activity, ?string $causerName, Timeline $timeline): HtmlString => static::withActor($timeline, $activity, $causerName, static::removedUpdate($timeline, $activity), escape: false), Booking::class)
                 ->eventDescription('attendance_updated', fn (ActivityLog $activity, ?string $causerName, Timeline $timeline): HtmlString => static::withActor($timeline, $activity, $causerName, static::attendanceUpdate($timeline, $activity), escape: false), Booking::class)
+                ->eventDescription('attendance_confirmed', fn (ActivityLog $activity, ?string $causerName, Timeline $timeline): HtmlString => static::withActor($timeline, $activity, $causerName, static::attendanceUpdate($timeline, $activity), escape: false), Booking::class)
                 ->eventDescription('lead_stepped_down', fn (ActivityLog $activity, ?string $causerName, Timeline $timeline): HtmlString => static::withActor($timeline, $activity, $causerName, static::leadSteppedDownUpdate($timeline, $activity), escape: false), Booking::class)
+                ->eventDescription('debrief_completed', fn (ActivityLog $activity, ?string $causerName, Timeline $timeline): HtmlString => static::withActor($timeline, $activity, $causerName, 'completed the debrief.'), Booking::class)
                 ->eventDescription('updated', function (ActivityLog $activity, ?string $causerName, ?string $changesSummary, Timeline $timeline): ?HtmlString {
                     return static::updatedDescription($timeline, $activity, $causerName, $changesSummary);
                 }, Booking::class)

@@ -6,6 +6,7 @@ use App\Filament\Pages\Dashboard as BaseDashboard;
 use App\Filament\Teams\Widgets\AdminTeamVisitorWidget;
 use App\Filament\Teams\Widgets\AllCaughtUpWidget;
 use App\Filament\Teams\Widgets\AssignedTasksWidget;
+use App\Filament\Teams\Widgets\DebriefsDueWidget;
 use App\Filament\Teams\Widgets\LatestNewsWidget;
 use App\Filament\Teams\Widgets\NeedsResponseWidget;
 use App\Filament\Teams\Widgets\NextLedBookingWidget;
@@ -83,6 +84,7 @@ class Dashboard extends BaseDashboard
         return [
             ThisWeekWidget::class,
             NeedsResponseWidget::class,
+            DebriefsDueWidget::class,
             AssignedTasksWidget::class,
             NextLedBookingWidget::class,
             AllCaughtUpWidget::class,

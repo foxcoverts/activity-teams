@@ -126,6 +126,32 @@ class MemberResource extends Resource
         return $tenant instanceof Team ? $tenant : null;
     }
 
+    public static function viewUrlFor(?User $member, ?Team $team): ?string
+    {
+        if (! $member instanceof User || ! $team instanceof Team) {
+            return null;
+        }
+
+        $viewer = auth()->user();
+
+        if (! $viewer instanceof User) {
+            return null;
+        }
+
+        if (! $member->teams()->whereKey($team->getKey())->exists()) {
+            return null;
+        }
+
+        $mayLink = $viewer->manages($team)
+            || ($viewer->isSystemAdmin() && static::canView($member));
+
+        if (! $mayLink || ! static::canView($member)) {
+            return null;
+        }
+
+        return static::getUrl('view', ['record' => $member], panel: 'teams', tenant: $team);
+    }
+
     /**
      * @return EloquentCollection<int, Lock>
      */

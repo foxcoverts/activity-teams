@@ -247,7 +247,23 @@
 }
 
 .confirm-attendees-panel .confirm-attendees-section .fi-section:not(.fi-section-not-contained):not(.fi-divided)>.fi-section-content-ctn>.fi-section-content {
-    @apply p-0;
+    @apply gap-0 p-0;
+}
+
+.confirm-attendees-panel .confirm-attendees-add {
+    @apply border-t border-gray-200 px-3 pb-3 pt-2 dark:border-white/10;
+}
+
+.confirm-attendees-panel .complete-debrief-equipment .fi-section:not(.fi-section-not-contained):not(.fi-divided)>.fi-section-content-ctn>.fi-section-content {
+    padding: calc(var(--spacing) * 6) 0;
+}
+
+.confirm-attendees-panel .complete-debrief-equipment--flat .fi-section:not(.fi-section-not-contained):not(.fi-divided)>.fi-section-content-ctn>.fi-section-content {
+    padding: calc(var(--spacing) * 6);
+}
+
+.confirm-attendees-panel .complete-debrief-equipment .fi-fieldset:not(.fi-fieldset-not-contained) {
+    @apply rounded-none border-x-0 border-b-0 pb-0;
 }
 
 .confirm-attendees-panel .confirm-attendees-rollcall.fi-fo-repeater,

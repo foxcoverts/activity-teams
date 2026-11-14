@@ -17,7 +17,8 @@ class ManagerAllCaughtUpWidget extends ManagerSection
         $canBrowseBookings = static::canViewBookingTriage();
 
         return [
-            'caughtUp' => $attention->needsLead()->isEmpty()
+            'caughtUp' => $attention->outstandingDebriefs()->isEmpty()
+                && $attention->needsLead()->isEmpty()
                 && $attention->readyToConfirm()->isEmpty()
                 && $attention->needsStaffing()->isEmpty()
                 && $attention->bouncedMembers()->isEmpty(),

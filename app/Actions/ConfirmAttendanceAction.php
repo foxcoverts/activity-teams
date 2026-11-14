@@ -41,9 +41,11 @@ class ConfirmAttendanceAction
             ]);
         }
 
-        $booking->loadMissing('attendees');
+        $booking->loadMissing(['attendees', 'team']);
 
         DB::transaction(function () use ($booking, $actor, $marks): void {
+            $applied = false;
+
             foreach ($marks as $userId => $mark) {
                 if (! is_string($mark) || $mark === self::MARK_SKIP) {
                     continue;
@@ -51,7 +53,7 @@ class ConfirmAttendanceAction
 
                 if (! in_array($mark, [self::MARK_CONFIRM, self::MARK_DECLINE], true)) {
                     throw ValidationException::withMessages([
-                        'marks' => __('Choose attended, skip, or did not attend.'),
+                        'marks' => __('Choose attended or did not attend.'),
                     ]);
                 }
 
@@ -85,6 +87,11 @@ class ConfirmAttendanceAction
                 }
 
                 $this->applyMark($booking, $attendee, $actor, $mark);
+                $applied = true;
+            }
+
+            if ($applied) {
+                app(ConfirmSessionOccurredAction::class)($booking->fresh(), $actor);
             }
         });
     }

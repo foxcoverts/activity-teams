@@ -238,6 +238,7 @@ Prefer icons in this order:
 
 ## Filament UI Conventions
 
+- **Navigation within a group:** keep items alphabetical by navigation label. When adding or renaming an item, renumber that group's `navigationSort` values densely from 1 so the order stays alphabetical (e.g. Teams **Setup**: Activities, Equipment sets, Venues). Nested items under a parent (e.g. Debriefs under Bookings) stay with their parent and do not reshuffle siblings in the parent group. Ungrouped items such as dashboards keep their existing negative sorts outside this rule.
 - When an enum is shown in Filament, implement `HasLabel`; add `HasColor` and `HasIcon` when they help distinguish values. Return translated labels, semantic colors from `App\Support\Palette`, and icons following the Filament icons hierarchy. Apply this when the enum is in scope rather than restyling unrelated enums. See `docs/stories/README.md` for the project's reference.
 - Use **Remove**, **Remove selected**, and **Removed** in user-facing actions that take related records off a parent. Keep Filament's detach/dissociate action types and existing localized wording overrides; do not restore relationship jargon in labels, modal copy, or notifications.
 - Do not display seconds in booking dates or times.

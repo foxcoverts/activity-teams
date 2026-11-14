@@ -9,7 +9,7 @@ use Filament\Support\Icons\Heroicon;
 
 class EmailBouncesWidget extends ManagerSection
 {
-    protected static ?int $sort = 5;
+    protected static ?int $sort = 6;
 
     protected string $view = 'filament.teams.widgets.manager.email-bounces';
 

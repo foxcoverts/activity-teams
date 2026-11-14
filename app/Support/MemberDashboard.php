@@ -158,6 +158,14 @@ class MemberDashboard
     {
         $needs = $this->needsResponse();
         $tasks = $this->assignedTasks();
+        $debriefsDue = app(DebriefCatchUp::class)
+            ->outstandingLedBy($this->user)
+            ->when(
+                $this->team instanceof Team,
+                fn (Collection $bookings): Collection => $bookings
+                    ->where('team_id', $this->team->getKey())
+                    ->values(),
+            );
 
         return $this->thisWeek()['rows']->isNotEmpty()
             || $this->unreadPreview()->isNotEmpty()
@@ -165,6 +173,7 @@ class MemberDashboard
             || $needs['maybe']->isNotEmpty()
             || $tasks['overdue']->isNotEmpty()
             || $tasks['assigned']->isNotEmpty()
+            || $debriefsDue->isNotEmpty()
             || $this->nextLedDay()->isNotEmpty();
     }
 

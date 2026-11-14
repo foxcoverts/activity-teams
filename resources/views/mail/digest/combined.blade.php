@@ -65,6 +65,14 @@
 </x-mail::button>
 @endif
 
+@if (is_array($debriefsDue) && $debriefsDue !== [])
+# {{ __('Debriefs still due') }}
+
+@foreach ($debriefsDue as $line)
+- {{ $line }}
+@endforeach
+@endif
+
 @if (is_array($rota))
 # {{ __('Your rota') }}
 

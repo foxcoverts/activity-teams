@@ -5,6 +5,7 @@ namespace App\Support;
 use App\Enums\AttentionSeverity;
 use App\Enums\BookingAttendeeStatus;
 use App\Enums\BookingStatus;
+use App\Enums\TeamFeature;
 use App\Enums\TentativeTriage;
 use App\Models\Booking;
 use App\Models\Team;
@@ -87,6 +88,7 @@ final class ManagerAttention
         if ($includeBookings) {
             $contributors = [
                 ...$contributors,
+                ['count' => $this->outstandingDebriefs()->count(), 'severity' => AttentionSeverity::Uncertain],
                 ['count' => $this->needsLead()->count(), 'severity' => AttentionSeverity::Uncertain],
                 ['count' => $this->atRisk()->count(), 'severity' => AttentionSeverity::Uncertain],
                 ['count' => $this->unstaffed()->count(), 'severity' => AttentionSeverity::Uncertain],
@@ -115,6 +117,37 @@ final class ManagerAttention
             'total' => $total,
             'severity' => $severity,
         ];
+    }
+
+    /**
+     * @return Collection<int, Booking>
+     */
+    public function outstandingDebriefs(): Collection
+    {
+        if (! $this->includesBookingTriage() || ! $this->team->featureEnabled(TeamFeature::Debrief)) {
+            return collect();
+        }
+
+        return Booking::query()
+            ->with(['activity', 'audience', 'venue', 'team', 'debrief'])
+            ->where('team_id', $this->team->getKey())
+            ->whereIn('status', [BookingStatus::Confirmed->value, BookingStatus::Tentative->value])
+            ->whereDoesntHave('debrief')
+            ->whereNotNull('end_at')
+            ->where('end_at', '<=', now()->subHour())
+            ->where(function ($query): void {
+                $query
+                    ->where('status', BookingStatus::Confirmed->value)
+                    ->orWhere(function ($tentative): void {
+                        $tentative
+                            ->where('status', BookingStatus::Tentative->value)
+                            ->whereNotNull('lead_instructor_id');
+                    });
+            })
+            ->orderBy('end_at')
+            ->get()
+            ->filter(fn (Booking $booking): bool => $booking->needsDebrief())
+            ->values();
     }
 
     /**

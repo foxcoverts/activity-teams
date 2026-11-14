@@ -136,6 +136,51 @@ class ConfirmAttendanceTest extends TestCase
         Mail::assertNothingSent();
     }
 
+    public function test_confirm_attendees_add_person_field_stays_hidden_until_revealed(): void
+    {
+        $manager = User::factory()->teamManager()->create();
+        $member = User::factory()->teamMember()->create();
+        $booking = Booking::factory()->confirmed()->create([
+            'start_at' => now()->subHour(),
+            'end_at' => now()->addHour(),
+        ]);
+        $this->attend($booking, $member, BookingAttendeeStatus::Accepted);
+
+        $this->actingAs($manager);
+
+        Livewire::test(ViewBooking::class, ['record' => $booking->getRouteKey()])
+            ->mountAction('confirmAttendees')
+            ->assertFormFieldHidden('add_user_id')
+            ->assertSet('mountedActions.0.data.show_add_person', false)
+            ->set('mountedActions.0.data.show_add_person', true)
+            ->assertFormFieldVisible('add_user_id');
+    }
+
+    public function test_confirm_attendees_preconfirms_people_added_from_search(): void
+    {
+        $manager = User::factory()->teamManager()->create();
+        $booking = Booking::factory()->confirmed()->create([
+            'start_at' => now()->subHour(),
+            'end_at' => now()->addHour(),
+        ]);
+        $walkIn = User::factory()->teamMember($booking->team)->create(['name' => 'Walk In']);
+        $this->attend($booking, $walkIn, BookingAttendeeStatus::Declined);
+
+        $this->actingAs($manager);
+
+        $form = Livewire::test(ViewBooking::class, ['record' => $booking->getRouteKey()])
+            ->mountAction('confirmAttendees')
+            ->set('mountedActions.0.data.show_add_person', true)
+            ->set('mountedActions.0.data.add_user_id', (string) $walkIn->getKey());
+
+        $needs = collect($form->get('mountedActions.0.data.needs_confirming') ?? [])->values();
+        $added = $needs->firstWhere('user_id', (string) $walkIn->getKey());
+
+        $this->assertNotNull($added);
+        $this->assertSame(ConfirmAttendanceAction::MARK_CONFIRM, $added['mark'] ?? null);
+        $this->assertNull($form->get('mountedActions.0.data.add_user_id'));
+    }
+
     public function test_confirm_accepted_moves_person_to_confirmed_section(): void
     {
         Mail::fake();

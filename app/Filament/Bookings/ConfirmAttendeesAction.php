@@ -37,41 +37,48 @@ class ConfirmAttendeesAction
             ->visible(fn (Booking $record): bool => self::canConfirm($record, auth()->user()))
             ->fillForm(fn (Booking $record): array => self::formState($record))
             ->schema(fn (Booking $record): array => [
-                Section::make(__('Needs confirming'))
-                    ->icon(Heroicon::OutlinedQuestionMarkCircle)
+                Section::make(__('Confirm attendance'))
+                    ->icon(Heroicon::OutlinedUserGroup)
                     ->columns(1)
                     ->columnSpanFull()
                     ->extraAttributes(['class' => 'confirm-attendees-section'])
-                    ->visible(fn (Get $get): bool => filled($get('needs_confirming')))
+                    ->headerActions([
+                        Action::make('revealAddPerson')
+                            ->label(__('Add'))
+                            ->icon(Heroicon::Plus)
+                            ->link()
+                            ->visible(fn (Get $get): bool => ! (bool) $get('show_add_person'))
+                            ->action(function (Set $set): void {
+                                $set('show_add_person', true);
+                            }),
+                    ])
                     ->schema([
-                        self::marksRepeater('needs_confirming', defaultMark: null),
-                    ]),
-                Section::make(__('Confirmed'))
-                    ->icon(Heroicon::OutlinedCheckCircle)
-                    ->columns(1)
-                    ->columnSpanFull()
-                    ->extraAttributes(['class' => 'confirm-attendees-section'])
-                    ->visible(fn (Get $get): bool => filled($get('confirmed')))
-                    ->schema([
-                        self::marksRepeater('confirmed', defaultMark: ConfirmAttendanceAction::MARK_CONFIRM),
-                    ]),
-                Section::make(__('Add someone'))
-                    ->icon(Heroicon::OutlinedUserPlus)
-                    ->columns(1)
-                    ->columnSpanFull()
-                    ->schema([
+                        Hidden::make('show_add_person')
+                            ->default(false)
+                            ->dehydrated(false),
+                        self::marksRepeater('needs_confirming', defaultMark: null)
+                            ->visible(fn (Get $get): bool => filled($get('needs_confirming'))),
                         Select::make('add_user_id')
-                            ->label(__('Search people'))
+                            ->label(__('Add attendee'))
                             ->placeholder(__('Declined or awaiting response'))
                             ->searchable()
                             ->preload(false)
+                            ->allowHtml()
+                            ->native(false)
                             ->options(fn (): array => [])
                             ->getSearchResultsUsing(fn (string $search, Get $get): array => self::searchAddable(
                                 $record,
                                 $search,
                                 $get,
                             ))
-                            ->getOptionLabelUsing(fn (?string $value): ?string => User::query()->find($value)?->name)
+                            ->getOptionLabelUsing(function (?string $value): ?string {
+                                $person = filled($value) ? User::query()->find($value) : null;
+
+                                return $person instanceof User
+                                    ? self::personOptionLabel($person)
+                                    : null;
+                            })
+                            ->visible(fn (Get $get): bool => (bool) $get('show_add_person'))
                             ->live()
                             ->afterStateUpdated(function (?string $state, Get $get, Set $set): void {
                                 if (! filled($state)) {
@@ -96,9 +103,25 @@ class ConfirmAttendeesAction
                                     return;
                                 }
 
-                                $set('needs_confirming', $needs->push(self::personRow($person))->values()->all());
+                                $set(
+                                    'needs_confirming',
+                                    $needs->push(self::personRow(
+                                        $person,
+                                        ConfirmAttendanceAction::MARK_CONFIRM,
+                                    ))->values()->all(),
+                                );
                                 $set('add_user_id', null);
-                            }),
+                            })
+                            ->extraFieldWrapperAttributes(['class' => 'confirm-attendees-add']),
+                    ]),
+                Section::make(__('Confirmed'))
+                    ->icon(Heroicon::OutlinedCheckCircle)
+                    ->columns(1)
+                    ->columnSpanFull()
+                    ->extraAttributes(['class' => 'confirm-attendees-section'])
+                    ->visible(fn (Get $get): bool => filled($get('confirmed')))
+                    ->schema([
+                        self::marksRepeater('confirmed', defaultMark: ConfirmAttendanceAction::MARK_CONFIRM),
                     ]),
             ])
             ->action(function (Booking $record, array $data, Action $action): void {
@@ -131,6 +154,10 @@ class ConfirmAttendeesAction
             return false;
         }
 
+        if (CompleteDebriefAction::isAvailable($booking, $user)) {
+            return false;
+        }
+
         $booking->loadMissing('team');
 
         return $booking->isLead($user)
@@ -138,7 +165,12 @@ class ConfirmAttendeesAction
     }
 
     /**
-     * @return array{needs_confirming: list<array{user_id: string, name: string, avatar_url: string, mark: ?string}>, confirmed: list<array{user_id: string, name: string, avatar_url: string, mark: ?string}>, add_user_id: null}
+     * @return array{
+     *     needs_confirming: list<array{user_id: string, name: string, avatar_url: string, mark: ?string}>,
+     *     confirmed: list<array{user_id: string, name: string, avatar_url: string, mark: ?string}>,
+     *     show_add_person: false,
+     *     add_user_id: null
+     * }
      */
     private static function formState(Booking $booking): array
     {
@@ -168,6 +200,7 @@ class ConfirmAttendeesAction
         return [
             'needs_confirming' => $needs,
             'confirmed' => $confirmed,
+            'show_add_person' => false,
             'add_user_id' => null,
         ];
     }
@@ -310,8 +343,20 @@ class ConfirmAttendeesAction
             ->sortBy(fn (User $attendee): string => $attendee->name)
             ->take(20)
             ->mapWithKeys(fn (User $attendee): array => [
-                (string) $attendee->getKey() => $attendee->name,
+                (string) $attendee->getKey() => self::personOptionLabel($attendee),
             ])
             ->all();
+    }
+
+    private static function personOptionLabel(User $person): string
+    {
+        return '<span class="inline-flex items-center gap-2">'
+            .view('filament.bookings.person-identity', [
+                'person' => [
+                    'name' => $person->name,
+                    'avatar_url' => Avatars::userUrl($person, 64),
+                ],
+            ])->render()
+            .'</span>';
     }
 }

@@ -57,18 +57,6 @@ class TaskResource extends Resource
         return false;
     }
 
-    public static function canViewAny(): bool
-    {
-        $user = auth()->user();
-
-        return $user !== null && $user->can('viewAny', Task::class);
-    }
-
-    public static function shouldRegisterNavigation(): bool
-    {
-        return static::canViewAny();
-    }
-
     public static function getEloquentQuery(): Builder
     {
         $user = auth()->user();
