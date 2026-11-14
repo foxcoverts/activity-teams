@@ -22,6 +22,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Support\Collection;
@@ -409,6 +410,8 @@ class Booking extends Model implements Commentable
                 'calendar_imip_at',
                 'declined_sessions',
                 'attendance_confirmed_at',
+                'logbook_ignored_at',
+                'logbook_nudged_at',
             )->as('attendance')
             ->using(BookingAttendance::class);
     }
@@ -416,6 +419,14 @@ class Booking extends Model implements Commentable
     public function debrief(): HasOne
     {
         return $this->hasOne(BookingDebrief::class);
+    }
+
+    /**
+     * @return HasMany<LogbookEntry, $this>
+     */
+    public function logbookEntries(): HasMany
+    {
+        return $this->hasMany(LogbookEntry::class);
     }
 
     public function needsDebrief(): bool
@@ -589,6 +600,21 @@ class Booking extends Model implements Commentable
     public function leadInstructor(): BelongsTo
     {
         return $this->belongsTo(User::class, 'lead_instructor_id');
+    }
+
+    public function suggestedOperatingHours(): ?float
+    {
+        if ($this->start_at === null || $this->end_at === null) {
+            return null;
+        }
+
+        $hours = $this->start_at->floatDiffInHours($this->end_at);
+
+        if ($hours <= 0) {
+            return null;
+        }
+
+        return round($hours, 2);
     }
 
     public function isPast(): bool

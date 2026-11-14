@@ -6,6 +6,7 @@ use App\Actions\ConfirmAttendanceAction;
 use App\Enums\BookingAttendeeStatus;
 use App\Enums\PastBookingAttendeeStatus;
 use App\Filament\Teams\Resources\Bookings\Pages\ViewBooking;
+use App\Filament\Teams\Resources\Bookings\RelationManagers\AttendeesRelationManager;
 use App\Mail\BookingChangedMail;
 use App\Mail\BookingIcsRefreshMail;
 use App\Models\Booking;
@@ -16,6 +17,7 @@ use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Notification;
+use Livewire\Features\SupportTesting\Testable;
 use Livewire\Livewire;
 use ReflectionClass;
 use ReflectionMethod;
@@ -99,8 +101,7 @@ class ConfirmAttendanceTest extends TestCase
 
         $this->actingAs($manager);
 
-        Livewire::test(ViewBooking::class, ['record' => $booking->getRouteKey()])
-            ->assertActionHidden('confirmAttendees');
+        $this->guests($booking)->assertTableActionHidden('confirmAttendees');
     }
 
     public function test_blank_mark_leaves_unconfirmed_accepted_in_needs_confirming(): void
@@ -118,9 +119,9 @@ class ConfirmAttendanceTest extends TestCase
 
         $this->actingAs($manager);
 
-        Livewire::test(ViewBooking::class, ['record' => $booking->getRouteKey()])
-            ->assertActionVisible('confirmAttendees')
-            ->callAction('confirmAttendees', data: [
+        $this->guests($booking)
+            ->assertTableActionVisible('confirmAttendees')
+            ->callTableAction('confirmAttendees', data: [
                 'needs_confirming' => [[
                     'user_id' => (string) $member->getKey(),
                     'name' => $member->name,
@@ -148,8 +149,8 @@ class ConfirmAttendanceTest extends TestCase
 
         $this->actingAs($manager);
 
-        Livewire::test(ViewBooking::class, ['record' => $booking->getRouteKey()])
-            ->mountAction('confirmAttendees')
+        $this->guests($booking)
+            ->mountTableAction('confirmAttendees')
             ->assertFormFieldHidden('add_user_id')
             ->assertSet('mountedActions.0.data.show_add_person', false)
             ->set('mountedActions.0.data.show_add_person', true)
@@ -168,8 +169,8 @@ class ConfirmAttendanceTest extends TestCase
 
         $this->actingAs($manager);
 
-        $form = Livewire::test(ViewBooking::class, ['record' => $booking->getRouteKey()])
-            ->mountAction('confirmAttendees')
+        $form = $this->guests($booking)
+            ->mountTableAction('confirmAttendees')
             ->set('mountedActions.0.data.show_add_person', true)
             ->set('mountedActions.0.data.add_user_id', (string) $walkIn->getKey());
 
@@ -197,8 +198,8 @@ class ConfirmAttendanceTest extends TestCase
 
         $this->actingAs($manager);
 
-        Livewire::test(ViewBooking::class, ['record' => $booking->getRouteKey()])
-            ->callAction('confirmAttendees', data: [
+        $this->guests($booking)
+            ->callTableAction('confirmAttendees', data: [
                 'needs_confirming' => [[
                     'user_id' => (string) $member->getKey(),
                     'name' => $member->name,
@@ -211,8 +212,7 @@ class ConfirmAttendanceTest extends TestCase
         $this->assertTrue($attendance->isAccepted());
         $this->assertNotNull($attendance->attendance_confirmed_at);
 
-        $form = Livewire::test(ViewBooking::class, ['record' => $booking->getRouteKey()])
-            ->mountAction('confirmAttendees');
+        $form = $this->guests($booking)->mountTableAction('confirmAttendees');
         $confirmedRows = collect($form->get('mountedActions.0.data.confirmed') ?? [])->values();
 
         $this->assertSame([], $form->get('mountedActions.0.data.needs_confirming') ?? []);
@@ -246,8 +246,7 @@ class ConfirmAttendanceTest extends TestCase
         $this->assertTrue($attendance->isDeclined());
         $this->assertNull($attendance->attendance_confirmed_at);
 
-        $form = Livewire::test(ViewBooking::class, ['record' => $booking->getRouteKey()])
-            ->mountAction('confirmAttendees');
+        $form = $this->guests($booking)->mountTableAction('confirmAttendees');
 
         $this->assertSame([], $form->get('mountedActions.0.data.needs_confirming') ?? []);
         $this->assertSame([], $form->get('mountedActions.0.data.confirmed') ?? []);
@@ -268,9 +267,9 @@ class ConfirmAttendanceTest extends TestCase
 
         $this->actingAs($lead);
 
-        Livewire::test(ViewBooking::class, ['record' => $booking->getRouteKey()])
-            ->assertActionVisible('confirmAttendees')
-            ->callAction('confirmAttendees', data: [
+        $this->guests($booking)
+            ->assertTableActionVisible('confirmAttendees')
+            ->callTableAction('confirmAttendees', data: [
                 'needs_confirming' => [[
                     'user_id' => (string) $member->getKey(),
                     'name' => $member->name,
@@ -280,6 +279,14 @@ class ConfirmAttendanceTest extends TestCase
             ]);
 
         $this->assertNotNull($booking->fresh()->attendees()->find($member)->attendance->attendance_confirmed_at);
+    }
+
+    private function guests(Booking $booking): Testable
+    {
+        return Livewire::test(AttendeesRelationManager::class, [
+            'ownerRecord' => $booking,
+            'pageClass' => ViewBooking::class,
+        ]);
     }
 
     private function attend(Booking $booking, User $user, BookingAttendeeStatus $status): void

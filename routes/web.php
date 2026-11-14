@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\BookingIcsController;
+use App\Http\Controllers\LogbookExportController;
 use App\Http\Controllers\NewsFeedController;
 use App\Http\Controllers\PrivacyPolicyController;
 use App\Http\Controllers\TaskIcsController;
@@ -58,3 +59,4 @@ Route::middleware(AuthenticateFromParam::class.':user')->group(function () {
 
 Route::middleware('auth')->get('bookings/{booking}.ics', [BookingIcsController::class, 'show'])->name('booking.show.ics');
 Route::middleware('auth')->get('tasks/{task}.ics', [TaskIcsController::class, 'show'])->name('task.show.ics');
+Route::middleware('auth')->get('logbook/export', [LogbookExportController::class, 'pdf'])->name('member.logbook.export');

@@ -115,7 +115,7 @@ When an enum is shown in Filament, give it a label, and a color and icon when th
 - [US-36 Merchandise & Stash Requests](US-36-merchandise-stash-requests.md) — `not-started`
 - [US-41 Intelligent Tentative Booking Triage & Readiness Dashboard](US-41-tentative-booking-triage.md) — `done`
 - [US-42 Post-Session Debrief, Timing Nudges & Attendance Sign-Off](US-42-post-session-debrief.md) — `partial`
-- [US-43 Instructor Experience Logbook & Optional Personal Notes](US-43-instructor-experience-logbook.md) — `not-started`
+- [US-43 Instructor Experience Logbook & Optional Personal Notes](US-43-instructor-experience-logbook.md) — `done`
 - [US-44 Tentative Booking Manager Nudges & Reminder Alerts](US-44-tentative-booking-manager-nudges.md) — `done`
 
 ## Relaunch scope decisions

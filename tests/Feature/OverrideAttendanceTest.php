@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Actions\AddAttendeeAction;
+use App\Actions\ConfirmAttendanceAction;
 use App\Actions\OverrideAttendanceAction;
 use App\Actions\RespondToBookingAction;
 use App\Enums\BookingAttendeeResponse;
@@ -13,6 +14,7 @@ use App\Filament\Teams\Resources\Bookings\Pages\ViewBooking;
 use App\Filament\Teams\Resources\Bookings\RelationManagers\AttendeesRelationManager;
 use App\Filament\Teams\Resources\Members\MemberResource;
 use App\Mail\AttendanceRecordedMail;
+use App\Mail\BookingIcsRefreshMail;
 use App\Mail\BookingInviteMail;
 use App\Models\Booking;
 use App\Models\BookingAttendance;
@@ -305,7 +307,7 @@ class OverrideAttendanceTest extends TestCase
         Mail::assertNothingQueued();
     }
 
-    public function test_a_past_booking_can_gain_an_attendee_without_email(): void
+    public function test_a_past_booking_can_gain_an_attendee_via_confirm_attendees(): void
     {
         Mail::fake();
 
@@ -323,18 +325,22 @@ class OverrideAttendanceTest extends TestCase
             'pageClass' => ViewBooking::class,
         ])
             ->assertTableActionHidden('invite')
-            ->assertTableActionVisible('add')
-            ->callTableAction('add', data: [
-                'user_id' => $member->getKey(),
-                'response' => BookingAttendeeResponse::No->value,
-                'comment' => 'Did not attend',
+            ->assertTableActionHidden('add')
+            ->assertTableActionVisible('confirmAttendees')
+            ->callTableAction('confirmAttendees', data: [
+                'needs_confirming' => [[
+                    'user_id' => (string) $member->getKey(),
+                    'name' => $member->name,
+                    'mark' => ConfirmAttendanceAction::MARK_DECLINE,
+                ]],
+                'confirmed' => [],
             ]);
 
         $attendance = $booking->attendees()->find($member)->attendance;
         $this->assertTrue($attendance->status->isSame(BookingAttendeeStatus::Declined));
         $this->assertSame(__('Did not attend'), $attendance->status->getLabel());
-        Mail::assertNothingSent();
-        Mail::assertNothingQueued();
+        Mail::assertNotSent(BookingInviteMail::class);
+        Mail::assertQueued(BookingIcsRefreshMail::class);
     }
 
     public function test_a_cancelled_booking_refuses_adding_an_attendee(): void

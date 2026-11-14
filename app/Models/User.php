@@ -264,8 +264,18 @@ class User extends Authenticatable implements FilamentUser, HasAvatar, HasDefaul
                 'calendar_imip_at',
                 'declined_sessions',
                 'attendance_confirmed_at',
+                'logbook_ignored_at',
+                'logbook_nudged_at',
             )->as('attendance')
             ->using(BookingAttendance::class);
+    }
+
+    /**
+     * @return HasMany<LogbookEntry, $this>
+     */
+    public function logbookEntries(): HasMany
+    {
+        return $this->hasMany(LogbookEntry::class);
     }
 
     /**

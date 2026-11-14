@@ -262,7 +262,7 @@ class CompleteDebriefAction
         return [
             'needs_confirming' => $needs,
             'confirmed' => $confirmed,
-            'hours' => self::suggestedOperatingHours($booking),
+            'hours' => $booking->suggestedOperatingHours(),
             'participant_count' => null,
             'weather' => null,
             'notes' => null,
@@ -270,21 +270,6 @@ class CompleteDebriefAction
             'show_add_person' => false,
             'add_user_id' => null,
         ];
-    }
-
-    private static function suggestedOperatingHours(Booking $booking): ?float
-    {
-        if ($booking->start_at === null || $booking->end_at === null) {
-            return null;
-        }
-
-        $hours = $booking->start_at->floatDiffInHours($booking->end_at);
-
-        if ($hours <= 0) {
-            return null;
-        }
-
-        return round($hours, 2);
     }
 
     /**

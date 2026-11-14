@@ -26,6 +26,8 @@ class BookingAttendance extends Pivot
         'invitation_nudge_tier',
         'session_reminded_at',
         'attendance_confirmed_at',
+        'logbook_ignored_at',
+        'logbook_nudged_at',
         'declined_sessions',
     ];
 
@@ -63,6 +65,8 @@ class BookingAttendance extends Pivot
             'invitation_nudge_tier' => InvitationNudgeTier::class,
             'session_reminded_at' => 'datetime',
             'attendance_confirmed_at' => 'datetime',
+            'logbook_ignored_at' => 'datetime',
+            'logbook_nudged_at' => 'datetime',
             'declined_sessions' => AsDeclinedSessions::class,
         ];
     }
