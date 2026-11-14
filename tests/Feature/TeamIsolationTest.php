@@ -173,17 +173,22 @@ class TeamIsolationTest extends TestCase
             ->assertCanNotSeeTableRecords([$archeryTentative, $otherConfirmed]);
     }
 
-    public function test_someone_who_left_the_team_can_still_open_the_bookings_they_attended(): void
+    public function test_someone_who_left_the_team_can_still_find_and_open_the_bookings_they_attended(): void
     {
         $leaver = $this->person($this->archery, MembershipRole::Member);
         $this->person($this->archery, MembershipRole::Manager);
         $attended = $this->booking($this->archery, 'Archery attended');
         $other = $this->booking($this->archery, 'Archery other');
-        $attended->attendees()->attach($leaver->getKey(), ['status' => 'accepted']);
+        $attended->attendees()->attach($leaver->getKey(), ['status' => BookingAttendeeStatus::Accepted->value]);
 
         $this->archery->recordLeft($leaver);
 
+        Filament::setCurrentPanel('member');
         $this->actingAs($leaver);
+
+        Livewire::test(MemberListBookings::class)
+            ->assertCanSeeTableRecords([$attended])
+            ->assertCanNotSeeTableRecords([$other]);
 
         $this->get(MemberBookingResource::viewUrl($attended))->assertOk();
         $this->get(MemberBookingResource::viewUrl($other))->assertNotFound();
