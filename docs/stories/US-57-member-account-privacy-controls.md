@@ -44,4 +44,4 @@ Implemented: invitation-only creation with privacy-notice acknowledgement on inv
 
 The shell is kept indefinitely because bookings have no participant age (and members have no date of birth), so a 3-year / age-21 cutoff cannot be applied safely. [US-58](US-58-personal-data-viewing-acknowledgement.md) acknowledgement records are kept after deletion, as that story requires.
 
-The live privacy notice is the in-app `/privacy` page, edited as markdown.
+The live privacy notice is the in-app `/privacy` page, edited as markdown. Solicitor review of lawful bases remains with the product owner.
