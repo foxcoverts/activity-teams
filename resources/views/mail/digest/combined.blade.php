@@ -73,6 +73,14 @@
 @endforeach
 @endif
 
+@if (is_array($logbookDue) && $logbookDue !== [])
+# {{ __('Logbook entries due') }}
+
+@foreach ($logbookDue as $line)
+- {{ $line }}
+@endforeach
+@endif
+
 @if (is_array($rota))
 # {{ __('Your rota') }}
 

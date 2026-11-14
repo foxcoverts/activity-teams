@@ -5,7 +5,7 @@ namespace App\Filament\Teams\Resources\Bookings\Pages;
 use App\Filament\Bookings\BookingKeysAction;
 use App\Filament\Bookings\BookingViewRespondActions;
 use App\Filament\Bookings\CompleteDebriefAction;
-use App\Filament\Bookings\ConfirmAttendeesAction;
+use App\Filament\Bookings\LogbookEntryAction;
 use App\Filament\Bookings\RefreshesWhenAttendanceChanges;
 use App\Filament\Teams\Resources\Bookings\BookingResource;
 use App\Filament\Teams\Resources\Bookings\BookingStatusActions;
@@ -110,10 +110,10 @@ class ViewBooking extends ViewRecord
 
         if ($record->isLead($user) || ($record->team !== null && $user->manages($record->team))) {
             $actions[] = BookingKeysAction::make();
-            $actions[] = ConfirmAttendeesAction::make();
             $actions[] = CompleteDebriefAction::make();
         }
 
+        $actions[] = LogbookEntryAction::make();
         $actions[] = BookingViewRespondActions::make();
 
         $managesTeam = $record->team !== null && $user->manages($record->team);

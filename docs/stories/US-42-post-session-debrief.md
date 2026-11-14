@@ -21,4 +21,5 @@ As a Lead Instructor, I want to complete a digital post-session debrief shortly 
 
 - **Done (Phase A):** Past-tense attendance labels via twin enum + cast; revisitable **Confirm attendees** rollcall (lead or manager, from session calendar day); per-attendee `attendance_confirmed_at`; ternary Skip / Attended / Did not attend; iMIP refresh on status change only (no attendance-recorded mail).
 - **Done (Phase B):** `TeamFeature::Debrief` (stores `enabled` + `activated_at`; chase/outstanding only for sessions ending on/after activation; Complete debrief still offered for older sessions); EquipmentSet Teams CRUD with ranked Equipment Set Groups (default **Equipment**, sets table and debrief checklist grouped by group; manager or system admin, not via manager role); Complete debrief modal; booking debrief infolist; Teams **Debriefs** list/view resource; tentative confirm-on-rollcall/debrief when feature on; lead focused nudges + combined-digest outstanding; lead Debriefs due widgets; manager Outstanding debriefs widget (Needs lead already covers no-lead tentatives).
-- **Remaining:** Phase C Logbook; Phase D admin≠manager audit.
+- **Done (Phase C):** Instructor experience logbook — see [US-43](US-43-instructor-experience-logbook.md).
+- **Remaining:** Phase D admin≠manager audit.

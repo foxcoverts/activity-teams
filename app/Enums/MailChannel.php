@@ -11,6 +11,7 @@ enum MailChannel: string implements HasLabel
     case BookingsComments = 'bookings.comments';
     case BookingsReminders = 'bookings.reminders';
     case BookingsDigest = 'bookings.digest';
+    case BookingsLogbook = 'bookings.logbook';
     case KeysMail = 'keys.mail';
     case NewsMail = 'news.mail';
     case TasksMail = 'tasks.mail';
@@ -24,6 +25,7 @@ enum MailChannel: string implements HasLabel
             self::BookingsComments => __('Comments'),
             self::BookingsReminders => __('Reminders'),
             self::BookingsDigest => __('Digest'),
+            self::BookingsLogbook => __('Logbook'),
         };
     }
 
@@ -35,6 +37,7 @@ enum MailChannel: string implements HasLabel
             self::BookingsComments => __('Comments on a booking.'),
             self::BookingsReminders => __('Reminders before sessions you said you can help with.'),
             self::BookingsDigest => __('A periodic summary of your rota.'),
+            self::BookingsLogbook => __('Reminders to add accepted sessions to your personal logbook.'),
             self::KeysMail => __('When a key is passed to you, passed on, or returned to the cupboard.'),
             self::NewsMail => __('Direct email when a team publishes news.'),
             self::TasksMail => __('When you are assigned a task.'),
@@ -45,7 +48,7 @@ enum MailChannel: string implements HasLabel
     public function group(): MailGroup
     {
         return match ($this) {
-            self::BookingsMail, self::BookingsUpdates, self::BookingsComments, self::BookingsReminders, self::BookingsDigest => MailGroup::Bookings,
+            self::BookingsMail, self::BookingsUpdates, self::BookingsComments, self::BookingsReminders, self::BookingsDigest, self::BookingsLogbook => MailGroup::Bookings,
             self::KeysMail => MailGroup::Keys,
             self::NewsMail => MailGroup::News,
             self::TasksMail, self::TasksUpdates => MailGroup::Tasks,
@@ -55,7 +58,7 @@ enum MailChannel: string implements HasLabel
     public function parent(): ?self
     {
         return match ($this) {
-            self::BookingsUpdates, self::BookingsComments, self::BookingsReminders, self::BookingsDigest => self::BookingsMail,
+            self::BookingsUpdates, self::BookingsComments, self::BookingsReminders, self::BookingsDigest, self::BookingsLogbook => self::BookingsMail,
             self::TasksUpdates => self::TasksMail,
             default => null,
         };
@@ -63,7 +66,10 @@ enum MailChannel: string implements HasLabel
 
     public function default(): bool
     {
-        return true;
+        return match ($this) {
+            self::BookingsLogbook => false,
+            default => true,
+        };
     }
 
     public function isShown(): bool

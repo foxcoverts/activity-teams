@@ -174,17 +174,29 @@ class BookingResourceTest extends TestCase
         $this->assertNotNull($manage);
         $this->assertSame($neutral, $manage->getColor());
 
-        $guests = Livewire::test(AttendeesRelationManager::class, [
+        $pastGuests = Livewire::test(AttendeesRelationManager::class, [
             'ownerRecord' => $past,
             'pageClass' => ViewBooking::class,
-        ]);
+        ])->assertTableActionVisible('confirmAttendees');
 
-        $people = collect($guests->instance()->getTable()->getHeaderActions())
+        $pastPeople = collect($pastGuests->instance()->getTable()->getHeaderActions())
             ->first(fn (mixed $action): bool => $action instanceof ActionGroup
                 && $action->getLabel() === __('People'));
 
-        $this->assertNotNull($people);
-        $this->assertSame($neutral, $people->getColor());
+        $this->assertNotNull($pastPeople);
+        $this->assertTrue($pastPeople->isHidden());
+
+        $upcomingGuests = Livewire::test(AttendeesRelationManager::class, [
+            'ownerRecord' => $upcoming,
+            'pageClass' => ViewBooking::class,
+        ])->assertTableActionHidden('confirmAttendees');
+
+        $upcomingPeople = collect($upcomingGuests->instance()->getTable()->getHeaderActions())
+            ->first(fn (mixed $action): bool => $action instanceof ActionGroup
+                && $action->getLabel() === __('People'));
+
+        $this->assertNotNull($upcomingPeople);
+        $this->assertFalse($upcomingPeople->isHidden());
     }
 
     public function test_a_teams_booking_view_still_shows_the_public_summary_to_guests(): void

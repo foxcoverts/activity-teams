@@ -8,6 +8,7 @@ use App\Enums\BookingAttendeeStatus;
 use App\Enums\BookingStatus;
 use App\Enums\TeamFeature;
 use App\Filament\Teams\Resources\Bookings\Pages\ViewBooking;
+use App\Filament\Teams\Resources\Bookings\RelationManagers\AttendeesRelationManager;
 use App\Mail\BookingDebriefNudgeMail;
 use App\Mail\CombinedDigestMail;
 use App\Models\Booking;
@@ -152,8 +153,12 @@ class BookingDebriefTest extends TestCase
         $this->actingAs($lead);
 
         Livewire::test(ViewBooking::class, ['record' => $booking->getRouteKey()])
-            ->assertActionVisible('completeDebrief')
-            ->assertActionHidden('confirmAttendees');
+            ->assertActionVisible('completeDebrief');
+
+        Livewire::test(AttendeesRelationManager::class, [
+            'ownerRecord' => $booking,
+            'pageClass' => ViewBooking::class,
+        ])->assertTableActionHidden('confirmAttendees');
     }
 
     public function test_confirm_attendees_returns_after_debrief_is_completed(): void
@@ -168,8 +173,12 @@ class BookingDebriefTest extends TestCase
         $this->actingAs($lead);
 
         Livewire::test(ViewBooking::class, ['record' => $booking->getRouteKey()])
-            ->assertActionHidden('completeDebrief')
-            ->assertActionVisible('confirmAttendees');
+            ->assertActionHidden('completeDebrief');
+
+        Livewire::test(AttendeesRelationManager::class, [
+            'ownerRecord' => $booking,
+            'pageClass' => ViewBooking::class,
+        ])->assertTableActionVisible('confirmAttendees');
     }
 
     public function test_lead_can_complete_debrief_from_view_booking(): void
@@ -181,9 +190,13 @@ class BookingDebriefTest extends TestCase
 
         $this->actingAs($lead);
 
+        Livewire::test(AttendeesRelationManager::class, [
+            'ownerRecord' => $booking,
+            'pageClass' => ViewBooking::class,
+        ])->assertTableActionHidden('confirmAttendees');
+
         Livewire::test(ViewBooking::class, ['record' => $booking->getRouteKey()])
             ->assertActionVisible('completeDebrief')
-            ->assertActionHidden('confirmAttendees')
             ->callAction('completeDebrief', data: [
                 'hours' => 3,
                 'participant_count' => 4,
@@ -449,8 +462,12 @@ class BookingDebriefTest extends TestCase
         $this->actingAs($lead);
 
         Livewire::test(ViewBooking::class, ['record' => $booking->getRouteKey()])
-            ->assertActionVisible('completeDebrief')
-            ->assertActionHidden('confirmAttendees');
+            ->assertActionVisible('completeDebrief');
+
+        Livewire::test(AttendeesRelationManager::class, [
+            'ownerRecord' => $booking,
+            'pageClass' => ViewBooking::class,
+        ])->assertTableActionHidden('confirmAttendees');
 
         $this->assertTrue(
             app(DebriefCatchUp::class)->outstandingLedBy($lead)->isEmpty(),

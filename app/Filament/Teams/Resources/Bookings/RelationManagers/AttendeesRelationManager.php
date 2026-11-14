@@ -7,6 +7,7 @@ use App\Actions\OverrideAttendanceAction;
 use App\Actions\ResendBookingIcsAction;
 use App\Enums\BookingAttendeeResponse;
 use App\Enums\BookingAttendeeStatus;
+use App\Filament\Bookings\ConfirmAttendeesAction;
 use App\Filament\Support\SubmitsOnModEnter;
 use App\Filament\Teams\Resources\Members\MemberResource;
 use App\Models\Booking;
@@ -100,6 +101,7 @@ class AttendeesRelationManager extends RelationManager
                     ->icon(Heroicon::OutlinedArrowDownTray)
                     ->button()
                     ->visible(fn (): bool => $this->canUseCalendarActions()),
+                ConfirmAttendeesAction::make(),
                 ActionGroup::make([
                     Action::make('invite')
                         ->icon(Heroicon::OutlinedPaperAirplane)
@@ -152,6 +154,7 @@ class AttendeesRelationManager extends RelationManager
                     ->button()
                     ->color(fn (): ?array => $this->booking()->isPast() ? Palette::neutral() : null)
                     ->visible(fn (): bool => $this->canManageBooking()
+                        && ! ConfirmAttendeesAction::isAvailable($this->booking(), auth()->user())
                         && ($this->booking()->acceptsInvites()
                             || (! $this->booking()->isCancelled()
                                 && (bool) auth()->user()?->can('create', [BookingAttendance::class, $this->booking()])))),
