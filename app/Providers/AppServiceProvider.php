@@ -42,6 +42,11 @@ class AppServiceProvider extends ServiceProvider
 
         FilamentView::registerRenderHook(
             PanelsRenderHook::HEAD_END,
+            fn (): View => view('partials.browser-icons'),
+        );
+
+        FilamentView::registerRenderHook(
+            PanelsRenderHook::HEAD_END,
             function (): View|HtmlString {
                 $user = auth()->user();
 

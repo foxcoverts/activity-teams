@@ -15,6 +15,7 @@
         <meta property="og:image:width" content="700">
         <meta property="og:image:height" content="700">
     @endif
+    @include('partials.browser-icons')
     <script src="https://cdn.tailwindcss.com"></script>
     @livewireStyles
 </head>
