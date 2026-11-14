@@ -1,8 +1,10 @@
 # End-to-end acceptance checklist
 
-Personal walkthrough for the product owner on the **live** site (`https://climbfoxcoverts.co.uk/`). This is **not** a GitHub Project board item — tick here (or copy elsewhere) as you go. Story files and [ROADMAP.md](ROADMAP.md) remain the source of truth.
+Personal walkthrough for the product owner on the **live** site (`https://climbfoxcoverts.co.uk/`). This is **not** a GitHub Project board item — tick here (or copy elsewhere) as you go. Story files and this checklist are the source of truth for acceptance.
 
-Most members are not yet using Activity Teams day-to-day; use that quiet window for this pass. Cutover items already done (do not re-check as blockers):
+Most members are not yet using Activity Teams day-to-day; use that quiet window for this pass. **Ready for wider member use** when this checklist is complete (or residual risks are explicitly accepted), no open defects block retained required workflows, and you are willing to point the team at Activity Teams as the day-to-day system.
+
+Cutover items already done (do not re-check as blockers):
 - [x] Legacy import / live data on IONOS
 - [x] Site live on the real domain with deploy from `main`
 - [x] Outgoing mail

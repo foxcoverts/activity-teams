@@ -2,7 +2,7 @@
 
 Backlog for Activity Teams. Each story is one file with `id`, `title`, `status`, `area`, and `scope` in the frontmatter.
 
-See the [Relaunch Roadmap](ROADMAP.md) for the legacy-parity comparison, dependency phases, February 2027 target, and delivery approach.
+Activity Teams is live on [climbfoxcoverts.co.uk](https://climbfoxcoverts.co.uk/). The cutover inventory was confirmed in a November 2026 live walk of climbing-team: every primary workflow maps to a story that is done, deferred, extra, or deliberately retired. Remaining work is product-owner acceptance on the live site ([acceptance-checklist.md](acceptance-checklist.md)), small parity fixes found there, and stretch extras only when they are clearly useful. Legacy code presence is evidence for review, not a product decision by itself; stretch extras are not silent go-live blockers.
 
 Status is judged against this repository, not climbing-team:
 
