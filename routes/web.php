@@ -60,3 +60,5 @@ Route::middleware(AuthenticateFromParam::class.':user')->group(function () {
 Route::middleware('auth')->get('bookings/{booking}.ics', [BookingIcsController::class, 'show'])->name('booking.show.ics');
 Route::middleware('auth')->get('tasks/{task}.ics', [TaskIcsController::class, 'show'])->name('task.show.ics');
 Route::middleware('auth')->get('logbook/export', [LogbookExportController::class, 'pdf'])->name('member.logbook.export');
+
+require __DIR__.'/legacy.php';
