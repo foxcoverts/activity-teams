@@ -96,9 +96,8 @@ class ActivityResource extends Resource
             ->recordTitleAttribute('name')
             ->columns([
                 TextColumn::make('name')
-                    ->searchable(),
-                TextColumn::make('description')
-                    ->searchable(),
+                    ->description(fn (Activity $record): ?string => filled($record->description) ? $record->description : null)
+                    ->searchable(['name', 'description']),
                 TextColumn::make('audiences.name')
                     ->label(__('Audiences'))
                     ->placeholder(__('No audiences')),

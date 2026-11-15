@@ -61,8 +61,22 @@ class ScheduleCalendarWidget extends FullCalendarWidget
             'mobileBreakpoint' => 600,
             'firstDay' => 1,
             'navLinks' => true,
+            // Grow with content so List (and other views) scroll with the page,
+            // instead of a short aspect-ratio box with its own scrollbar.
+            'height' => 'auto',
+            // Section already supplies the card chrome; keep only a top rule on
+            // the view so we do not nest a second bordered, rounded box.
+            'borderlessX' => true,
+            'borderlessBottom' => true,
             // Timed events otherwise render as uncoloured list-items in month view.
             'eventDisplay' => 'block',
+            // Compact list-day labels (theme default is "November 13, 2026" + "Friday").
+            'listDayFormat' => [
+                'weekday' => 'short',
+                'day' => 'numeric',
+                'month' => 'short',
+            ],
+            'listDayAltFormat' => false,
         ];
 
         if ($this->calendarDate !== '') {

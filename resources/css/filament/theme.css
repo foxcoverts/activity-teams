@@ -133,12 +133,15 @@
     @apply min-w-0 truncate text-sm font-medium text-gray-950 hover:underline dark:text-white;
 }
 
+/* Compact header padding on mobile; match Guest list / Related / Tasks. */
 .related-bookings-panel.fi-section:not(.fi-section-not-contained)>.fi-section-header,
+.booking-tasks-panel.fi-section:not(.fi-section-not-contained)>.fi-section-header,
 .task-assignee-panel.fi-section:not(.fi-section-not-contained)>.fi-section-header {
     @apply p-4 sm:px-6;
 }
 
 .related-bookings-panel.fi-section:not(.fi-section-not-contained):not(.fi-divided)>.fi-section-content-ctn>.fi-section-content,
+.booking-tasks-panel.fi-section:not(.fi-section-not-contained):not(.fi-divided)>.fi-section-content-ctn>.fi-section-content,
 .task-assignee-panel.fi-section:not(.fi-section-not-contained):not(.fi-divided)>.fi-section-content-ctn>.fi-section-content {
     @apply p-0;
 }
@@ -430,9 +433,111 @@ button.task-complete-control:disabled {
     @apply mt-0.5 text-xs text-gray-500 dark:text-gray-400;
 }
 
+/* Guest list: same header padding as Related / Tasks; actions right of title. */
+.fi-resource-relation-manager .fi-ta-header {
+    @apply p-4 sm:px-6;
+}
+
+.fi-resource-relation-manager .fi-ta-header.fi-ta-header-adaptive-actions-position {
+    @apply flex-row items-center;
+}
+
+.fi-resource-relation-manager .fi-ta-header.fi-ta-header-adaptive-actions-position .fi-ta-actions {
+    @apply ms-auto;
+}
+
 /* Rota / All live in the calendar toolbar; keep getTabs() for state only. */
 .fi-fc-tabs {
     display: none;
+}
+
+/*
+ * Calendar list: the Filament FC theme uses w-1/4 for the day column,
+ * my-10 around the list, py-3.5 on day headers, and my-4 on the event box.
+ * Keep a narrow date column beside events; stack above events on phones.
+ * Do not set the day header to width 100% while the row is flex-row — that
+ * collapses the event body to a thin coloured strip.
+ */
+/* Theme default is my-10 / my-4; keep outer my in step with px-4. */
+.fi-fc [role='list'].my-10 {
+    @apply my-4;
+}
+
+.fi-fc [role='listitem']:has(> [data-date]) > [data-date] {
+    width: 7rem;
+    max-width: 7rem;
+    position: static !important;
+    @apply py-1;
+}
+
+/* Hide leftover weekday alt line (listDayAltFormat) when still rendered. */
+.fi-fc [role='listitem']:has(> [data-date]) > [data-date] > :nth-child(2),
+.fi-fc [role='listitem']:has(> [data-date]) > [data-date] > * > :nth-child(2) {
+    display: none;
+}
+
+.fi-fc [role='listitem']:has(> [data-date]) > [role='list'] {
+    /* Square the start edge so the attendance bar sits flush. */
+    @apply my-2 rounded-s-none;
+}
+
+.fi-fc [role='listitem']:has(> [data-date]) .fc-event {
+    @apply rounded-s-none;
+}
+
+/* Calendar toolbar: wrap cleanly and enlarge tap targets on phones. */
+@media (max-width: 599px) {
+    /*
+     * Section defaults to p-6 around the calendar. Keep section chrome;
+     * drop the content gutter so spacing comes from the list padding.
+     */
+    .fi-section:has(.fi-fc):not(.fi-section-not-contained):not(.fi-divided)
+        > .fi-section-content-ctn
+        > .fi-section-content {
+        padding-inline: 0;
+        padding-top: calc(var(--spacing) * 4);
+        padding-bottom: 0;
+    }
+
+    .fi-fc-toolbar {
+        @apply gap-2 px-4;
+    }
+
+    .fi-fc-toolbar .fi-fc-toolbar-section {
+        @apply w-full justify-center gap-2;
+    }
+
+    .fi-fc-toolbar .fi-btn,
+    .fi-fc-toolbar .fi-fc-tool {
+        @apply min-h-10;
+    }
+
+    /* Inner padding + the outer my we matched to px earlier. */
+    .fi-fc [role='list'].my-10 {
+        @apply my-4 px-4;
+    }
+
+    .fi-fc [role='listitem']:has(> [data-date]) {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 0.25rem;
+        @apply border-b-0;
+    }
+
+    .fi-fc [role='listitem']:has(> [data-date]) > [data-date] {
+        width: 100%;
+        max-width: none;
+        @apply py-0;
+    }
+
+    .fi-fc [role='listitem']:has(> [data-date]) .fc-event {
+        @apply mx-0;
+    }
+
+    .fi-fc .fc-event {
+        white-space: normal;
+        overflow-wrap: anywhere;
+    }
 }
 
 .fi-fc .fc-event.fc-event--tentative {
