@@ -1,0 +1,55 @@
+version: 2
+
+registries:
+  ralphjsmit:
+    type: composer-repository
+    url: https://satis.ralphjsmit.com
+    username: ${{secrets.RALPHJSMIT_COMPOSER_USERNAME}}
+    password: ${{secrets.RALPHJSMIT_COMPOSER_PASSWORD}}
+
+updates:
+  # Maintain dependencies for GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "friday"
+    open-pull-requests-limit: 5
+    groups:
+      github-actions:
+        applies-to: version-updates
+        patterns:
+          - "*"
+
+  # Maintain dependencies for npm
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "friday"
+    open-pull-requests-limit: 5
+    groups:
+      npm:
+        applies-to: version-updates
+        patterns:
+          - "*"
+
+  # Maintain dependencies for Composer
+  - package-ecosystem: "composer"
+    directory: "/"
+    registries:
+      - ralphjsmit
+    schedule:
+      interval: "weekly"
+      day: "friday"
+    open-pull-requests-limit: 5
+    ignore:
+      # laravel/pao parallel wrapper breaks on Paratest 7.26.1+ until
+      # https://github.com/laravel/pao/pull/65 is released.
+      - dependency-name: "brianium/paratest"
+        versions: [">= 7.26.1"]
+    groups:
+      composer:
+        applies-to: version-updates
+        patterns:
+          - "*"
