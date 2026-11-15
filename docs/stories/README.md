@@ -95,6 +95,7 @@ These show up next to roles in UI and stories — do not treat them as the same 
 ## Communications, ICS & Calendar Integration
 
 - [US-12 Public Booking Summary View](US-12-public-booking-summary.md) — `done`
+- [US-88 In-app Calendar View](US-88-in-app-calendar-view.md) — `done`
 - [US-13 Subscription ICS Export Feeds](US-13-subscription-ics-feeds.md) — `done`
 - [US-65 ICS Precise Location](US-65-ics-precise-location.md) — `done`
 - [US-14 Interactive Email RSVP Action Buttons](US-14-email-rsvp-action-buttons.md) — `done`

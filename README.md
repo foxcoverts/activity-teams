@@ -6,7 +6,7 @@ Management site for Fox Coverts activity teams. Live at [climbfoxcoverts.co.uk](
 
 ## Capabilities
 
-- **Bookings and attendance** — schedule sessions against catalog activities and venues, invite and manage rosters, lead instructor workflows, rollcall, debriefs, related multi-day bookings, and manager triage for tentative sessions.
+- **Bookings and attendance** — schedule sessions against catalog activities and venues, invite and manage rosters, lead instructor workflows, rollcall, debriefs, related multi-day bookings, manager triage for tentative sessions, and an in-app calendar (`/calendar` and per-team calendar) alongside ICS feeds.
 - **Qualifications and staffing** — permits and qualifications, expiry tracking, and activity staffing rules.
 - **Venues and keys** — venue catalog with addresses and map pins, booking logistics, and key rings / pass-a-key.
 - **Communications** — email invites and RSVPs, ICS subscription feeds, public booking summaries, inbound calendar replies, news posts, notification preferences, and a member inbox.

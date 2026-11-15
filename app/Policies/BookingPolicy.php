@@ -32,6 +32,20 @@ class BookingPolicy
             return false;
         }
 
+        // Tenant-scoped on the Teams panel only (TeamsDeepLink sets that panel while probing).
+        $tenant = Filament::getCurrentPanel()?->getId() === 'teams'
+            ? Filament::getTenant()
+            : null;
+
+        if ($tenant instanceof Team) {
+            return match ($status) {
+                BookingStatus::Tentative, BookingStatus::Cancelled => $user->manages($tenant),
+                default => $user->isCurrentMemberOf($tenant)
+                    || $user->manages($tenant)
+                    || $user->bookings()->where('bookings.team_id', $tenant->getKey())->exists(),
+            };
+        }
+
         return match ($status) {
             BookingStatus::Tentative, BookingStatus::Cancelled => $this->manage($user),
             default => $user->teams()->exists() || $user->bookings()->exists() || $this->manage($user),

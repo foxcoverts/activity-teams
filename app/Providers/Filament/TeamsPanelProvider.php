@@ -29,6 +29,7 @@ use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
 use RalphJSmit\Filament\Activitylog\FilamentActivitylog;
+use Saade\FilamentFullCalendar\FilamentFullCalendarPlugin;
 
 class TeamsPanelProvider extends PanelProvider
 {
@@ -46,6 +47,7 @@ class TeamsPanelProvider extends PanelProvider
             ->favicon(asset('icon.svg'))
             ->viteTheme('resources/css/filament/theme.css')
             ->plugin(FilamentActivitylog::make())
+            ->plugin(FilamentFullCalendarPlugin::make())
             ->tenant(Team::class, slugAttribute: 'slug')
             ->tenantMiddleware([
                 RememberTenantTeam::class,

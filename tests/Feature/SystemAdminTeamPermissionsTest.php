@@ -5,17 +5,23 @@ namespace Tests\Feature;
 use App\Actions\CompleteDebriefAction;
 use App\Actions\ConfirmAttendanceAction;
 use App\Enums\BookingAttendeeStatus;
+use App\Enums\MembershipRole;
 use App\Enums\TeamFeature;
 use App\Filament\Bookings\CompleteDebriefAction as CompleteDebriefFilamentAction;
 use App\Filament\Bookings\ConfirmAttendeesAction;
+use App\Filament\Member\Pages\Calendar as MemberCalendar;
+use App\Filament\Member\Resources\Tasks\TaskResource as MemberTaskResource;
+use App\Filament\Teams\Pages\Calendar as TeamsCalendar;
 use App\Filament\Teams\Pages\ManagerDashboard;
 use App\Filament\Teams\Resources\Bookings\BookingResource;
 use App\Filament\Teams\Resources\EquipmentSets\EquipmentSetResource;
 use App\Filament\Teams\Resources\EquipmentSets\Pages\ListEquipmentSets;
+use App\Filament\Teams\Resources\Tasks\TaskResource as TeamsTaskResource;
 use App\Filament\Teams\Widgets\Manager\NeedsLeadWidget;
 use App\Filament\Teams\Widgets\Manager\OutstandingDebriefsWidget;
 use App\Models\Booking;
 use App\Models\BookingAttendance;
+use App\Models\Task;
 use App\Models\Team;
 use App\Models\User;
 use App\Support\ManagerAttention;
@@ -127,6 +133,52 @@ class SystemAdminTeamPermissionsTest extends TestCase
         $this->assertFalse($attention->includesBookingTriage());
         $this->assertFalse(NeedsLeadWidget::canView());
         $this->assertFalse(OutstandingDebriefsWidget::canView());
+    }
+
+    public function test_system_admin_without_membership_does_not_see_bookings_calendar_or_tasks_for_the_team(): void
+    {
+        $this->team->forceFill(['features' => [TeamFeature::Tasks->value => true]])->save();
+        $task = Task::factory()->forTeam($this->team)->create();
+
+        $this->actingAs($this->admin);
+        Filament::setTenant($this->team);
+
+        $this->assertFalse($this->admin->isCurrentMemberOf($this->team));
+        $this->assertFalse($this->admin->can('viewAny', Booking::class));
+        $this->assertFalse(BookingResource::canViewAny());
+        $this->assertFalse(TeamsCalendar::canAccess());
+        $this->assertFalse($this->admin->can('viewAny', Task::class));
+        $this->assertFalse($this->admin->can('view', $task));
+        $this->assertFalse(TeamsTaskResource::canViewAny());
+
+        $this->get(BookingResource::getUrl(tenant: $this->team))->assertForbidden();
+        $this->get(TeamsCalendar::getUrl(tenant: $this->team))->assertForbidden();
+        $this->get(TeamsTaskResource::getUrl(tenant: $this->team))->assertForbidden();
+
+        Filament::setCurrentPanel('member');
+        Filament::setTenant(null);
+
+        $this->assertFalse($this->admin->can('viewAny', Booking::class));
+        $this->assertFalse(MemberCalendar::canAccess());
+        $this->assertFalse($this->admin->can('viewAny', Task::class));
+        $this->assertFalse(MemberTaskResource::canViewAny());
+    }
+
+    public function test_system_admin_who_belongs_to_another_team_still_cannot_see_this_teams_schedule(): void
+    {
+        $other = Team::factory()->create();
+        $other->grant($this->admin, MembershipRole::Member);
+        $this->team->forceFill(['features' => [TeamFeature::Tasks->value => true]])->save();
+
+        $this->actingAs($this->admin);
+        Filament::setCurrentPanel('teams');
+        Filament::setTenant($this->team);
+
+        $this->assertTrue($this->admin->isCurrentMemberOf($other));
+        $this->assertFalse($this->admin->isCurrentMemberOf($this->team));
+        $this->assertFalse($this->admin->can('viewAny', Booking::class));
+        $this->assertFalse(TeamsCalendar::canAccess());
+        $this->assertFalse($this->admin->can('viewAny', Task::class));
     }
 
     public function test_manager_without_system_admin_keeps_booking_and_debrief_powers(): void

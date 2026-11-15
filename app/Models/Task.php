@@ -439,14 +439,12 @@ class Task extends Model
     public function scopeVisibleTo(Builder $query, User $user): void
     {
         $query->whereHas('team', function (Builder $teams) use ($user): void {
-            $teams->where('features->tasks', true);
-
-            if (! $user->isSystemAdmin()) {
-                $teams->whereHas(
+            $teams
+                ->where('features->tasks', true)
+                ->whereHas(
                     'members',
                     fn (Builder $members): Builder => $members->whereKey($user->getKey()),
                 );
-            }
         });
     }
 

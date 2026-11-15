@@ -7,9 +7,11 @@ use App\Filament\Admin\Resources\Keys\KeyResource as AdminKeyResource;
 use App\Filament\Admin\Resources\Locks\LockResource as AdminLockResource;
 use App\Filament\Admin\Resources\Teams\Pages\EditTeam as AdminEditTeam;
 use App\Filament\Admin\Resources\Venues\VenueResource as AdminVenueResource;
+use App\Filament\Member\Pages\Calendar as MemberCalendar;
 use App\Filament\Member\Resources\Bookings\BookingResource as MemberBookingResource;
 use App\Filament\Member\Resources\NewsPosts\NewsPostResource as MemberNewsPostResource;
 use App\Filament\Member\Resources\Tasks\TaskResource as MemberTaskResource;
+use App\Filament\Teams\Pages\Calendar as TeamsCalendar;
 use App\Filament\Teams\Pages\Dashboard as TeamsDashboard;
 use App\Filament\Teams\Pages\Leaders;
 use App\Filament\Teams\Pages\ManagerDashboard;
@@ -44,6 +46,8 @@ class TeamsDeepLink
      * @var array<class-string, class-string<resource>|class-string<FilamentPage>>
      */
     private const DESTINATIONS = [
+        MemberCalendar::class => TeamsCalendar::class,
+        TeamsCalendar::class => TeamsCalendar::class,
         MemberBookingResource::class => TeamsBookingResource::class,
         MemberNewsPostResource::class => TeamsNewsPostResource::class,
         MemberTaskResource::class => TeamsTaskResource::class,
@@ -73,6 +77,8 @@ class TeamsDeepLink
      * @var array<string, class-string<resource>|class-string<FilamentPage>>
      */
     private const ROUTE_DESTINATIONS = [
+        'filament.member.pages.calendar' => TeamsCalendar::class,
+        'filament.teams.pages.calendar' => TeamsCalendar::class,
         'filament.member.resources.bookings.' => TeamsBookingResource::class,
         'filament.member.resources.news.' => TeamsNewsPostResource::class,
         'filament.member.resources.tasks.' => TeamsTaskResource::class,
@@ -125,7 +131,9 @@ class TeamsDeepLink
             return $fallback;
         }
 
+        $originalPanel = Filament::getCurrentPanel();
         $originalTenant = Filament::getTenant();
+        Filament::setCurrentPanel($panel);
         Filament::setTenant($tenant, isQuiet: true);
 
         try {
@@ -145,6 +153,10 @@ class TeamsDeepLink
                 return $destination::getUrl(panel: 'teams', tenant: $tenant);
             }
         } finally {
+            if ($originalPanel instanceof Panel) {
+                Filament::setCurrentPanel($originalPanel);
+            }
+
             Filament::setTenant($originalTenant, isQuiet: true);
         }
 
