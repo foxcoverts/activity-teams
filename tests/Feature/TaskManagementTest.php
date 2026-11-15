@@ -319,6 +319,26 @@ class TaskManagementTest extends TestCase
             ->assertSeeHtml('status');
     }
 
+    public function test_task_note_changes_name_the_field_without_dumping_the_text(): void
+    {
+        $team = Team::factory()->withTasks()->create();
+        $manager = User::factory()->teamManager($team)->create();
+
+        $this->actingAs($manager);
+        Filament::setTenant($team);
+
+        $task = Task::factory()->forTeam($team)->create([
+            'description' => 'Previous task notes should not appear in the timeline.',
+        ]);
+        $task->description = 'Current task notes live on the task itself.';
+        $task->save();
+
+        Livewire::test(ViewTask::class, ['record' => $task->getRouteKey()])
+            ->assertSeeHtml('updated the <strong>notes</strong>')
+            ->assertDontSee('Previous task notes should not appear in the timeline.')
+            ->assertDontSee('changed the notes from');
+    }
+
     public function test_complete_control_toggles_between_open_completed_and_cancelled(): void
     {
         $team = Team::factory()->withTasks()->create();
