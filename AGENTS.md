@@ -5,7 +5,7 @@
 - Before substantial open-ended research or multi-step work, assess whether it is best done by Copilot/Cursor, Gemini, or the product owner. If the task depends on live legacy behavior, operational access, product judgment, or real-world acceptance, ask the product owner to investigate or decide rather than guessing from source code.
 - If broad independent reasoning or alternative prioritization is needed, suggest Gemini and offer a concise, sanitized prompt the product owner can use. Never send repository code, private data, credentials, or other sensitive material to Gemini or another external service.
 - When a task is likely to consume significant credits or its direction is uncertain, pause before doing that work. Briefly state what is known, what needs resolving, and the lower-cost options; ask whether to continue with Copilot/Cursor, have the product owner investigate or implement a part, or use Gemini for independent reasoning. Do not pause for routine, clearly scoped implementation.
-- Use the product owner's strong domain and backend experience: keep domain decisions and legacy interpretation with them; favor AI assistance for bounded Livewire, front-end, and feature-test implementation and iteration.
+- Use the product owner's strong domain and backend experience: keep domain decisions and legacy interpretation with them; favor AI assistance for bounded Livewire, front-end, and feature-test implementation and iteration. Use AI for execution and alternatives, not as the authority on legacy requirements.
 
 ## Local browser accounts
 
@@ -243,7 +243,7 @@ Prefer icons in this order:
 ## Filament UI Conventions
 
 - **Navigation within a group:** keep items alphabetical by navigation label. When adding or renaming an item, renumber that group's `navigationSort` values densely from 1 so the order stays alphabetical (e.g. Teams **Setup**: Activities, Equipment sets, Venues). Nested items under a parent (e.g. Debriefs under Bookings) stay with their parent and do not reshuffle siblings in the parent group. Ungrouped items such as dashboards keep their existing negative sorts outside this rule.
-- When an enum is shown in Filament, implement `HasLabel`; add `HasColor` and `HasIcon` when they help distinguish values. Return translated labels, semantic colors from `App\Support\Palette`, and icons following the Filament icons hierarchy. Apply this when the enum is in scope rather than restyling unrelated enums. See `docs/stories/README.md` for the project's reference.
+- When an enum is shown in Filament, implement `HasLabel`; add `HasColor` and `HasIcon` when they help distinguish values. Return translated labels, semantic colors from `App\Support\Palette`, and icons following the Filament icons hierarchy. Apply this when the enum is in scope rather than restyling unrelated enums. `BookingStatus` is the pattern: confirmed is green with a check circle, tentative is yellow with a question-mark circle, and cancelled is red with an x circle. Accreditation, membership role, attendee status, and the permit, qualification, and task enums from [climbing-team pull 303](https://github.com/foxcoverts/climbing-team/pull/303) are the reference.
 - Use **Remove**, **Remove selected**, and **Removed** in user-facing actions that take related records off a parent. Keep Filament's detach/dissociate action types and existing localized wording overrides; do not restore relationship jargon in labels, modal copy, or notifications.
 - Do not display seconds in booking dates or times.
 - Do not display record IDs in user-facing screens.

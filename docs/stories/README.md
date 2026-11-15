@@ -19,8 +19,6 @@ Scope is separate from implementation status:
 
 There is no US-32. Original ids are preserved.
 
-When an enum is shown in Filament, give it a label, and a color and icon when they help someone tell the values apart. `BookingStatus` is the pattern: confirmed is green with a check circle, tentative is yellow with a question-mark circle, and cancelled is red with an x circle. Give each enum this treatment when it next appears in the interface. Accreditation, membership role, attendee status, and the permit, qualification, and task enums from [climbing-team pull 303](https://github.com/foxcoverts/climbing-team/pull/303) are the reference.
-
 ## Roles
 
 Roles live on different axes. A person can hold several at once (for example a **Manager** who is also **Lead Instructor** on one booking, or a **System admin** who also **manages** a team). **System admin does not imply team manager** — booking create/update, attendance, rollcall, and debrief complete need `manages($team)` or lead, not admin alone ([US-49](US-49-system-administration.md)).
@@ -178,7 +176,3 @@ Per-team shop for branded and personalised clothing and stash. Domain glossary a
   - US-63 is extra and done: catalog postal address and map pin. Bookings take `location` / `coords` from the venue. US-65 ICS precise location is done on the shared factory. US-64 catalog create, adoption lock, and private booking places, and US-68 Other activity and Activity name, are extra and done. US-13 stays done.
   - US-24 / US-36 and US-82–US-87 are Merchandise & Stash: documented for a later build, not relaunch scope. Not booking equipment sets.
 - **Deferred:** [US-06 User Role & Status Badges](US-06-user-role-status-badges.md), [US-50 Invite Someone Who Is Not on the Team](US-50-invite-non-members.md), [US-23 Instructor Kit Compliance](US-23-instructor-kit-compliance.md), and [US-33 Kit Checker Inspection](US-33-kit-checker-inspection-workflow.md). These are deliberately held back from relaunch.
-
-## Delivery approach
-
-The product owner built the legacy system without AI and brings strong domain and implementation experience. Use AI assistance especially for bounded Livewire, front-end, and feature-test work, where it can accelerate implementation and test iteration. Keep product decisions, operational acceptance, and review of the resulting behavior with the product owner; use AI for execution and alternatives, not as the authority on legacy requirements.
