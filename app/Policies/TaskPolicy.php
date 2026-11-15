@@ -16,16 +16,14 @@ class TaskPolicy
             return false;
         }
 
-        if (Filament::getCurrentPanel()?->getId() === 'teams') {
-            $team = $this->currentTeam();
+        // Tenant-scoped on the Teams panel only (TeamsDeepLink sets that panel while probing).
+        $team = Filament::getCurrentPanel()?->getId() === 'teams'
+            ? $this->currentTeam()
+            : null;
 
-            return $team instanceof Team
-                && $team->featureEnabled(TeamFeature::Tasks)
-                && ($user->isCurrentMemberOf($team) || $user->isSystemAdmin());
-        }
-
-        if ($user->isSystemAdmin()) {
-            return Team::query()->where('features->tasks', true)->exists();
+        if ($team instanceof Team) {
+            return $team->featureEnabled(TeamFeature::Tasks)
+                && $user->isCurrentMemberOf($team);
         }
 
         return $user->teams()->where('features->tasks', true)->exists();
@@ -41,10 +39,6 @@ class TaskPolicy
 
         if (! $task->team instanceof Team || ! $task->team->featureEnabled(TeamFeature::Tasks)) {
             return false;
-        }
-
-        if ($user->isSystemAdmin()) {
-            return true;
         }
 
         return $user->isCurrentMemberOf($task->team);

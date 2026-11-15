@@ -28,6 +28,7 @@ use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
 use RalphJSmit\Filament\Activitylog\FilamentActivitylog;
+use Saade\FilamentFullCalendar\FilamentFullCalendarPlugin;
 
 class MemberPanelProvider extends PanelProvider
 {
@@ -49,6 +50,7 @@ class MemberPanelProvider extends PanelProvider
             ->favicon(asset('icon.svg'))
             ->viteTheme('resources/css/filament/theme.css')
             ->plugin(FilamentActivitylog::make())
+            ->plugin(FilamentFullCalendarPlugin::make())
             ->navigationGroups(NavigationGroup::class)
             ->discoverResources(in: app_path('Filament/Member/Resources'), for: 'App\\Filament\\Member\\Resources')
             ->discoverPages(in: app_path('Filament/Member/Pages'), for: 'App\\Filament\\Member\\Pages')

@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "e46a16f1d135864cb5f7bb9c5614f136",
+    "content-hash": "d033a7b36a4a13d8e8dcf6567f748cf3",
     "packages": [
         {
             "name": "anourvalar/eloquent-serialize",
@@ -5698,6 +5698,96 @@
                 }
             ],
             "time": "2026-03-19T10:36:26+00:00"
+        },
+        {
+            "name": "saade/filament-fullcalendar",
+            "version": "v5.0.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/saade/filament-fullcalendar.git",
+                "reference": "6b0977f3420eabff35f0d4f72b3ebfcc6f261576"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/saade/filament-fullcalendar/zipball/6b0977f3420eabff35f0d4f72b3ebfcc6f261576",
+                "reference": "6b0977f3420eabff35f0d4f72b3ebfcc6f261576",
+                "shasum": ""
+            },
+            "require": {
+                "filament/filament": "^4.0|^5.0",
+                "php": "^8.2",
+                "spatie/laravel-package-tools": "^1.92.7"
+            },
+            "require-dev": {
+                "larastan/larastan": "^3.0",
+                "laravel/pint": "^1.0",
+                "nunomaduro/collision": "^8.0",
+                "orchestra/testbench": "^9.0|^10.0|^11.0",
+                "pestphp/pest": "^3.0|^4.0",
+                "pestphp/pest-plugin-arch": "^3.0|^4.0",
+                "phpstan/extension-installer": "^1.1",
+                "phpstan/phpstan-deprecation-rules": "^1.0|^2.0",
+                "phpstan/phpstan-phpunit": "^1.0|^2.0",
+                "rector/rector": "^2.5",
+                "spatie/laravel-ray": "^1.26"
+            },
+            "suggest": {
+                "rector/rector": "Needed to run vendor/bin/filament-fullcalendar-v5, which applies the 5.x upgrade to your widgets."
+            },
+            "bin": [
+                "bin/filament-fullcalendar-v5"
+            ],
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "Saade\\FilamentFullCalendar\\FilamentFullCalendarServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "files": [
+                    "src/helpers.php"
+                ],
+                "psr-4": {
+                    "Saade\\FilamentFullCalendar\\": "src"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Saade",
+                    "email": "saade@outlook.com.br",
+                    "role": "Developer"
+                }
+            ],
+            "description": "The Most Popular JavaScript Calendar integrated with Filament 💛",
+            "homepage": "https://github.com/saade/filament-fullcalendar",
+            "keywords": [
+                "calendar",
+                "filament",
+                "filament-fullcalendar",
+                "filament-plugin",
+                "fullcalendar",
+                "laravel",
+                "saade",
+                "scheduler"
+            ],
+            "support": {
+                "issues": "https://github.com/saade/filament-fullcalendar/issues",
+                "source": "https://github.com/saade/filament-fullcalendar"
+            },
+            "funding": [
+                {
+                    "url": "https://github.com/saade",
+                    "type": "github"
+                }
+            ],
+            "time": "2026-10-27T01:04:32+00:00",
+            "published-time": "2026-10-27T01:11:09+00:00"
         },
         {
             "name": "sabre/uri",
@@ -12692,5 +12782,5 @@
         "php": "^8.3"
     },
     "platform-dev": {},
-    "plugin-api-version": "2.9.0"
+    "plugin-api-version": "2.11.0"
 }

@@ -3,14 +3,17 @@
 namespace Tests\Feature;
 
 use App\Enums\MembershipRole;
+use App\Enums\TeamFeature;
 use App\Filament\Admin\Pages\Dashboard as AdminDashboard;
 use App\Filament\Admin\Resources\Activities\ActivityResource as AdminActivityResource;
 use App\Filament\Admin\Resources\Teams\TeamResource as AdminTeamResource;
 use App\Filament\Member\Pages\Dashboard as MemberDashboard;
 use App\Filament\Member\Resources\Inbox\InboxResource;
+use App\Filament\Teams\Pages\Calendar as TeamsCalendar;
 use App\Filament\Teams\Resources\Bookings\BookingResource as TeamsBookingResource;
 use App\Filament\Teams\Resources\Keys\KeyResource as TeamsKeyResource;
 use App\Filament\Teams\Resources\NewsPosts\NewsPostResource as TeamsNewsPostResource;
+use App\Filament\Teams\Resources\Tasks\TaskResource as TeamsTaskResource;
 use App\Models\Booking;
 use App\Models\Team;
 use App\Models\User;
@@ -187,5 +190,45 @@ class NavigationIaTest extends TestCase
             ->get('/bookings')
             ->assertOk()
             ->assertSee('href="'.$dashboardUrl.'"', false);
+    }
+
+    public function test_system_admin_teams_exit_from_member_schedule_falls_back_when_remembered_tenant_is_not_theirs(): void
+    {
+        $other = Team::factory()->create([
+            'name' => 'Other Team',
+            'features' => [TeamFeature::Tasks->value => true],
+        ]);
+        $mine = Team::factory()->create([
+            'name' => 'My Team',
+            'features' => [TeamFeature::Tasks->value => true],
+        ]);
+        $admin = User::factory()->systemAdmin()->create();
+        $mine->grant($admin, MembershipRole::Member);
+
+        Filament::setCurrentPanel('member');
+        $this->actingAs($admin);
+        session(['tenant_team_id' => $other->getKey()]);
+
+        $dashboardUrl = Filament::getPanel('teams')->getUrl($other);
+        $calendarUrl = TeamsCalendar::getUrl(panel: 'teams', tenant: $other);
+        $bookingsUrl = TeamsBookingResource::getUrl(panel: 'teams', tenant: $other);
+        $tasksUrl = TeamsTaskResource::getUrl(panel: 'teams', tenant: $other);
+
+        $this->get('/calendar')
+            ->assertOk()
+            ->assertSee('href="'.$dashboardUrl.'"', false)
+            ->assertDontSee('href="'.$calendarUrl.'"', false);
+
+        $this->get('/bookings')
+            ->assertOk()
+            ->assertSee('href="'.$dashboardUrl.'"', false)
+            ->assertDontSee('href="'.$bookingsUrl.'"', false);
+
+        $this->get('/tasks')
+            ->assertOk()
+            ->assertSee('href="'.$dashboardUrl.'"', false)
+            ->assertDontSee('href="'.$tasksUrl.'"', false);
+
+        $this->get($dashboardUrl)->assertOk();
     }
 }
