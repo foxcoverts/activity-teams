@@ -15,7 +15,10 @@ use App\Models\Team;
 use App\Models\User;
 use App\Models\Venue;
 use App\Support\Palette;
+use Carbon\CarbonInterface;
+use DateTimeInterface;
 use Filament\Support\Icons\Heroicon;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\HtmlString;
 use Illuminate\Support\ServiceProvider;
@@ -29,6 +32,9 @@ class TimelineProvider extends ServiceProvider
     {
         Timeline::configureUsing(function (Timeline $timeline): Timeline {
             return $timeline
+                ->itemDateTimeFormat('j M Y, H:i')
+                ->attributeCast('datetime', fn (mixed $value): ?string => static::formatDateTimeValue($value))
+                ->attributeCast('immutable_datetime', fn (mixed $value): ?string => static::formatDateTimeValue($value))
                 ->itemIcons([
                     'created' => Heroicon::OutlinedPlusCircle,
                     'updated' => Heroicon::OutlinedPencilSquare,
@@ -69,6 +75,11 @@ class TimelineProvider extends ServiceProvider
                     'activity_id' => __('activity'),
                     'audience_id' => __('audience'),
                     'venue_id' => __('venue'),
+                    'start_at' => __('start'),
+                    'end_at' => __('end'),
+                    'lead_needed_at' => __('lead needed'),
+                    'notes' => __('team notes'),
+                    'lead_instructor_notes' => __('lead instructor notes'),
                     'lead_instructor_id' => __('lead instructor'),
                     'requires_lead_instructor' => __('require lead instructor'),
                     'team_id' => __('team'),
@@ -243,6 +254,10 @@ class TimelineProvider extends ServiceProvider
     {
         $attributeLabel = $item->getAttributeLabel($key);
 
+        if (static::isLongTextAttribute($key)) {
+            return static::longTextChangeClause($attributeLabel, $value, $oldValue);
+        }
+
         if (! $timeline->isChangesSummaryAttributeValuesVisible($key)) {
             return $attributeLabel;
         }
@@ -294,6 +309,57 @@ class TimelineProvider extends ServiceProvider
             'attributeLabel' => $attributeLabel,
             'newAttributeValue' => $attributeValue,
         ]);
+    }
+
+    protected static function isLongTextAttribute(string $key): bool
+    {
+        return in_array($key, ['notes', 'lead_instructor_notes', 'description'], true);
+    }
+
+    protected static function longTextChangeClause(string $attributeLabel, mixed $value, mixed $oldValue): string
+    {
+        $newText = static::rawTextValue($value);
+        $oldText = static::rawTextValue($oldValue);
+
+        if (blank($newText)) {
+            return __('cleared the **:attributeLabel**', ['attributeLabel' => $attributeLabel]);
+        }
+
+        if (blank($oldText)) {
+            return __('set the **:attributeLabel**', ['attributeLabel' => $attributeLabel]);
+        }
+
+        return __('updated the **:attributeLabel**', ['attributeLabel' => $attributeLabel]);
+    }
+
+    protected static function rawTextValue(mixed $value): ?string
+    {
+        if ($value === null) {
+            return null;
+        }
+
+        if (! is_scalar($value)) {
+            return null;
+        }
+
+        $text = trim((string) $value);
+
+        return $text === '' ? null : $text;
+    }
+
+    protected static function formatDateTimeValue(mixed $value): ?string
+    {
+        if ($value instanceof CarbonInterface) {
+            return $value->timezone(config('app.timezone'))->format('j M Y, H:i');
+        }
+
+        if ($value instanceof DateTimeInterface) {
+            return Carbon::instance($value)
+                ->timezone(config('app.timezone'))
+                ->format('j M Y, H:i');
+        }
+
+        return null;
     }
 
     protected static function attendanceUpdate(Timeline $timeline, ActivityLog $activity): string

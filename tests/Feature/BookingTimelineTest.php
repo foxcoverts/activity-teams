@@ -213,15 +213,49 @@ class BookingTimelineTest extends TestCase
         $this->actingAs($manager);
 
         $booking = Booking::factory()->confirmed()->forTeam($team)->create();
+        $previousStart = $booking->start_at->copy()->timezone(config('app.timezone'))->format('j M Y, H:i');
+        $previousEnd = $booking->end_at->copy()->timezone(config('app.timezone'))->format('j M Y, H:i');
         $booking->start_at = $booking->start_at->copy()->addHour();
         $booking->end_at = $booking->end_at->copy()->addHour();
         $booking->save();
+        $nextStart = $booking->start_at->copy()->timezone(config('app.timezone'))->format('j M Y, H:i');
+        $nextEnd = $booking->end_at->copy()->timezone(config('app.timezone'))->format('j M Y, H:i');
 
         Livewire::test(TeamsViewBooking::class, ['record' => $booking->getRouteKey()])
             ->assertSee('made some changes')
             ->assertSeeHtml('<ul>')
-            ->assertSeeHtml('<li>changed the <strong>start at</strong>')
-            ->assertSeeHtml('<li>changed the <strong>end at</strong>');
+            ->assertSeeHtml('<li>changed the <strong>start</strong>')
+            ->assertSeeHtml('<li>changed the <strong>end</strong>')
+            ->assertSee($previousStart)
+            ->assertSee($nextStart)
+            ->assertSee($previousEnd)
+            ->assertSee($nextEnd)
+            ->assertDontSee($booking->start_at->format('Y-m-d H:i:s'));
+    }
+
+    public function test_note_changes_name_the_field_without_dumping_the_text(): void
+    {
+        Filament::setCurrentPanel('teams');
+
+        $manager = User::factory()->teamManager()->create();
+        $team = $manager->managedTeams()->firstOrFail();
+
+        $this->actingAs($manager);
+
+        $booking = Booking::factory()->confirmed()->forTeam($team)->create([
+            'notes' => 'Previous team notes should not appear in the timeline.',
+            'lead_instructor_notes' => null,
+        ]);
+        $booking->notes = 'Current team notes live on the booking itself.';
+        $booking->lead_instructor_notes = 'Current lead notes live on the booking itself.';
+        $booking->save();
+
+        Livewire::test(TeamsViewBooking::class, ['record' => $booking->getRouteKey()])
+            ->assertSee('made some changes')
+            ->assertSeeHtml('updated the <strong>team notes</strong>')
+            ->assertSeeHtml('set the <strong>lead instructor notes</strong>')
+            ->assertDontSee('Previous team notes should not appear in the timeline.')
+            ->assertDontSee('changed the team notes from');
     }
 
     public function test_audience_changes_show_the_audience_name_not_the_id(): void
