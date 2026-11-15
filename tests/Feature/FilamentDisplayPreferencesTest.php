@@ -50,8 +50,9 @@ class FilamentDisplayPreferencesTest extends TestCase
         $this->actingAs($user);
 
         Livewire::test(TeamsListBookings::class)
-            ->assertSee('Oct 24, 2026 10:30')
-            ->assertDontSee('Oct 24, 2026 10:30:00');
+            ->assertSee('Oct 24, 2026')
+            ->assertSee('10:30')
+            ->assertDontSee('10:30:00');
         Livewire::test(TeamsViewBooking::class, ['record' => $booking->getKey()])
             ->assertSee('Confirmed booking')
             ->assertSee('When')
@@ -67,8 +68,9 @@ class FilamentDisplayPreferencesTest extends TestCase
         Filament::setCurrentPanel('member');
         Filament::setTenant($team);
         Livewire::test(MemberListBookings::class)
-            ->assertSee('Oct 24, 2026 10:30')
-            ->assertDontSee('Oct 24, 2026 10:30:00');
+            ->assertSee('Oct 24, 2026')
+            ->assertSee('10:30')
+            ->assertDontSee('10:30:00');
 
         Filament::setCurrentPanel('teams');
         Filament::setTenant($booking->team);

@@ -8,7 +8,9 @@ use App\Support\Palette;
 use Awcodes\BadgeableColumn\Components\Badge;
 use Awcodes\BadgeableColumn\Components\BadgeableColumn;
 use Filament\Support\Icons\Heroicon;
+use Filament\Tables\Contracts\HasTable;
 use Illuminate\Database\Eloquent\Builder;
+use Livewire\Livewire;
 
 final class BookingActivityColumn
 {
@@ -28,7 +30,20 @@ final class BookingActivityColumn
             $badges[] = Badge::make('team')
                 ->label(fn (Booking $record): ?string => $record->team?->name)
                 ->color(fn (Booking $record): array => $record->team?->brandColor()->getColor() ?? Palette::neutral())
-                ->visible(fn (Booking $record): bool => $record->team !== null);
+                ->visible(function (Booking $record): bool {
+                    if ($record->team === null) {
+                        return false;
+                    }
+
+                    $livewire = Livewire::current();
+
+                    // Hide when the list is already filtered to one team.
+                    if ($livewire instanceof HasTable) {
+                        return blank($livewire->getTableFilterState('team_id')['value'] ?? null);
+                    }
+
+                    return true;
+                });
         }
 
         return BadgeableColumn::make('activity.name')
