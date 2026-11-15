@@ -1,39 +1,25 @@
 # Activity Teams
 
-Management site for Fox Coverts activity teams: bookings, attendance, venues, and keys.
+[![Test](https://github.com/foxcoverts/activity-teams/actions/workflows/test.yml/badge.svg)](https://github.com/foxcoverts/activity-teams/actions/workflows/test.yml)
 
-This is a **new** Laravel + Filament app. [`foxcoverts/climbing-team`](https://github.com/foxcoverts/climbing-team) remains the live system until this project is ready to replace it. Domain ideas and some logic are taken from climbing-team; the UI is Filament, not a port of the old Blade layouts. [PR 303](https://github.com/foxcoverts/climbing-team/pull/303) is a lesson in not migrating that UI in place.
+Management site for Fox Coverts activity teams. Live at [climbfoxcoverts.co.uk](https://climbfoxcoverts.co.uk/).
+
+## Capabilities
+
+- **Bookings and attendance** — schedule sessions against catalog activities and venues, invite and manage rosters, lead instructor workflows, rollcall, debriefs, related multi-day bookings, and manager triage for tentative sessions.
+- **Qualifications and staffing** — permits and qualifications, expiry tracking, and activity staffing rules.
+- **Venues and keys** — venue catalog with addresses and map pins, booking logistics, and key rings / pass-a-key.
+- **Communications** — email invites and RSVPs, ICS subscription feeds, public booking summaries, inbound calendar replies, news posts, notification preferences, and a member inbox.
+- **People and privacy** — member profiles, team and oversight invitations, suspend/restore, and acknowledged access to personal data.
+- **Operations** — tasks, incident reporting, experience logbook, bounce triage, and system administration across multiple teams.
+
+Three Filament panels: **Members** (`/`), **Teams** (`/teams`), and **Admin** (`/admin`).
 
 ## Stack
 
-- Laravel 13, PHP 8.3+, Filament 5
-- `spatie/laravel-activitylog` for audits
-- SQLite by default (Sail/MariaDB optional)
+Laravel 13, Filament 5, Spatie activity log; local development via Laravel Sail (PHP 8.5, MariaDB).
 
-## Run locally
+## Next steps
 
-```bash
-cp .env.example .env
-composer install
-php artisan key:generate
-php artisan migrate --seed
-npm install && npm run build
-php artisan serve
-```
-
-Seeded login: `leader@example.com` / `password`.
-
-- Members panel: `/`
-- Teams panel (members and booking managers): `/teams`
-- First-user registration is only available when there are no users yet
-- Later users are invited (to a team, or as oversight / system admin)
-
-```bash
-php artisan test
-```
-
-User stories live in [docs/stories](docs/stories/README.md).
-
-## First slice
-
-Activities and venues are first-class. Bookings use those foreign keys (not free-text “Climbing” / “Fox Coverts”). Members get mobile-friendly lists (upcoming / invites / rota), email RSVP links, a public share preview, and ICS feeds. There is no FullCalendar view in this slice.
+- [INSTALL.md](INSTALL.md) — local setup
+- [docs/](docs/README.md) — product notes, user stories, and development detail
