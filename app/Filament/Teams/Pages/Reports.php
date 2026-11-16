@@ -145,17 +145,18 @@ class Reports extends Page
 
     public function historyBookingsUrl(?BookingStatus $status = null): string
     {
-        $url = BookingResource::getUrl('index', ['tenant' => $this->team()]);
-
-        $query = ['activeTab' => 'history'];
+        $parameters = [
+            'tenant' => $this->team(),
+            'tab' => 'history',
+        ];
 
         if ($status instanceof BookingStatus) {
-            $query['tableFilters'] = [
+            $parameters['filters'] = [
                 'status' => ['value' => $status->value],
             ];
         }
 
-        return $url.'?'.http_build_query($query);
+        return BookingResource::getUrl('index', $parameters);
     }
 
     public function memberUrl(User $member): string

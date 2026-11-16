@@ -217,5 +217,14 @@ class ManagerBookingReportsTest extends TestCase
         Livewire::test(Reports::class)
             ->assertSet('year', (int) now()->year)
             ->assertSee(__('By activity'));
+
+        $cancelledHistoryUrl = Livewire::test(Reports::class)
+            ->instance()
+            ->historyBookingsUrl(BookingStatus::Cancelled);
+
+        $this->assertStringContainsString('tab=history', $cancelledHistoryUrl);
+        $this->assertStringContainsString('filters%5Bstatus%5D%5Bvalue%5D=cancelled', $cancelledHistoryUrl);
+        $this->assertStringNotContainsString('activeTab=', $cancelledHistoryUrl);
+        $this->assertStringNotContainsString('tableFilters', $cancelledHistoryUrl);
     }
 }
