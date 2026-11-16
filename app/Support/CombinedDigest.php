@@ -2,7 +2,7 @@
 
 namespace App\Support;
 
-use App\Enums\InvitationNudgeTier;
+use App\Enums\ScheduleNudgeTier;
 use App\Enums\TentativeTriage;
 use App\Filament\Member\Pages\Dashboard;
 use App\Filament\Member\Resources\Inbox\InboxResource;
@@ -57,11 +57,14 @@ final class CombinedDigest
 
     public function send(User $user): void
     {
-        $rota = $this->rota->delta($user);
+        $rotaByTeam = $this->rota->deltasByTeam($user);
         $outstanding = $user->notifications()->outstanding()->get();
         $emailable = $outstanding->filter(fn (InboxNotification $row): bool => $this->emailable($user, $row));
-        $count = $emailable->count();
-        $rotaChanged = $rota['changed'];
+        $inboxByTeam = $this->partitionInboxByTeam($emailable);
+        $globalInbox = $inboxByTeam['global'];
+        $teamInbox = $inboxByTeam['byTeam'];
+        $globalInboxCount = $globalInbox->count();
+        $totalEmailableCount = $emailable->count();
         $nudges = $this->catchUp->dueInvitationNudges($user);
         $reminders = $this->catchUp->dueSessionReminders($user);
         $catchUpCount = $nudges->count() + $reminders->count();
@@ -77,9 +80,10 @@ final class CombinedDigest
         $logbookFocused = $this->logbook->dueFocusedNudges($user);
         $logbookFocusedCount = $logbookFocused->count();
         $logbookSummary = $this->logbook->outstandingSummary($user);
+        $rotaChanged = $rotaByTeam->isNotEmpty();
 
         if (
-            $count === 0
+            $totalEmailableCount === 0
             && ! $rotaChanged
             && $catchUpCount === 0
             && $attentionNewCount === 0
@@ -89,47 +93,24 @@ final class CombinedDigest
             return;
         }
 
-        if (
-            $count === 0
-            && ! $rotaChanged
-            && $catchUpCount === 0
-            && $attentionNewCount === 0
-            && $debriefFocusedCount === 1
-            && $logbookFocusedCount === 0
-        ) {
-            $item = $debriefFocused->first();
-            $this->debriefs->sendFocused($user, $item['booking'], $item['week']);
-
-            return;
-        }
+        $teamIdsWithContent = $this->teamIdsWithContent(
+            $rotaByTeam,
+            $nudges,
+            $reminders,
+            $attentionNew,
+            $debriefFocused,
+            $logbookFocused,
+            $teamInbox,
+        );
 
         if (
-            $count === 0
+            $totalEmailableCount === 1
             && ! $rotaChanged
             && $catchUpCount === 0
             && $attentionNewCount === 0
             && $debriefFocusedCount === 0
-            && $logbookFocusedCount === 1
+            && $logbookFocusedCount === 0
         ) {
-            $item = $logbookFocused->first();
-            $this->logbook->sendFocused($user, $item['booking'], $item['attendance']);
-
-            return;
-        }
-
-        if ($count === 0 && ! $rotaChanged && $catchUpCount === 1 && $attentionNewCount === 0 && $debriefFocusedCount === 0 && $logbookFocusedCount === 0) {
-            $this->sendFocusedCatchUp($user, $nudges, $reminders);
-
-            return;
-        }
-
-        if ($count === 0 && ! $rotaChanged && $catchUpCount === 0 && $attentionNewCount === 1 && $attentionOutstanding->isEmpty() && $debriefFocusedCount === 0 && $logbookFocusedCount === 0) {
-            $this->sendFocusedAttention($user, $attentionNew);
-
-            return;
-        }
-
-        if ($count === 1 && ! $rotaChanged && $catchUpCount === 0 && $attentionNewCount === 0 && $debriefFocusedCount === 0 && $logbookFocusedCount === 0) {
             $row = $emailable->first();
 
             if ($row instanceof InboxNotification) {
@@ -139,46 +120,273 @@ final class CombinedDigest
             return;
         }
 
+        $teams = Team::query()
+            ->whereKey($teamIdsWithContent->all())
+            ->orderBy('name')
+            ->get();
+
+        $soleTeamContent = $teamIdsWithContent->count() === 1 && $globalInbox->isEmpty();
+        $sentTeamDigest = false;
+
+        foreach ($teams as $team) {
+            $teamId = (string) $team->getKey();
+            $teamRota = $rotaByTeam->get($teamId);
+            $teamNudges = $this->forBookingTeam($nudges, $teamId);
+            $teamReminders = $this->forBookingTeam($reminders, $teamId);
+            $teamCatchUpCount = $teamNudges->count() + $teamReminders->count();
+            $teamAttentionNew = $this->forItemTeam($attentionNew, $teamId);
+            $teamAttentionOutstanding = $teamAttentionNew->isEmpty()
+                ? collect()
+                : $this->forItemTeam($attentionOutstanding, $teamId);
+            $teamDebriefFocused = $this->forBookingTeam($debriefFocused, $teamId);
+            $teamLogbookFocused = $this->forBookingTeam($logbookFocused, $teamId);
+            $teamDebriefSummary = $this->forBookingTeam($debriefSummary, $teamId);
+            $teamLogbookSummary = $this->forBookingTeam($logbookSummary, $teamId);
+            $teamInboxRows = $teamInbox->get($teamId, collect());
+            $teamInboxCount = $teamInboxRows->count();
+            $teamRotaChanged = $teamRota !== null;
+
+            if ($soleTeamContent && (string) $teamIdsWithContent->first() === $teamId) {
+                if (
+                    $teamInboxCount === 0
+                    && ! $teamRotaChanged
+                    && $teamCatchUpCount === 0
+                    && $teamAttentionNew->count() === 0
+                    && $teamDebriefFocused->count() === 1
+                    && $teamLogbookFocused->count() === 0
+                ) {
+                    $item = $teamDebriefFocused->first();
+                    $this->debriefs->sendFocused($user, $item['booking'], $item['week']);
+                    $sentTeamDigest = true;
+
+                    continue;
+                }
+
+                if (
+                    $teamInboxCount === 0
+                    && ! $teamRotaChanged
+                    && $teamCatchUpCount === 0
+                    && $teamAttentionNew->count() === 0
+                    && $teamDebriefFocused->count() === 0
+                    && $teamLogbookFocused->count() === 1
+                ) {
+                    $item = $teamLogbookFocused->first();
+                    $this->logbook->sendFocused($user, $item['booking'], $item['attendance']);
+                    $sentTeamDigest = true;
+
+                    continue;
+                }
+
+                if (
+                    $teamInboxCount === 0
+                    && ! $teamRotaChanged
+                    && $teamCatchUpCount === 1
+                    && $teamAttentionNew->count() === 0
+                    && $teamDebriefFocused->count() === 0
+                    && $teamLogbookFocused->count() === 0
+                ) {
+                    $this->sendFocusedCatchUp($user, $teamNudges, $teamReminders);
+                    $sentTeamDigest = true;
+
+                    continue;
+                }
+
+                if (
+                    $teamInboxCount === 0
+                    && ! $teamRotaChanged
+                    && $teamCatchUpCount === 0
+                    && $teamAttentionNew->count() === 1
+                    && $teamAttentionOutstanding->isEmpty()
+                    && $teamDebriefFocused->count() === 0
+                    && $teamLogbookFocused->count() === 0
+                ) {
+                    $this->sendFocusedAttention($user, $teamAttentionNew);
+                    $sentTeamDigest = true;
+
+                    continue;
+                }
+            }
+
+            $teamHasOtherDigestContent = $teamInboxCount > 0
+                || $teamRotaChanged
+                || $teamCatchUpCount > 0
+                || $teamAttentionNew->isNotEmpty()
+                || $teamDebriefFocused->isNotEmpty()
+                || $teamLogbookFocused->isNotEmpty();
+            $includeDebriefSummary = $teamDebriefSummary->isNotEmpty() && $teamHasOtherDigestContent;
+            $includeLogbookSummary = $teamLogbookSummary->isNotEmpty() && $teamHasOtherDigestContent;
+            $unreadRemainder = $teamInboxCount === 0
+                ? 0
+                : max(0, $user->unreadNotifications()->count() - $outstanding->count());
+            $rotaPayload = $teamRotaChanged
+                ? [
+                    'changed' => true,
+                    'additions' => $teamRota['additions'],
+                    'removals' => $teamRota['removals'],
+                    'remaining' => $teamRota['remaining'],
+                ]
+                : null;
+
+            Mail::to($user)->send(new CombinedDigestMail(
+                outstanding: $teamInboxCount === 0 ? null : $teamInboxCount,
+                unreadRemainder: $unreadRemainder,
+                rota: $rotaPayload,
+                invitationNudges: $teamNudges->isEmpty() ? null : $teamNudges->pluck('label')->all(),
+                sessionReminders: $teamReminders->isEmpty() ? null : $teamReminders->pluck('label')->all(),
+                attentionNew: $teamAttentionNew->isEmpty() ? null : $teamAttentionNew->pluck('label')->all(),
+                attentionOutstanding: $teamAttentionOutstanding->isEmpty() ? null : $teamAttentionOutstanding->pluck('label')->all(),
+                debriefsDue: $includeDebriefSummary ? $teamDebriefSummary->pluck('label')->all() : null,
+                logbookDue: $includeLogbookSummary ? $teamLogbookSummary->pluck('label')->all() : null,
+                inboxUrl: InboxResource::getUrl(panel: 'member'),
+                dashboardUrl: Dashboard::getUrl(panel: 'member'),
+                managerUrl: $this->managerUrl($teamAttentionNew->merge($teamAttentionOutstanding)),
+                team: $team,
+            ));
+
+            if ($teamInboxCount > 0) {
+                $teamInboxRows->each(function (InboxNotification $row): void {
+                    $row->forceFill(['digest_notified_at' => now()])->save();
+                });
+            }
+
+            $this->stampCatchUp($teamNudges, $teamReminders);
+            $this->managerAttention->stamp($user, $teamAttentionNew->merge($teamAttentionOutstanding));
+
+            foreach ($teamDebriefFocused as $item) {
+                $this->debriefs->mark($item['booking'], $item['week']);
+            }
+
+            foreach ($teamLogbookFocused as $item) {
+                $this->logbook->mark($item['attendance']);
+            }
+
+            $sentTeamDigest = true;
+        }
+
+        if ($globalInbox->isEmpty()) {
+            return;
+        }
+
+        if ($globalInboxCount === 1 && ! $sentTeamDigest && $teamIdsWithContent->isEmpty()) {
+            $row = $globalInbox->first();
+
+            if ($row instanceof InboxNotification) {
+                $this->sendExisting($user, $row);
+            }
+
+            return;
+        }
+
         $unreadRemainder = max(0, $user->unreadNotifications()->count() - $outstanding->count());
-        $hasOtherDigestContent = $count > 0 || $rotaChanged || $catchUpCount > 0 || $attentionNewCount > 0 || $debriefFocusedCount > 0 || $logbookFocusedCount > 0;
-        $includeDebriefSummary = $debriefSummary->isNotEmpty() && $hasOtherDigestContent;
-        $includeLogbookSummary = $logbookSummary->isNotEmpty() && $hasOtherDigestContent;
 
         Mail::to($user)->send(new CombinedDigestMail(
-            outstanding: $count === 0 ? null : $outstanding->count(),
-            unreadRemainder: $count === 0 ? 0 : $unreadRemainder,
-            rota: $rotaChanged ? $rota : null,
-            invitationNudges: $nudges->isEmpty() ? null : $nudges->pluck('label')->all(),
-            sessionReminders: $reminders->isEmpty() ? null : $reminders->pluck('label')->all(),
-            attentionNew: $attentionNew->isEmpty() ? null : $attentionNew->pluck('label')->all(),
-            attentionOutstanding: $attentionOutstanding->isEmpty() ? null : $attentionOutstanding->pluck('label')->all(),
-            debriefsDue: $includeDebriefSummary ? $debriefSummary->pluck('label')->all() : null,
-            logbookDue: $includeLogbookSummary ? $logbookSummary->pluck('label')->all() : null,
+            outstanding: $globalInboxCount,
+            unreadRemainder: $unreadRemainder,
+            rota: null,
+            invitationNudges: null,
+            sessionReminders: null,
+            attentionNew: null,
+            attentionOutstanding: null,
+            debriefsDue: null,
+            logbookDue: null,
             inboxUrl: InboxResource::getUrl(panel: 'member'),
             dashboardUrl: Dashboard::getUrl(panel: 'member'),
-            managerUrl: $this->managerUrl($attentionNew->merge($attentionOutstanding)),
+            managerUrl: null,
         ));
 
-        if ($count > 0) {
-            $outstanding->each(function (InboxNotification $row): void {
-                $row->forceFill(['digest_notified_at' => now()])->save();
-            });
-        }
-
-        $this->stampCatchUp($nudges, $reminders);
-        $this->managerAttention->stamp($user, $attentionNew->merge($attentionOutstanding));
-
-        foreach ($debriefFocused as $item) {
-            $this->debriefs->mark($item['booking'], $item['week']);
-        }
-
-        foreach ($logbookFocused as $item) {
-            $this->logbook->mark($item['attendance']);
-        }
+        $globalInbox->each(function (InboxNotification $row): void {
+            $row->forceFill(['digest_notified_at' => now()])->save();
+        });
     }
 
     /**
-     * @param  Collection<int, array{attendance: BookingAttendance, booking: Booking, tier: InvitationNudgeTier, label: string}>  $nudges
+     * @param  Collection<int, InboxNotification>  $emailable
+     * @return array{global: Collection<int, InboxNotification>, byTeam: Collection<string, Collection<int, InboxNotification>>}
+     */
+    private function partitionInboxByTeam(Collection $emailable): array
+    {
+        $global = collect();
+        $byTeam = collect();
+
+        foreach ($emailable as $row) {
+            $teamId = $row->teamId();
+
+            if ($teamId === null) {
+                $global->push($row);
+
+                continue;
+            }
+
+            if (! $byTeam->has($teamId)) {
+                $byTeam->put($teamId, collect());
+            }
+
+            $byTeam->get($teamId)->push($row);
+        }
+
+        return [
+            'global' => $global,
+            'byTeam' => $byTeam,
+        ];
+    }
+
+    /**
+     * @param  Collection<string, array{team: Team, changed: bool, additions: list<string>, removals: list<string>, remaining: list<string>}>  $rotaByTeam
+     * @param  Collection<int, array{attendance: BookingAttendance, booking: Booking, tier: ScheduleNudgeTier, label: string}>  $nudges
+     * @param  Collection<int, array{attendance: BookingAttendance, booking: Booking, label: string}>  $reminders
+     * @param  Collection<int, array{booking: Booking, triage: TentativeTriage, label: string, team: Team}>  $attentionNew
+     * @param  Collection<int, array{booking: Booking, label: string, week: bool}>  $debriefFocused
+     * @param  Collection<int, array{booking: Booking, attendance: BookingAttendance, label: string}>  $logbookFocused
+     * @param  Collection<string, Collection<int, InboxNotification>>  $teamInbox
+     * @return Collection<int, string>
+     */
+    private function teamIdsWithContent(
+        Collection $rotaByTeam,
+        Collection $nudges,
+        Collection $reminders,
+        Collection $attentionNew,
+        Collection $debriefFocused,
+        Collection $logbookFocused,
+        Collection $teamInbox,
+    ): Collection {
+        return collect()
+            ->merge($rotaByTeam->keys())
+            ->merge($nudges->map(fn (array $item): ?string => $this->bookingTeamId($item['booking'])))
+            ->merge($reminders->map(fn (array $item): ?string => $this->bookingTeamId($item['booking'])))
+            ->merge($attentionNew->map(fn (array $item): string => (string) $item['team']->getKey()))
+            ->merge($debriefFocused->map(fn (array $item): ?string => $this->bookingTeamId($item['booking'])))
+            ->merge($logbookFocused->map(fn (array $item): ?string => $this->bookingTeamId($item['booking'])))
+            ->merge($teamInbox->keys())
+            ->filter()
+            ->unique()
+            ->values();
+    }
+
+    /**
+     * @param  Collection<int, array{booking: Booking, triage: TentativeTriage, label: string, team: Team}>  $items
+     * @return Collection<int, array{booking: Booking, triage: TentativeTriage, label: string, team: Team}>
+     */
+    private function forItemTeam(Collection $items, string $teamId): Collection
+    {
+        return $items->filter(fn (array $item): bool => (string) $item['team']->getKey() === $teamId)->values();
+    }
+
+    /**
+     * @param  Collection<int, array{booking: Booking, label: string, ...}>  $items
+     * @return Collection<int, array{booking: Booking, label: string, ...}>
+     */
+    private function forBookingTeam(Collection $items, string $teamId): Collection
+    {
+        return $items->filter(fn (array $item): bool => $this->bookingTeamId($item['booking']) === $teamId)->values();
+    }
+
+    private function bookingTeamId(Booking $booking): ?string
+    {
+        return filled($booking->team_id) ? (string) $booking->team_id : null;
+    }
+
+    /**
+     * @param  Collection<int, array{attendance: BookingAttendance, booking: Booking, tier: ScheduleNudgeTier, label: string}>  $nudges
      * @param  Collection<int, array{attendance: BookingAttendance, booking: Booking, label: string}>  $reminders
      */
     private function sendFocusedCatchUp(User $user, Collection $nudges, Collection $reminders): void
@@ -207,7 +415,7 @@ final class CombinedDigest
     }
 
     /**
-     * @param  Collection<int, array{attendance: BookingAttendance, booking: Booking, tier: InvitationNudgeTier, label: string}>  $nudges
+     * @param  Collection<int, array{attendance: BookingAttendance, booking: Booking, tier: ScheduleNudgeTier, label: string}>  $nudges
      * @param  Collection<int, array{attendance: BookingAttendance, booking: Booking, label: string}>  $reminders
      */
     private function stampCatchUp(Collection $nudges, Collection $reminders): void

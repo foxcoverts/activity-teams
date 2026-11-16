@@ -3,12 +3,14 @@
 namespace App\Providers;
 
 use App\Models\User;
+use App\Notifications\Channels\InboxDatabaseChannel;
 use App\Qualifications\CatalogueCompiler;
 use App\Qualifications\QualificationCatalogue;
 use Filament\Support\Facades\FilamentView;
 use Filament\View\PanelsRenderHook;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Notifications\ChannelManager;
 use Illuminate\Support\HtmlString;
 use Illuminate\Support\ServiceProvider;
 
@@ -22,6 +24,8 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        $this->app->make(ChannelManager::class)->extend('inbox-database', fn (): InboxDatabaseChannel => new InboxDatabaseChannel);
+
         Model::shouldBeStrict(! $this->app->isProduction());
 
         $this->optimizes(

@@ -3,17 +3,25 @@
 namespace App\Support;
 
 use App\Models\Booking;
+use Illuminate\Mail\Mailables\Address;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Mail\Mailables\Headers;
 use Illuminate\Support\Str;
 
 class BookingMailThread
 {
-    public static function envelope(Booking $booking, string $kind): Envelope
+    public static function envelope(Booking $booking, string $kind, ?Address $operationalReplyTo = null): Envelope
     {
-        return new Envelope(
+        $booking->loadMissing('team');
+        $envelope = new Envelope(
             subject: self::subject($booking, $kind),
         );
+
+        if ($booking->team === null) {
+            return $envelope;
+        }
+
+        return TeamMailIdentity::applyToEnvelope($envelope, $booking->team, $operationalReplyTo);
     }
 
     public static function headers(Booking $booking): Headers

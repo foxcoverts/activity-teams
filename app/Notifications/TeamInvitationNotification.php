@@ -4,6 +4,7 @@ namespace App\Notifications;
 
 use App\Models\TeamInvitation;
 use App\Support\InboundMailAddress;
+use App\Support\TeamMailIdentity;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -55,7 +56,10 @@ class TeamInvitationNotification extends Notification implements ShouldQueue
             ->line(__('This invitation expires on :date.', ['date' => $invitation->expires_at->format('j F Y')]));
 
         if (! $invitation->isSiteInvitation() && $invitation->team !== null) {
-            $message->replyTo(InboundMailAddress::forTeam($invitation->team));
+            $from = TeamMailIdentity::from($invitation->team);
+            $message
+                ->from($from->address, $from->name)
+                ->replyTo(InboundMailAddress::forTeam($invitation->team));
         }
 
         return $message;

@@ -5,11 +5,13 @@ namespace App\Filament\Admin\Resources\Teams\Schemas;
 use App\Enums\BrandColor;
 use App\Enums\MembershipRole;
 use App\Enums\TeamFeature;
+use App\Models\Team;
 use App\Support\Avatars;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 
@@ -68,6 +70,29 @@ class TeamForm
                             ->label(TeamFeature::Debrief->getLabel())
                             ->helperText(__('Expect a post-session debrief, chase the lead, and show outstanding debriefs to managers. Turning this on starts chasing from now; older sessions can still be debriefed but are not chased.'))
                             ->default(false),
+                    ]),
+                Section::make(__('Mail'))
+                    ->icon(Heroicon::OutlinedEnvelope)
+                    ->columns(1)
+                    ->columnSpanFull()
+                    ->schema([
+                        TextInput::make('mail_from_name')
+                            ->label(__('From name'))
+                            ->placeholder(fn (Get $get, ?Team $record): string => (string) ($get('name') ?: $record?->name ?: ''))
+                            ->maxLength(255),
+                        TextInput::make('mail_from_local')
+                            ->label(__('From address'))
+                            ->placeholder(fn (Get $get, ?Team $record): string => (new Team([
+                                'name' => $get('name') ?: $record?->name,
+                                'slug' => $get('slug') ?: $record?->slug,
+                            ]))->defaultMailFromLocal())
+                            ->suffix('@'.Team::mailFromDomain())
+                            ->maxLength(255)
+                            ->rule('regex:/^[a-zA-Z0-9!#$%&\'*+\\/=?^_`{|}~-]+(?:\\.[a-zA-Z0-9!#$%&\'*+\\/=?^_`{|}~-]+)*$/')
+                            ->unique(ignoreRecord: true)
+                            ->validationMessages([
+                                'regex' => __('Enter a valid email local part.'),
+                            ]),
                     ]),
             ]);
     }

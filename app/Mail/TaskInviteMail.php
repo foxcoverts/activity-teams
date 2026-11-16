@@ -13,6 +13,7 @@ use App\Support\MailPreference;
 use App\Support\MailReplyTo;
 use App\Support\TaskAssigneeResponseLinks;
 use App\Support\TaskMailThread;
+use App\Support\TeamMailIdentity;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
@@ -38,13 +39,20 @@ class TaskInviteMail extends Mailable
 
     public function envelope(): Envelope
     {
-        return new Envelope(
+        $operational = MailReplyTo::task($this->task);
+        $envelope = new Envelope(
             subject: TaskMailThread::subject($this->task, __('Assignment')),
-            replyTo: [MailReplyTo::task($this->task)],
+            replyTo: [$operational],
             using: [
                 fn (Email $message) => $this->attachCalendarData($message),
             ],
         );
+
+        if ($this->task->team === null) {
+            return $envelope;
+        }
+
+        return TeamMailIdentity::applyToEnvelope($envelope, $this->task->team, $operational);
     }
 
     public function headers(): Headers

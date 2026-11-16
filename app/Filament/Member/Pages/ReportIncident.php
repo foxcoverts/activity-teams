@@ -176,7 +176,7 @@ class ReportIncident extends Page
 
         Mail::to($recipients)
             ->cc($report->reporterMailAddress())
-            ->queue(new IncidentReportMail($report));
+            ->queue(new IncidentReportMail($report, $team));
 
         Notification::make()
             ->success()

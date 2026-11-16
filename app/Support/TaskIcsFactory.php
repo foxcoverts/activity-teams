@@ -102,7 +102,8 @@ class TaskIcsFactory
             new Property('CLASS', new TextValue('PRIVATE')),
         ];
 
-        $fromName = (string) config('mail.from.name');
+        $task->loadMissing('team');
+        $fromName = $task->team?->mailFromName() ?? (string) config('mail.from.name');
 
         $properties[] = new Property(
             'ORGANIZER',

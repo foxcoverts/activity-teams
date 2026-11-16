@@ -6,6 +6,7 @@ use App\Enums\MailChannel;
 use App\Mail\BookingCommentMail;
 use App\Models\Booking;
 use App\Models\Comment;
+use App\Models\Team;
 use App\Models\User;
 use App\Notifications\Concerns\RecordsInbox;
 use Illuminate\Bus\Queueable;
@@ -76,6 +77,11 @@ class BookingCommentNotification extends Notification
         assert($notifiable instanceof User);
 
         return new BookingCommentMail($this->comment, $notifiable);
+    }
+
+    public function inboxTeam(?object $notifiable = null): ?Team
+    {
+        return $this->booking()?->team;
     }
 
     private function booking(): ?Booking

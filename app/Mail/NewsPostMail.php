@@ -6,6 +6,7 @@ use App\Enums\MailGroup;
 use App\Models\NewsPost;
 use App\Models\User;
 use App\Support\MailPreference;
+use App\Support\TeamMailIdentity;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
@@ -31,14 +32,19 @@ class NewsPostMail extends Mailable implements ShouldQueue
 
     public function envelope(): Envelope
     {
-        $team = $this->post->team?->name ?? __('News');
-
-        return new Envelope(
+        $teamName = $this->post->team?->name ?? __('News');
+        $envelope = new Envelope(
             subject: __(':Team: :title', [
-                'team' => $team,
+                'team' => $teamName,
                 'title' => $this->post->title,
             ]),
         );
+
+        if ($this->post->team === null) {
+            return $envelope;
+        }
+
+        return TeamMailIdentity::applyToEnvelope($envelope, $this->post->team);
     }
 
     public function headers(): Headers

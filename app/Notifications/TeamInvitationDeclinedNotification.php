@@ -4,8 +4,10 @@ namespace App\Notifications;
 
 use App\Filament\Admin\Resources\Users\UserResource;
 use App\Filament\Teams\Resources\Members\MemberResource;
+use App\Models\Team;
 use App\Models\TeamInvitation;
 use App\Notifications\Concerns\RecordsInbox;
+use App\Support\TeamMailIdentity;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
@@ -87,9 +89,27 @@ class TeamInvitationDeclinedNotification extends Notification
                 'team' => $invitation->team->name,
             ]);
 
-        return (new MailMessage)
+        $mail = (new MailMessage)
             ->subject(__('Invitation declined'))
             ->greeting(__('Hello :name,', ['name' => $notifiable->name]))
             ->line($line);
+
+        if (! $invitation->isSiteInvitation() && $invitation->team instanceof Team) {
+            $from = TeamMailIdentity::from($invitation->team);
+            $mail->from($from->address, $from->name);
+        }
+
+        return $mail;
+    }
+
+    public function inboxTeam(?object $notifiable = null): ?Team
+    {
+        $invitation = $this->invitation->loadMissing('team');
+
+        if ($invitation->isSiteInvitation()) {
+            return null;
+        }
+
+        return $invitation->team;
     }
 }
