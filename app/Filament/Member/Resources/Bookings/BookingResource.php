@@ -62,6 +62,7 @@ class BookingResource extends Resource
             ->recordUrl(fn (Booking $record): string => static::viewUrl($record))
             ->defaultGroup(BookingStartDateGroup::make())
             ->groupingSettingsHidden()
+            ->recordClasses(fn (Booking $record): array => BookingActivityColumn::attendanceRecordClasses($record))
             ->columns([
                 TextColumn::make('start_at')
                     ->label(__('Start'))

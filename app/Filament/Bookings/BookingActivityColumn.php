@@ -20,10 +20,6 @@ final class BookingActivityColumn
             Badge::make('status')
                 ->label(fn (Booking $record): string => $record->status->getLabel())
                 ->color(fn (Booking $record): array => $record->status->getColor()),
-            Badge::make('attendance')
-                ->label(fn (Booking $record): ?string => self::attendance($record)?->getLabel())
-                ->color(fn (Booking $record): array => self::attendance($record)?->getColor() ?? Palette::neutral())
-                ->visible(fn (Booking $record): bool => self::attendance($record) !== null),
         ];
 
         if ($withTeamBadge) {
@@ -70,6 +66,27 @@ final class BookingActivityColumn
                         ->orWhereHas('venue', fn (Builder $venueQuery) => $venueQuery
                             ->where('name', 'like', "%{$search}%"));
                 }));
+    }
+
+    /**
+     * Left attendance bar on the table row (same colours as the calendar list).
+     *
+     * @return list<string>
+     */
+    public static function attendanceRecordClasses(Booking $record): array
+    {
+        $status = self::attendance($record);
+
+        if ($status === null) {
+            return [];
+        }
+
+        return match ($status) {
+            BookingAttendeeStatus::Accepted => ['booking-row--attendance-accepted'],
+            BookingAttendeeStatus::Tentative => ['booking-row--attendance-tentative'],
+            BookingAttendeeStatus::NeedsAction => ['booking-row--attendance-needs-action'],
+            BookingAttendeeStatus::Declined => ['booking-row--attendance-declined'],
+        };
     }
 
     private static function attendance(Booking $record): ?BookingAttendeeStatus
