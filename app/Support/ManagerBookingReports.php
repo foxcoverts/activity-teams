@@ -279,8 +279,8 @@ class ManagerBookingReports
                 ];
             })
             ->sort(function (array $left, array $right): int {
-                return [$right['responded'], $right['accepted'], $right['invites'], $left['user']->name]
-                    <=> [$left['responded'], $left['accepted'], $left['invites'], $right['user']->name];
+                return [$right['accepted'], $right['responded'], $right['invites'], $left['user']->name]
+                    <=> [$left['accepted'], $left['responded'], $left['invites'], $right['user']->name];
             })
             ->values();
     }
