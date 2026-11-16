@@ -171,9 +171,19 @@ class ManagerBookingReportsTest extends TestCase
         $this->assertSame(0.0, $helperRow['tentative_share']);
         $this->assertSame(1, $helperRow['leads']);
         $this->assertTrue($rows->first()['user']->is($helper));
+        $this->assertSame(1, $rows->first()['accepted']);
         $this->assertSame(2, $rows->first()['responded']);
         $this->assertTrue($rows->last()['never_responded']);
         $this->assertSame(0, $rows->last()['responded']);
+
+        $decliner = User::factory()->create(['name' => 'Declining Dana']);
+        $topHelper = User::factory()->create(['name' => 'Arran Helper']);
+        $this->team->grant($decliner, MembershipRole::Member);
+        $this->team->grant($topHelper, MembershipRole::Member);
+        $first->attendees()->attach($decliner->getKey(), ['status' => BookingAttendeeStatus::Declined->value]);
+        $second->attendees()->attach($decliner->getKey(), ['status' => BookingAttendeeStatus::Declined->value]);
+        $first->attendees()->attach($topHelper->getKey(), ['status' => BookingAttendeeStatus::Accepted->value]);
+        $second->attendees()->attach($topHelper->getKey(), ['status' => BookingAttendeeStatus::Accepted->value]);
 
         $quietMany = User::factory()->create(['name' => 'Quiet Many']);
         $quietFew = User::factory()->create(['name' => 'Quiet Few']);
@@ -184,6 +194,15 @@ class ManagerBookingReportsTest extends TestCase
         $first->attendees()->attach($quietFew->getKey(), ['status' => BookingAttendeeStatus::NeedsAction->value]);
 
         $rows = $this->reports->memberEngagement($this->team, $year);
+
+        $this->assertTrue($rows[0]['user']->is($topHelper));
+        $this->assertSame(2, $rows[0]['accepted']);
+        $this->assertTrue($rows[1]['user']->is($helper));
+        $this->assertSame(1, $rows[1]['accepted']);
+        $this->assertTrue($rows[2]['user']->is($decliner));
+        $this->assertSame(0, $rows[2]['accepted']);
+        $this->assertSame(2, $rows[2]['responded']);
+
         $silent = $rows->filter(fn (array $row): bool => $row['responded'] === 0)->values();
 
         $this->assertSame(2, $silent[0]['invites']);
@@ -217,5 +236,18 @@ class ManagerBookingReportsTest extends TestCase
         Livewire::test(Reports::class)
             ->assertSet('year', (int) now()->year)
             ->assertSee(__('By activity'));
+
+        $year = (int) now()->year;
+        $cancelledHistoryUrl = Livewire::test(Reports::class)
+            ->set('year', $year)
+            ->instance()
+            ->historyBookingsUrl(BookingStatus::Cancelled);
+
+        $this->assertStringContainsString('tab=history', $cancelledHistoryUrl);
+        $this->assertStringContainsString('filters%5Bstatus%5D%5Bvalue%5D=cancelled', $cancelledHistoryUrl);
+        $this->assertStringContainsString('filters%5Bschedule%5D%5Bfrom%5D='.$year.'-01-01', $cancelledHistoryUrl);
+        $this->assertStringContainsString('filters%5Bschedule%5D%5Bto%5D='.$year.'-12-31', $cancelledHistoryUrl);
+        $this->assertStringNotContainsString('activeTab=', $cancelledHistoryUrl);
+        $this->assertStringNotContainsString('tableFilters', $cancelledHistoryUrl);
     }
 }

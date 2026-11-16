@@ -143,19 +143,27 @@ class Reports extends Page
         return $this->reports()->memberEngagement($this->team(), $this->year);
     }
 
-    public function historyBookingsUrl(?BookingStatus $status = null): string
+    public function historyBookingsUrl(?BookingStatus $status = null, ?int $year = null): string
     {
-        $url = BookingResource::getUrl('index', ['tenant' => $this->team()]);
+        $year ??= $this->year;
+        [$start, $end] = $this->reports()->yearBounds($year);
 
-        $query = ['activeTab' => 'history'];
+        $filters = [
+            'schedule' => [
+                'from' => $start->toDateString(),
+                'to' => $end->toDateString(),
+            ],
+        ];
 
         if ($status instanceof BookingStatus) {
-            $query['tableFilters'] = [
-                'status' => ['value' => $status->value],
-            ];
+            $filters['status'] = ['value' => $status->value];
         }
 
-        return $url.'?'.http_build_query($query);
+        return BookingResource::getUrl('index', [
+            'tenant' => $this->team(),
+            'tab' => 'history',
+            'filters' => $filters,
+        ]);
     }
 
     public function memberUrl(User $member): string

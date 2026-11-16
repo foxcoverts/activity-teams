@@ -1,33 +1,34 @@
 @php
+    use App\Enums\BookingAttendeeStatus;
     use App\Support\Palette;
 
     $segments = [
         [
-            'key' => 'declined',
-            'share' => $row['declined_share'],
-            'count' => $row['declined'],
-            'label' => __('Cannot make it'),
-            'color' => Palette::destructive()[500],
+            'key' => 'accepted',
+            'share' => $row['accepted_share'],
+            'count' => $row['accepted'],
+            'label' => BookingAttendeeStatus::Accepted->getLabel(),
+            'color' => Palette::positive()[500],
         ],
         [
             'key' => 'tentative',
             'share' => $row['tentative_share'],
             'count' => $row['tentative'],
-            'label' => __('Maybe'),
+            'label' => BookingAttendeeStatus::Tentative->getLabel(),
             'color' => Palette::uncertain()[500],
         ],
         [
-            'key' => 'accepted',
-            'share' => $row['accepted_share'],
-            'count' => $row['accepted'],
-            'label' => __('Can help'),
-            'color' => Palette::positive()[500],
+            'key' => 'declined',
+            'share' => $row['declined_share'],
+            'count' => $row['declined'],
+            'label' => BookingAttendeeStatus::Declined->getLabel(),
+            'color' => Palette::destructive()[500],
         ],
         [
             'key' => 'awaiting',
             'share' => $row['awaiting_share'],
             'count' => $row['awaiting'],
-            'label' => __('Awaiting response'),
+            'label' => BookingAttendeeStatus::NeedsAction->getLabel(),
             'color' => Palette::neutral()[500],
         ],
     ];
