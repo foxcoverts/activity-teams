@@ -540,13 +540,18 @@ button.task-complete-control:disabled {
     }
 }
 
+/*
+ * Soft stripes follow event text colour so they read on pale light-mode fills
+ * and solid brand fills. Keep opacity and gap gentle — denser/stronger hatching
+ * washes out titles like “Climbing”.
+ */
 .fi-fc .fc-event.fc-event--tentative {
     background-image: repeating-linear-gradient(
         -45deg,
         transparent,
-        transparent 4px,
-        rgb(255 255 255 / 0.35) 4px,
-        rgb(255 255 255 / 0.35) 8px
+        transparent 9px,
+        color-mix(in srgb, currentColor 10%, transparent) 9px,
+        color-mix(in srgb, currentColor 10%, transparent) 18px
     );
 }
 
@@ -556,19 +561,23 @@ button.task-complete-control:disabled {
     opacity: 0.55;
 }
 
-.fi-fc .fc-event.fc-event--attendance-accepted {
+.fi-fc .fc-event.fc-event--attendance-accepted,
+.fi-ta-row.booking-row--attendance-accepted {
     box-shadow: inset 0.2rem 0 0 rgb(22 163 74);
 }
 
-.fi-fc .fc-event.fc-event--attendance-tentative {
+.fi-fc .fc-event.fc-event--attendance-tentative,
+.fi-ta-row.booking-row--attendance-tentative {
     box-shadow: inset 0.2rem 0 0 rgb(217 119 6);
 }
 
-.fi-fc .fc-event.fc-event--attendance-needs-action {
+.fi-fc .fc-event.fc-event--attendance-needs-action,
+.fi-ta-row.booking-row--attendance-needs-action {
     box-shadow: inset 0.2rem 0 0 rgb(107 114 128);
 }
 
-.fi-fc .fc-event.fc-event--attendance-declined {
+.fi-fc .fc-event.fc-event--attendance-declined,
+.fi-ta-row.booking-row--attendance-declined {
     box-shadow: inset 0.2rem 0 0 rgb(220 38 38);
 }
 
@@ -576,6 +585,17 @@ button.task-complete-control:disabled {
     display: inline;
     margin-inline-end: 0.15em;
     font-weight: 700;
+}
+
+/* Venue under the title — week/day blocks have room; month/list stay compact. */
+.fi-fc .fc-event .fi-fc-event-subtitle {
+    display: none;
+    @apply mt-0.5 truncate text-xs font-normal opacity-80;
+}
+
+.fi-fc .fc-timeGridWeek-view .fc-event .fi-fc-event-subtitle,
+.fi-fc .fc-timeGridDay-view .fc-event .fi-fc-event-subtitle {
+    display: block;
 }
 
 .fi-fc-event-tooltip {

@@ -25,6 +25,7 @@ class BookingsTable
             ->recordTitleAttribute('display_name')
             ->defaultGroup(BookingStartDateGroup::make())
             ->groupingSettingsHidden()
+            ->recordClasses(fn (Booking $record): array => BookingActivityColumn::attendanceRecordClasses($record))
             ->columns([
                 TextColumn::make('start_at')
                     ->label(__('Start'))

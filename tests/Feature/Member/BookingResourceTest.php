@@ -52,14 +52,16 @@ class BookingResourceTest extends TestCase
     {
         $member = User::factory()->teamMember()->create();
         $team = $member->teams()->firstOrFail();
+        $team->update(['name' => "O'Connell Climbing"]);
         $otherTeam = Team::factory()->create();
         $mine = Booking::factory()->forTeam($team)->confirmed()->create();
         $mine->attendees()->attach($member->getKey(), ['status' => BookingAttendeeStatus::Accepted]);
 
         $this->actingAs($member);
 
-        // Team name sits in a nested fi-badge-label inside the suffix badge.
-        $teamBadgePattern = '/badgeable-column-badge[^>]*>[\s\S]*?'.preg_quote($team->name, '/').'/';
+        // Team name sits in a nested fi-badge-label; match the HTML-escaped text
+        // (apostrophes become &#039; in the markup).
+        $teamBadgePattern = '/badgeable-column-badge[^>]*>[\s\S]*?'.preg_quote(e($team->name), '/').'/';
 
         Livewire::test(ListBookings::class)
             ->assertTableFilterExists('team_id', fn ($filter): bool => array_keys($filter->getOptions()) === [$team->getKey()])
@@ -174,11 +176,13 @@ class BookingResourceTest extends TestCase
         $this->actingAs($member);
         Livewire::test(ListBookings::class)
             ->assertCanSeeTableRecords([$acceptedBooking, $maybeBooking])
-            ->assertSeeText('Can help')
-            ->assertSeeText('Maybe')
+            ->assertSeeHtml('booking-row--attendance-accepted')
+            ->assertSeeHtml('booking-row--attendance-tentative')
+            ->assertDontSeeText('Can help')
             ->set('activeTab', 'invites')
             ->assertCanSeeTableRecords([$maybeBooking, $invitedBooking])
-            ->assertSeeText('Maybe')
-            ->assertSeeText('Awaiting response');
+            ->assertSeeHtml('booking-row--attendance-tentative')
+            ->assertSeeHtml('booking-row--attendance-needs-action')
+            ->assertDontSeeText('Awaiting response');
     }
 }
