@@ -583,8 +583,15 @@ button.task-complete-control:disabled {
     font-weight: 700;
 }
 
+/* Venue under the title — week/day blocks have room; month/list stay compact. */
 .fi-fc .fc-event .fi-fc-event-subtitle {
+    display: none;
     @apply mt-0.5 truncate text-xs font-normal opacity-80;
+}
+
+.fi-fc .fc-timeGridWeek-view .fc-event .fi-fc-event-subtitle,
+.fi-fc .fc-timeGridDay-view .fc-event .fi-fc-event-subtitle {
+    display: block;
 }
 
 .fi-fc-event-tooltip {
