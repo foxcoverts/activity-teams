@@ -166,7 +166,7 @@
         @endif
 
         <x-filament::section :icon="Heroicon::OutlinedUserGroup" :heading="__('Member engagement')"
-            :description="__('Current members and invitations on non-cancelled bookings in :year. Attendance rate only where roll-call was completed.', ['year' => $this->year])">
+            :description="__('Current members invited to non-cancelled bookings in :year, ordered by can-help then other responses. Roll-call rate only where attendance was recorded.', ['year' => $this->year])">
             @php
                 $engagement = $this->memberEngagement();
                 $maxInvites = (int) $engagement->max('invites');
