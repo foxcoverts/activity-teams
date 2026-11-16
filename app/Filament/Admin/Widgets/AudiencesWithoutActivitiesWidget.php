@@ -35,7 +35,7 @@ class AudiencesWithoutActivitiesWidget extends AdminSection
             'rowKeyPrefix' => 'audience-no-activity',
             'recordUrl' => fn ($record): string => AudienceResource::getUrl('view', ['record' => $record]),
             'seeAllUrl' => AudienceResource::getUrl('index', [
-                'tableFilters' => [
+                'filters' => [
                     'without_activity' => ['isActive' => true],
                 ],
             ]),

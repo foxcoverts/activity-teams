@@ -211,8 +211,8 @@ class AdminDashboardTest extends TestCase
         ]);
 
         Livewire::test(InboundNeedsReviewWidget::class)
-            ->assertSee('tableFilters%5Bneeds_review%5D%5BisActive%5D=1', false)
-            ->assertSee('tableFilters%5Bneeds_review%5D%5Bvalue%5D=1', false);
+            ->assertSee('filters%5Bneeds_review%5D%5BisActive%5D=1', false)
+            ->assertSee('filters%5Bneeds_review%5D%5Bvalue%5D=1', false);
     }
 
     public function test_pending_invites_see_all_targets_not_yet_accepted_filter(): void
@@ -229,6 +229,6 @@ class AdminDashboardTest extends TestCase
         }
 
         Livewire::test(PendingSiteInvitesWidget::class)
-            ->assertSee('tableFilters%5Bnot_accepted%5D%5BisActive%5D=1', false);
+            ->assertSee('filters%5Bnot_accepted%5D%5BisActive%5D=1', false);
     }
 }

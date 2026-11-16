@@ -35,7 +35,7 @@ class ActivitiesWithoutTeamsWidget extends AdminSection
             'rowKeyPrefix' => 'activity-no-team',
             'recordUrl' => fn ($record): string => ActivityResource::getUrl('view', ['record' => $record]),
             'seeAllUrl' => ActivityResource::getUrl('index', [
-                'tableFilters' => [
+                'filters' => [
                     'without_team' => ['isActive' => true],
                 ],
             ]),

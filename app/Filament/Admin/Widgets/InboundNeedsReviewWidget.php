@@ -33,7 +33,7 @@ class InboundNeedsReviewWidget extends AdminSection
             'rows' => $rows->take(AdminAttention::PREVIEW_LIMIT)->values(),
             'total' => $total,
             'seeAllUrl' => InboundMailResource::getUrl('index', [
-                'tableFilters' => [
+                'filters' => [
                     'needs_review' => [
                         'isActive' => true,
                         'value' => true,

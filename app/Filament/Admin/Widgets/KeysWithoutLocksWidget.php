@@ -35,7 +35,7 @@ class KeysWithoutLocksWidget extends AdminSection
             'rowKeyPrefix' => 'key-no-locks',
             'recordUrl' => fn ($record): string => KeyResource::getUrl('view', ['record' => $record]),
             'seeAllUrl' => KeyResource::getUrl('index', [
-                'tableFilters' => [
+                'filters' => [
                     'without_locks' => ['isActive' => true],
                 ],
             ]),

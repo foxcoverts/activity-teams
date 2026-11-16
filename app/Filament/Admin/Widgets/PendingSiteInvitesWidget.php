@@ -34,7 +34,7 @@ class PendingSiteInvitesWidget extends AdminSection
             'rows' => $rows->take(AdminAttention::PREVIEW_LIMIT)->values(),
             'total' => $total,
             'seeAllUrl' => UserResource::getUrl('index', [
-                'tableFilters' => [
+                'filters' => [
                     'not_accepted' => ['isActive' => true],
                 ],
             ]),
