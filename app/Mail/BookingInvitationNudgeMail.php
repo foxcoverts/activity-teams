@@ -12,6 +12,7 @@ use App\Support\AttendanceResponseLinks;
 use App\Support\BookingMailThread;
 use App\Support\MailPreference;
 use App\Support\MailReplyTo;
+use App\Support\TeamMailIdentity;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
@@ -37,13 +38,21 @@ class BookingInvitationNudgeMail extends Mailable
 
     public function envelope(): Envelope
     {
-        return new Envelope(
+        $this->booking->loadMissing('team');
+        $operational = MailReplyTo::booking($this->booking);
+        $envelope = new Envelope(
             subject: BookingMailThread::subject($this->booking, __('Reminder')),
-            replyTo: [MailReplyTo::booking($this->booking)],
+            replyTo: [$operational],
             using: [
                 fn (Email $message) => $this->attachCalendarData($message),
             ],
         );
+
+        if ($this->booking->team === null) {
+            return $envelope;
+        }
+
+        return TeamMailIdentity::applyToEnvelope($envelope, $this->booking->team, $operational);
     }
 
     public function headers(): Headers

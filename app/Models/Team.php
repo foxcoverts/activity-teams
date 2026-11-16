@@ -32,6 +32,8 @@ class Team extends Model implements HasAvatar
         'slug',
         'color',
         'features',
+        'mail_from_name',
+        'mail_from_local',
     ];
 
     protected function casts(): array
@@ -467,5 +469,50 @@ class Team extends Model implements HasAvatar
                 'role' => static::lastManagerMessage(),
             ]);
         }
+    }
+
+    public function mailFromName(): string
+    {
+        return filled($this->mail_from_name) ? (string) $this->mail_from_name : (string) $this->name;
+    }
+
+    public function defaultMailFromLocal(): string
+    {
+        if (filled($this->slug)) {
+            return 'team+'.$this->slug;
+        }
+
+        if (filled($this->name)) {
+            $provisional = Str::slug($this->name);
+
+            if (filled($provisional)) {
+                return 'team+'.$provisional;
+            }
+        }
+
+        return 'team';
+    }
+
+    public function mailFromLocal(): string
+    {
+        return filled($this->mail_from_local)
+            ? (string) $this->mail_from_local
+            : $this->defaultMailFromLocal();
+    }
+
+    public function mailFromAddress(): string
+    {
+        return $this->mailFromLocal().'@'.static::mailFromDomain();
+    }
+
+    public static function mailFromDomain(): string
+    {
+        $address = (string) config('mail.from.address');
+
+        if (! str_contains($address, '@')) {
+            return $address;
+        }
+
+        return Str::after($address, '@');
     }
 }

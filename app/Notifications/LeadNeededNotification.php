@@ -6,6 +6,7 @@ use App\Enums\MailChannel;
 use App\Filament\Teams\Resources\Bookings\BookingResource;
 use App\Mail\LeadNeededMail;
 use App\Models\Booking;
+use App\Models\Team;
 use App\Models\User;
 use App\Notifications\Concerns\RecordsInbox;
 use Illuminate\Bus\Queueable;
@@ -57,6 +58,11 @@ class LeadNeededNotification extends Notification
     public function inboxSubject(): ?Booking
     {
         return $this->booking;
+    }
+
+    public function inboxTeam(?object $notifiable = null): ?Team
+    {
+        return $this->booking->team;
     }
 
     /**

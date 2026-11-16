@@ -3,6 +3,7 @@
 namespace App\Notifications\Concerns;
 
 use App\Enums\MailChannel;
+use App\Models\Team;
 use Illuminate\Database\Eloquent\Model;
 
 trait RecordsInbox
@@ -12,7 +13,7 @@ trait RecordsInbox
      */
     public function via(object $notifiable): array
     {
-        return ['database'];
+        return ['inbox-database'];
     }
 
     /**
@@ -21,8 +22,9 @@ trait RecordsInbox
     public function toDatabase(object $notifiable): array
     {
         $subject = $this->inboxSubject();
+        $team = $this->inboxTeam($notifiable);
 
-        return [
+        $payload = [
             'body' => $this->inboxBody($notifiable),
             'url' => $this->inboxUrl($notifiable),
             'mail_channel' => $this->inboxChannel()?->value,
@@ -32,6 +34,17 @@ trait RecordsInbox
             'subject_id' => $subject instanceof Model ? $subject->getKey() : null,
             'rebuild' => $this->inboxRebuild(),
         ];
+
+        if ($team instanceof Team) {
+            $payload['team_id'] = $team->getKey();
+        }
+
+        return $payload;
+    }
+
+    public function inboxTeam(?object $notifiable = null): ?Team
+    {
+        return null;
     }
 
     abstract public function inboxBody(object $notifiable): string;

@@ -5,7 +5,7 @@ namespace App\Models;
 use App\Casts\AsBookingAttendeeStatus;
 use App\Casts\AsDeclinedSessions;
 use App\Enums\BookingAttendeeStatus;
-use App\Enums\InvitationNudgeTier;
+use App\Enums\ScheduleNudgeTier;
 use App\Support\DeclinedSessions;
 use App\Support\ManagerAttention;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -62,7 +62,7 @@ class BookingAttendance extends Pivot
         return [
             'status' => AsBookingAttendeeStatus::class,
             'calendar_imip_at' => 'datetime',
-            'invitation_nudge_tier' => InvitationNudgeTier::class,
+            'invitation_nudge_tier' => ScheduleNudgeTier::class,
             'session_reminded_at' => 'datetime',
             'attendance_confirmed_at' => 'datetime',
             'logbook_ignored_at' => 'datetime',

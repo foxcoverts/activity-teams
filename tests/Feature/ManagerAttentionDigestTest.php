@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Enums\MailChannel;
 use App\Enums\MailGroup;
 use App\Enums\MembershipRole;
+use App\Enums\ScheduleNudgeTier;
 use App\Enums\TentativeTriage;
 use App\Filament\Teams\Pages\ManagerDashboard;
 use App\Mail\CombinedDigestMail;
@@ -54,6 +55,36 @@ class ManagerAttentionDigestTest extends TestCase
         ]);
     }
 
+    public function test_two_teams_with_attention_each_receive_a_team_digest(): void
+    {
+        Mail::fake();
+
+        $firstTeam = Team::factory()->create(['name' => 'Alpha Team']);
+        $secondTeam = Team::factory()->create(['name' => 'Bravo Team']);
+        $manager = User::factory()->create();
+        $firstTeam->grant($manager, MembershipRole::Manager);
+        $secondTeam->grant($manager, MembershipRole::Manager);
+
+        $this->unstaffedBooking($firstTeam, days: 20, label: 'Alpha session');
+        $this->unstaffedBooking($secondTeam, days: 21, label: 'Bravo session');
+
+        app(CombinedDigest::class)->send($manager);
+
+        Mail::assertQueued(CombinedDigestMail::class, 2);
+        Mail::assertQueued(CombinedDigestMail::class, function (CombinedDigestMail $mail) use ($firstTeam): bool {
+            return $mail->team?->is($firstTeam)
+                && is_array($mail->attentionNew)
+                && count($mail->attentionNew) === 1
+                && str_contains($mail->attentionNew[0], 'Alpha session');
+        });
+        Mail::assertQueued(CombinedDigestMail::class, function (CombinedDigestMail $mail) use ($secondTeam): bool {
+            return $mail->team?->is($secondTeam)
+                && is_array($mail->attentionNew)
+                && count($mail->attentionNew) === 1
+                && str_contains($mail->attentionNew[0], 'Bravo session');
+        });
+    }
+
     public function test_new_plus_outstanding_sends_combined_sections(): void
     {
         Mail::fake();
@@ -67,6 +98,7 @@ class ManagerAttentionDigestTest extends TestCase
             'user_id' => $manager->getKey(),
             'booking_id' => $stale->getKey(),
             'triage' => TentativeTriage::Unstaffed,
+            'nudge_tier' => ScheduleNudgeTier::Month,
             'notified_at' => now()->subDay(),
         ]);
 
@@ -110,7 +142,55 @@ class ManagerAttentionDigestTest extends TestCase
             'user_id' => $manager->getKey(),
             'booking_id' => $booking->getKey(),
             'triage' => TentativeTriage::Unstaffed,
+            'nudge_tier' => ScheduleNudgeTier::Month,
             'notified_at' => now()->subDay(),
+        ]);
+
+        app(CombinedDigest::class)->send($manager);
+
+        Mail::assertNothingOutgoing();
+    }
+
+    public function test_far_future_tentative_does_not_send_attention_mail(): void
+    {
+        Mail::fake();
+
+        $manager = User::factory()->teamManager()->create();
+        $team = $manager->managedTeams()->first();
+        $this->unstaffedBooking($team, days: 120, ageDays: 60);
+
+        app(CombinedDigest::class)->send($manager);
+
+        Mail::assertNothingOutgoing();
+    }
+
+    public function test_fresh_booking_inside_horizon_waits_for_half_life(): void
+    {
+        Mail::fake();
+
+        $manager = User::factory()->teamManager()->create();
+        $team = $manager->managedTeams()->first();
+        $this->unstaffedBooking($team, days: 20, ageDays: 0);
+
+        app(CombinedDigest::class)->send($manager);
+
+        Mail::assertNothingOutgoing();
+    }
+
+    public function test_legacy_null_nudge_tier_counts_as_current_band_met(): void
+    {
+        Mail::fake();
+
+        $manager = User::factory()->teamManager()->create();
+        $team = $manager->managedTeams()->first();
+        $booking = $this->unstaffedBooking($team, days: 20);
+
+        ManagerAttentionNotification::query()->create([
+            'user_id' => $manager->getKey(),
+            'booking_id' => $booking->getKey(),
+            'triage' => TentativeTriage::Unstaffed,
+            'nudge_tier' => null,
+            'notified_at' => now()->subDays(30),
         ]);
 
         app(CombinedDigest::class)->send($manager);
@@ -163,10 +243,16 @@ class ManagerAttentionDigestTest extends TestCase
         $booking = Booking::factory()->forTeam($team)->create([
             'activity_label' => 'Needs a lead',
             'lead_needed_at' => now(),
-            'start_at' => now()->addDays(5),
-            'end_at' => now()->addDays(5)->addHours(2),
+            'start_at' => now()->addDays(20)->setTime(9, 30),
+            'end_at' => now()->addDays(20)->setTime(11, 30),
             'requires_lead_instructor' => true,
         ]);
+
+        Booking::query()->whereKey($booking->getKey())->update([
+            'created_at' => now()->subDays(30),
+            'updated_at' => now()->subDays(30),
+        ]);
+        $booking->refresh();
 
         $manager->notify(new LeadNeededNotification($booking, null));
 
@@ -251,14 +337,24 @@ class ManagerAttentionDigestTest extends TestCase
         Mail::assertQueued(ManagerAttentionNudgeMail::class);
     }
 
-    private function unstaffedBooking(Team $team, int $days, string $label = 'Unstaffed session'): Booking
+    private function unstaffedBooking(Team $team, int $days, string $label = 'Unstaffed session', int $ageDays = 30): Booking
     {
-        return Booking::factory()->forTeam($team)->create([
+        $booking = Booking::factory()->forTeam($team)->create([
             'activity_label' => $label,
             'start_at' => now()->addDays($days)->setTime(9, 30),
             'end_at' => now()->addDays($days)->setTime(11, 30),
             'requires_lead_instructor' => true,
             'lead_needed_at' => null,
         ]);
+
+        if ($ageDays > 0) {
+            Booking::query()->whereKey($booking->getKey())->update([
+                'created_at' => now()->subDays($ageDays),
+                'updated_at' => now()->subDays($ageDays),
+            ]);
+            $booking->refresh();
+        }
+
+        return $booking;
     }
 }

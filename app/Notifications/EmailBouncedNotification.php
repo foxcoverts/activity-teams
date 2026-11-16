@@ -6,6 +6,7 @@ use App\Filament\Teams\Resources\Members\MemberResource;
 use App\Models\Team;
 use App\Models\User;
 use App\Notifications\Concerns\RecordsInbox;
+use App\Support\TeamMailIdentity;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
@@ -31,20 +32,18 @@ class EmailBouncedNotification extends Notification
 
     public function inboxUrl(object $notifiable): ?string
     {
-        if (! $notifiable instanceof User) {
-            return null;
-        }
-
-        $this->member->loadMissing('teams');
-
-        $team = $this->member->teams
-            ->first(fn (Team $team): bool => $notifiable->manages($team));
+        $team = $this->teamForManager($notifiable);
 
         if (! $team instanceof Team) {
             return null;
         }
 
         return MemberResource::getUrl('view', ['record' => $this->member], panel: 'teams', tenant: $team);
+    }
+
+    public function inboxTeam(?object $notifiable = null): ?Team
+    {
+        return $notifiable !== null ? $this->teamForManager($notifiable) : null;
     }
 
     public function inboxAlwaysEmailable(): bool
@@ -87,6 +86,27 @@ class EmailBouncedNotification extends Notification
             $mail->action(__('View member'), $url);
         }
 
+        $team = $this->teamForManager($notifiable);
+
+        if ($team instanceof Team) {
+            $from = TeamMailIdentity::from($team);
+            $mail->from($from->address, $from->name);
+        }
+
         return $mail;
+    }
+
+    private function teamForManager(object $notifiable): ?Team
+    {
+        if (! $notifiable instanceof User) {
+            return null;
+        }
+
+        $this->member->loadMissing('teams');
+
+        $team = $this->member->teams
+            ->first(fn (Team $team): bool => $notifiable->manages($team));
+
+        return $team instanceof Team ? $team : null;
     }
 }

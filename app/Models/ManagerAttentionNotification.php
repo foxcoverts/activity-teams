@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\ScheduleNudgeTier;
 use App\Enums\TentativeTriage;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Model;
@@ -15,6 +16,7 @@ class ManagerAttentionNotification extends Model
         'user_id',
         'booking_id',
         'triage',
+        'nudge_tier',
         'notified_at',
     ];
 
@@ -22,6 +24,7 @@ class ManagerAttentionNotification extends Model
     {
         return [
             'triage' => TentativeTriage::class,
+            'nudge_tier' => ScheduleNudgeTier::class,
             'notified_at' => 'datetime',
         ];
     }

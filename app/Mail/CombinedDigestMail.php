@@ -2,6 +2,8 @@
 
 namespace App\Mail;
 
+use App\Models\Team;
+use App\Support\TeamMailIdentity;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
@@ -35,11 +37,23 @@ class CombinedDigestMail extends Mailable implements ShouldQueue
         public string $inboxUrl,
         public string $dashboardUrl,
         public ?string $managerUrl,
+        public ?Team $team = null,
     ) {
         $this->afterCommit();
     }
 
     public function envelope(): Envelope
+    {
+        $envelope = $this->buildEnvelope();
+
+        if ($this->team instanceof Team) {
+            return TeamMailIdentity::applyToEnvelope($envelope, $this->team);
+        }
+
+        return $envelope;
+    }
+
+    private function buildEnvelope(): Envelope
     {
         if ($this->outstanding !== null) {
             return new Envelope(subject: trans_choice(

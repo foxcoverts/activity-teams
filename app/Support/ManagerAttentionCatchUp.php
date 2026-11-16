@@ -4,18 +4,20 @@ namespace App\Support;
 
 use App\Enums\BookingStatus;
 use App\Enums\MembershipRole;
+use App\Enums\ScheduleNudgeTier;
 use App\Enums\TentativeTriage;
 use App\Models\Booking;
 use App\Models\ManagerAttentionNotification;
 use App\Models\Team;
 use App\Models\User;
+use Carbon\CarbonInterface;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 final class ManagerAttentionCatchUp
 {
     /**
-     * @return array{new: Collection<int, array{booking: Booking, triage: TentativeTriage, label: string, team: Team}>, outstanding: Collection<int, array{booking: Booking, triage: TentativeTriage, label: string, team: Team}>}
+     * @return array{new: Collection<int, array{booking: Booking, triage: TentativeTriage, tier: ScheduleNudgeTier, label: string, team: Team}>, outstanding: Collection<int, array{booking: Booking, triage: TentativeTriage, tier: ScheduleNudgeTier, label: string, team: Team}>}
      */
     public function due(User $user): array
     {
@@ -38,22 +40,45 @@ final class ManagerAttentionCatchUp
             $attention = ManagerAttention::for($team, $user);
 
             foreach ($this->attentionBookings($attention) as $booking) {
+                if (! $booking->start_at instanceof CarbonInterface) {
+                    continue;
+                }
+
+                $currentBand = ScheduleNudgeTier::forStartAt($booking->start_at);
+
+                if (! $currentBand instanceof ScheduleNudgeTier) {
+                    continue;
+                }
+
                 $triage = $attention->classify($booking);
                 $stamp = $stamps->get((string) $booking->getKey());
-                $item = [
-                    'booking' => $booking,
-                    'triage' => $triage,
-                    'label' => $this->label($booking, $triage, $team, $multiTeam),
-                    'team' => $team,
-                ];
+                [$sent, $clock] = $this->sentAndClock($booking, $triage, $stamp instanceof ManagerAttentionNotification ? $stamp : null);
 
-                if (! $stamp instanceof ManagerAttentionNotification || $stamp->triage !== $triage) {
-                    $new->push($item);
+                $dueTier = ScheduleNudgeTier::due($sent, $booking->start_at, $clock);
+
+                if ($dueTier instanceof ScheduleNudgeTier) {
+                    $new->push([
+                        'booking' => $booking,
+                        'triage' => $triage,
+                        'tier' => $dueTier,
+                        'label' => $this->label($booking, $triage, $team, $multiTeam),
+                        'team' => $team,
+                    ]);
 
                     continue;
                 }
 
-                $outstanding->push($item);
+                if (! $stamp instanceof ManagerAttentionNotification || $stamp->triage !== $triage) {
+                    continue;
+                }
+
+                $outstanding->push([
+                    'booking' => $booking,
+                    'triage' => $triage,
+                    'tier' => $sent ?? $currentBand,
+                    'label' => $this->label($booking, $triage, $team, $multiTeam),
+                    'team' => $team,
+                ]);
             }
         }
 
@@ -74,12 +99,13 @@ final class ManagerAttentionCatchUp
             ->whereNull('team_user.left_at')
             ->where('bookings.status', BookingStatus::Tentative->value)
             ->where('bookings.start_at', '>', now())
+            ->where('bookings.start_at', '<=', now()->addDays(ScheduleNudgeTier::TwoMonths->days()))
             ->distinct()
             ->pluck('team_user.user_id');
     }
 
     /**
-     * @param  Collection<int, array{booking: Booking, triage: TentativeTriage, label: string, team: Team}>  $items
+     * @param  Collection<int, array{booking: Booking, triage: TentativeTriage, tier: ScheduleNudgeTier, label: string, team: Team}>  $items
      */
     public function stamp(User $user, Collection $items): void
     {
@@ -93,10 +119,35 @@ final class ManagerAttentionCatchUp
                 ],
                 [
                     'triage' => $item['triage']->value,
+                    'nudge_tier' => $item['tier']->value,
                     'notified_at' => $now,
                 ],
             );
         }
+    }
+
+    /**
+     * @return array{0: ?ScheduleNudgeTier, 1: CarbonInterface}
+     */
+    private function sentAndClock(Booking $booking, TentativeTriage $triage, ?ManagerAttentionNotification $stamp): array
+    {
+        $bookingClock = $booking->updated_at ?? $booking->created_at ?? now();
+
+        if (! $stamp instanceof ManagerAttentionNotification) {
+            return [null, $bookingClock];
+        }
+
+        if ($stamp->triage !== $triage) {
+            return [null, $bookingClock];
+        }
+
+        $clock = $stamp->notified_at ?? $bookingClock;
+
+        if ($stamp->nudge_tier === null) {
+            return [ScheduleNudgeTier::forStartAt($booking->start_at), $clock];
+        }
+
+        return [$stamp->nudge_tier, $clock];
     }
 
     /**

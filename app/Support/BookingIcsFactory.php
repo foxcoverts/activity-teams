@@ -114,9 +114,12 @@ class BookingIcsFactory
             };
 
             if ($method === CalendarMethod::Request || $method === CalendarMethod::Cancel) {
+                $booking->loadMissing('team');
+                $organizerName = $booking->team?->mailFromName() ?? (string) config('mail.from.name');
+
                 $event->setOrganizer(new Organizer(
                     new EmailAddress(InboundMailAddress::forBooking($booking)),
-                    config('mail.from.name'),
+                    $organizerName,
                 ));
 
                 if ($forAttendee instanceof User && filled($forAttendee->email)) {

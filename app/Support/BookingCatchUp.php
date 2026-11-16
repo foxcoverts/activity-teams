@@ -4,8 +4,8 @@ namespace App\Support;
 
 use App\Enums\BookingAttendeeStatus;
 use App\Enums\BookingStatus;
-use App\Enums\InvitationNudgeTier;
 use App\Enums\MailChannel;
+use App\Enums\ScheduleNudgeTier;
 use App\Models\Booking;
 use App\Models\BookingAttendance;
 use App\Models\User;
@@ -15,7 +15,7 @@ use Illuminate\Support\Facades\DB;
 final class BookingCatchUp
 {
     /**
-     * @return Collection<int, array{attendance: BookingAttendance, booking: Booking, tier: InvitationNudgeTier, label: string}>
+     * @return Collection<int, array{attendance: BookingAttendance, booking: Booking, tier: ScheduleNudgeTier, label: string}>
      */
     public function dueInvitationNudges(User $user): Collection
     {
@@ -33,7 +33,7 @@ final class BookingCatchUp
 
                 $tier = $this->dueInvitationTier($attendance, $booking);
 
-                if (! $tier instanceof InvitationNudgeTier) {
+                if (! $tier instanceof ScheduleNudgeTier) {
                     return null;
                 }
 
@@ -98,7 +98,7 @@ final class BookingCatchUp
             ))
             ->where('bookings.status', '!=', BookingStatus::Cancelled->value)
             ->where('bookings.start_at', '>', now())
-            ->where('bookings.start_at', '<=', now()->addDays(InvitationNudgeTier::TwoMonths->days()))
+            ->where('bookings.start_at', '<=', now()->addDays(ScheduleNudgeTier::TwoMonths->days()))
             ->pluck('booking_user.user_id');
 
         $reminderUserIds = DB::table('booking_user')
@@ -113,7 +113,7 @@ final class BookingCatchUp
         return $nudgeUserIds->merge($reminderUserIds)->unique()->values();
     }
 
-    public function markInvitationNudge(BookingAttendance $attendance, InvitationNudgeTier $tier): void
+    public function markInvitationNudge(BookingAttendance $attendance, ScheduleNudgeTier $tier): void
     {
         // Do not touch updated_at — that column is the last invite/response clock for nudge age.
         BookingAttendance::query()
@@ -140,13 +140,12 @@ final class BookingCatchUp
         $attendance->session_reminded_at = $remindedAt;
     }
 
-    public function dueInvitationTier(BookingAttendance $attendance, Booking $booking): ?InvitationNudgeTier
+    public function dueInvitationTier(BookingAttendance $attendance, Booking $booking): ?ScheduleNudgeTier
     {
-        if ($booking->start_at === null || $booking->start_at->lte(now())) {
+        if ($booking->start_at === null) {
             return null;
         }
 
-        $sent = $attendance->invitation_nudge_tier;
         // Use updated_at so a fresh Maybe (or other outstanding response) does not get an immediate nudge.
         $lastRespondedAt = $attendance->updated_at ?? $attendance->created_at;
 
@@ -154,34 +153,11 @@ final class BookingCatchUp
             return null;
         }
 
-        $ladder = InvitationNudgeTier::ladder();
-
-        foreach ($ladder as $index => $tier) {
-            if (! $tier->isAfter($sent)) {
-                continue;
-            }
-
-            $upper = $tier->days();
-            $lower = ($ladder[$index + 1] ?? null)?->days() ?? 0;
-
-            // Not yet inside this tier's window.
-            if ($booking->start_at->gt(now()->addDays($upper))) {
-                continue;
-            }
-
-            // Already inside a narrower band — skip this wider unmet tier.
-            if ($lower > 0 && $booking->start_at->lte(now()->addDays($lower))) {
-                continue;
-            }
-
-            if ($lastRespondedAt->gt(now()->subDays($tier->minAgeDays()))) {
-                continue;
-            }
-
-            return $tier;
-        }
-
-        return null;
+        return ScheduleNudgeTier::due(
+            $attendance->invitation_nudge_tier,
+            $booking->start_at,
+            $lastRespondedAt,
+        );
     }
 
     /**
@@ -198,7 +174,7 @@ final class BookingCatchUp
             ->whereHas('booking', function ($query): void {
                 $query->where('status', '!=', BookingStatus::Cancelled->value)
                     ->where('start_at', '>', now())
-                    ->where('start_at', '<=', now()->addDays(InvitationNudgeTier::TwoMonths->days()));
+                    ->where('start_at', '<=', now()->addDays(ScheduleNudgeTier::TwoMonths->days()));
             })
             ->with(['booking.activity', 'booking.venue'])
             ->get();

@@ -7,6 +7,7 @@ use App\Models\Key;
 use App\Models\Team;
 use App\Models\User;
 use App\Notifications\Concerns\RecordsInbox;
+use App\Support\TeamMailIdentity;
 use Illuminate\Bus\Queueable;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -84,12 +85,24 @@ class KeyHolderLeavingNotification extends Notification
 
     public function toMail(object $notifiable): MailMessage
     {
-        return (new MailMessage)
+        $mail = (new MailMessage)
             ->subject(__('Keys still assigned'))
             ->greeting(__('Hello :name,', ['name' => $notifiable->name]))
             ->line(__(':member has deleted their account and still holds :keys. The keys stay assigned.', [
                 'member' => $this->member->name,
                 'keys' => $this->keys->pluck('name')->join(', '),
             ]));
+
+        if ($this->team instanceof Team) {
+            $from = TeamMailIdentity::from($this->team);
+            $mail->from($from->address, $from->name);
+        }
+
+        return $mail;
+    }
+
+    public function inboxTeam(?object $notifiable = null): ?Team
+    {
+        return $this->team;
     }
 }

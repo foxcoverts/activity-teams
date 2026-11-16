@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Support\BookingMailThread;
 use App\Support\MailPreference;
 use App\Support\MailReplyTo;
+use App\Support\TeamMailIdentity;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
@@ -34,11 +35,18 @@ class BookingCommentMail extends Mailable implements ShouldQueue
     public function envelope(): Envelope
     {
         $booking = $this->booking();
-
-        return new Envelope(
+        $booking->loadMissing('team');
+        $operational = MailReplyTo::booking($booking);
+        $envelope = new Envelope(
             subject: BookingMailThread::subject($booking, __('Re')),
-            replyTo: [MailReplyTo::booking($booking)],
+            replyTo: [$operational],
         );
+
+        if ($booking->team === null) {
+            return $envelope;
+        }
+
+        return TeamMailIdentity::applyToEnvelope($envelope, $booking->team, $operational);
     }
 
     public function headers(): Headers

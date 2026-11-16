@@ -3,10 +3,10 @@
 namespace Tests\Feature;
 
 use App\Enums\BookingAttendeeStatus;
-use App\Enums\InvitationNudgeTier;
 use App\Enums\MailChannel;
 use App\Enums\MailGroup;
 use App\Enums\MembershipRole;
+use App\Enums\ScheduleNudgeTier;
 use App\Enums\TentativeTriage;
 use App\Filament\Member\Pages\Dashboard;
 use App\Mail\BookingInvitationNudgeMail;
@@ -63,7 +63,7 @@ class BookingCatchUpDigestTest extends TestCase
         });
 
         $this->assertSame(
-            InvitationNudgeTier::Month,
+            ScheduleNudgeTier::Month,
             $this->attendance($booking, $member)->invitation_nudge_tier,
         );
     }
@@ -86,7 +86,7 @@ class BookingCatchUpDigestTest extends TestCase
 
         Mail::assertSent(BookingInvitationNudgeMail::class);
         $this->assertSame(
-            InvitationNudgeTier::Week,
+            ScheduleNudgeTier::Week,
             $this->attendance($booking, $member)->invitation_nudge_tier,
         );
     }
@@ -97,7 +97,7 @@ class BookingCatchUpDigestTest extends TestCase
 
         $member = User::factory()->teamMember()->create();
         $booking = $this->futureBooking(5);
-        $this->invite($booking, $member, ageDays: 10, tier: InvitationNudgeTier::Week);
+        $this->invite($booking, $member, ageDays: 10, tier: ScheduleNudgeTier::Week);
 
         app(CombinedDigest::class)->send($member);
 
@@ -200,7 +200,7 @@ class BookingCatchUpDigestTest extends TestCase
         });
 
         $this->assertSame(
-            InvitationNudgeTier::Month,
+            ScheduleNudgeTier::Month,
             $this->attendance($nudgeBooking, $member)->invitation_nudge_tier,
         );
     }
@@ -231,7 +231,7 @@ class BookingCatchUpDigestTest extends TestCase
         $attendance = $this->attendance($booking, $member);
 
         $this->assertSame(
-            InvitationNudgeTier::TwoMonths,
+            ScheduleNudgeTier::TwoMonths,
             app(BookingCatchUp::class)->dueInvitationTier($attendance, $booking),
         );
     }
@@ -273,7 +273,7 @@ class BookingCatchUpDigestTest extends TestCase
         Booking $booking,
         User $user,
         int $ageDays = 0,
-        ?InvitationNudgeTier $tier = null,
+        ?ScheduleNudgeTier $tier = null,
     ): void {
         $booking->attendees()->attach($user->getKey(), [
             'status' => BookingAttendeeStatus::NeedsAction->value,

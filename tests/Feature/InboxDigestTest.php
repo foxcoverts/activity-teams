@@ -153,6 +153,8 @@ class InboxDigestTest extends TestCase
         Mail::assertQueued(CombinedDigestMail::class, function (CombinedDigestMail $mail) use ($added): bool {
             return $mail->outstanding === null
                 && $mail->unreadRemainder === 0
+                && $mail->team?->is($added->team)
+                && $mail->envelope()->from->address === $added->team->mailFromAddress()
                 && str_contains($mail->envelope()->subject, 'Your rota')
                 && str_contains($mail->render(), $added->activity->name)
                 && ! str_contains($mail->render(), 'new notification');

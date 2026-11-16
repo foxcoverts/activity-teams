@@ -15,7 +15,9 @@ class InboundMailAddress
 
     public const KEY = 'key';
 
-    public const TEAMS = 'teams';
+    public const TEAMS = 'team';
+
+    public const LEGACY_TEAMS = 'teams';
 
     public const TASK = 'task';
 
@@ -44,7 +46,9 @@ class InboundMailAddress
 
     public static function forTeam(Team $team): string
     {
-        return self::make(self::TEAMS, $team->getKey());
+        $token = filled($team->slug) ? (string) $team->slug : $team->getKey();
+
+        return self::make(self::TEAMS, $token);
     }
 
     public static function forTask(Task $task): string
@@ -81,7 +85,7 @@ class InboundMailAddress
             return null;
         }
 
-        if (! in_array($type, [self::BOOKING, self::KEY, self::TEAMS, self::TASK], true)) {
+        if (! in_array($type, [self::BOOKING, self::KEY, self::TEAMS, self::LEGACY_TEAMS, self::TASK], true)) {
             return null;
         }
 
@@ -100,9 +104,15 @@ class InboundMailAddress
             self::BOOKING => Booking::query()->find($parts['id']),
             self::KEY => Key::query()->find($parts['id']),
             self::TASK => Task::query()->find($parts['id']),
-            self::TEAMS => Team::query()->find($parts['id']),
+            self::TEAMS, self::LEGACY_TEAMS => self::findTeam($parts['id']),
             default => null,
         };
+    }
+
+    public static function findTeam(string $token): ?Team
+    {
+        return Team::query()->where('slug', $token)->first()
+            ?? Team::query()->find($token);
     }
 
     /**

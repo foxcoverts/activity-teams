@@ -69,4 +69,15 @@ class InboxNotification extends DatabaseNotification
 
         return Booking::query()->find($id);
     }
+
+    public function teamId(): ?string
+    {
+        if (filled($this->team_id)) {
+            return (string) $this->team_id;
+        }
+
+        $fromData = $this->data['team_id'] ?? null;
+
+        return filled($fromData) ? (string) $fromData : null;
+    }
 }

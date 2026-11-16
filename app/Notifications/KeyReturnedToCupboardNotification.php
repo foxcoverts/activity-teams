@@ -8,6 +8,7 @@ use App\Models\Key;
 use App\Models\Team;
 use App\Models\User;
 use App\Notifications\Concerns\RecordsInbox;
+use App\Support\TeamMailIdentity;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
@@ -97,6 +98,31 @@ class KeyReturnedToCupboardNotification extends Notification
             ]));
         }
 
+        $team = $this->teamForManager($notifiable);
+
+        if ($team instanceof Team) {
+            $from = TeamMailIdentity::from($team);
+            $mail->from($from->address, $from->name);
+        }
+
         return $mail;
+    }
+
+    public function inboxTeam(?object $notifiable = null): ?Team
+    {
+        return $notifiable !== null ? $this->teamForManager($notifiable) : null;
+    }
+
+    private function teamForManager(object $notifiable): ?Team
+    {
+        if (! $notifiable instanceof User) {
+            return null;
+        }
+
+        $team = $this->ring->interestedTeams()->first(
+            fn (Team $team): bool => $notifiable->manages($team),
+        );
+
+        return $team instanceof Team ? $team : null;
     }
 }

@@ -10,6 +10,7 @@ use App\Support\AttendanceResponseLinks;
 use App\Support\BookingMailThread;
 use App\Support\MailPreference;
 use App\Support\MailReplyTo;
+use App\Support\TeamMailIdentity;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
@@ -37,10 +38,18 @@ class AttendanceRecordedMail extends Mailable implements ShouldQueue
 
     public function envelope(): Envelope
     {
-        return new Envelope(
+        $this->booking->loadMissing('team');
+        $operational = MailReplyTo::booking($this->booking);
+        $envelope = new Envelope(
             subject: BookingMailThread::subject($this->booking, __('Attendance')),
-            replyTo: [MailReplyTo::booking($this->booking)],
+            replyTo: [$operational],
         );
+
+        if ($this->booking->team === null) {
+            return $envelope;
+        }
+
+        return TeamMailIdentity::applyToEnvelope($envelope, $this->booking->team, $operational);
     }
 
     public function headers(): Headers

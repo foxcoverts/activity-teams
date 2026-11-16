@@ -98,10 +98,10 @@ Only these aliases post to the site inbound webhook. Everything else on the doma
 | `booking@…` | Site webhook (also `booking+…@…` — booking calendar / replies) |
 | `task@…` | Site webhook (also `task+…@…` — task assignee calendar / replies) |
 | `key@…` | Site webhook (also `key+…@…` — key-pass replies) |
-| `teams@…` | Site webhook (also `teams+…@…` — team invitation / team-scoped replies) |
-| `team@…` | Climbing manager inbox (human forward — not the site) |
+| `team@…` | Site webhook (also `team+…@…` — team From / Reply-To; bare `team@` is `MAIL_FROM_ADDRESS` for non-scoped mail) |
+| `teams@…` | Site webhook during transition (also `teams+…@…` — legacy team Reply-Tos); may be removed once traffic stops |
 
-When the app gains a new webhook local-part, add that bare alias in ForwardEmail before relying on replies. Keep `MAIL_WEBHOOK_SECRET` aligned with the domain’s webhook signature key.
+**Cutover:** point `team@` at the webhook before deploying team `team+{slug}` From addresses. Set `MAIL_FROM_ADDRESS` to bare `team@…`. The old human `team@` forward is unused (only two legacy replies historically). Keep `MAIL_WEBHOOK_SECRET` aligned with the domain’s webhook signature key. When the app gains a new webhook local-part, add that bare alias in ForwardEmail before relying on replies.
 
 ### How `create-dotenv` writes `.env`
 

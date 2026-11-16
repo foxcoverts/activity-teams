@@ -2,9 +2,11 @@
 
 namespace App\Mail;
 
+use App\Models\Team;
 use App\Models\User;
 use App\Notifications\IncidentReportFailureNotification;
 use App\Support\Incident\IncidentReportData;
+use App\Support\TeamMailIdentity;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
@@ -28,18 +30,26 @@ class IncidentReport extends Mailable implements ShouldQueue
      */
     public array $backoff = [60, 300, 900, 1800, 3600, 10800, 21600, 43200, 86400];
 
-    public function __construct(public IncidentReportData $report)
-    {
+    public function __construct(
+        public IncidentReportData $report,
+        public ?Team $team = null,
+    ) {
         $this->afterCommit();
     }
 
     public function envelope(): Envelope
     {
-        return new Envelope(
+        $envelope = new Envelope(
             subject: __('Incident Report'),
             replyTo: [$this->report->reporterMailAddress()],
             tags: ['incident'],
         );
+
+        if (! $this->team instanceof Team) {
+            return $envelope;
+        }
+
+        return TeamMailIdentity::applyToEnvelope($envelope, $this->team, $this->report->reporterMailAddress());
     }
 
     public function content(): Content
