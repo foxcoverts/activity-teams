@@ -2,18 +2,17 @@
 
 namespace App\Filament\Member\Resources\Bookings;
 
-use App\Enums\BookingAttendeeStatus;
 use App\Enums\BookingStatus;
+use App\Filament\Bookings\BookingActivityColumn;
+use App\Filament\Bookings\BookingStartDateGroup;
 use App\Filament\Member\Resources\Bookings\Pages\ListBookings;
 use App\Filament\Teams\Resources\Bookings\BookingResource as TeamsBookingResource;
 use App\Models\Booking;
-use App\Support\Palette;
 use BackedEnum;
 use Filament\Actions\ViewAction;
 use Filament\Resources\Resource;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
-use Filament\Tables\Contracts\HasTable;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
@@ -61,33 +60,19 @@ class BookingResource extends Resource
         return $table
             ->recordTitleAttribute('display_name')
             ->recordUrl(fn (Booking $record): string => static::viewUrl($record))
+            ->defaultGroup(BookingStartDateGroup::make())
+            ->groupingSettingsHidden()
             ->columns([
-                TextColumn::make('start_at')->dateTime('M j, Y H:i')->sortable(),
-                TextColumn::make('activity.name')
-                    ->state(fn (Booking $record): string => $record->activityTitle())
-                    ->searchable(query: fn (Builder $query, string $search): Builder => $query
-                        ->where(function (Builder $query) use ($search): void {
-                            $query
-                                ->where('activity_label', 'like', "%{$search}%")
-                                ->orWhereHas('activity', fn (Builder $activityQuery) => $activityQuery
-                                    ->where('name', 'like', "%{$search}%"));
-                        })),
-                TextColumn::make('venue.name')->searchable(),
-                TextColumn::make('team.name')
-                    ->badge()
-                    ->color(fn (Booking $record): array => $record->team?->brandColor()->getColor() ?? Palette::neutral())
-                    ->visible(fn (HasTable $livewire): bool => blank($livewire->getTableFilterState('team_id')['value'] ?? null)),
-                TextColumn::make('status')
-                    ->label(__('Booking Status'))
-                    ->badge()
-                    ->icon(fn (BookingStatus $state): Heroicon => $state->getIcon()),
-                TextColumn::make('attendance')
-                    ->state(fn (Booking $record): ?BookingAttendeeStatus => $record->attendees
-                        ->firstWhere('id', auth()->id())
-                        ?->attendance
-                        ?->status)
-                    ->badge()
-                    ->label(__('Attendance')),
+                TextColumn::make('start_at')
+                    ->label(__('Start'))
+                    ->formatStateUsing(fn (mixed $state, Booking $record): string => $record->start_at
+                        ->timezone($record->timezone)
+                        ->format('H:i'))
+                    ->verticallyAlignStart()
+                    ->width('1%')
+                    ->grow(false)
+                    ->sortable(),
+                BookingActivityColumn::make(withTeamBadge: true),
             ])
             ->filters([
                 SelectFilter::make('status')->options(BookingStatus::class),

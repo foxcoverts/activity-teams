@@ -89,7 +89,7 @@
                         <p class="font-semibold text-gray-950 dark:text-white">{{ $qualification['type'] }}</p>
                     </div>
 
-                    <dl class="grid grid-cols-[9rem_minmax(0,1fr)] gap-x-3 gap-y-2">
+                    <dl class="grid grid-cols-1 gap-y-1 sm:grid-cols-[9rem_minmax(0,1fr)] sm:gap-x-3 sm:gap-y-2">
                         @foreach ($qualification['fields'] as $field)
                             <dt class="text-gray-500 dark:text-gray-400">{{ $field['label'] }}</dt>
                             <dd class="text-gray-950 dark:text-white">{{ $field['value'] }}</dd>
@@ -106,7 +106,7 @@
                 <div class="mb-2 border-b border-gray-200 pb-2 dark:border-white/10">
                     <p class="font-semibold text-gray-950 dark:text-white">{{ $access['detail']['type'] }}</p>
                 </div>
-                <dl class="grid grid-cols-[9rem_minmax(0,1fr)] gap-x-3 gap-y-2">
+                <dl class="grid grid-cols-1 gap-y-1 sm:grid-cols-[9rem_minmax(0,1fr)] sm:gap-x-3 sm:gap-y-2">
                     @foreach ($access['detail']['fields'] as $field)
                         <dt class="text-gray-500 dark:text-gray-400">{{ $field['label'] }}</dt>
                         <dd class="text-gray-950 dark:text-white">{{ $field['value'] }}</dd>

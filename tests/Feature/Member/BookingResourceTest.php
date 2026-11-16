@@ -58,12 +58,14 @@ class BookingResourceTest extends TestCase
 
         $this->actingAs($member);
 
+        // Team name sits in a nested fi-badge-label inside the suffix badge.
+        $teamBadgePattern = '/badgeable-column-badge[^>]*>[\s\S]*?'.preg_quote($team->name, '/').'/';
+
         Livewire::test(ListBookings::class)
             ->assertTableFilterExists('team_id', fn ($filter): bool => array_keys($filter->getOptions()) === [$team->getKey()])
-            ->assertTableColumnVisible('team.name')
-            ->assertTableColumnStateSet('team.name', $team->name, $mine)
+            ->tap(fn ($component): mixed => $this->assertMatchesRegularExpression($teamBadgePattern, $component->html()))
             ->filterTable('team_id', $team->getKey())
-            ->assertTableColumnHidden('team.name')
+            ->tap(fn ($component): mixed => $this->assertDoesNotMatchRegularExpression($teamBadgePattern, $component->html()))
             ->assertCanSeeTableRecords([$mine]);
 
         $this->assertNotContains($otherTeam->getKey(), array_keys($member->teams()->pluck('teams.name', 'teams.id')->all()));
@@ -171,11 +173,12 @@ class BookingResourceTest extends TestCase
 
         $this->actingAs($member);
         Livewire::test(ListBookings::class)
-            ->assertTableColumnStateSet('attendance', BookingAttendeeStatus::Accepted, $acceptedBooking)
+            ->assertCanSeeTableRecords([$acceptedBooking, $maybeBooking])
             ->assertSeeText('Can help')
-            ->assertTableColumnStateSet('attendance', BookingAttendeeStatus::Tentative, $maybeBooking)
+            ->assertSeeText('Maybe')
             ->set('activeTab', 'invites')
-            ->assertTableColumnStateSet('attendance', BookingAttendeeStatus::Tentative, $maybeBooking)
-            ->assertTableColumnStateSet('attendance', BookingAttendeeStatus::NeedsAction, $invitedBooking);
+            ->assertCanSeeTableRecords([$maybeBooking, $invitedBooking])
+            ->assertSeeText('Maybe')
+            ->assertSeeText('Awaiting response');
     }
 }

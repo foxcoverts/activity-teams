@@ -53,7 +53,7 @@ class QualificationResource extends Resource
     public static function infolist(Schema $schema): Schema
     {
         return $schema
-            ->columns(2)
+            ->columns(['default' => 1, 'md' => 2])
             ->components([
                 TextEntry::make('type_label')
                     ->label(__('Type')),
@@ -83,7 +83,7 @@ class QualificationResource extends Resource
                             return $entry;
                         })
                         ->all())
-                    ->columns(2)
+                    ->columns(['default' => 1, 'md' => 2])
                     ->columnSpanFull(),
             ]);
     }

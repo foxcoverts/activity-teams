@@ -317,6 +317,8 @@ class CalendarPageTest extends TestCase
 
         $this->assertSame('timeGridWeek', $config['initialView']);
         $this->assertSame('2026-03-15', $config['initialDate']);
+        $this->assertTrue($config['borderlessX']);
+        $this->assertTrue($config['borderlessBottom']);
     }
 
     public function test_dates_set_updates_view_and_date_for_reload_and_back(): void

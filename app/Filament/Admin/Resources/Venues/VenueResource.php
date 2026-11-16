@@ -97,6 +97,7 @@ class VenueResource extends Resource
             ->recordTitleAttribute('name')
             ->columns([
                 TextColumn::make('name')
+                    ->description(fn (Venue $record): ?string => filled($record->notes) ? $record->notes : null)
                     ->searchable(),
                 TextColumn::make('address')
                     ->state(fn (Venue $record): array => $record->location->addressArray())
