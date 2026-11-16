@@ -7,6 +7,7 @@ use App\Models\Booking;
 use App\Support\Palette;
 use Awcodes\BadgeableColumn\Components\Badge;
 use Awcodes\BadgeableColumn\Components\BadgeableColumn;
+use Filament\Support\Enums\IconPosition;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Contracts\HasTable;
 use Illuminate\Database\Eloquent\Builder;
@@ -16,11 +17,7 @@ final class BookingActivityColumn
 {
     public static function make(bool $withTeamBadge = false): BadgeableColumn
     {
-        $badges = [
-            Badge::make('status')
-                ->label(fn (Booking $record): string => $record->status->getLabel())
-                ->color(fn (Booking $record): array => $record->status->getColor()),
-        ];
+        $badges = [];
 
         if ($withTeamBadge) {
             $badges[] = Badge::make('team')
@@ -42,21 +39,23 @@ final class BookingActivityColumn
                 });
         }
 
-        return BadgeableColumn::make('activity.name')
+        $column = BadgeableColumn::make('activity.name')
             ->label(__('Activity'))
             ->state(fn (Booking $record): string => $record->activityTitle())
             ->description(fn (Booking $record): ?string => $record->venue?->name)
             ->wrap()
-            ->icon(fn (Booking $record): ?Heroicon => filled($record->activity_label)
-                && $record->activity !== null
-                ? Heroicon::OutlinedInformationCircle
-                : null)
-            ->iconPosition('after')
-            ->tooltip(fn (Booking $record): ?string => filled($record->activity_label)
-                && $record->activity !== null
-                ? __('Original activity: :name', ['name' => $record->activity?->name])
-                : null)
-            ->suffixBadges($badges)
+            ->icon(fn (Booking $record): Heroicon => $record->status->getIcon())
+            ->iconColor(fn (Booking $record): array => $record->status->getColor())
+            ->iconPosition(IconPosition::Before)
+            ->tooltip(function (Booking $record): string {
+                $parts = [$record->status->getLabel()];
+
+                if (filled($record->activity_label) && $record->activity !== null) {
+                    $parts[] = __('Original activity: :name', ['name' => $record->activity->name]);
+                }
+
+                return implode(' · ', $parts);
+            })
             ->searchable(query: fn (Builder $query, string $search): Builder => $query
                 ->where(function (Builder $query) use ($search): void {
                     $query
@@ -66,6 +65,12 @@ final class BookingActivityColumn
                         ->orWhereHas('venue', fn (Builder $venueQuery) => $venueQuery
                             ->where('name', 'like', "%{$search}%"));
                 }));
+
+        if ($badges !== []) {
+            $column->suffixBadges($badges);
+        }
+
+        return $column;
     }
 
     /**
