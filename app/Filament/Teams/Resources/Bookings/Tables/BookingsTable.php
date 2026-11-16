@@ -37,6 +37,7 @@ class BookingsTable
                     ->grow(false)
                     ->sortable(),
                 BookingActivityColumn::make(),
+                BookingActivityColumn::attendanceStatusColumn(),
             ])
             ->filters([
                 SelectFilter::make('status')->options(BookingStatus::class),

@@ -74,6 +74,7 @@ class BookingResource extends Resource
                     ->grow(false)
                     ->sortable(),
                 BookingActivityColumn::make(withTeamBadge: true),
+                BookingActivityColumn::attendanceStatusColumn(),
             ])
             ->filters([
                 SelectFilter::make('status')->options(BookingStatus::class),

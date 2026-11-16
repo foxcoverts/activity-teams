@@ -3,12 +3,14 @@
 namespace App\Filament\Bookings;
 
 use App\Enums\BookingAttendeeStatus;
+use App\Enums\PastBookingAttendeeStatus;
 use App\Models\Booking;
 use App\Support\Palette;
 use Awcodes\BadgeableColumn\Components\Badge;
 use Awcodes\BadgeableColumn\Components\BadgeableColumn;
 use Filament\Support\Enums\IconPosition;
 use Filament\Support\Icons\Heroicon;
+use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Contracts\HasTable;
 use Illuminate\Database\Eloquent\Builder;
 use Livewire\Livewire;
@@ -74,6 +76,16 @@ final class BookingActivityColumn
         return $column;
     }
 
+    public static function attendanceStatusColumn(): TextColumn
+    {
+        return TextColumn::make('attendance_status')
+            ->label(__('Your response'))
+            ->state(fn (Booking $record): BookingAttendeeStatus|PastBookingAttendeeStatus|null => self::attendance($record))
+            ->badge()
+            ->placeholder('-')
+            ->visibleFrom('md');
+    }
+
     /**
      * Left attendance bar on the table row (same colours as the calendar list).
      *
@@ -87,7 +99,7 @@ final class BookingActivityColumn
             return [];
         }
 
-        return match ($status) {
+        return match (BookingAttendeeStatus::from($status->value)) {
             BookingAttendeeStatus::Accepted => ['booking-row--attendance-accepted'],
             BookingAttendeeStatus::Tentative => ['booking-row--attendance-tentative'],
             BookingAttendeeStatus::NeedsAction => ['booking-row--attendance-needs-action'],
@@ -95,7 +107,7 @@ final class BookingActivityColumn
         };
     }
 
-    private static function attendance(Booking $record): ?BookingAttendeeStatus
+    private static function attendance(Booking $record): BookingAttendeeStatus|PastBookingAttendeeStatus|null
     {
         return $record->attendees
             ->firstWhere('id', auth()->id())

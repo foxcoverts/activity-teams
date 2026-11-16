@@ -178,11 +178,11 @@ class BookingResourceTest extends TestCase
             ->assertCanSeeTableRecords([$acceptedBooking, $maybeBooking])
             ->assertSeeHtml('booking-row--attendance-accepted')
             ->assertSeeHtml('booking-row--attendance-tentative')
-            ->assertDontSeeText('Can help')
+            ->assertSeeText('Can help')
             ->set('activeTab', 'invites')
             ->assertCanSeeTableRecords([$maybeBooking, $invitedBooking])
             ->assertSeeHtml('booking-row--attendance-tentative')
             ->assertSeeHtml('booking-row--attendance-needs-action')
-            ->assertDontSeeText('Awaiting response');
+            ->assertSeeText('Awaiting response');
     }
 }
