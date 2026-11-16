@@ -31,6 +31,7 @@ final class BookingActivityColumn
                     $livewire = Livewire::current();
 
                     // Hide when the list is already filtered to one team.
+                    // BadgeableColumn badges do not inject HasTable like TextColumn.
                     if ($livewire instanceof HasTable) {
                         return blank($livewire->getTableFilterState('team_id')['value'] ?? null);
                     }
