@@ -111,7 +111,11 @@ class ScheduleCalendarEvents
 
         return EventData::make()
             ->id('booking-'.$booking->getKey())
-            ->title(self::titleWithLeadingIcon($booking->activityTitle(), $icon), html: $icon !== null)
+            ->title(self::eventTitleHtml(
+                $booking->activityTitle(),
+                $icon,
+                $booking->venue?->name,
+            ), html: true)
             ->start($booking->start_at)
             ->end($booking->end_at)
             ->url(MemberBookingResource::viewUrl($booking))
@@ -141,7 +145,11 @@ class ScheduleCalendarEvents
 
         return EventData::make()
             ->id('task-'.$task->getKey())
-            ->title(self::titleWithLeadingIcon($task->summary, $icon), html: true)
+            ->title(self::eventTitleHtml(
+                $task->summary,
+                $icon,
+                $task->venue?->name,
+            ), html: true)
             ->start($due)
             ->allDay()
             ->url(MemberTaskResource::viewUrl($task))
@@ -165,6 +173,22 @@ class ScheduleCalendarEvents
         }
 
         return '<span class="fi-fc-event-leading-icon" aria-hidden="true">'.e($icon).'</span> '.e($title);
+    }
+
+    /**
+     * HTML title for calendar events: leading icon, activity/summary, optional venue line.
+     */
+    public static function eventTitleHtml(string $title, ?string $icon = null, ?string $subtitle = null): string
+    {
+        $heading = filled($icon)
+            ? self::titleWithLeadingIcon($title, $icon)
+            : e($title);
+
+        if (! filled($subtitle)) {
+            return $heading;
+        }
+
+        return $heading.'<div class="fi-fc-event-subtitle">'.e($subtitle).'</div>';
     }
 
     /**

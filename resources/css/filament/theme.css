@@ -583,6 +583,10 @@ button.task-complete-control:disabled {
     font-weight: 700;
 }
 
+.fi-fc .fc-event .fi-fc-event-subtitle {
+    @apply mt-0.5 truncate text-xs font-normal opacity-80;
+}
+
 .fi-fc-event-tooltip {
     display: flex;
     flex-direction: column;

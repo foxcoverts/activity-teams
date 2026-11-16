@@ -261,6 +261,7 @@ class CalendarPageTest extends TestCase
         $booking->attendees()->attach($member->getKey(), [
             'status' => BookingAttendeeStatus::Accepted->value,
         ]);
+        $booking->load('venue');
 
         Filament::setCurrentPanel('member');
         $this->actingAs($member);
@@ -282,6 +283,8 @@ class CalendarPageTest extends TestCase
         $this->assertContains('fc-event--attendance-accepted', $classes);
         $this->assertNotEmpty($event['color'] ?? null);
         $this->assertStringContainsString('✓', strip_tags((string) $event['title']));
+        $this->assertStringContainsString('fi-fc-event-subtitle', (string) $event['title']);
+        $this->assertStringContainsString((string) $booking->venue?->name, strip_tags((string) $event['title']));
     }
 
     public function test_accepted_tasks_do_not_use_a_completed_tick_icon(): void
@@ -298,6 +301,15 @@ class CalendarPageTest extends TestCase
         $this->assertSame(
             '<span class="fi-fc-event-leading-icon" aria-hidden="true">☐</span> Re-lay Slabs',
             ScheduleCalendarEvents::titleWithLeadingIcon('Re-lay Slabs', '☐'),
+        );
+        $this->assertSame(
+            '<span class="fi-fc-event-leading-icon" aria-hidden="true">✓</span> Climbing'
+            .'<div class="fi-fc-event-subtitle">Fox Coverts</div>',
+            ScheduleCalendarEvents::eventTitleHtml('Climbing', '✓', 'Fox Coverts'),
+        );
+        $this->assertSame(
+            'Climbing',
+            ScheduleCalendarEvents::eventTitleHtml('Climbing'),
         );
     }
 
