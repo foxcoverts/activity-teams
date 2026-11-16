@@ -25,7 +25,7 @@ class EmailBouncesWidget extends ManagerSection
             'rows' => $rows->take(ManagerAttention::PREVIEW_LIMIT)->values(),
             'total' => $total,
             'seeAllUrl' => MemberResource::getUrl('index', [
-                'tableFilters' => [
+                'filters' => [
                     'email_bounced' => ['isActive' => true],
                 ],
             ]),

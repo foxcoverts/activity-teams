@@ -26,9 +26,17 @@
                         <div class="truncate font-medium text-gray-950 dark:text-white">{{ $team->name }}</div>
                         @if ($role)
                             <div class="mt-1">
-                                <x-filament::badge :color="$role->getColor()" :icon="$role->getIcon()">
-                                    {{ $role->getLabel() }}
-                                </x-filament::badge>
+                                <span
+                                    class="inline-flex items-center gap-1.5 rounded-full bg-color-50 px-2.5 py-1 text-sm text-color-600 dark:bg-color-400/10 dark:text-color-400"
+                                    @style([
+                                        \Filament\Support\get_color_css_variables(
+                                            $role->getColor(),
+                                            shades: [50, 400, 600],
+                                        ),
+                                    ])
+                                >
+                                    <x-filament::icon :icon="$role->getIcon()" class="size-4" />{{ $role->getLabel() }}
+                                </span>
                             </div>
                         @endif
                     </div>

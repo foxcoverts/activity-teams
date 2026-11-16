@@ -31,7 +31,7 @@ class NeedsLeadWidget extends ManagerSection
             'total' => $total,
             'triage' => TentativeTriage::NeedsLead,
             'seeAllUrl' => BookingResource::getUrl('index', [
-                'tableFilters' => [
+                'filters' => [
                     'status' => ['value' => 'tentative'],
                 ],
             ]),

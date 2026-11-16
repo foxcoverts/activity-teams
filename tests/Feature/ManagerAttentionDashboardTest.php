@@ -11,6 +11,7 @@ use App\Enums\MembershipRole;
 use App\Enums\TentativeTriage;
 use App\Filament\Teams\Pages\ManagerDashboard;
 use App\Filament\Teams\Widgets\Manager\EmailBouncesWidget;
+use App\Filament\Teams\Widgets\Manager\ManagerAllCaughtUpWidget;
 use App\Filament\Teams\Widgets\Manager\NeedsLeadWidget;
 use App\Filament\Teams\Widgets\Manager\NeedsStaffingWidget;
 use App\Filament\Teams\Widgets\Manager\ReadyToConfirmWidget;
@@ -322,5 +323,22 @@ class ManagerAttentionDashboardTest extends TestCase
             ->assertSee('Unstaffed climb')
             ->assertSee('At risk');
         Livewire::test(NeedsLeadWidget::class)->assertSee('Needs lead climb');
+    }
+
+    public function test_manager_widget_deep_links_use_filters_query_key(): void
+    {
+        $urls = [
+            Livewire::test(ReadyToConfirmWidget::class)->viewData('seeAllUrl'),
+            Livewire::test(NeedsLeadWidget::class)->viewData('seeAllUrl'),
+            Livewire::test(NeedsStaffingWidget::class)->viewData('seeAllUrl'),
+            Livewire::test(EmailBouncesWidget::class)->viewData('seeAllUrl'),
+            Livewire::test(ManagerAllCaughtUpWidget::class)->viewData('bookingsUrl'),
+        ];
+
+        foreach ($urls as $url) {
+            $this->assertIsString($url);
+            $this->assertStringContainsString('filters', $url);
+            $this->assertStringNotContainsString('tableFilters', $url);
+        }
     }
 }
