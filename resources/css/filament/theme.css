@@ -542,16 +542,16 @@ button.task-complete-control:disabled {
 
 /*
  * Soft stripes follow event text colour so they read on pale light-mode fills
- * (dark text) and on solid brand fills (contrast text). White-only hatching
- * vanished on washed list/month backgrounds.
+ * and solid brand fills. Keep opacity and gap gentle — denser/stronger hatching
+ * washes out titles like “Climbing”.
  */
 .fi-fc .fc-event.fc-event--tentative {
     background-image: repeating-linear-gradient(
         -45deg,
         transparent,
-        transparent 7px,
-        color-mix(in srgb, currentColor 20%, transparent) 7px,
-        color-mix(in srgb, currentColor 20%, transparent) 14px
+        transparent 9px,
+        color-mix(in srgb, currentColor 10%, transparent) 9px,
+        color-mix(in srgb, currentColor 10%, transparent) 18px
     );
 }
 
