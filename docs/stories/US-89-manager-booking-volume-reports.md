@@ -19,8 +19,9 @@ As an Activity Manager, I want a Teams **Reports** page that summarises booking 
 - Breakdown tables for activity, audience, and venue show confirmed counts for Y / Y−1 / Δ; cancelled counts are visible where useful.
 - A compact multi-year trend (up to five calendar years) shows confirmed and cancelled totals.
 - Future tentatives stay on Manager triage; they are not mixed into Reports volume.
+- Deep links into Bookings history use status and a schedule date filter for the selected calendar year; that filter matches bookings whose timeframe overlaps the range (not start-only).
 - Delivered debrief hours / participant counts are out of scope (see follow-up when debrief coverage is useful).
 
 ## Progress
 
-Done on Teams **Reports** via `ManagerBookingReports` aggregates and the Filament Reports page. Member engagement is [US-90](US-90-manager-member-engagement-reports.md). Debrief enrichment remains a later story.
+Done on Teams **Reports** via `ManagerBookingReports` aggregates and the Filament Reports page. Member engagement is [US-90](US-90-manager-member-engagement-reports.md). Debrief enrichment remains a later story. Year volume uses the same overlapping timeframe as the Bookings schedule filter.

@@ -98,6 +98,39 @@ class BookingResourceTest extends TestCase
             ->assertCanSeeTableRecords([$newer, $older], inOrder: true);
     }
 
+    public function test_the_schedule_filter_matches_bookings_that_overlap_the_date_range(): void
+    {
+        $manager = User::factory()->teamManager()->create();
+        $team = $manager->managedTeams()->firstOrFail();
+
+        $inside = Booking::factory()->forTeam($team)->confirmed()->create([
+            'start_at' => '2024-06-10 09:00:00',
+            'end_at' => '2024-06-10 11:00:00',
+            'group_name' => 'Inside year',
+        ]);
+        $spanning = Booking::factory()->forTeam($team)->confirmed()->create([
+            'start_at' => '2023-12-31 22:00:00',
+            'end_at' => '2024-01-01 02:00:00',
+            'group_name' => 'Spans into year',
+        ]);
+        $outside = Booking::factory()->forTeam($team)->confirmed()->create([
+            'start_at' => '2023-06-10 09:00:00',
+            'end_at' => '2023-06-10 11:00:00',
+            'group_name' => 'Outside year',
+        ]);
+
+        $this->actingAs($manager);
+
+        Livewire::test(ListBookings::class)
+            ->set('activeTab', 'history')
+            ->filterTable('schedule', [
+                'from' => '2024-01-01',
+                'to' => '2024-12-31',
+            ])
+            ->assertCanSeeTableRecords([$inside, $spanning])
+            ->assertCanNotSeeTableRecords([$outside]);
+    }
+
     public function test_a_manager_sees_respond_and_manage_actions_on_the_booking_view(): void
     {
         $manager = User::factory()->teamManager()->create();

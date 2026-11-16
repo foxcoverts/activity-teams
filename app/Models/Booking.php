@@ -663,6 +663,16 @@ class Booking extends Model implements Commentable
     }
 
     /**
+     * Bookings whose timeframe intersects [$from, $to] (inclusive).
+     */
+    public function scopeOverlapping(Builder $bookings, CarbonInterface $from, CarbonInterface $to): void
+    {
+        $bookings
+            ->where($bookings->getModel()->qualifyColumn('end_at'), '>=', $from)
+            ->where($bookings->getModel()->qualifyColumn('start_at'), '<=', $to);
+    }
+
+    /**
      * @param  BookingAttendeeStatus[]  $status
      */
     public function scopeAttendeeStatus(Builder $bookings, User $attendee, array $status = []): void

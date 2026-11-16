@@ -441,13 +441,13 @@ class ManagerBookingReports
     {
         [$start, $end] = $this->yearBounds($year);
 
-        $query->whereBetween($query->getModel()->getTable().'.start_at', [$start, $end]);
+        $query->overlapping($start, $end);
     }
 
     /**
      * @return array{0: CarbonImmutable, 1: CarbonImmutable}
      */
-    private function yearBounds(int $year): array
+    public function yearBounds(int $year): array
     {
         $tz = (string) config('app.timezone');
 
