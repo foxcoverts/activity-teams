@@ -48,6 +48,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Validation\ValidationException;
+use Livewire\Component as LivewireComponent;
 use Throwable;
 
 class UserResource extends Resource
@@ -317,7 +318,7 @@ class UserResource extends Resource
                     ->email()
                     ->required(),
             ])
-            ->action(function (User $record, array $data, Schema $schema): void {
+            ->action(function (User $record, array $data, Schema $schema, LivewireComponent $livewire): void {
                 $actor = auth()->user();
 
                 if (! $actor instanceof User) {
@@ -329,6 +330,9 @@ class UserResource extends Resource
                 } catch (ValidationException $exception) {
                     static::reportOnField($exception, $schema, 'email');
                 }
+
+                $livewire->dispatch('refresh-sidebar');
+                $livewire->dispatch('refresh-topbar');
 
                 Notification::make()->success()->title(__('Invitation sent'))->send();
             });
@@ -342,7 +346,7 @@ class UserResource extends Resource
             ->color('danger')
             ->requiresConfirmation()
             ->visible(fn (User $record): bool => static::canManageSiteInvitation($record) && $record->invitationStatus() === InvitationStatus::Invited)
-            ->action(function (User $record): void {
+            ->action(function (User $record, LivewireComponent $livewire): void {
                 $actor = auth()->user();
 
                 if (! $actor instanceof User) {
@@ -350,6 +354,9 @@ class UserResource extends Resource
                 }
 
                 app(SendTeamInvitationAction::class)->revokeAdmin($actor, $record);
+
+                $livewire->dispatch('refresh-sidebar');
+                $livewire->dispatch('refresh-topbar');
 
                 Notification::make()->success()->title(__('Invitation revoked'))->send();
             });

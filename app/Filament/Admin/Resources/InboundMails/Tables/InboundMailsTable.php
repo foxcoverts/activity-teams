@@ -15,6 +15,7 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
+use Livewire\Component;
 
 class InboundMailsTable
 {
@@ -76,19 +77,30 @@ class InboundMailsTable
                     ->label(__('Mark reviewed'))
                     ->icon(Heroicon::OutlinedCheck)
                     ->visible(fn (InboundMail $record): bool => $record->reviewed_at === null)
-                    ->action(function (InboundMail $record): void {
+                    ->action(function (InboundMail $record, Component $livewire): void {
                         $record->markReviewed()->save();
+
+                        $livewire->dispatch('refresh-sidebar');
+                        $livewire->dispatch('refresh-topbar');
 
                         Notification::make()
                             ->title(__('Marked reviewed'))
                             ->success()
                             ->send();
                     }),
-                DeleteAction::make(),
+                DeleteAction::make()
+                    ->after(function (Component $livewire): void {
+                        $livewire->dispatch('refresh-sidebar');
+                        $livewire->dispatch('refresh-topbar');
+                    }),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
-                    DeleteBulkAction::make(),
+                    DeleteBulkAction::make()
+                        ->after(function (Component $livewire): void {
+                            $livewire->dispatch('refresh-sidebar');
+                            $livewire->dispatch('refresh-topbar');
+                        }),
                 ]),
             ]);
     }

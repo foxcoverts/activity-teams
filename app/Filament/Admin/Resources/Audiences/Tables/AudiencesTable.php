@@ -7,7 +7,9 @@ use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\Filter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 
 class AudiencesTable
 {
@@ -21,7 +23,9 @@ class AudiencesTable
                     ->sortable(),
             ])
             ->filters([
-                //
+                Filter::make('without_activity')
+                    ->label(__('Not on an activity'))
+                    ->query(fn (Builder $query): Builder => $query->whereDoesntHave('activityAudiences')),
             ])
             ->recordActions([
                 ViewAction::make(),

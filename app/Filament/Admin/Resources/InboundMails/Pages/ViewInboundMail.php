@@ -26,12 +26,19 @@ class ViewInboundMail extends ViewRecord
                     $record = $this->getRecord();
                     $record->markReviewed()->save();
 
+                    $this->dispatch('refresh-sidebar');
+                    $this->dispatch('refresh-topbar');
+
                     Notification::make()
                         ->title(__('Marked reviewed'))
                         ->success()
                         ->send();
                 }),
-            DeleteAction::make(),
+            DeleteAction::make()
+                ->after(function (): void {
+                    $this->dispatch('refresh-sidebar');
+                    $this->dispatch('refresh-topbar');
+                }),
         ];
     }
 }

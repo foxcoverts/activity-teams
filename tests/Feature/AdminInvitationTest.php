@@ -283,6 +283,8 @@ class AdminInvitationTest extends TestCase
             ->assertActionVisible(TestAction::make('revokeInvitation')->table($placeholder))
             ->assertActionHidden(TestAction::make('sendInvitation')->table($this->admin))
             ->callAction(TestAction::make('revokeInvitation')->table($placeholder))
+            ->assertDispatched('refresh-sidebar')
+            ->assertDispatched('refresh-topbar')
             ->assertActionHidden(TestAction::make('revokeInvitation')->table($placeholder));
 
         $this->assertSame(InvitationStatus::NotInvited, $placeholder->fresh()->invitationStatus());

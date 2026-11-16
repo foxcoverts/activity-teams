@@ -22,7 +22,9 @@ use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\Filter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 
 class VenueResource extends Resource
 {
@@ -104,7 +106,9 @@ class VenueResource extends Resource
                     ->searchable(),
             ])
             ->filters([
-                //
+                Filter::make('without_team')
+                    ->label(__('Not on a team'))
+                    ->query(fn (Builder $query): Builder => $query->whereDoesntHave('teams')),
             ])
             ->recordActions([
                 ViewAction::make(),
