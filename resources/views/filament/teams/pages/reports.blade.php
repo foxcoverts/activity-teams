@@ -177,8 +177,8 @@
                 <div class="mb-3 flex flex-wrap items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
                     <span class="inline-flex items-center gap-1.5">
                         <span class="size-2.5 rounded-sm"
-                            style="background-color: {{ Palette::destructive()[500] }}"></span>
-                        {{ __('Cannot make it') }}
+                            style="background-color: {{ Palette::positive()[500] }}"></span>
+                        {{ __('Can help') }}
                     </span>
                     <span class="inline-flex items-center gap-1.5">
                         <span class="size-2.5 rounded-sm"
@@ -187,8 +187,8 @@
                     </span>
                     <span class="inline-flex items-center gap-1.5">
                         <span class="size-2.5 rounded-sm"
-                            style="background-color: {{ Palette::positive()[500] }}"></span>
-                        {{ __('Can help') }}
+                            style="background-color: {{ Palette::destructive()[500] }}"></span>
+                        {{ __('Cannot make it') }}
                     </span>
                     <span class="inline-flex items-center gap-1.5">
                         <span class="size-2.5 rounded-sm"
