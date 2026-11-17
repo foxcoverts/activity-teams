@@ -12,6 +12,7 @@ use App\Models\Team;
 use App\Models\Venue;
 use Carbon\Carbon;
 use Carbon\CarbonInterface;
+use Closure;
 use DateTimeZone;
 use Filament\Actions\Action;
 use Filament\Facades\Filament;
@@ -63,11 +64,16 @@ class BookingForm
         return [
             Select::make('activity_id')
                 ->label(__('Activity'))
-                ->options(fn (): array => static::activityOptions())
+                ->options(fn (?Booking $record): array => static::activityOptions(
+                    $record instanceof Booking && filled($record->activity_id)
+                        ? (string) $record->activity_id
+                        : null,
+                ))
                 ->default(fn (): ?string => static::teamDefault('activities'))
                 ->searchable()
                 ->selectablePlaceholder(false)
-                ->visible(fn (): bool => static::teamHasCatalogActivities())
+                ->visible(fn (?Booking $record): bool => static::teamHasCatalogActivities()
+                    || ($record instanceof Booking && filled($record->activity_id)))
                 ->live()
                 ->afterStateUpdated(function (mixed $state, Set $set, Get $get): void {
                     $set('activity_label', null);
@@ -88,13 +94,34 @@ class BookingForm
 
                     $set('audience_id', static::defaultAudienceId(is_string($state) ? $state : null));
                 })
-                ->required(fn (): bool => static::teamHasCatalogActivities())
+                ->rule(function (?Booking $record): Closure {
+                    return function (string $attribute, mixed $value, Closure $fail) use ($record): void {
+                        if (blank($value) || $value === self::OTHER_ACTIVITY) {
+                            return;
+                        }
+
+                        if (array_key_exists((string) $value, static::teamOptions('activities'))) {
+                            return;
+                        }
+
+                        if ($record instanceof Booking && (string) $record->activity_id === (string) $value) {
+                            return;
+                        }
+
+                        $fail(__('This activity is not on the team.'));
+                    };
+                })
+                ->required(fn (?Booking $record): bool => static::teamHasCatalogActivities()
+                    || ($record instanceof Booking && filled($record->activity_id)))
                 ->suffixAction(
                     Action::make('showAs')
                         ->label(__('Set activity name'))
                         ->icon(Heroicon::OutlinedPencilSquare)
                         ->tooltip(__('Use a different name for this booking.'))
-                        ->visible(fn (Get $get): bool => static::teamHasCatalogActivities()
+                        ->visible(fn (Get $get, ?Booking $record): bool => (
+                            static::teamHasCatalogActivities()
+                            || ($record instanceof Booking && filled($record->activity_id))
+                        )
                             && $get('activity_id') !== self::OTHER_ACTIVITY
                             && ! static::activityRequiresLabel(is_string($get('activity_id')) ? $get('activity_id') : null)
                             && ! $get('show_activity_label'))
@@ -112,14 +139,18 @@ class BookingForm
             TextInput::make('activity_label')
                 ->label(__('Activity name'))
                 ->id('booking-activity-label')
-                ->placeholder(function (Get $get): ?string {
+                ->placeholder(function (Get $get, ?Booking $record): ?string {
                     $activityId = $get('activity_id');
 
                     if ($activityId === self::OTHER_ACTIVITY || ! static::teamHasCatalogActivities()) {
                         return __('Enter an activity name');
                     }
 
-                    return static::activityOptions()[(string) $activityId] ?? null;
+                    $currentId = $record instanceof Booking && filled($record->activity_id)
+                        ? (string) $record->activity_id
+                        : null;
+
+                    return static::activityOptions($currentId)[(string) $activityId] ?? null;
                 })
                 ->maxLength(255)
                 ->live(onBlur: true)
@@ -316,10 +347,25 @@ class BookingForm
             ->all();
     }
 
-    public static function activityOptions(): array
+    /**
+     * @return array<string, string>
+     */
+    public static function activityOptions(?string $currentActivityId = null): array
     {
+        $options = static::teamOptions('activities');
+
+        if (
+            filled($currentActivityId)
+            && $currentActivityId !== self::OTHER_ACTIVITY
+            && ! array_key_exists($currentActivityId, $options)
+        ) {
+            $activity = Activity::query()->find($currentActivityId);
+            $name = $activity instanceof Activity ? $activity->name : $currentActivityId;
+            $options[$currentActivityId] = __(':name (removed from team)', ['name' => $name]);
+        }
+
         return [
-            ...static::teamOptions('activities'),
+            ...$options,
             self::OTHER_ACTIVITY => __('Other'),
         ];
     }
@@ -623,9 +669,17 @@ class BookingForm
         $data['end_at'] = $end->setTimezone(config('app.timezone'))->format('Y-m-d H:i:s');
         unset($data['start_date'], $data['start_time'], $data['end_date'], $data['end_time']);
 
-        if (! static::teamHasCatalogActivities() || ($data['activity_id'] ?? null) === self::OTHER_ACTIVITY) {
+        $selectedActivityId = $data['activity_id'] ?? null;
+
+        if ($selectedActivityId === self::OTHER_ACTIVITY) {
             $data['activity_id'] = null;
             $data['audience_id'] = null;
+        } elseif (! static::teamHasCatalogActivities()) {
+            // Free-text mode, unless an orphan catalog activity is still selected on edit.
+            if (! filled($selectedActivityId) || ! Activity::query()->whereKey($selectedActivityId)->exists()) {
+                $data['activity_id'] = null;
+                $data['audience_id'] = null;
+            }
         }
 
         $data['activity_label'] = filled($data['activity_label'] ?? null)
