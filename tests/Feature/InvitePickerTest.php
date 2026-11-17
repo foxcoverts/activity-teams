@@ -77,6 +77,23 @@ class InvitePickerTest extends TestCase
             ->assertSet('queued', [$qualified->getKey()]);
     }
 
+    public function test_remove_all_clears_the_to_be_invited_queue(): void
+    {
+        [$manager, $booking, $qualified, $other] = $this->teamWithRequirement();
+        Qualification::factory()->forMember($other)->mountainTraining()->create();
+
+        $this->actingAs($manager);
+
+        Livewire::test(InviteAttendees::class, ['booking' => $booking])
+            ->assertSet('queued', [$other->getKey(), $qualified->getKey()])
+            ->assertSee('Remove all')
+            ->call('clearQueued')
+            ->assertSet('queued', [])
+            ->assertSee('No one is queued.')
+            ->assertSee('Sam Holder')
+            ->assertSee('Alex Guest');
+    }
+
     public function test_an_activity_with_no_requirements_starts_with_an_empty_list(): void
     {
         $manager = User::factory()->teamManager()->create();
