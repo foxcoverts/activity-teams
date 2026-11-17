@@ -24,6 +24,7 @@ use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\Filter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 
@@ -153,6 +154,11 @@ class KeyResource extends Resource
                 TextColumn::make('holder.name')
                     ->label(__('Holder'))
                     ->placeholder(__('In the cupboard')),
+            ])
+            ->filters([
+                Filter::make('without_locks')
+                    ->label(__('No locks'))
+                    ->query(fn (Builder $query): Builder => $query->whereDoesntHave('locks')),
             ])
             ->recordActions([
                 ViewAction::make(),

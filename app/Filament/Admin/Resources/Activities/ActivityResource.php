@@ -24,7 +24,9 @@ use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\Filter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 
 class ActivityResource extends Resource
 {
@@ -103,7 +105,9 @@ class ActivityResource extends Resource
                     ->placeholder(__('No audiences')),
             ])
             ->filters([
-                //
+                Filter::make('without_team')
+                    ->label(__('Not on a team'))
+                    ->query(fn (Builder $query): Builder => $query->whereDoesntHave('teams')),
             ])
             ->recordActions([
                 ViewAction::make(),

@@ -70,7 +70,9 @@ class InboundMailWebhookTest extends TestCase
 
         Livewire::actingAs($admin)
             ->test(ListInboundMails::class)
-            ->callTableAction('markReviewed', $mail);
+            ->callTableAction('markReviewed', $mail)
+            ->assertDispatched('refresh-sidebar')
+            ->assertDispatched('refresh-topbar');
 
         $this->assertNotNull($mail->fresh()->reviewed_at);
     }
