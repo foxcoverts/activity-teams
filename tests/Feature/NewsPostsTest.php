@@ -827,12 +827,12 @@ class NewsPostsTest extends TestCase
 
         $this->actingAs($member);
         Filament::setTenant($team);
-        $this->assertFalse(NewsPostResource::canViewAny());
+        $this->assertFalse(NewsPostResource::shouldRegisterNavigation());
         $this->assertFalse($team->hasNewsForNavigation());
 
         $this->actingAs($manager);
         Filament::setTenant($team);
-        $this->assertTrue(NewsPostResource::canViewAny());
+        $this->assertTrue(NewsPostResource::shouldRegisterNavigation());
 
         NewsPost::factory()->forTeam($team)->create([
             'published_at' => null,
@@ -842,7 +842,7 @@ class NewsPostsTest extends TestCase
         $this->actingAs($member);
         Filament::setTenant($team);
         $this->assertFalse($team->hasNewsForNavigation());
-        $this->assertFalse(NewsPostResource::canViewAny());
+        $this->assertFalse(NewsPostResource::shouldRegisterNavigation());
 
         NewsPost::factory()->forTeam($team)->create([
             'published_at' => now()->subHour(),
@@ -852,7 +852,7 @@ class NewsPostsTest extends TestCase
         $this->actingAs($member);
         Filament::setTenant($team);
         $this->assertTrue($team->hasNewsForNavigation());
-        $this->assertTrue(NewsPostResource::canViewAny());
+        $this->assertTrue(NewsPostResource::shouldRegisterNavigation());
     }
 
     /**

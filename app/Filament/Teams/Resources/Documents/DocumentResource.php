@@ -38,9 +38,9 @@ class DocumentResource extends Resource
 
     protected static ?string $slug = 'documents';
 
-    public static function canViewAny(): bool
+    public static function shouldRegisterNavigation(): bool
     {
-        if (! parent::canViewAny()) {
+        if (! parent::shouldRegisterNavigation()) {
             return false;
         }
 

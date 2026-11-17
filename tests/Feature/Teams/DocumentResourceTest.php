@@ -349,12 +349,12 @@ class DocumentResourceTest extends TestCase
 
         $this->actingAs($member);
         Filament::setTenant($team);
-        $this->assertFalse(DocumentResource::canViewAny());
+        $this->assertFalse(DocumentResource::shouldRegisterNavigation());
         $this->assertFalse($team->hasDocumentsForNavigation());
 
         $this->actingAs($manager);
         Filament::setTenant($team);
-        $this->assertTrue(DocumentResource::canViewAny());
+        $this->assertTrue(DocumentResource::shouldRegisterNavigation());
 
         Document::factory()->forTeam($team)->create();
         $team = $team->fresh();
@@ -362,6 +362,6 @@ class DocumentResourceTest extends TestCase
         $this->actingAs($member);
         Filament::setTenant($team);
         $this->assertTrue($team->hasDocumentsForNavigation());
-        $this->assertTrue(DocumentResource::canViewAny());
+        $this->assertTrue(DocumentResource::shouldRegisterNavigation());
     }
 }
