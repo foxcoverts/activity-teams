@@ -14,7 +14,6 @@ use Filament\Infolists\Components\TextEntry;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Group;
 use Filament\Schemas\Schema;
-use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
@@ -22,9 +21,11 @@ use Illuminate\Database\Eloquent\Builder;
 
 class QualificationResource extends Resource
 {
+    public const string ICON = 'lucide-award';
+
     protected static ?string $model = Qualification::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedAcademicCap;
+    protected static string|BackedEnum|null $navigationIcon = self::ICON;
 
     protected static string|\UnitEnum|null $navigationGroup = NavigationGroup::Personal;
 

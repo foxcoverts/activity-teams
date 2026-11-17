@@ -359,8 +359,7 @@ class KeyAccessTest extends TestCase
             'pageClass' => TeamsViewBooking::class,
         ])->assertSee('Key holder')
             ->assertDontSee('Other keys')
-            ->assertSeeHtml('key-holder-badge')
-            ->mountTableAction('heldKeys', $holder)
+            ->mountTableAction('personDetails', $holder)
             ->assertMountedActionModalSee('Shared climbing')
             ->assertMountedActionModalSee('Climbing store');
 
@@ -446,16 +445,12 @@ class KeyAccessTest extends TestCase
             'ownerRecord' => $booking,
             'pageClass' => TeamsViewBooking::class,
         ])
-            ->mountTableAction('heldKeys', $holder)
+            ->mountTableAction('personDetails', $holder)
             ->assertMountedActionModalSee('Shared climbing')
-            ->assertMountedActionModalSee('Climbing store');
-
-        Livewire::test(TeamsAttendeesRelationManager::class, [
-            'ownerRecord' => $booking,
-            'pageClass' => TeamsViewBooking::class,
-        ])
-            ->mountTableAction('qualifications', $holder)
-            ->assertMountedActionModalSee('Climbing and Abseiling — Artificial Top Rope — Leadership');
+            ->assertMountedActionModalSee('Climbing store')
+            ->assertMountedActionModalSee('Keys')
+            ->assertMountedActionModalSee('Climbing and Abseiling — Artificial Top Rope — Leadership')
+            ->assertMountedActionModalSee('Qualifications');
 
         $this->actingAs($member);
 
@@ -463,15 +458,8 @@ class KeyAccessTest extends TestCase
             'ownerRecord' => $booking,
             'pageClass' => TeamsViewBooking::class,
         ])
-            ->mountTableAction('heldKeys', $holder)
-            ->assertTableActionNotMounted('heldKeys');
-
-        Livewire::test(TeamsAttendeesRelationManager::class, [
-            'ownerRecord' => $booking,
-            'pageClass' => TeamsViewBooking::class,
-        ])
-            ->mountTableAction('qualifications', $holder)
-            ->assertTableActionNotMounted('qualifications');
+            ->mountTableAction('personDetails', $holder)
+            ->assertTableActionNotMounted('personDetails');
 
         Filament::setCurrentPanel('teams');
         $this->actingAs($lead);

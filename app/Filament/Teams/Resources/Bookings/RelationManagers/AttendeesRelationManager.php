@@ -26,6 +26,7 @@ use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\ToggleButtons;
 use Filament\Notifications\Notification;
 use Filament\Resources\RelationManagers\RelationManager;
+use Filament\Support\Enums\Alignment;
 use Filament\Support\Enums\Width;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
@@ -160,43 +161,33 @@ class AttendeesRelationManager extends RelationManager
                                 && (bool) auth()->user()?->can('create', [BookingAttendance::class, $this->booking()])))),
             ])
             ->recordActions([
-                Action::make('qualifications')
-                    ->modalHeading(fn (User $record): string => $record->name)
-                    ->modalWidth(Width::Large)
-                    ->modalSubmitAction(false)
-                    ->modalCancelActionLabel(__('Close'))
-                    ->authorize(fn (User $record): bool => $this->canManageBooking()
-                        ? $this->isQualified($record)
-                        : $this->hasAccessDetail($record, 'qualified'))
-                    ->modalContent(fn (User $record): View => view('filament.bookings.person-access-host', [
-                        'booking' => $this->booking(),
-                        'person' => $record,
-                        'panel' => 'qualifications',
-                    ])),
-                Action::make('heldKeys')
-                    ->modalHeading(fn (User $record): string => $record->name)
-                    ->modalWidth(Width::Large)
-                    ->modalSubmitAction(false)
-                    ->modalCancelActionLabel(__('Close'))
-                    ->authorize(fn (User $record): bool => $this->canManageBooking()
-                        ? $this->keyBadge($record) === 'holder'
-                        : $this->hasAccessDetail($record, 'key_holder'))
-                    ->modalContent(fn (User $record): View => view('filament.bookings.person-access-host', [
-                        'booking' => $this->booking(),
-                        'person' => $record,
-                        'panel' => 'keys',
-                    ])),
-                Action::make('contact')
-                    ->label(__('Contact'))
-                    ->icon(Heroicon::OutlinedPhoneArrowUpRight)
+                Action::make('personDetails')
                     ->modalHeading(fn (User $record): HtmlString => new HtmlString(
                         view('filament.bookings.contact-modal-heading', ['person' => $record])->render(),
                     ))
                     ->modalWidth(Width::Large)
-                    ->extraModalWindowAttributes(['class' => 'booking-contact-panel'])
+                    ->extraModalWindowAttributes(fn (User $record): array => [
+                        'class' => 'booking-contact-panel booking-person-panel',
+                        'x-data' => '{ hasViewMember: '.($this->canShowViewMember($record) ? 'true' : 'false').' }',
+                        'x-init' => 'Alpine.store(\'bookingPersonDetails\', { qualification: null })',
+                        'x-bind:data-footer-open' => 'hasViewMember || ($store.bookingPersonDetails?.qualification != null)',
+                    ])
                     ->modalSubmitAction(false)
-                    ->modalCancelActionLabel(__('Close'))
-                    ->extraModalFooterActions(fn (User $record): array => [
+                    ->modalCancelAction(false)
+                    ->modalFooterActionsAlignment(Alignment::Start)
+                    ->authorize(fn (User $record): bool => $this->canOpenPersonDetails($record))
+                    ->modalFooterActions(fn (User $record): array => [
+                        Action::make('backToQualifications')
+                            ->label(__('Back'))
+                            ->color('gray')
+                            ->outlined()
+                            ->alpineClickHandler('$store.bookingPersonDetails.qualification = null')
+                            ->visible(fn (): bool => $this->canSeeQualifications($record))
+                            ->extraAttributes([
+                                'class' => 'booking-person-footer-back',
+                                'x-show' => '$store.bookingPersonDetails?.qualification != null',
+                                'x-cloak' => true,
+                            ]),
                         Action::make('viewMember')
                             ->label(__('View member'))
                             ->icon(Heroicon::OutlinedUser)
@@ -207,14 +198,34 @@ class AttendeesRelationManager extends RelationManager
                                 panel: 'teams',
                                 tenant: $this->booking()->team,
                             ))
-                            ->visible(fn (): bool => MemberResource::canViewAny()
-                                && MemberResource::canView($record)),
+                            ->visible(fn (): bool => $this->canShowViewMember($record))
+                            ->extraAttributes([
+                                'class' => 'booking-person-footer-end',
+                            ]),
                     ])
-                    ->authorize(fn (User $record): bool => $this->canOpenContact($this->attendee($record)))
-                    ->modalContent(fn (User $record): View => view('filament.bookings.contact-details-host', [
-                        'booking' => $this->booking(),
-                        'person' => $record,
-                    ])),
+                    ->modalContent(function (User $record, array $arguments): View {
+                        $showQualifications = $this->canSeeQualifications($record);
+                        $showKeys = $this->canSeeHeldKeys($record);
+                        $showContact = $this->canOpenContact($this->attendee($record));
+                        $requested = $arguments['tab'] ?? null;
+                        $allowed = array_values(array_filter([
+                            $showQualifications ? 'qualifications' : null,
+                            $showKeys ? 'keys' : null,
+                            $showContact ? 'contact' : null,
+                        ]));
+                        $tab = is_string($requested) && in_array($requested, $allowed, true)
+                            ? $requested
+                            : ($allowed[0] ?? 'contact');
+
+                        return view('filament.bookings.person-details-host', [
+                            'booking' => $this->booking(),
+                            'person' => $record,
+                            'tab' => $tab,
+                            'showQualifications' => $showQualifications,
+                            'showKeys' => $showKeys,
+                            'showContact' => $showContact,
+                        ]);
+                    }),
                 Action::make('editAttendance')
                     ->label(__('Edit'))
                     ->icon(Heroicon::OutlinedPencilSquare)
@@ -596,6 +607,34 @@ class AttendeesRelationManager extends RelationManager
     {
         return $this->canViewContact($person, 'viewPhone')
             || $this->canViewContact($person, 'viewEmergencyContact');
+    }
+
+    private function canSeeQualifications(User $record): bool
+    {
+        return $this->canManageBooking()
+            ? $this->isQualified($record)
+            : $this->hasAccessDetail($record, 'qualified');
+    }
+
+    private function canSeeHeldKeys(User $record): bool
+    {
+        return $this->canManageBooking()
+            ? $this->keyBadge($record) === 'holder'
+            : $this->hasAccessDetail($record, 'key_holder');
+    }
+
+    private function canOpenPersonDetails(User $record): bool
+    {
+        return $this->canSeeQualifications($record)
+            || $this->canSeeHeldKeys($record)
+            || $this->canOpenContact($this->attendee($record));
+    }
+
+    private function canShowViewMember(User $record): bool
+    {
+        return $this->canOpenContact($this->attendee($record))
+            && MemberResource::canViewAny()
+            && MemberResource::canView($record);
     }
 
     private function hasSharedContactDetails(?User $person): bool

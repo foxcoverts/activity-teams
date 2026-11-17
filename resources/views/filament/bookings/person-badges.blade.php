@@ -1,4 +1,7 @@
-@php($panel = $panel ?? 'invite')
+@php
+    $panel = $panel ?? 'invite';
+    $guestListPanel = in_array($panel, ['teams', 'member-relation-manager'], true);
+@endphp
 
 @if ($panel === 'invite' && ($person['mail_off'] ?? false))
     <x-filament::badge :color="\App\Support\Palette::uncertain()" :icon="\Filament\Support\Icons\Heroicon::OutlinedBellSlash" :tooltip="__('Booking emails are turned off')">
@@ -19,30 +22,45 @@
 @endif
 
 @if ($showQualified && $person['qualified'])
-    <button type="button" class="invite-badge"
-        wire:click="{{ in_array($panel, ['teams', 'member-relation-manager'], true)
-            ? "mountTableAction('qualifications', '{$person['id']}')"
-            : "openQualifications('{$person['id']}')" }}">
-        <x-filament::badge :color="\App\Support\Palette::positive()" :icon="\Filament\Support\Icons\Heroicon::CheckCircle">
-            {{ __('Qualified') }}
-        </x-filament::badge>
-    </button>
-@endif
-
-@if ($panel === 'invite' && $showKeys && $person['key_badge'] === 'other')
-    <button type="button" class="invite-badge" wire:click="openKeys('{{ $person['id'] }}')">
-        <x-filament::badge :color="\App\Support\Palette::neutral()" :icon="\Filament\Support\Icons\Heroicon::OutlinedKey">
-            {{ __('Other keys') }}
-        </x-filament::badge>
-    </button>
+    @if ($guestListPanel)
+        <x-filament::icon-button
+            :color="\App\Support\Palette::positive()"
+            size="sm"
+            :icon="\App\Filament\Member\Resources\Qualifications\QualificationResource::ICON"
+            :label="__('Qualified')"
+            :tooltip="__('Qualified')"
+            wire:click.stop="mountTableAction('personDetails', '{{ $person['id'] }}', { tab: 'qualifications' })"
+        />
+    @else
+        <x-filament::icon-button
+            :color="\App\Support\Palette::positive()"
+            size="sm"
+            :icon="\App\Filament\Member\Resources\Qualifications\QualificationResource::ICON"
+            :label="__('Qualified')"
+            :tooltip="__('Qualified')"
+            wire:click="openQualifications('{{ $person['id'] }}')"
+        />
+    @endif
 @endif
 
 @if ($showKeys && $person['key_badge'] === 'holder')
-    <button type="button" class="invite-badge" title="{{ __('Key holder') }}" aria-label="{{ __('Key holder') }}"
-        wire:click="{{ in_array($panel, ['teams', 'member-relation-manager'], true)
-            ? "mountTableAction('heldKeys', '{$person['id']}')"
-            : "openKeys('{$person['id']}')" }}">
-        <x-filament::badge class="key-holder-badge" :color="\App\Support\Palette::positive()" :icon="\Filament\Support\Icons\Heroicon::OutlinedKey">
-        </x-filament::badge>
-    </button>
+    @if ($guestListPanel)
+        <x-filament::icon-button
+            :color="\App\Support\Palette::positive()"
+            size="sm"
+            :icon="\Filament\Support\Icons\Heroicon::OutlinedKey"
+            :label="__('Key holder')"
+            :tooltip="__('Key holder')"
+            wire:click.stop="mountTableAction('personDetails', '{{ $person['id'] }}', { tab: 'keys' })"
+        />
+    @else
+        <x-filament::icon-button
+            :color="\App\Support\Palette::positive()"
+            size="sm"
+            :icon="\Filament\Support\Icons\Heroicon::OutlinedKey"
+            :label="__('Key holder')"
+            :tooltip="__('Key holder')"
+            wire:click="openKeys('{{ $person['id'] }}')"
+        />
+    @endif
 @endif

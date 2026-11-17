@@ -7,14 +7,25 @@
         'rounded-xl border border-gray-200 p-4 dark:border-white/10' =>
             !$alpine && $framed,
     ])
-        @if ($alpine) x-data="{ showOther: false, qualification: null }" @endif>
+        @if ($alpine)
+            x-data="{
+                showOther: false,
+                get qualification() {
+                    return Alpine.store('bookingPersonDetails')?.qualification ?? null
+                },
+                set qualification(value) {
+                    Alpine.store('bookingPersonDetails').qualification = value
+                },
+            }"
+        @endif>
         @unless ($alpine)
             <div class="flex items-center justify-between gap-3">
                 <h3 class="font-semibold text-gray-950 dark:text-white">{{ $access['name'] }}</h3>
-                <x-filament::button size="sm" color="gray" outlined
-                    wire:click="{{ filled($access['detail'] ?? null) ? 'closeQualification' : 'closeAccess' }}">
-                    {{ filled($access['detail'] ?? null) ? __('Back') : $dismiss ?? __('Close') }}
-                </x-filament::button>
+                @unless (filled($access['detail'] ?? null))
+                    <x-filament::button size="sm" color="gray" outlined wire:click="closeAccess">
+                        {{ $dismiss ?? __('Close') }}
+                    </x-filament::button>
+                @endunless
             </div>
         @endunless
 
@@ -80,11 +91,6 @@
             @foreach ([...$access['relevant'], ...$access['other']] as $qualification)
                 <div x-show="qualification === $el.dataset.qualification"
                     data-qualification="{{ $qualification['id'] }}" x-cloak class="flex flex-col gap-3">
-                    <x-filament::button color="gray" outlined size="sm" class="self-start"
-                        x-on:click="qualification = null">
-                        {{ __('Back') }}
-                    </x-filament::button>
-
                     <div class="mb-2 border-b border-gray-200 pb-2 dark:border-white/10">
                         <p class="font-semibold text-gray-950 dark:text-white">{{ $qualification['type'] }}</p>
                     </div>
@@ -117,6 +123,11 @@
                     @endif
                 </dl>
             </div>
+
+            <x-filament::button size="sm" color="gray" outlined class="self-start"
+                wire:click="closeQualification">
+                {{ __('Back') }}
+            </x-filament::button>
         @else
             <div class="flex flex-col gap-2">
                 @forelse ($access['relevant'] as $qualification)

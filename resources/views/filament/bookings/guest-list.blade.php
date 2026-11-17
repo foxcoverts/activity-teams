@@ -17,7 +17,24 @@
 
             <div x-show="expanded" x-cloak>
                 @foreach ($group['people'] as $person)
-                    <div class="invite-row" wire:key="guest-{{ $person['id'] }}">
+                    @php
+                        $canContact = ($person['can_phone'] ?? false) || ($person['can_emergency'] ?? false);
+                        $hasContactDetails = $person['has_contact_details'] ?? false;
+                        $canEdit = $person['can_edit'] ?? false;
+                        $canRemove = $person['can_remove'] ?? false;
+                        $showManagerMenu = $panel === 'teams' && ($canEdit || $canRemove);
+                        $canOpenPerson = ($showAccessDetails && $showQualified && ($person['qualified'] ?? false))
+                            || ($showAccessDetails && $showKeys && ($person['key_badge'] ?? null) === 'holder')
+                            || $canContact;
+                    @endphp
+
+                    <div
+                        @class(['invite-row', 'invite-row--action' => $canOpenPerson])
+                        wire:key="guest-{{ $person['id'] }}"
+                        @if ($canOpenPerson)
+                            wire:click="mountTableAction('personDetails', '{{ $person['id'] }}')"
+                        @endif
+                    >
                         <div class="invite-person">
                             @include('filament.bookings.person-identity', ['person' => $person])
 
@@ -35,16 +52,8 @@
                             ])
                         </div>
 
-                        @php
-                            $canContact = ($person['can_phone'] ?? false) || ($person['can_emergency'] ?? false);
-                            $hasContactDetails = $person['has_contact_details'] ?? false;
-                            $canEdit = $person['can_edit'] ?? false;
-                            $canRemove = $person['can_remove'] ?? false;
-                            $showManagerMenu = $panel === 'teams' && ($canEdit || $canRemove);
-                        @endphp
-
                         @if ($canContact || $showManagerMenu)
-                            <div class="flex items-center gap-1">
+                            <div class="flex items-center gap-1" @if ($canOpenPerson) wire:click.stop @endif>
                                 @if ($canContact)
                                     <x-filament::icon-button
                                         color="gray"
@@ -53,7 +62,7 @@
                                             ? \Filament\Support\Icons\Heroicon::OutlinedPhoneArrowUpRight
                                             : \Filament\Support\Icons\Heroicon::OutlinedPhoneXMark"
                                         :label="__('Contact')"
-                                        wire:click="mountTableAction('contact', '{{ $person['id'] }}')"
+                                        wire:click.stop="mountTableAction('personDetails', '{{ $person['id'] }}', { tab: 'contact' })"
                                     />
                                 @endif
 
