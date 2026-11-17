@@ -10,6 +10,7 @@ use App\Models\BookingAttendance;
 use App\Models\LogbookEntry;
 use App\Models\Team;
 use App\Models\User;
+use App\Models\Venue;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
@@ -21,6 +22,23 @@ use InvalidArgumentException;
 
 final class Logbook
 {
+    /**
+     * Suggested roles for free-text entry (datalist), seniority first.
+     *
+     * @return list<string>
+     */
+    public function roleSuggestions(): array
+    {
+        return [
+            'Supervisor',
+            'Instructor',
+            'Assistant',
+            'Coaching Session',
+            'Observer',
+            'Personal Climbing',
+        ];
+    }
+
     /**
      * Accepted attendance with no entry, not ignored, session day on or before today.
      *
@@ -69,9 +87,10 @@ final class Logbook
         return LogbookEntry::query()
             ->whereBelongsTo($user)
             ->with(['booking.activity', 'booking.audience', 'booking.venue', 'booking.team'])
-            ->whereHas('booking')
-            ->join('bookings', 'bookings.id', '=', 'logbook_entries.booking_id')
-            ->orderByDesc('bookings.end_at')
+            ->leftJoin('bookings', 'bookings.id', '=', 'logbook_entries.booking_id')
+            ->orderByDesc(DB::raw(
+                "COALESCE(bookings.end_at, TIMESTAMP(logbook_entries.occurred_on, COALESCE(logbook_entries.start_time, '00:00:00')))"
+            ))
             ->select('logbook_entries.*');
     }
 
@@ -88,7 +107,7 @@ final class Logbook
     }
 
     /**
-     * @param  array{hours?: mixed, participant_count?: mixed, weather?: mixed, notes?: mixed}  $data
+     * @param  array{hours?: mixed, participant_count?: mixed, weather?: mixed, notes?: mixed, role?: mixed}  $data
      */
     public function add(User $user, Booking $booking, array $data = [], bool $prefillFromDebrief = true): LogbookEntry
     {
@@ -107,7 +126,10 @@ final class Logbook
             'participant_count' => $data['participant_count'] ?? null,
             'weather' => $data['weather'] ?? null,
             'notes' => $data['notes'] ?? null,
+            'role' => filled($data['role'] ?? null) ? (string) $data['role'] : null,
         ]);
+
+        $entry->applyBookingSnapshot($booking);
 
         if ($prefillFromDebrief && $this->fieldsAreBlank($entry)) {
             $booking->loadMissing('debrief');
@@ -133,9 +155,60 @@ final class Logbook
     }
 
     /**
+     * @param  array{
+     *     occurred_on?: mixed,
+     *     start_time?: mixed,
+     *     activity_label?: mixed,
+     *     venue_name?: mixed,
+     *     role?: mixed,
+     *     hours?: mixed,
+     *     participant_count?: mixed,
+     *     weather?: mixed,
+     *     notes?: mixed
+     * }  $data
+     */
+    public function addExternal(User $user, array $data): LogbookEntry
+    {
+        $activityLabel = filled($data['activity_label'] ?? null) ? trim((string) $data['activity_label']) : null;
+        $venueName = filled($data['venue_name'] ?? null) ? trim((string) $data['venue_name']) : null;
+
+        $errors = $this->externalIdentityErrors(
+            occurredOn: $data['occurred_on'] ?? null,
+            activityLabel: $activityLabel,
+            venueName: $venueName,
+        );
+
+        if ($errors !== []) {
+            throw ValidationException::withMessages($errors);
+        }
+
+        $occurredOn = Carbon::parse($data['occurred_on'])->toDateString();
+        $startTime = $this->normaliseStartTime($data['start_time'] ?? null);
+
+        $entry = new LogbookEntry([
+            'user_id' => $user->getKey(),
+            'booking_id' => null,
+            'occurred_on' => $occurredOn,
+            'start_time' => $startTime,
+            'timezone' => config('app.timezone'),
+            'activity_label' => $activityLabel,
+            'venue_name' => $venueName,
+            'role' => filled($data['role'] ?? null) ? trim((string) $data['role']) : null,
+            'hours' => $data['hours'] ?? null,
+            'participant_count' => $data['participant_count'] ?? null,
+            'weather' => filled($data['weather'] ?? null) ? (string) $data['weather'] : null,
+            'notes' => filled($data['notes'] ?? null) ? (string) $data['notes'] : null,
+        ]);
+
+        $entry->save();
+
+        return $entry;
+    }
+
+    /**
      * Prefill values for the add form from the debrief when present, else booking duration for hours.
      *
-     * @return array{hours: mixed, participant_count: mixed, weather: mixed, notes: null, debrief_notes: ?string}
+     * @return array{hours: mixed, participant_count: mixed, weather: mixed, notes: null, role: string, debrief_notes: ?string}
      */
     public function addFormState(Booking $booking): array
     {
@@ -147,12 +220,23 @@ final class Logbook
             'participant_count' => $debrief?->participant_count,
             'weather' => $debrief?->weather,
             'notes' => null,
+            'role' => 'Instructor',
             'debrief_notes' => $debrief?->notes,
         ];
     }
 
     /**
-     * @param  array{hours?: mixed, participant_count?: mixed, weather?: mixed, notes?: mixed}  $data
+     * @param  array{
+     *     occurred_on?: mixed,
+     *     start_time?: mixed,
+     *     activity_label?: mixed,
+     *     venue_name?: mixed,
+     *     role?: mixed,
+     *     hours?: mixed,
+     *     participant_count?: mixed,
+     *     weather?: mixed,
+     *     notes?: mixed
+     * }  $data
      */
     public function update(User $user, LogbookEntry $entry, array $data): LogbookEntry
     {
@@ -167,7 +251,32 @@ final class Logbook
             'participant_count' => $data['participant_count'] ?? null,
             'weather' => $data['weather'] ?? null,
             'notes' => $data['notes'] ?? null,
-        ])->save();
+            'role' => filled($data['role'] ?? null) ? trim((string) $data['role']) : null,
+        ]);
+
+        if (! $entry->isLinkedToBooking()) {
+            $activityLabel = filled($data['activity_label'] ?? null) ? trim((string) $data['activity_label']) : null;
+            $venueName = filled($data['venue_name'] ?? null) ? trim((string) $data['venue_name']) : null;
+
+            $errors = $this->externalIdentityErrors(
+                occurredOn: $data['occurred_on'] ?? null,
+                activityLabel: $activityLabel,
+                venueName: $venueName,
+            );
+
+            if ($errors !== []) {
+                throw ValidationException::withMessages($errors);
+            }
+
+            $entry->fill([
+                'occurred_on' => Carbon::parse($data['occurred_on'])->toDateString(),
+                'start_time' => $this->normaliseStartTime($data['start_time'] ?? null),
+                'activity_label' => $activityLabel,
+                'venue_name' => $venueName,
+            ]);
+        }
+
+        $entry->save();
 
         return $entry;
     }
@@ -263,6 +372,50 @@ final class Logbook
     }
 
     /**
+     * Catalog activity names from the member’s teams (datalist suggestions).
+     *
+     * @return list<string>
+     */
+    public function activitySuggestions(User $user): array
+    {
+        $teamIds = $user->teams()->pluck('teams.id');
+
+        if ($teamIds->isEmpty()) {
+            return [];
+        }
+
+        return Activity::query()
+            ->whereHas('teams', fn (Builder $query) => $query->whereIn('teams.id', $teamIds))
+            ->orderBy('name')
+            ->pluck('name')
+            ->unique()
+            ->values()
+            ->all();
+    }
+
+    /**
+     * Catalog venue names from the member’s teams (datalist suggestions).
+     *
+     * @return list<string>
+     */
+    public function venueSuggestions(User $user): array
+    {
+        $teamIds = $user->teams()->pluck('teams.id');
+
+        if ($teamIds->isEmpty()) {
+            return [];
+        }
+
+        return Venue::query()
+            ->whereHas('teams', fn (Builder $query) => $query->whereIn('teams.id', $teamIds))
+            ->orderBy('name')
+            ->pluck('name')
+            ->unique()
+            ->values()
+            ->all();
+    }
+
+    /**
      * Stable export / table filter contract.
      *
      * @param  array{from?: mixed, to?: mixed, activity?: mixed, team?: mixed}  $filters
@@ -329,15 +482,51 @@ final class Logbook
         $filters = $this->normalisedFilters($filters);
 
         if (isset($filters['from'])) {
-            $query->where('bookings.start_at', '>=', Carbon::parse($filters['from'])->startOfDay());
+            $from = $filters['from'];
+            $query->where(function (Builder $query) use ($from): void {
+                $query->where(function (Builder $linked) use ($from): void {
+                    $linked->whereNotNull('logbook_entries.booking_id')
+                        ->where('bookings.start_at', '>=', Carbon::parse($from)->startOfDay());
+                })->orWhere(function (Builder $external) use ($from): void {
+                    $external->whereNull('logbook_entries.booking_id')
+                        ->where('logbook_entries.occurred_on', '>=', $from);
+                });
+            });
         }
 
         if (isset($filters['to'])) {
-            $query->where('bookings.start_at', '<=', Carbon::parse($filters['to'])->endOfDay());
+            $to = $filters['to'];
+            $query->where(function (Builder $query) use ($to): void {
+                $query->where(function (Builder $linked) use ($to): void {
+                    $linked->whereNotNull('logbook_entries.booking_id')
+                        ->where('bookings.start_at', '<=', Carbon::parse($to)->endOfDay());
+                })->orWhere(function (Builder $external) use ($to): void {
+                    $external->whereNull('logbook_entries.booking_id')
+                        ->where('logbook_entries.occurred_on', '<=', $to);
+                });
+            });
         }
 
         if (isset($filters['activity'])) {
-            $query->whereIn('bookings.activity_id', $filters['activity']);
+            $titles = $filters['activity'];
+            $activityIds = Activity::query()
+                ->whereIn('name', $titles)
+                ->pluck('id')
+                ->all();
+
+            $query->where(function (Builder $query) use ($titles, $activityIds): void {
+                $query->whereIn('logbook_entries.activity_label', $titles)
+                    ->orWhereIn('bookings.activity_label', $titles);
+
+                if ($activityIds !== []) {
+                    $query->orWhere(function (Builder $fromCatalog) use ($activityIds): void {
+                        $fromCatalog->where(function (Builder $blankLabel): void {
+                            $blankLabel->whereNull('bookings.activity_label')
+                                ->orWhere('bookings.activity_label', '');
+                        })->whereIn('bookings.activity_id', $activityIds);
+                    });
+                }
+            });
         }
 
         if (isset($filters['team'])) {
@@ -348,23 +537,19 @@ final class Logbook
     }
 
     /**
-     * Activities that already appear in the member's saved log.
+     * Resolved activity titles that already appear in the member's saved log.
      *
      * @return array<string, string>
      */
     public function activityFilterOptions(User $user): array
     {
-        return Activity::query()
-            ->whereIn(
-                'id',
-                LogbookEntry::query()
-                    ->whereBelongsTo($user)
-                    ->join('bookings', 'bookings.id', '=', 'logbook_entries.booking_id')
-                    ->whereNotNull('bookings.activity_id')
-                    ->select('bookings.activity_id'),
-            )
-            ->orderBy('name')
-            ->pluck('name', 'id')
+        return $this->entriesQuery($user)
+            ->get()
+            ->map(fn (LogbookEntry $entry): string => $entry->activityTitle())
+            ->filter(fn (string $title): bool => $title !== '')
+            ->unique()
+            ->sort()
+            ->mapWithKeys(fn (string $title): array => [$title => $title])
             ->all();
     }
 
@@ -380,6 +565,7 @@ final class Logbook
                 'id',
                 LogbookEntry::query()
                     ->whereBelongsTo($user)
+                    ->whereNotNull('booking_id')
                     ->join('bookings', 'bookings.id', '=', 'logbook_entries.booking_id')
                     ->whereNotNull('bookings.team_id')
                     ->select('bookings.team_id'),
@@ -400,6 +586,7 @@ final class Logbook
             __('Hours'),
             __('Activity'),
             __('Venue'),
+            __('Role'),
             __('Participants'),
             __('Weather'),
             __('Notes'),
@@ -411,20 +598,68 @@ final class Logbook
      */
     public function exportRow(LogbookEntry $entry): array
     {
-        $booking = $entry->booking;
-        $timezone = $booking?->timezone ?? config('app.timezone');
-        $start = $booking?->start_at?->copy()->timezone($timezone);
+        $start = $entry->sessionStart();
 
         return [
             $start?->toFormattedDateString(),
-            $start?->format('H:i'),
+            $entry->hasStartTime() ? $start?->format('H:i') : null,
             $entry->hours !== null ? (string) $entry->hours : null,
-            $booking?->activityTitle(),
-            $booking?->venue?->name,
+            $entry->activityTitle() !== '' ? $entry->activityTitle() : null,
+            $entry->venueName() !== '' ? $entry->venueName() : null,
+            filled($entry->role) ? (string) $entry->role : null,
             $entry->participant_count !== null ? (string) $entry->participant_count : null,
             $entry->weather,
             $entry->notes,
         ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function externalIdentityErrors(mixed $occurredOn, ?string $activityLabel, ?string $venueName): array
+    {
+        $errors = [];
+
+        if (! filled($occurredOn)) {
+            $errors['occurred_on'] = __('Please enter a date.');
+        } elseif (Carbon::parse($occurredOn)->startOfDay()->gt(now()->startOfDay())) {
+            $errors['occurred_on'] = __('Logbook sessions cannot be dated in the future.');
+        }
+
+        if ($activityLabel === null || $activityLabel === '') {
+            $errors['activity_label'] = __('Please enter an activity.');
+        }
+
+        if ($venueName === null || $venueName === '') {
+            $errors['venue_name'] = __('Please enter a venue.');
+        }
+
+        return $errors;
+    }
+
+    private function normaliseStartTime(mixed $value): ?string
+    {
+        if (! filled($value)) {
+            return null;
+        }
+
+        if ($value instanceof Carbon) {
+            return $value->format('H:i:s');
+        }
+
+        $raw = trim((string) $value);
+
+        if ($raw === '') {
+            return null;
+        }
+
+        if (preg_match('/^\d{1,2}:\d{2}(:\d{2})?$/', $raw) === 1) {
+            $parts = explode(':', $raw);
+
+            return sprintf('%02d:%02d:%02d', (int) $parts[0], (int) $parts[1], (int) ($parts[2] ?? 0));
+        }
+
+        return Carbon::parse($raw)->format('H:i:s');
     }
 
     private function assertCanManage(User $user, Booking $booking): void

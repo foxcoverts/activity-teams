@@ -23,6 +23,7 @@ use App\Support\MailPreference;
 use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Validation\ValidationException;
 use Livewire\Livewire;
 use Tests\TestCase;
 
@@ -127,6 +128,9 @@ class LogbookTest extends TestCase
         $this->assertEqualsWithDelta(2.0, (float) $entry->hours, 0.001);
         $this->assertSame($booking->suggestedOperatingHours(), $state['hours']);
         $this->assertEqualsWithDelta(2.0, (float) $state['hours'], 0.001);
+        $this->assertSame('Instructor', $state['role']);
+        $this->assertSame('Instructor', LogbookEntryAction::externalFormState()['role']);
+        $this->assertSame(now()->toDateString(), LogbookEntryAction::externalFormState()['occurred_on']);
         $this->assertNull($entry->participant_count);
         $this->assertNull($entry->weather);
         $this->assertNull($entry->notes);
@@ -252,6 +256,7 @@ class LogbookTest extends TestCase
             __('Hours'),
             __('Activity'),
             __('Venue'),
+            __('Role'),
             __('Participants'),
             __('Weather'),
             __('Notes'),
@@ -261,9 +266,10 @@ class LogbookTest extends TestCase
         $this->assertSame('2.25', $row[2]);
         $this->assertSame($booking->activityTitle(), $row[3]);
         $this->assertSame($booking->venue?->name, $row[4]);
-        $this->assertSame('5', $row[5]);
-        $this->assertSame('Dry', $row[6]);
-        $this->assertSame('Permit evidence', $row[7]);
+        $this->assertNull($row[5]);
+        $this->assertSame('5', $row[6]);
+        $this->assertSame('Dry', $row[7]);
+        $this->assertSame('Permit evidence', $row[8]);
     }
 
     public function test_pdf_export_is_print_friendly(): void
@@ -343,7 +349,7 @@ class LogbookTest extends TestCase
 
         Livewire::test(LogbookPage::class)
             ->assertCanSeeTableRecords([$climbingEntry, $abseilingEntry, $hikingEntry])
-            ->filterTable('activity_id', [$climbing->getKey(), $abseiling->getKey()])
+            ->filterTable('activity', [$climbing->name, $abseiling->name])
             ->assertCanSeeTableRecords([$climbingEntry, $abseilingEntry])
             ->assertCanNotSeeTableRecords([$hikingEntry])
             ->filterTable('schedule', [
@@ -355,7 +361,7 @@ class LogbookTest extends TestCase
 
         $this->actingAs($member)
             ->get(route('member.logbook.export', [
-                'activity' => [$climbing->getKey(), $abseiling->getKey()],
+                'activity' => [$climbing->name, $abseiling->name],
                 'from' => now()->subDays(7)->toDateString(),
                 'to' => now()->toDateString(),
             ]))
@@ -475,16 +481,21 @@ class LogbookTest extends TestCase
         $booking = $this->pastBooking($team);
         $this->attend($booking, $member, BookingAttendeeStatus::Accepted);
 
-        $summary = LogbookEntryAction::bookingSummarySection($booking);
+        $summary = LogbookEntryAction::sessionSectionForBooking($booking);
         $schema = LogbookEntryAction::schema($booking);
 
-        $this->assertSame(__('Booking'), $summary->getHeading());
+        $this->assertSame(__('Session'), $summary->getHeading());
         $this->assertSame(__('View booking'), $summary->getHeaderActions()[0]->getLabel());
         $this->assertNotEmpty($summary->getHeaderActions()[0]->getUrl());
         $this->assertCount(2, $schema);
-        $this->assertSame(__('Booking'), $schema[0]->getHeading());
-        $this->assertSame(__('Session'), $schema[1]->getHeading());
+        $this->assertSame(__('Session'), $schema[0]->getHeading());
+        $this->assertSame(__('Details'), $schema[1]->getHeading());
         $this->assertNotSame('—', BookingWhen::format($booking));
+
+        $external = LogbookEntryAction::externalSchema($member);
+        $this->assertCount(2, $external);
+        $this->assertSame(__('Session'), $external[0]->getHeading());
+        $this->assertSame(__('Details'), $external[1]->getHeading());
 
         $this->actingAs($member);
         Filament::setCurrentPanel('teams');
@@ -576,6 +587,225 @@ class LogbookTest extends TestCase
         $this->assertSame(1, $entry->participant_count);
         $this->assertSame('Wet', $entry->weather);
         $this->assertSame('My personal notes', $entry->notes);
+    }
+
+    public function test_external_session_can_be_added_edited_exported_and_removed(): void
+    {
+        $member = User::factory()->teamMember()->create();
+        $team = $member->teams()->firstOrFail();
+        $activity = Activity::factory()->create(['name' => 'External Sport']);
+        $team->addActivity($activity);
+
+        $this->actingAs($member);
+        Filament::setCurrentPanel('member');
+
+        Livewire::test(LogbookPage::class)
+            ->callAction('addSession', data: [
+                'occurred_on' => now()->subDay()->toDateString(),
+                'start_time' => '10:30',
+                'activity_label' => 'External Sport',
+                'venue_name' => 'Stanage Popular',
+                'role' => 'Instructor',
+                'hours' => 3,
+                'participant_count' => 4,
+                'weather' => 'Clear',
+                'notes' => 'External notes',
+            ])
+            ->assertNotified(__('Added to logbook'));
+
+        $entry = LogbookEntry::query()->where('user_id', $member->getKey())->sole();
+        $this->assertNull($entry->booking_id);
+        $this->assertSame('External Sport', $entry->activity_label);
+        $this->assertSame('Stanage Popular', $entry->venue_name);
+        $this->assertSame('Instructor', $entry->role);
+        $this->assertSame('10:30:00', substr((string) $entry->start_time, 0, 8));
+
+        Livewire::test(LogbookPage::class)
+            ->assertCanSeeTableRecords([$entry])
+            ->callTableAction('edit', $entry, data: [
+                'occurred_on' => $entry->occurred_on?->toDateString(),
+                'start_time' => '11:00',
+                'activity_label' => 'External Sport',
+                'venue_name' => 'Stanage Popular',
+                'role' => 'Supervisor',
+                'hours' => 3.5,
+                'participant_count' => 4,
+                'weather' => 'Clear',
+                'notes' => 'Updated external',
+            ])
+            ->assertNotified(__('Logbook entry saved'));
+
+        $entry->refresh();
+        $this->assertSame('Supervisor', $entry->role);
+        $this->assertSame('Updated external', $entry->notes);
+
+        $row = app(Logbook::class)->exportRow($entry);
+        $this->assertSame('External Sport', $row[3]);
+        $this->assertSame('Stanage Popular', $row[4]);
+        $this->assertSame('Supervisor', $row[5]);
+
+        $this->actingAs($member)
+            ->get(route('member.logbook.export'))
+            ->assertOk()
+            ->assertSee('Updated external', false)
+            ->assertSee('Supervisor', false);
+
+        Livewire::test(LogbookPage::class)
+            ->callTableAction('delete', $entry)
+            ->assertNotified(__('Removed'));
+
+        $this->assertDatabaseMissing('logbook_entries', ['id' => $entry->getKey()]);
+    }
+
+    public function test_external_session_rejects_a_future_date(): void
+    {
+        $member = User::factory()->teamMember()->create();
+
+        try {
+            app(Logbook::class)->addExternal($member, [
+                'occurred_on' => now()->addDay()->toDateString(),
+                'activity_label' => 'Trad Climbing',
+                'venue_name' => 'Stanage',
+            ]);
+            $this->fail('Expected a validation exception for a future session date.');
+        } catch (ValidationException $exception) {
+            $this->assertSame(
+                __('Logbook sessions cannot be dated in the future.'),
+                $exception->errors()['occurred_on'][0] ?? null,
+            );
+        }
+
+        $this->assertSame(0, LogbookEntry::query()->where('user_id', $member->getKey())->count());
+    }
+
+    public function test_booking_linked_add_stores_role_and_snapshot_fields(): void
+    {
+        $member = User::factory()->teamMember()->create();
+        $booking = $this->pastBooking();
+        $this->attend($booking, $member, BookingAttendeeStatus::Accepted);
+
+        $entry = app(Logbook::class)->add($member, $booking, [
+            'role' => 'Assistant',
+            'hours' => 2,
+        ], prefillFromDebrief: false);
+
+        $this->assertSame('Assistant', $entry->role);
+        $this->assertNotNull($entry->occurred_on);
+        $this->assertNotNull($entry->start_time);
+        $this->assertSame($booking->activityTitle(), $entry->activity_label);
+        $this->assertSame($booking->venue?->name, $entry->venue_name);
+    }
+
+    public function test_deleting_booking_snapshots_logbook_entry_instead_of_cascading(): void
+    {
+        $manager = User::factory()->teamManager()->create();
+        $team = $manager->teams()->firstOrFail();
+        $member = User::factory()->teamMember($team)->create();
+
+        $booking = Booking::factory()->cancelled()->create([
+            'team_id' => $team->getKey(),
+            'start_at' => now()->subDays(2)->setTime(9, 15),
+            'end_at' => now()->subDays(2)->setTime(12, 0),
+        ]);
+        $this->attend($booking, $member, BookingAttendeeStatus::Accepted);
+
+        $entry = LogbookEntry::factory()->create([
+            'user_id' => $member->getKey(),
+            'booking_id' => $booking->getKey(),
+            'hours' => 2.5,
+            'notes' => 'Keep after delete',
+            'role' => 'Instructor',
+        ]);
+
+        $expectedActivity = $booking->activityTitle();
+        $expectedVenue = $booking->venue?->name;
+        $timezone = $booking->timezone ?? config('app.timezone');
+        $expectedDate = $booking->start_at->copy()->timezone($timezone)->toDateString();
+        $expectedTime = $booking->start_at->copy()->timezone($timezone)->format('H:i:s');
+
+        $bookingId = $booking->getKey();
+        $booking->delete();
+
+        $entry->refresh();
+        $this->assertNull($entry->booking_id);
+        $this->assertDatabaseMissing('bookings', ['id' => $bookingId]);
+        $this->assertSame($expectedDate, $entry->occurred_on?->toDateString());
+        $this->assertSame($expectedTime, substr((string) $entry->start_time, 0, 8));
+        $this->assertSame($expectedActivity, $entry->activity_label);
+        $this->assertSame($expectedVenue, $entry->venue_name);
+        $this->assertSame('Instructor', $entry->role);
+        $this->assertSame('Keep after delete', $entry->notes);
+        $this->assertSame('2.50', (string) $entry->hours);
+
+        $this->actingAs($member);
+        Filament::setCurrentPanel('member');
+
+        Livewire::test(LogbookPage::class)
+            ->assertCanSeeTableRecords([$entry])
+            ->assertSee($expectedActivity)
+            ->assertSee($expectedVenue ?? '—', false);
+
+        $row = app(Logbook::class)->exportRow($entry);
+        $this->assertSame($expectedActivity, $row[3]);
+        $this->assertSame($expectedVenue, $row[4]);
+        $this->assertSame('Instructor', $row[5]);
+        $this->assertSame('Keep after delete', $row[8]);
+    }
+
+    public function test_filters_include_external_sessions_and_team_filter_excludes_them(): void
+    {
+        $member = User::factory()->teamMember()->create();
+        $team = $member->teams()->firstOrFail();
+
+        $climbing = Activity::factory()->create(['name' => 'Filter Climbing']);
+        $team->addActivity($climbing);
+
+        $booking = Booking::factory()->confirmed()->create([
+            'team_id' => $team->getKey(),
+            'activity_id' => $climbing->getKey(),
+            'start_at' => now()->subDays(2)->setTime(10, 0),
+            'end_at' => now()->subDays(2)->setTime(12, 0),
+        ]);
+        $this->attend($booking, $member, BookingAttendeeStatus::Accepted);
+
+        $linked = LogbookEntry::factory()->create([
+            'user_id' => $member->getKey(),
+            'booking_id' => $booking->getKey(),
+            'notes' => 'Linked keep',
+        ]);
+
+        $external = LogbookEntry::factory()->external()->create([
+            'user_id' => $member->getKey(),
+            'occurred_on' => now()->subDay()->toDateString(),
+            'activity_label' => 'Filter Climbing',
+            'venue_name' => 'External Crag',
+            'notes' => 'External keep',
+        ]);
+
+        $oldExternal = LogbookEntry::factory()->external()->create([
+            'user_id' => $member->getKey(),
+            'occurred_on' => now()->subMonths(2)->toDateString(),
+            'activity_label' => 'Filter Climbing',
+            'venue_name' => 'Old Crag',
+            'notes' => 'External drop',
+        ]);
+
+        $this->actingAs($member);
+        Filament::setCurrentPanel('member');
+
+        Livewire::test(LogbookPage::class)
+            ->assertCanSeeTableRecords([$linked, $external, $oldExternal])
+            ->filterTable('activity', ['Filter Climbing'])
+            ->assertCanSeeTableRecords([$linked, $external, $oldExternal])
+            ->filterTable('schedule', [
+                'from' => now()->subDays(7)->toDateString(),
+                'to' => now()->toDateString(),
+            ])
+            ->assertCanSeeTableRecords([$linked, $external])
+            ->assertCanNotSeeTableRecords([$oldExternal])
+            ->filterTable('team_id', $team->getKey())
+            ->assertCanSeeTableRecords([$linked])
+            ->assertCanNotSeeTableRecords([$external, $oldExternal]);
     }
 
     private function pastBooking(?Team $team = null): Booking
