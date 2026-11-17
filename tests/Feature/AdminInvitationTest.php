@@ -374,10 +374,12 @@ class AdminInvitationTest extends TestCase
 
         Livewire::withQueryParams(['token' => $placeholder->invitation->token])
             ->test(AcceptInvitation::class, ['invitation' => $placeholder->invitation])
-            ->set('password', 'secret-pass-1')
-            ->set('password_confirmation', 'secret-pass-1')
-            ->set('timezone', 'Europe/London')
-            ->set('privacy_notice_accepted', true)
+            ->fillForm([
+                'password' => 'secret-pass-1',
+                'passwordConfirmation' => 'secret-pass-1',
+                'timezone' => 'Europe/London',
+                'privacy_notice_accepted' => true,
+            ])
             ->call('createAccount')
             ->assertHasNoErrors();
 

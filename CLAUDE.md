@@ -261,7 +261,7 @@ Prefer icons in this order:
 
 ## Public form pages
 
-Pages that use `layouts.filament-form` (mail-preference links from email, invitation create-account, and similar token or signed-out forms) are not Filament panel schemas. That layout loads CDN Tailwind without `@tailwindcss/forms`, so a class like `border-slate-300` with no `border` or padding renders as a naked native control.
+Pages that use `layouts.filament-form` (mail-preference links from email and similar token or signed-out forms) are not Filament panel schemas. That layout loads CDN Tailwind without `@tailwindcss/forms`, so a class like `border-slate-300` with no `border` or padding renders as a naked native control. Invitation create-account uses Filament `SimplePage` with `ContactFields` like profile and annual confirm.
 
 Style those controls with the shared Blade components, not ad-hoc input classes:
 

@@ -414,12 +414,19 @@ class TeamInvitationTest extends TestCase
 
         Livewire::withQueryParams(['token' => $placeholder->invitation->token])
             ->test(AcceptInvitation::class, ['invitation' => $placeholder->invitation])
-            ->set('password', 'secret-pass-1')
-            ->set('password_confirmation', 'secret-pass-1')
-            ->set('timezone', 'Europe/London')
-            ->set('privacy_notice_accepted', true)
+            ->fillForm([
+                'password' => 'secret-pass-1',
+                'passwordConfirmation' => 'secret-pass-1',
+                'timezone' => 'Europe/London',
+                'privacy_notice_accepted' => true,
+                'phone' => '07700 900123',
+                'emergency_name' => 'Pat',
+                'emergency_phone' => '07700 900456',
+            ])
             ->call('createAccount')
             ->assertHasNoErrors();
+
+        $this->assertSame('Pat', $placeholder->fresh()->emergency_name);
 
         $this->assertAuthenticatedAs($placeholder->fresh());
         $this->assertNotEmpty($url);
