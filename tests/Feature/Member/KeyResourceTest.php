@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Member;
 
+use App\Filament\Member\Resources\Keys\KeyResource;
 use App\Filament\Member\Resources\Keys\Pages\ListKeys;
 use App\Models\Key;
 use App\Models\User;
@@ -32,5 +33,17 @@ class KeyResourceTest extends TestCase
 
         Livewire::test(ListKeys::class)
             ->assertCanSeeTableRecords([$archery, $climbing, $zebra], inOrder: true);
+    }
+
+    public function test_my_keys_appears_in_navigation_only_when_the_member_holds_a_key(): void
+    {
+        $member = User::factory()->teamMember()->create();
+
+        $this->actingAs($member);
+        $this->assertFalse(KeyResource::shouldRegisterNavigation());
+
+        Key::factory()->heldBy($member)->create();
+
+        $this->assertTrue(KeyResource::shouldRegisterNavigation());
     }
 }

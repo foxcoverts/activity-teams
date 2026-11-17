@@ -69,9 +69,9 @@ class AuthenticationTest extends TestCase
                 'News',
                 'Personal',
                 'Inbox',
-                'My keys',
                 'Qualifications',
             ])
+            ->assertDontSee('My keys')
             ->assertDontSee('Admin')
             ->assertDontSee(Filament::getPanel('admin')->getUrl(), false);
     }
@@ -300,7 +300,7 @@ class AuthenticationTest extends TestCase
             ->assertOk()
             ->assertSeeTextInOrder(['Dashboard', 'Home', 'Manage', 'Setup', 'Personal'])
             ->assertSee('Inbox')
-            ->assertSee('My keys')
+            ->assertDontSee('My keys')
             ->assertSee('Report an incident')
             ->assertDontSee('Admin', false)
             ->assertSee('href="'.$membersUrl.'"', false);
