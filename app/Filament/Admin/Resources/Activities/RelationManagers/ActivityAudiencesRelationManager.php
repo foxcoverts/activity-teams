@@ -2,10 +2,9 @@
 
 namespace App\Filament\Admin\Resources\Activities\RelationManagers;
 
-use App\Filament\Qualifications\QualificationSchema;
+use App\Filament\Admin\Resources\Activities\Schemas\ActivityAudienceForm;
 use App\Models\Activity;
 use App\Models\ActivityAudience;
-use App\Models\Audience;
 use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
@@ -17,7 +16,6 @@ use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
-use Illuminate\Database\Eloquent\Builder;
 
 class ActivityAudiencesRelationManager extends RelationManager
 {
@@ -29,6 +27,18 @@ class ActivityAudiencesRelationManager extends RelationManager
 
     public function form(Schema $schema): Schema
     {
+        [$audienceSelect, $requirements] = ActivityAudienceForm::rowSchema(
+            fn (?ActivityAudience $record): array => $this->audienceOptions($record),
+            inRepeater: false,
+        );
+
+        assert($audienceSelect instanceof Select);
+
+        $audienceSelect
+            ->default(fn (): ?string => $this->onlyAudienceId())
+            ->disabledOn('edit')
+            ->dehydrated(fn (string $operation): bool => $operation === 'create');
+
         return $schema
             ->components([
                 Section::make(__('Audience'))
@@ -36,14 +46,8 @@ class ActivityAudiencesRelationManager extends RelationManager
                     ->columns(1)
                     ->columnSpanFull()
                     ->schema([
-                        Select::make('audience_id')
-                            ->label(__('Audience'))
-                            ->options(fn (?ActivityAudience $record): array => $this->audienceOptions($record))
-                            ->default(fn (): ?string => $this->onlyAudienceId())
-                            ->required()
-                            ->disabledOn('edit')
-                            ->dehydrated(fn (string $operation): bool => $operation === 'create'),
-                        QualificationSchema::requirementRepeater(),
+                        $audienceSelect,
+                        $requirements,
                     ]),
             ]);
     }
@@ -113,19 +117,6 @@ class ActivityAudiencesRelationManager extends RelationManager
             ? $owner->activityAudiences()->pluck('audience_id')
             : collect();
 
-        if ($current !== null) {
-            $used = $used->reject(
-                fn (mixed $id): bool => (string) $id === (string) $current->audience_id,
-            );
-        }
-
-        return Audience::query()
-            ->when(
-                $used->isNotEmpty(),
-                fn (Builder $query): Builder => $query->whereNotIn('id', $used),
-            )
-            ->orderBy('name')
-            ->pluck('name', 'id')
-            ->all();
+        return ActivityAudienceForm::optionsExcluding($used, $current?->audience_id);
     }
 }

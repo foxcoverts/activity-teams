@@ -298,26 +298,24 @@ class ActivityQualificationRequirementTest extends TestCase
         Livewire::test(CreateActivity::class)
             ->fillForm([
                 'name' => 'Scout climbing',
+                'activityAudiences' => [
+                    [
+                        'audience_id' => $audience->getKey(),
+                        'qualificationRequirements' => [
+                            [
+                                'kind' => 'scout_permit',
+                                'group' => 'Climbing and Abseiling',
+                                'permit_type' => 'leadership',
+                            ],
+                        ],
+                    ],
+                ],
             ])
             ->call('create')
             ->assertHasNoFormErrors();
 
         $activity = Activity::query()->where('name', 'Scout climbing')->first();
         $this->assertNotNull($activity);
-
-        Livewire::test(ActivityAudiencesRelationManager::class, [
-            'ownerRecord' => $activity,
-            'pageClass' => EditActivity::class,
-        ])->callTableAction('create', data: [
-            'audience_id' => $audience->getKey(),
-            'qualificationRequirements' => [
-                [
-                    'kind' => 'scout_permit',
-                    'group' => 'Climbing and Abseiling',
-                    'permit_type' => 'leadership',
-                ],
-            ],
-        ])->assertHasNoFormErrors();
 
         $pairing = $activity->activityAudiences()->first();
         $this->assertInstanceOf(ActivityAudience::class, $pairing);
@@ -357,37 +355,51 @@ class ActivityQualificationRequirementTest extends TestCase
         $this->actingAs($admin);
 
         Livewire::test(CreateActivity::class)
-            ->fillForm(['name' => 'Canoeing'])
+            ->fillForm([
+                'name' => 'Canoeing',
+                'activityAudiences' => [
+                    [
+                        'audience_id' => $audience->getKey(),
+                        'qualificationRequirements' => [
+                            [
+                                'kind' => 'scout_permit',
+                                'group' => 'Canoeing Open Inland',
+                                'node' => 'B2',
+                            ],
+                            [
+                                'kind' => 'scout_permit',
+                                'group' => 'Canoeing River',
+                                'node' => 'B2',
+                            ],
+                        ],
+                    ],
+                ],
+            ])
             ->call('create')
             ->assertHasNoFormErrors();
 
         $activity = Activity::query()->where('name', 'Canoeing')->first();
         $this->assertNotNull($activity);
 
-        Livewire::test(ActivityAudiencesRelationManager::class, [
-            'ownerRecord' => $activity,
-            'pageClass' => EditActivity::class,
-        ])->callTableAction('create', data: [
-            'audience_id' => $audience->getKey(),
-            'qualificationRequirements' => [
-                [
-                    'kind' => 'scout_permit',
-                    'group' => 'Canoeing Open Inland',
-                    'node' => 'B2',
-                ],
-                [
-                    'kind' => 'scout_permit',
-                    'group' => 'Canoeing River',
-                    'node' => 'B2',
-                ],
-            ],
-        ])->assertHasNoFormErrors();
-
         $this->assertSame(2, $activity->activityAudiences()->first()?->qualificationRequirements()->count());
         $this->assertSame(
             ['Canoeing Open Inland', 'Canoeing River'],
             $activity->activityAudiences()->first()?->qualificationRequirements()->orderBy('sort')->get()->map(fn ($row) => $row->criteria['activity'])->all(),
         );
+    }
+
+    public function test_creating_an_activity_requires_at_least_one_audience(): void
+    {
+        $admin = User::factory()->systemAdmin()->create();
+        $this->actingAs($admin);
+
+        Livewire::test(CreateActivity::class)
+            ->fillForm([
+                'name' => 'No audience yet',
+                'activityAudiences' => [],
+            ])
+            ->call('create')
+            ->assertHasFormErrors(['activityAudiences']);
     }
 
     public function test_adding_qualifications_preselects_the_only_audience(): void
