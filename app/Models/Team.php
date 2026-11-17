@@ -27,6 +27,13 @@ class Team extends Model implements HasAvatar
     /** @use HasFactory<TeamFactory> */
     use HasFactory, HasUlids;
 
+    /**
+     * Request-local memo for navigation presence helpers.
+     *
+     * @var array{news?: bool, documents?: bool}
+     */
+    private array $navigationPresence = [];
+
     protected $fillable = [
         'name',
         'slug',
@@ -317,6 +324,25 @@ class Team extends Model implements HasAvatar
     public function documents(): HasMany
     {
         return $this->hasMany(Document::class);
+    }
+
+    /**
+     * Whether the teams News nav should show content for members who cannot create.
+     * Published (or past-dated) posts only; managers keep the empty menu via canCreate().
+     */
+    public function hasNewsForNavigation(): bool
+    {
+        return $this->navigationPresence['news'] ??= $this->newsPosts()
+            ->whereNowOrPast('published_at')
+            ->exists();
+    }
+
+    /**
+     * Whether the teams Documents nav should show content for members who cannot create.
+     */
+    public function hasDocumentsForNavigation(): bool
+    {
+        return $this->navigationPresence['documents'] ??= $this->documents()->exists();
     }
 
     public function tasks(): HasMany

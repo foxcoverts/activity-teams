@@ -38,6 +38,21 @@ class DocumentResource extends Resource
 
     protected static ?string $slug = 'documents';
 
+    public static function canViewAny(): bool
+    {
+        if (! parent::canViewAny()) {
+            return false;
+        }
+
+        if (static::canCreate()) {
+            return true;
+        }
+
+        $tenant = Filament::getTenant();
+
+        return $tenant instanceof Team && $tenant->hasDocumentsForNavigation();
+    }
+
     public static function form(Schema $schema): Schema
     {
         return DocumentForm::configure($schema);

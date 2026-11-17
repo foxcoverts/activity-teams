@@ -340,4 +340,28 @@ class DocumentResourceTest extends TestCase
         $this->get(DocumentResource::getUrl('edit', ['record' => $other]))
             ->assertNotFound();
     }
+
+    public function test_members_lose_documents_nav_when_the_team_has_none_and_managers_keep_it(): void
+    {
+        $manager = User::factory()->teamManager()->create();
+        $team = $manager->managedTeams()->firstOrFail();
+        $member = User::factory()->teamMember($team)->create();
+
+        $this->actingAs($member);
+        Filament::setTenant($team);
+        $this->assertFalse(DocumentResource::canViewAny());
+        $this->assertFalse($team->hasDocumentsForNavigation());
+
+        $this->actingAs($manager);
+        Filament::setTenant($team);
+        $this->assertTrue(DocumentResource::canViewAny());
+
+        Document::factory()->forTeam($team)->create();
+        $team = $team->fresh();
+
+        $this->actingAs($member);
+        Filament::setTenant($team);
+        $this->assertTrue($team->hasDocumentsForNavigation());
+        $this->assertTrue(DocumentResource::canViewAny());
+    }
 }

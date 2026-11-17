@@ -10,6 +10,7 @@ use App\Filament\Teams\Resources\NewsPosts\Schemas\NewsPostForm;
 use App\Filament\Teams\Resources\NewsPosts\Schemas\NewsPostInfolist;
 use App\Filament\Teams\Resources\NewsPosts\Tables\NewsPostsTable;
 use App\Models\NewsPost;
+use App\Models\Team;
 use BackedEnum;
 use Filament\Facades\Filament;
 use Filament\Resources\Resource;
@@ -36,6 +37,21 @@ class NewsPostResource extends Resource
     protected static ?string $pluralModelLabel = 'News';
 
     protected static ?string $slug = 'news';
+
+    public static function canViewAny(): bool
+    {
+        if (! parent::canViewAny()) {
+            return false;
+        }
+
+        if (static::canCreate()) {
+            return true;
+        }
+
+        $tenant = Filament::getTenant();
+
+        return $tenant instanceof Team && $tenant->hasNewsForNavigation();
+    }
 
     public static function form(Schema $schema): Schema
     {
