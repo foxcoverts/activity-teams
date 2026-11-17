@@ -8,6 +8,7 @@ Human-oriented working notes for this repository. Local bootstrap is in [INSTALL
 - Do not change application dependencies without agreement.
 - Prefer feature tests with factories over one-off verification scripts. Run the narrowest useful test set for the change (`vendor/bin/sail artisan test --compact …`).
 - After PHP edits, format with Pint (`vendor/bin/sail bin pint --dirty`).
+- **Apostrophe stress (optional, local only):** temporarily bias `UserFactory` / `TeamFactory` defaults to names with apostrophes, run the full suite once, fix any Class A/B assertion flakes, then revert the factory defaults. Do not leave that bias on permanently or as a CI gate. Prefer `withApostropheInName()` for intentional escaping regressions.
 - When a change meets, partly meets, or stops meeting a story’s acceptance criteria, update that story’s status in the same change ([stories/README.md](stories/README.md)).
 
 ## Spelling

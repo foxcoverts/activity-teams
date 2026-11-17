@@ -32,6 +32,16 @@ class UserFactory extends Factory
         ];
     }
 
+    /**
+     * Use a name with an apostrophe for HTML escaping / timeline regressions.
+     */
+    public function withApostropheInName(?string $name = null): static
+    {
+        return $this->state(fn () => [
+            'name' => $name ?? "Alex O'Brien",
+        ]);
+    }
+
     public function unverified(): static
     {
         return $this->state(fn () => ['email_verified_at' => null]);

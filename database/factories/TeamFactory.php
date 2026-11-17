@@ -24,6 +24,21 @@ class TeamFactory extends Factory
         ];
     }
 
+    /**
+     * Use a team name with an apostrophe for HTML escaping regressions.
+     */
+    public function withApostropheInName(?string $name = null): static
+    {
+        return $this->state(function () use ($name): array {
+            $resolved = $name ?? "O'Connell Climbing";
+
+            return [
+                'name' => $resolved,
+                'slug' => Str::slug($resolved).'-'.fake()->unique()->numerify('####'),
+            ];
+        });
+    }
+
     public function withTasks(): static
     {
         return $this->state(fn (): array => [

@@ -50,9 +50,8 @@ class BookingResourceTest extends TestCase
 
     public function test_the_team_filter_only_offers_the_members_teams_and_filters_bookings(): void
     {
-        $member = User::factory()->teamMember()->create();
-        $team = $member->teams()->firstOrFail();
-        $team->update(['name' => "O'Connell Climbing"]);
+        $team = Team::factory()->withApostropheInName("O'Connell Climbing")->create();
+        $member = User::factory()->teamMember($team)->create();
         $otherTeam = Team::factory()->create();
         $mine = Booking::factory()->forTeam($team)->confirmed()->create();
         $mine->attendees()->attach($member->getKey(), ['status' => BookingAttendeeStatus::Accepted]);
