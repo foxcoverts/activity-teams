@@ -42,6 +42,17 @@ class KeyResource extends Resource
         return auth()->user() instanceof User;
     }
 
+    public static function shouldRegisterNavigation(): bool
+    {
+        if (! parent::shouldRegisterNavigation()) {
+            return false;
+        }
+
+        $user = auth()->user();
+
+        return $user instanceof User && $user->keys()->exists();
+    }
+
     public static function canCreate(): bool
     {
         return false;

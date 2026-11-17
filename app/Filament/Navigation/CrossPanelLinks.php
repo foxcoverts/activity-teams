@@ -154,7 +154,7 @@ class CrossPanelLinks
             ->icon(Heroicon::OutlinedKey)
             ->sort(4)
             ->url(fn (): string => MemberKeyResource::getUrl(panel: 'member'))
-            ->visible(fn (): bool => static::canAccessMemberPanel() && MemberKeyResource::canViewAny());
+            ->visible(fn (): bool => static::canAccessMemberPanel() && MemberKeyResource::shouldRegisterNavigation());
     }
 
     public static function qualifications(): NavigationItem
