@@ -3,6 +3,7 @@
 namespace App\Filament\Teams\Pages;
 
 use App\Filament\Pages\Dashboard as BaseDashboard;
+use App\Filament\Teams\NavigationGroup;
 use App\Filament\Teams\Widgets\Manager\EmailBouncesWidget;
 use App\Filament\Teams\Widgets\Manager\ManagerAllCaughtUpWidget;
 use App\Filament\Teams\Widgets\Manager\NeedsLeadWidget;
@@ -28,7 +29,9 @@ class ManagerDashboard extends BaseDashboard
 
     protected static string $panel = 'teams';
 
-    protected static ?int $navigationSort = -4;
+    protected static string|\UnitEnum|null $navigationGroup = NavigationGroup::Manage;
+
+    protected static ?int $navigationSort = 1;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedClipboardDocumentList;
 

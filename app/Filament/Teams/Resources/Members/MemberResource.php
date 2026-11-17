@@ -6,6 +6,7 @@ use App\Actions\SendTeamInvitationAction;
 use App\Enums\InvitationStatus;
 use App\Enums\MembershipRole;
 use App\Filament\RelationManagers\QualificationsRelationManager;
+use App\Filament\Teams\NavigationGroup;
 use App\Filament\Teams\Resources\Members\Pages\EditMember;
 use App\Filament\Teams\Resources\Members\Pages\ListMembers;
 use App\Filament\Teams\Resources\Members\Pages\ViewMember;
@@ -42,7 +43,9 @@ class MemberResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedUser;
 
-    protected static ?int $navigationSort = 5;
+    protected static string|\UnitEnum|null $navigationGroup = NavigationGroup::Manage;
+
+    protected static ?int $navigationSort = 3;
 
     protected static ?string $navigationLabel = 'Members';
 

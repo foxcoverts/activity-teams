@@ -334,6 +334,7 @@ class ActivityTeamsTest extends TestCase
                 'Dashboard',
                 'Home',
                 'Bookings',
+                'Manage',
                 'Personal',
             ]);
     }
