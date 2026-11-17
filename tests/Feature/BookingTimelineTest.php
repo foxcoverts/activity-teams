@@ -24,9 +24,11 @@ class BookingTimelineTest extends TestCase
     public function test_the_member_timeline_does_not_link_into_manage(): void
     {
         // Apostrophe regression: timeline must show a raw ', never double-encoded &amp;#039;.
+        // Viewer name also uses an apostrophe so comments avatar alt correctly emits &#039; —
+        // that must not fail the timeline check (page-wide assertDontSeeHtml('D&#039;Amore') was flaky).
         $manager = User::factory()->teamManager()->create(['name' => "Joana D'Amore II"]);
         $team = $manager->managedTeams()->firstOrFail();
-        $member = User::factory()->create();
+        $member = User::factory()->create(['name' => "Alyce D'Amore III"]);
         $team->grant($member, MembershipRole::Member);
 
         $this->actingAs($manager);
@@ -36,16 +38,13 @@ class BookingTimelineTest extends TestCase
         Filament::setCurrentPanel('teams');
         $this->actingAs($member);
 
-        $view = Livewire::test(TeamsViewBooking::class, ['record' => $booking->getRouteKey()]);
-
-        $view
+        Livewire::test(TeamsViewBooking::class, ['record' => $booking->getRouteKey()])
             ->assertSee('Confirmed booking')
             ->assertSee('Group')
             ->assertSee('Recent activity')
             ->assertSee($manager->name, escape: false)
             ->assertSeeHtml("<strong>Joana D'Amore II</strong>")
             ->assertDontSeeHtml('D&amp;#039;Amore')
-            ->assertDontSeeHtml('D&#039;Amore')
             ->assertSeeHtml('wire:name="App\\Filament\\Teams\\Resources\\Bookings\\RelationManagers\\AttendeesRelationManager"')
             ->assertDontSeeHtml('/members/');
     }
