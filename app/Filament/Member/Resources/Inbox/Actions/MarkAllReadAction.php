@@ -4,6 +4,7 @@ namespace App\Filament\Member\Resources\Inbox\Actions;
 
 use App\Filament\Concerns\HasStableLivewireKey;
 use App\Filament\Member\Resources\Inbox\InboxResource;
+use App\Filament\Support\RefreshesNavigationChrome;
 use App\Models\InboxNotification;
 use Filament\Actions\Action;
 use Filament\Support\Icons\Heroicon;
@@ -37,10 +38,12 @@ class MarkAllReadAction extends Action
                 'x-cloak' => true,
                 'x-show' => '! getSelectedRecordsCount()',
             ])
-            ->action(function (): void {
+            ->action(function (Action $action): void {
                 InboxResource::getEloquentQuery()
                     ->whereNull('read_at')
                     ->each(fn (InboxNotification $record) => $record->markReadForDelivery());
+
+                RefreshesNavigationChrome::dispatch($action->getLivewire());
             });
     }
 }

@@ -3,6 +3,7 @@
 namespace App\Filament\Member\Resources\Inbox\Actions;
 
 use App\Filament\Concerns\HasStableLivewireKey;
+use App\Filament\Support\RefreshesNavigationChrome;
 use App\Models\InboxNotification;
 use Filament\Actions\BulkAction;
 use Filament\Support\Icons\Heroicon;
@@ -24,8 +25,10 @@ class MarkSelectedReadBulkAction extends BulkAction
         $this->label(__('Mark read'))
             ->icon(Heroicon::OutlinedCheck)
             ->deselectRecordsAfterCompletion()
-            ->action(function (Collection $records): void {
+            ->action(function (Collection $records, BulkAction $action): void {
                 $records->each(fn (InboxNotification $record) => $record->markReadForDelivery());
+
+                RefreshesNavigationChrome::dispatch($action->getLivewire());
             });
     }
 }

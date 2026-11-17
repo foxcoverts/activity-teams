@@ -188,7 +188,9 @@ class InboxTest extends TestCase
 
         Livewire::test(ListNotifications::class)
             ->selectTableRecords([$selected])
-            ->callAction(TestAction::make('markSelectedRead')->table()->bulk());
+            ->callAction(TestAction::make('markSelectedRead')->table()->bulk())
+            ->assertDispatched('refresh-sidebar')
+            ->assertDispatched('refresh-topbar');
 
         $this->assertNotNull($selected->fresh()->read_at);
         $this->assertNotNull($selected->fresh()->digest_notified_at);
@@ -232,6 +234,8 @@ class InboxTest extends TestCase
 
         Livewire::test(ListNotifications::class)
             ->callAction(TestAction::make('markAllRead')->table())
+            ->assertDispatched('refresh-sidebar')
+            ->assertDispatched('refresh-topbar')
             ->assertActionHidden(TestAction::make('markAllRead')->table());
 
         foreach ($rows as $row) {
