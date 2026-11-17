@@ -297,7 +297,7 @@ class TaskManagementTest extends TestCase
     public function test_task_view_shows_recent_activity_timeline(): void
     {
         $team = Team::factory()->withTasks()->create();
-        $manager = User::factory()->teamManager($team)->create(['name' => "Manager O'Brien"]);
+        $manager = User::factory()->withApostropheInName("Manager O'Brien")->teamManager($team)->create();
 
         $this->actingAs($manager);
         Filament::setTenant($team);
@@ -309,7 +309,7 @@ class TaskManagementTest extends TestCase
             ->assertSee('Recent activity')
             ->assertSeeHtml('created the task')
             ->assertSeeHtml('href="'.$memberUrl.'"')
-            ->assertSeeHtml("Manager O'Brien")
+            ->assertSeeHtml($manager->name)
             ->assertDontSeeHtml('O&amp;#039;Brien');
 
         $task->markCompleted();
