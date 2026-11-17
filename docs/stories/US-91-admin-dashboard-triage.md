@@ -21,4 +21,4 @@ As a system admin (or oversight user), I want the Admin dashboard to surface sit
 
 ## Progress
 
-Done via `AdminAttention` and Admin dashboard widgets. Lifts the Admin dashboard deferral noted on [US-69](US-69-member-dashboard.md) for this triage slice only.
+Done via `AdminAttention` and Admin dashboard widgets. The cross-panel **Admin** link (Member and Teams sidebars) reuses the same dashboard nav badge and severity colour. Lifts the Admin dashboard deferral noted on [US-69](US-69-member-dashboard.md) for this triage slice only.

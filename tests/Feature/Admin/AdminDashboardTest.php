@@ -15,6 +15,7 @@ use App\Filament\Admin\Widgets\KeysWithoutLocksWidget;
 use App\Filament\Admin\Widgets\PendingSiteInvitesWidget;
 use App\Filament\Admin\Widgets\TeamsWithoutManagersWidget;
 use App\Filament\Admin\Widgets\VenuesWithoutTeamsWidget;
+use App\Filament\Navigation\CrossPanelLinks;
 use App\Models\Activity;
 use App\Models\Audience;
 use App\Models\InboundMail;
@@ -188,6 +189,22 @@ class AdminDashboardTest extends TestCase
 
         $this->assertSame('2', Dashboard::getNavigationBadge());
         $this->assertSame(AttentionSeverity::Destructive->filamentColor(), Dashboard::getNavigationBadgeColor());
+    }
+
+    public function test_cross_panel_admin_link_reuses_dashboard_attention_badge(): void
+    {
+        $admin = User::factory()->systemAdmin()->create();
+        $this->actingAs($admin);
+
+        InboundMail::factory()->create(['outcome' => InboundMailOutcome::Failed]);
+        InboundMail::factory()->create(['outcome' => InboundMailOutcome::Queued]);
+
+        $item = CrossPanelLinks::admin();
+
+        $this->assertSame(Dashboard::getNavigationBadge(), $item->getBadge());
+        $this->assertSame(Dashboard::getNavigationBadgeColor(), $item->getBadgeColor());
+        $this->assertSame('2', $item->getBadge());
+        $this->assertSame(AttentionSeverity::Destructive->filamentColor(), $item->getBadgeColor());
     }
 
     public function test_all_caught_up_when_queues_are_empty(): void

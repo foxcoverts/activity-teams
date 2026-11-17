@@ -2,6 +2,7 @@
 
 namespace App\Filament\Navigation;
 
+use App\Filament\Admin\Pages\Dashboard as AdminDashboard;
 use App\Filament\Member\Pages\Dashboard as MemberDashboard;
 use App\Filament\Member\Pages\Logbook;
 use App\Filament\Member\Pages\ReportIncident;
@@ -109,6 +110,10 @@ class CrossPanelLinks
             ->icon(Heroicon::OutlinedAdjustmentsHorizontal)
             ->activeIcon(Heroicon::AdjustmentsHorizontal)
             ->sort($sort)
+            ->badge(
+                fn (): ?string => AdminDashboard::getNavigationBadge(),
+                color: fn (): string|array|null => AdminDashboard::getNavigationBadgeColor(),
+            )
             ->url(fn (): string => AdminDeepLink::url())
             ->visible(function (): bool {
                 $user = auth()->user();
