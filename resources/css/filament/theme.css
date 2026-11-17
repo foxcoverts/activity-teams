@@ -72,6 +72,10 @@
     @apply items-center gap-3 px-3 py-2.5;
 }
 
+.invite-row--action {
+    @apply cursor-pointer;
+}
+
 .invite-group-heading {
     @apply flex w-full items-center justify-between gap-3 bg-gray-50 px-3 py-2.5 text-start text-sm font-medium text-gray-950 dark:bg-white/5 dark:text-white;
 }
@@ -86,14 +90,6 @@
 
 .invite-badge {
     @apply inline-flex items-center self-center appearance-none bg-transparent p-0 leading-none;
-}
-
-.key-holder-badge {
-    @apply justify-center;
-}
-
-.key-holder-badge .fi-badge-label-ctn {
-    @apply hidden;
 }
 
 [x-cloak] {
@@ -249,6 +245,44 @@
 .fi-modal:not(.fi-align-start)>.fi-modal-window-ctn>.booking-contact-panel.fi-modal-window .fi-modal-content {
     padding-inline: 0;
     padding-block: calc(var(--spacing) * 4);
+}
+
+.booking-person-details {
+    @apply w-full text-sm;
+}
+
+.booking-person-details--with-tabs {
+    /* Sit the tab strip flush under the modal header (cancels booking-contact-panel content padding-top). */
+    margin-block-start: calc(var(--spacing) * -4);
+}
+
+.booking-person-details__tabs .fi-tabs.fi-contained {
+    @apply gap-1 rounded-none border-y border-gray-200 px-3 py-1.5 dark:border-white/10;
+}
+
+.booking-person-details__panel {
+    @apply px-3 pt-3;
+}
+
+.booking-person-details__panel--contact {
+    @apply px-0 pt-0;
+}
+
+.fi-modal:not(.fi-align-start)>.fi-modal-window-ctn>.booking-person-panel.fi-modal-window .fi-modal-footer {
+    padding-inline: 0;
+    padding-block: calc(var(--spacing) * 3);
+}
+
+.booking-person-panel.fi-modal-window:not([data-footer-open=true])>.fi-modal-footer {
+    display: none;
+}
+
+.booking-person-panel .fi-modal-footer-actions {
+    @apply flex w-full flex-wrap items-center gap-3 px-3;
+}
+
+.booking-person-panel .fi-modal-footer-actions .booking-person-footer-end {
+    @apply ms-auto;
 }
 
 .confirm-attendees-panel .confirm-attendees-section .fi-section:not(.fi-section-not-contained):not(.fi-divided)>.fi-section-content-ctn>.fi-section-content {

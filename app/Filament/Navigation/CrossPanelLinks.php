@@ -162,7 +162,7 @@ class CrossPanelLinks
         return NavigationItem::make(__('Qualifications'))
             ->key('cross-panel-qualifications')
             ->group(TeamsNavigationGroup::Personal)
-            ->icon(Heroicon::OutlinedAcademicCap)
+            ->icon(QualificationResource::ICON)
             ->sort(5)
             ->url(fn (): string => QualificationResource::getUrl(panel: 'member'))
             ->visible(fn (): bool => static::canAccessMemberPanel() && QualificationResource::canViewAny());

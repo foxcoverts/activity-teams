@@ -234,7 +234,7 @@ class InvitePickerTest extends TestCase
             ->assertSee('Robin Outsider')
             ->assertSee('Alex Guest')
             ->assertSee('Key holder')
-            ->assertSee('Other keys')
+            ->assertDontSee('Other keys')
             ->call('toggleKeyHolders')
             ->assertSee('Robin Outsider')
             ->assertDontSee('Alex Guest')

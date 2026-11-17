@@ -363,12 +363,12 @@ class ContactAccessTest extends TestCase
             ->assertSee('Lee Lead')
             ->assertSee('Contact')
             ->assertDontSee($this->lead->phone)
-            ->mountTableAction('contact', $this->lead)
+            ->mountTableAction('personDetails', $this->lead)
             ->assertMountedActionModalSee('legitimate team matters');
 
         Livewire::test(TeamsAttendeesRelationManager::class, ['ownerRecord' => $this->booking, 'pageClass' => TeamsViewBooking::class])
-            ->mountTableAction('contact', $this->maybe)
-            ->assertTableActionNotMounted('contact');
+            ->mountTableAction('personDetails', $this->maybe)
+            ->assertTableActionNotMounted('personDetails');
     }
 
     public function test_contact_stays_available_when_details_are_blank_so_the_emergency_tip_can_show(): void
@@ -382,7 +382,7 @@ class ContactAccessTest extends TestCase
 
         Livewire::test(TeamsAttendeesRelationManager::class, $page())
             ->assertSee('Contact')
-            ->mountTableAction('contact', $this->lead)
+            ->mountTableAction('personDetails', $this->lead)
             ->assertMountedActionModalSee('Ask a team manager');
     }
 
@@ -398,7 +398,7 @@ class ContactAccessTest extends TestCase
             ->assertSee('More actions')
             ->assertDontSee('contactPhone')
             ->assertDontSee('emergencyContact')
-            ->mountTableAction('contact', $this->attendee)
+            ->mountTableAction('personDetails', $this->attendee)
             ->assertMountedActionModalSee('legitimate team matters')
             ->assertMountedActionModalSeeHtml('fi-avatar')
             ->assertMountedActionModalSee('View member')
@@ -415,7 +415,7 @@ class ContactAccessTest extends TestCase
         Filament::setTenant($this->team);
 
         Livewire::test(TeamsAttendeesRelationManager::class, ['ownerRecord' => $this->booking, 'pageClass' => TeamsViewBooking::class])
-            ->mountTableAction('contact', $this->lead)
+            ->mountTableAction('personDetails', $this->lead)
             ->assertMountedActionModalSee('legitimate team matters')
             ->assertMountedActionModalSeeHtml('fi-avatar')
             ->assertMountedActionModalDontSee('View member');
