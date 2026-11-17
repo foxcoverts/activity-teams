@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Enums\BookingAttendeeStatus;
 use App\Enums\BookingStatus;
 use App\Enums\MembershipRole;
+use App\Enums\TeamFeature;
 use App\Filament\Teams\Pages\Reports;
 use App\Models\Activity;
 use App\Models\Audience;
@@ -345,9 +346,19 @@ class ManagerBookingReportsTest extends TestCase
         Livewire::test(Reports::class)
             ->set('year', $year)
             ->assertSee(__('Hours'))
-            ->assertSee(__('0 of 1 sessions debriefed.'))
+            ->assertSee(__('Sum of confirmed session lengths.'))
+            ->assertDontSee('sessions debriefed')
             ->assertDontSee(__('Participants'))
             ->assertDontSee(__('Participants :year', ['year' => $year]));
+
+        $this->team->enableFeature(TeamFeature::Debrief, now()->subDay());
+        $this->team->save();
+
+        Livewire::test(Reports::class)
+            ->set('year', $year)
+            ->assertSee(__('0 of 1 sessions debriefed.'))
+            ->assertSee(__('Debrief hours when recorded, otherwise confirmed session length.'))
+            ->assertDontSee(__('Participants'));
 
         BookingDebrief::factory()->create([
             'booking_id' => $booking->getKey(),

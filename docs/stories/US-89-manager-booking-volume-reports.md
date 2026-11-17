@@ -16,7 +16,7 @@ As an Activity Manager, I want a Teams **Reports** page that summarises booking 
 - The manager picks a calendar year; comparison baseline is always the previous calendar year (no separate compare control).
 - Summary shows confirmed count, cancelled count, cancellation rate (`cancelled ÷ (confirmed + cancelled)`), and **Hours** for confirmed bookings, each with this year / last year / change. Hours use debrief operating hours when a debrief exists, otherwise confirmed session length.
 - When the selected year has at least one debrief, summary also shows **Participants** (sum of debrief participant numbers) with YoY compare. When there are no debriefs in that year, the Participants metric is hidden (not a wall of zeroes).
-- Overview includes a quiet coverage note (“:debriefed of :confirmed sessions debriefed”) when there is at least one confirmed booking in the year.
+- Overview includes a quiet coverage note (“:debriefed of :confirmed sessions debriefed”) when there is at least one confirmed booking in the year and debriefs are relevant (team Debrief feature on, or the year already has debrief rows). When the feature is off and the year has no debriefs, do not mention debriefs.
 - Past still tentative (`status = tentative` and past) appears as a hygiene snapshot with a short list and a prior-year comparator caveat (live leftovers stock, not seasonal volume).
 - Breakdown tables for activity, audience, and venue show confirmed counts for Y / Y−1 / Δ; cancelled counts are visible where useful. The audience table adds participant columns only when the selected year has debriefs.
 - A compact multi-year trend (up to five calendar years) shows confirmed and cancelled totals.
