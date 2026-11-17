@@ -13,9 +13,11 @@ use App\Support\Logbook;
 use App\Support\Palette;
 use Filament\Actions\Action;
 use Filament\Actions\Contracts\HasActions;
+use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\TimePicker;
 use Filament\Notifications\Notification;
 use Filament\Schemas\Components\Component;
 use Filament\Schemas\Components\Section;
@@ -59,7 +61,7 @@ class LogbookEntryAction
                     ? self::editFormState($entry)
                     : app(Logbook::class)->addFormState($record);
             })
-            ->schema(fn (Booking $record): array => self::schema($record))
+            ->schema(fn (Booking $record): array => self::schemaForBooking($record))
             ->extraModalFooterActions(fn (Action $action): array => [
                 self::copyFromDebriefAction($action),
             ])
@@ -117,18 +119,88 @@ class LogbookEntryAction
     }
 
     /**
-     * @return array{hours: mixed, participant_count: mixed, weather: mixed, notes: mixed, debrief_notes: ?string}
+     * @return array<string, mixed>
      */
     public static function editFormState(LogbookEntry $entry): array
     {
         $entry->loadMissing('booking.debrief');
 
-        return [
+        $state = [
             'hours' => $entry->hours,
             'participant_count' => $entry->participant_count,
             'weather' => $entry->weather,
             'notes' => $entry->notes,
+            'role' => $entry->role,
             'debrief_notes' => $entry->booking?->debrief?->notes,
+        ];
+
+        if (! $entry->isLinkedToBooking()) {
+            $state['occurred_on'] = $entry->occurred_on?->toDateString();
+            $state['start_time'] = filled($entry->start_time)
+                ? substr((string) $entry->start_time, 0, 5)
+                : null;
+            $state['activity_label'] = $entry->activity_label;
+            $state['venue_name'] = $entry->venue_name;
+        }
+
+        return $state;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public static function externalFormState(): array
+    {
+        return [
+            'occurred_on' => now()->toDateString(),
+            'start_time' => null,
+            'activity_label' => null,
+            'venue_name' => null,
+            'role' => 'Instructor',
+            'hours' => null,
+            'participant_count' => null,
+            'weather' => null,
+            'notes' => null,
+        ];
+    }
+
+    /**
+     * @return array<int, Component>
+     */
+    public static function schemaForBooking(Booking $booking): array
+    {
+        $booking->loadMissing(['activity', 'audience', 'venue', 'team', 'debrief']);
+
+        return [
+            self::sessionSectionForBooking($booking),
+            self::detailsSection($booking),
+        ];
+    }
+
+    /**
+     * Schema for editing a saved entry (booking-linked or external/orphaned).
+     *
+     * @return array<int, Component>
+     */
+    public static function schemaForEntry(LogbookEntry $entry, User $user): array
+    {
+        $entry->loadMissing(['booking.activity', 'booking.audience', 'booking.venue', 'booking.team', 'booking.debrief']);
+
+        if ($entry->booking instanceof Booking) {
+            return self::schemaForBooking($entry->booking);
+        }
+
+        return self::externalSchema($user);
+    }
+
+    /**
+     * @return array<int, Component>
+     */
+    public static function externalSchema(User $user): array
+    {
+        return [
+            self::sessionSectionForExternal($user),
+            self::detailsSection(),
         ];
     }
 
@@ -137,52 +209,25 @@ class LogbookEntryAction
      */
     public static function schema(Booking $booking): array
     {
-        $booking->loadMissing(['activity', 'audience', 'venue', 'team', 'debrief']);
-
-        return [
-            self::bookingSummarySection($booking),
-            Section::make(__('Session'))
-                ->icon(Heroicon::OutlinedClock)
-                ->columns(1)
-                ->columnSpanFull()
-                ->schema([
-                    TextInput::make('hours')
-                        ->label(__('Hours'))
-                        ->numeric()
-                        ->step(0.25)
-                        ->minValue(0)
-                        ->maxValue(999)
-                        ->inputMode('decimal'),
-                    TextInput::make('participant_count')
-                        ->label(__('Participants'))
-                        ->integer()
-                        ->minValue(0)
-                        ->maxValue(9999),
-                    TextInput::make('weather')
-                        ->label(__('Weather'))
-                        ->maxLength(255),
-                    Textarea::make('notes')
-                        ->label(__('Notes'))
-                        ->rows(4)
-                        ->extraAlpineAttributes(SubmitsOnModEnter::attributes()),
-                    Placeholder::make('debrief_notes')
-                        ->label(__('Debrief notes'))
-                        ->content(fn (): string => filled($booking->debrief?->notes)
-                            ? (string) $booking->debrief->notes
-                            : '—')
-                        ->visible(fn (): bool => filled($booking->debrief?->notes)),
-                ]),
-        ];
+        return self::schemaForBooking($booking);
     }
 
+    /**
+     * @deprecated Use sessionSectionForBooking()
+     */
     public static function bookingSummarySection(Booking $booking): Section
+    {
+        return self::sessionSectionForBooking($booking);
+    }
+
+    public static function sessionSectionForBooking(Booking $booking): Section
     {
         $team = $booking->team;
         $bookingUrl = $team !== null
             ? BookingResource::getUrl('view', ['record' => $booking], panel: 'teams', tenant: $team)
             : null;
 
-        return Section::make(__('Booking'))
+        return Section::make(__('Session'))
             ->icon(Heroicon::OutlinedCalendarDays)
             ->columns(1)
             ->columnSpanFull()
@@ -205,6 +250,73 @@ class LogbookEntryAction
                 Placeholder::make('where')
                     ->label(__('Where'))
                     ->content($booking->venue?->name ?: '—'),
+            ]);
+    }
+
+    public static function sessionSectionForExternal(User $user): Section
+    {
+        $logbook = app(Logbook::class);
+
+        return Section::make(__('Session'))
+            ->icon(Heroicon::OutlinedCalendarDays)
+            ->columns(1)
+            ->columnSpanFull()
+            ->schema([
+                DatePicker::make('occurred_on')
+                    ->label(__('Date'))
+                    ->required()
+                    ->native(false)
+                    ->maxDate(now()),
+                TimePicker::make('start_time')
+                    ->label(__('Start time'))
+                    ->seconds(false)
+                    ->native(false),
+                TextInput::make('activity_label')
+                    ->label(__('Activity'))
+                    ->required()
+                    ->maxLength(255)
+                    ->datalist($logbook->activitySuggestions($user)),
+                TextInput::make('venue_name')
+                    ->label(__('Venue'))
+                    ->required()
+                    ->maxLength(255)
+                    ->datalist($logbook->venueSuggestions($user)),
+            ]);
+    }
+
+    public static function detailsSection(?Booking $booking = null): Section
+    {
+        return Section::make(__('Details'))
+            ->icon(Heroicon::OutlinedClock)
+            ->columns(1)
+            ->columnSpanFull()
+            ->schema([
+                self::roleField(),
+                TextInput::make('hours')
+                    ->label(__('Hours'))
+                    ->numeric()
+                    ->step(0.25)
+                    ->minValue(0)
+                    ->maxValue(999)
+                    ->inputMode('decimal'),
+                TextInput::make('participant_count')
+                    ->label(__('Participants'))
+                    ->integer()
+                    ->minValue(0)
+                    ->maxValue(9999),
+                TextInput::make('weather')
+                    ->label(__('Weather'))
+                    ->maxLength(255),
+                Textarea::make('notes')
+                    ->label(__('Notes'))
+                    ->rows(4)
+                    ->extraAlpineAttributes(SubmitsOnModEnter::attributes()),
+                Placeholder::make('debrief_notes')
+                    ->label(__('Debrief notes'))
+                    ->content(fn (): string => filled($booking?->debrief?->notes)
+                        ? (string) $booking->debrief->notes
+                        : '—')
+                    ->visible(fn (): bool => filled($booking?->debrief?->notes)),
             ]);
     }
 
@@ -273,6 +385,16 @@ class LogbookEntryAction
         }
 
         return null;
+    }
+
+    private static function roleField(?Logbook $logbook = null): TextInput
+    {
+        $logbook ??= app(Logbook::class);
+
+        return TextInput::make('role')
+            ->label(__('Role'))
+            ->maxLength(255)
+            ->datalist($logbook->roleSuggestions());
     }
 
     private static function whenLabel(Booking $booking): string

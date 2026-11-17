@@ -194,6 +194,14 @@ class Booking extends Model implements Commentable
             ) {
                 $booking->privateVenueIdForDeletion = (string) $booking->venue_id;
             }
+
+            $booking->loadMissing(['activity', 'venue', 'logbookEntries']);
+
+            foreach ($booking->logbookEntries as $entry) {
+                $entry->applyBookingSnapshot($booking);
+                $entry->booking_id = null;
+                $entry->save();
+            }
         });
 
         static::deleted(function (Booking $booking): void {

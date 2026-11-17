@@ -23,6 +23,38 @@ class LogbookEntryFactory extends Factory
             'participant_count' => fake()->optional()->numberBetween(1, 20),
             'weather' => fake()->optional()->randomElement(['Dry', 'Wet', 'Windy', 'Clear', 'Overcast']),
             'notes' => fake()->optional()->sentence(),
+            'role' => null,
         ];
+    }
+
+    public function configure(): static
+    {
+        return $this->afterCreating(function (LogbookEntry $entry): void {
+            if ($entry->booking_id === null || $entry->occurred_on !== null) {
+                return;
+            }
+
+            $entry->loadMissing(['booking.activity', 'booking.venue']);
+
+            if ($entry->booking === null) {
+                return;
+            }
+
+            $entry->applyBookingSnapshot($entry->booking);
+            $entry->saveQuietly();
+        });
+    }
+
+    public function external(): static
+    {
+        return $this->state(fn (): array => [
+            'booking_id' => null,
+            'occurred_on' => fake()->dateTimeBetween('-1 year', 'now')->format('Y-m-d'),
+            'start_time' => fake()->optional()->time('H:i:s'),
+            'timezone' => config('app.timezone'),
+            'activity_label' => fake()->randomElement(['Trad Climbing', 'Sport Climbing', 'Indoor Climbing']),
+            'venue_name' => fake()->company().' Crag',
+            'role' => fake()->optional()->randomElement(['Supervisor', 'Instructor', 'Assistant', 'Personal Climbing']),
+        ]);
     }
 }

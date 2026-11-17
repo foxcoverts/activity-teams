@@ -101,28 +101,23 @@ class Logbook extends Page implements HasTable
             ->heading(__('Saved log'))
             ->description(__('Sessions you have added to your personal experience logbook.'))
             ->columns([
-                TextColumn::make('booking.start_at')
+                TextColumn::make('schedule')
                     ->label(__('Schedule'))
-                    ->state(function (LogbookEntry $record): string {
-                        $booking = $record->booking;
-
-                        if ($booking === null || $booking->start_at === null) {
-                            return '—';
-                        }
-
-                        return $booking->start_at
-                            ->copy()
-                            ->timezone($booking->timezone)
-                            ->toFormattedDayDateString()
-                            .' '
-                            .$booking->start_at->copy()->timezone($booking->timezone)->format('H:i');
-                    }),
-                TextColumn::make('booking.activity')
+                    ->state(fn (LogbookEntry $record): string => $record->scheduleLabel()),
+                TextColumn::make('activity')
                     ->label(__('Activity'))
-                    ->state(fn (LogbookEntry $record): string => $record->booking?->activityTitle() ?? '—'),
-                TextColumn::make('booking.venue.name')
+                    ->state(fn (LogbookEntry $record): string => $record->activityTitle() !== ''
+                        ? $record->activityTitle()
+                        : '—'),
+                TextColumn::make('venue')
                     ->label(__('Venue'))
-                    ->placeholder('—'),
+                    ->state(fn (LogbookEntry $record): string => $record->venueName() !== ''
+                        ? $record->venueName()
+                        : '—'),
+                TextColumn::make('role')
+                    ->label(__('Role'))
+                    ->placeholder('—')
+                    ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('hours')
                     ->label(__('Hours'))
                     ->placeholder('—'),
@@ -167,7 +162,7 @@ class Logbook extends Page implements HasTable
 
                         return $indicators;
                     }),
-                SelectFilter::make('activity_id')
+                SelectFilter::make('activity')
                     ->label(__('Activity'))
                     ->multiple()
                     ->options(fn (): array => app(LogbookSupport::class)->activityFilterOptions($this->actor()))
@@ -191,12 +186,10 @@ class Logbook extends Page implements HasTable
                         ->label(__('Edit'))
                         ->modalHeading(__('Edit logbook entry'))
                         ->modalWidth(Width::Large)
-                        ->schema(function (LogbookEntry $record): array {
-                            $booking = $record->booking;
-                            assert($booking instanceof Booking);
-
-                            return LogbookEntryAction::schema($booking);
-                        })
+                        ->schema(fn (LogbookEntry $record): array => LogbookEntryAction::schemaForEntry(
+                            $record,
+                            $this->actor(),
+                        ))
                         ->fillForm(fn (LogbookEntry $record): array => LogbookEntryAction::editFormState($record))
                         ->extraModalFooterActions(fn (Action $action): array => [
                             LogbookEntryAction::copyFromDebriefAction($action),
@@ -221,7 +214,9 @@ class Logbook extends Page implements HasTable
                     DeleteAction::make()
                         ->label(__('Remove'))
                         ->modalHeading(__('Remove logbook entry?'))
-                        ->modalDescription(__('This removes the entry from your saved log. The session will not return to Outstanding.'))
+                        ->modalDescription(fn (LogbookEntry $record): string => $record->isLinkedToBooking()
+                            ? __('This removes the entry from your saved log. The session will not return to Outstanding.')
+                            : __('This removes the entry from your saved log.'))
                         ->successNotificationTitle(__('Removed'))
                         ->action(function (LogbookEntry $record): void {
                             try {
@@ -236,13 +231,39 @@ class Logbook extends Page implements HasTable
                 ]),
             ])
             ->emptyStateHeading(__('No saved log entries yet'))
-            ->emptyStateDescription(__('Confirm attendance on a booking first, or speak to the lead or team manager. Outstanding sessions appear above.'))
+            ->emptyStateDescription(__('Add a session, or confirm attendance on a booking so it appears under Outstanding.'))
             ->paginated([10, 25, 50]);
     }
 
     protected function getHeaderActions(): array
     {
         return [
+            Action::make('addSession')
+                ->label(__('Add session'))
+                ->icon(Heroicon::Plus)
+                ->color(Palette::positive())
+                ->modalHeading(__('Add session'))
+                ->modalWidth(Width::Large)
+                ->modalSubmitActionLabel(__('Save'))
+                ->fillForm(fn (): array => LogbookEntryAction::externalFormState())
+                ->schema(fn (): array => LogbookEntryAction::externalSchema($this->actor()))
+                ->action(function (array $data): void {
+                    try {
+                        app(LogbookSupport::class)->addExternal($this->actor(), $data);
+                    } catch (ValidationException $exception) {
+                        Notification::make()
+                            ->danger()
+                            ->title(collect($exception->errors())->flatten()->first() ?: __('Unable to add this session.'))
+                            ->send();
+
+                        return;
+                    }
+
+                    Notification::make()
+                        ->success()
+                        ->title(__('Added to logbook'))
+                        ->send();
+                }),
             Action::make('exportCsv')
                 ->label(__('Export CSV'))
                 ->icon(Heroicon::OutlinedArrowDownTray)
@@ -261,7 +282,7 @@ class Logbook extends Page implements HasTable
     public function exportFilterQuery(): array
     {
         $schedule = $this->getTableFilterState('schedule') ?? [];
-        $activity = $this->getTableFilterState('activity_id') ?? [];
+        $activity = $this->getTableFilterState('activity') ?? [];
         $team = $this->getTableFilterState('team_id') ?? [];
 
         return app(LogbookSupport::class)->normalisedFilters([
