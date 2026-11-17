@@ -361,7 +361,9 @@ class AdminInvitationTest extends TestCase
     {
         User::query()->delete();
 
-        $this->get(route('filament.member.auth.register'))->assertOk();
+        $this->get(route('filament.member.auth.register'))
+            ->assertOk()
+            ->assertSee('Intl.DateTimeFormat().resolvedOptions().timeZone', false);
 
         User::factory()->create();
 

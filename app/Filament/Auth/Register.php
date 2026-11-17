@@ -32,7 +32,8 @@ class Register extends BaseRegister
                 TimezoneSelect::make('timezone')
                     ->required()
                     ->searchable()
-                    ->default(config('app.timezone')),
+                    ->default(config('app.timezone'))
+                    ->detectFromBrowser(),
                 ContactFields::phoneNotice(),
                 ContactFields::phoneInput('phone'),
                 ...ContactFields::emergencyFields(),
