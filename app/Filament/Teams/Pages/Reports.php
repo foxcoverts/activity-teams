@@ -3,6 +3,7 @@
 namespace App\Filament\Teams\Pages;
 
 use App\Enums\BookingStatus;
+use App\Filament\Teams\NavigationGroup;
 use App\Filament\Teams\Resources\Bookings\BookingResource;
 use App\Filament\Teams\Resources\Members\MemberResource;
 use App\Models\Booking;
@@ -29,7 +30,9 @@ class Reports extends Page
 
     protected static ?string $slug = 'reports';
 
-    protected static ?int $navigationSort = -3;
+    protected static string|\UnitEnum|null $navigationGroup = NavigationGroup::Manage;
+
+    protected static ?int $navigationSort = 4;
 
     protected string $view = 'filament.teams.pages.reports';
 

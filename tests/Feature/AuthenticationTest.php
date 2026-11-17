@@ -298,7 +298,7 @@ class AuthenticationTest extends TestCase
         $this->actingAs($manager)
             ->get('/teams/'.$team->slug)
             ->assertOk()
-            ->assertSeeTextInOrder(['Dashboard', 'Home', 'Personal'])
+            ->assertSeeTextInOrder(['Dashboard', 'Home', 'Manage', 'Setup', 'Personal'])
             ->assertSee('Inbox')
             ->assertSee('My keys')
             ->assertSee('Report an incident')
@@ -308,7 +308,7 @@ class AuthenticationTest extends TestCase
         $this->actingAs($admin)
             ->get('/teams/'.$team->slug)
             ->assertOk()
-            ->assertSeeTextInOrder(['Dashboard', 'Home', 'Setup', 'Admin', 'Personal'])
+            ->assertSeeTextInOrder(['Dashboard', 'Home', 'Manage', 'Setup', 'Admin', 'Personal'])
             ->assertSee('href="'.$membersUrl.'"', false);
     }
 
