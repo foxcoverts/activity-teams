@@ -8,4 +8,12 @@ use App\Filament\Teams\Widgets\Concerns\ScopedToTeam;
 class NextLedBookingWidget extends MemberNextLedBookingWidget
 {
     use ScopedToTeam;
+
+    protected function sectionData(): array
+    {
+        return [
+            ...parent::sectionData(),
+            'showTeam' => false,
+        ];
+    }
 }

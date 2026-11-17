@@ -8,6 +8,7 @@
     $isLead = $booking->isLead(auth()->user());
     $showStatus ??= true;
     $showResponse ??= false;
+    $showTeam ??= true;
     $warning ??= null;
 
     $start = localDate($booking->start_at, $booking->timezone);
@@ -58,7 +59,7 @@
                 <span class="{{ $chip }}"><x-filament::icon :icon="Heroicon::OutlinedMapPin"
                         class="size-4" />{{ $booking->venue->name }}</span>
             @endif
-            @if ($booking->team)
+            @if ($showTeam && $booking->team)
                 <span
                     class="{{ $colorChip }}"
                     @style([

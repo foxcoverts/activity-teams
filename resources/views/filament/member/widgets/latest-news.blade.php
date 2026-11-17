@@ -25,7 +25,9 @@
                 @if ($isNew)
                     <x-filament::badge :color="\App\Support\Palette::informative()">{{ __('New') }}</x-filament::badge>
                 @endif
-                <x-filament::badge :color="$post->team->brandColor()->getColor()">{{ $post->team->name }}</x-filament::badge>
+                @if (($showTeam ?? true) && $post->team)
+                    <x-filament::badge :color="$post->team->brandColor()->getColor()">{{ $post->team->name }}</x-filament::badge>
+                @endif
             </x-slot>
 
             <p>{{ $post->excerpt() }}</p>
