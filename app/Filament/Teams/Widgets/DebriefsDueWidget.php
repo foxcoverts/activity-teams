@@ -12,6 +12,14 @@ class DebriefsDueWidget extends MemberDebriefsDueWidget
 {
     use ScopedToTeam;
 
+    protected function sectionData(): array
+    {
+        return [
+            ...parent::sectionData(),
+            'showTeam' => false,
+        ];
+    }
+
     /**
      * @return Collection<int, Booking>
      */

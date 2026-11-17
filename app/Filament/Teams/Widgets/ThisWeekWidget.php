@@ -15,6 +15,7 @@ class ThisWeekWidget extends MemberThisWeekWidget
         return [
             ...parent::sectionData(),
             'rotaUrl' => BookingResource::getUrl('index', ['tab' => 'rota']),
+            'showTeam' => false,
         ];
     }
 }

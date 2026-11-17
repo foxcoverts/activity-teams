@@ -8,6 +8,7 @@ use App\Filament\Admin\Resources\Activities\Pages\EditActivity;
 use App\Filament\Admin\Resources\Activities\Pages\ListActivities;
 use App\Filament\Admin\Resources\Activities\Pages\ViewActivity;
 use App\Filament\Admin\Resources\Activities\RelationManagers\ActivityAudiencesRelationManager;
+use App\Filament\Admin\Resources\Activities\Schemas\ActivityAudienceForm;
 use App\Models\Activity;
 use App\Models\User;
 use BackedEnum;
@@ -15,6 +16,7 @@ use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
+use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
@@ -64,6 +66,22 @@ class ActivityResource extends Resource
                             ->label(__('Require activity name on bookings'))
                             ->helperText(__('Use when the catalog name is only for keys and staffing. Each booking must then give a proper activity name.'))
                             ->default(false),
+                    ]),
+                Section::make(__('Audiences'))
+                    ->icon(Heroicon::OutlinedMegaphone)
+                    ->columns(1)
+                    ->columnSpanFull()
+                    ->visibleOn('create')
+                    ->schema([
+                        Repeater::make('activityAudiences')
+                            ->relationship()
+                            ->hiddenLabel()
+                            ->minItems(1)
+                            ->defaultItems(1)
+                            ->schema(ActivityAudienceForm::rowSchema())
+                            ->addActionLabel(__('Add audience'))
+                            ->columns(1)
+                            ->columnSpanFull(),
                     ]),
             ]);
     }

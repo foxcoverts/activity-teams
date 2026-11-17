@@ -1,6 +1,7 @@
 @php
     $showStatus ??= true;
     $showResponse ??= false;
+    $showTeam ??= true;
     $warnings ??= [];
     $days = $bookings->groupBy(fn($booking) => localDate($booking->start_at, $booking->timezone)->toDateString());
 @endphp
@@ -23,6 +24,9 @@
                     @include('filament.member.widgets.booking-row', [
                         'booking' => $booking,
                         'warning' => $warnings[$booking->getKey()] ?? null,
+                        'showTeam' => $showTeam,
+                        'showStatus' => $showStatus,
+                        'showResponse' => $showResponse,
                     ])
                 @endforeach
             </ul>

@@ -97,13 +97,15 @@ class TeamsPanelResourcesTest extends TestCase
 
         $this->get(Filament::getPanel('teams')->getUrl($this->climbing))->assertOk();
 
-        Livewire::test(ThisWeekWidget::class)
+        $thisWeek = Livewire::test(ThisWeekWidget::class)
             ->assertSee('Climbing group')
             ->assertDontSee('Archery group');
+        $this->assertFalse($thisWeek->viewData('showTeam'));
 
-        Livewire::test(LatestNewsWidget::class)
+        $news = Livewire::test(LatestNewsWidget::class)
             ->assertSee('Climbing news')
             ->assertDontSee('Archery news');
+        $this->assertFalse($news->viewData('showTeam'));
     }
 
     public function test_the_booking_list_is_sorted_by_start_time_and_has_invites_and_rota_tabs(): void

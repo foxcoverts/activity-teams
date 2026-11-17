@@ -265,11 +265,14 @@ class AccountPrivacyTest extends TestCase
 
         Livewire::withQueryParams(['token' => $placeholder->invitation->token])
             ->test(AcceptInvitation::class, ['invitation' => $placeholder->invitation])
-            ->set('password', 'secret-pass-1')
-            ->set('password_confirmation', 'secret-pass-1')
-            ->set('timezone', 'Europe/London')
+            ->fillForm([
+                'password' => 'secret-pass-1',
+                'passwordConfirmation' => 'secret-pass-1',
+                'timezone' => 'Europe/London',
+                'privacy_notice_accepted' => false,
+            ])
             ->call('createAccount')
-            ->assertHasErrors(['privacy_notice_accepted']);
+            ->assertHasFormErrors(['privacy_notice_accepted']);
     }
 
     public function test_first_user_register_requires_privacy_acknowledgement(): void

@@ -25,6 +25,7 @@ use App\Filament\Teams\Resources\Members\Pages\ListMembers;
 use App\Filament\Teams\Resources\Members\Pages\ViewMember;
 use App\Filament\Teams\Resources\Venues\Pages\ListVenues;
 use App\Models\Activity;
+use App\Models\Audience;
 use App\Models\Booking;
 use App\Models\BookingAttendance;
 use App\Models\Key;
@@ -486,9 +487,17 @@ class ActivityTeamsTest extends TestCase
         Filament::setCurrentPanel('admin');
         $this->actingAs($admin);
 
+        $audience = Audience::factory()->create();
+
         Livewire::test(CreateActivity::class)
             ->fillForm([
                 'name' => 'Archery',
+                'activityAudiences' => [
+                    [
+                        'audience_id' => $audience->getKey(),
+                        'qualificationRequirements' => [],
+                    ],
+                ],
             ])
             ->call('create')
             ->assertHasNoFormErrors();

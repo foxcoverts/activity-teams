@@ -15,6 +15,7 @@ class NeedsResponseWidget extends MemberNeedsResponseWidget
         return [
             ...parent::sectionData(),
             'invitesUrl' => BookingResource::getUrl('index', ['tab' => 'invites']),
+            'showTeam' => false,
         ];
     }
 }

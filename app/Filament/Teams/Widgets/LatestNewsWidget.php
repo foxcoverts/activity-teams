@@ -15,6 +15,7 @@ class LatestNewsWidget extends MemberLatestNewsWidget
         return [
             ...parent::sectionData(),
             'newsUrl' => NewsPostResource::getUrl('index'),
+            'showTeam' => false,
         ];
     }
 }

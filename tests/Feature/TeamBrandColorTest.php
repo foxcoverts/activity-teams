@@ -17,6 +17,7 @@ use App\Filament\Member\Widgets\ThisWeekWidget;
 use App\Filament\Teams\Resources\Bookings\Pages\ViewBooking as TeamsViewBooking;
 use App\Filament\Teams\Resources\Bookings\RelationManagers\AttendeesRelationManager;
 use App\Filament\Teams\Resources\Members\Pages\ListMembers;
+use App\Filament\Teams\Widgets\ThisWeekWidget as TeamsThisWeekWidget;
 use App\Livewire\InviteAttendees;
 use App\Models\Booking;
 use App\Models\NewsPost;
@@ -233,6 +234,12 @@ class TeamBrandColorTest extends TestCase
             ->assertSee('Archery')
             ->assertSeeHtml('--color-600:'.BrandColor::Rose->getColor()[600])
             ->assertDontSee((string) $team->getFilamentAvatarUrl(), false);
+
+        Filament::setCurrentPanel('teams');
+        Filament::setTenant($team);
+
+        Livewire::test(TeamsThisWeekWidget::class)
+            ->assertDontSeeHtml('--color-600:'.BrandColor::Rose->getColor()[600]);
     }
 
     public function test_the_member_bookings_list_colours_the_team_badge(): void

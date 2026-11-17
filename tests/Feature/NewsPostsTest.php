@@ -8,6 +8,7 @@ use App\Enums\MembershipRole;
 use App\Filament\Member\Pages\Feeds;
 use App\Filament\Member\Resources\NewsPosts\NewsPostResource as MemberNewsPostResource;
 use App\Filament\Member\Resources\NewsPosts\Pages\ListNewsPosts as MemberListNewsPosts;
+use App\Filament\Teams\Resources\NewsPosts\NewsPostResource;
 use App\Filament\Teams\Resources\NewsPosts\Pages\ListNewsPosts;
 use App\Filament\Teams\Resources\NewsPosts\Pages\ViewNewsPost;
 use App\Jobs\NotifyDueNewsPosts;
@@ -818,6 +819,40 @@ class NewsPostsTest extends TestCase
         $this->assertNotNull($event);
         $this->assertSame('* * * * *', $event->expression);
         $this->assertTrue($event->withoutOverlapping);
+    }
+
+    public function test_members_lose_news_nav_when_there_is_no_published_post_and_managers_keep_it(): void
+    {
+        [$manager, $team, $member] = $this->newsActors();
+
+        $this->actingAs($member);
+        Filament::setTenant($team);
+        $this->assertFalse(NewsPostResource::shouldRegisterNavigation());
+        $this->assertFalse($team->hasNewsForNavigation());
+
+        $this->actingAs($manager);
+        Filament::setTenant($team);
+        $this->assertTrue(NewsPostResource::shouldRegisterNavigation());
+
+        NewsPost::factory()->forTeam($team)->create([
+            'published_at' => null,
+        ]);
+        $team = $team->fresh();
+
+        $this->actingAs($member);
+        Filament::setTenant($team);
+        $this->assertFalse($team->hasNewsForNavigation());
+        $this->assertFalse(NewsPostResource::shouldRegisterNavigation());
+
+        NewsPost::factory()->forTeam($team)->create([
+            'published_at' => now()->subHour(),
+        ]);
+        $team = $team->fresh();
+
+        $this->actingAs($member);
+        Filament::setTenant($team);
+        $this->assertTrue($team->hasNewsForNavigation());
+        $this->assertTrue(NewsPostResource::shouldRegisterNavigation());
     }
 
     /**

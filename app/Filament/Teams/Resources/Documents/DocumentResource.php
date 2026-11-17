@@ -38,6 +38,21 @@ class DocumentResource extends Resource
 
     protected static ?string $slug = 'documents';
 
+    public static function shouldRegisterNavigation(): bool
+    {
+        if (! parent::shouldRegisterNavigation()) {
+            return false;
+        }
+
+        if (static::canCreate()) {
+            return true;
+        }
+
+        $tenant = Filament::getTenant();
+
+        return $tenant instanceof Team && $tenant->hasDocumentsForNavigation();
+    }
+
     public static function form(Schema $schema): Schema
     {
         return DocumentForm::configure($schema);

@@ -868,6 +868,82 @@ class AddBookingTest extends TestCase
             ->assertForbidden();
     }
 
+    public function test_editing_keeps_an_activity_removed_from_the_team(): void
+    {
+        $manager = User::factory()->teamManager()->create();
+        $team = $manager->managedTeams()->firstOrFail();
+        $kept = Activity::factory()->create(['name' => 'Kept climbing']);
+        $activity = Activity::factory()->create(['name' => 'Detached climbing']);
+        $this->offerAudience($kept);
+        $audienceId = $this->offerAudience($activity);
+        $venue = Venue::factory()->create();
+        $team->venues()->syncWithoutDetaching([$venue->getKey()]);
+
+        $booking = Booking::factory()->forTeam($team)->create([
+            'activity_id' => $activity->getKey(),
+            'audience_id' => $audienceId,
+            'venue_id' => $venue->getKey(),
+            'group_name' => 'Keep me',
+        ]);
+
+        $team->activities()->detach($activity->getKey());
+
+        $this->actingAs($manager);
+
+        Livewire::test(EditBooking::class, ['record' => $booking->getRouteKey()])
+            ->assertSee('Detached climbing (removed from team)')
+            ->fillForm([
+                'group_name' => 'Still keep me',
+            ])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $booking->refresh();
+        $this->assertTrue($booking->activity->is($activity));
+        $this->assertSame('Still keep me', $booking->group_name);
+    }
+
+    public function test_creating_cannot_use_an_activity_removed_from_the_team(): void
+    {
+        $manager = User::factory()->teamManager()->create();
+        $team = $manager->managedTeams()->firstOrFail();
+        $kept = Activity::factory()->create(['name' => 'Kept']);
+        $detached = Activity::factory()->create(['name' => 'Detached']);
+        $keptAudience = $this->offerAudience($kept);
+        $detachedAudience = $this->offerAudience($detached);
+        $team->activities()->detach($detached->getKey());
+        $venue = Venue::factory()->create();
+        $team->venues()->syncWithoutDetaching([$venue->getKey()]);
+
+        $this->actingAs($manager);
+
+        Livewire::test(CreateBooking::class)
+            ->fillForm([
+                'activity_id' => $detached->getKey(),
+                'audience_id' => $detachedAudience,
+                'venue_id' => $venue->getKey(),
+                'start_date' => '2026-10-24',
+                'start_time' => '09:30',
+                'end_time' => '11:30',
+                'timezone' => 'Europe/London',
+            ])
+            ->call('create')
+            ->assertHasFormErrors(['activity_id']);
+
+        Livewire::test(CreateBooking::class)
+            ->fillForm([
+                'activity_id' => $kept->getKey(),
+                'audience_id' => $keptAudience,
+                'venue_id' => $venue->getKey(),
+                'start_date' => '2026-10-24',
+                'start_time' => '09:30',
+                'end_time' => '11:30',
+                'timezone' => 'Europe/London',
+            ])
+            ->call('create')
+            ->assertHasNoFormErrors();
+    }
+
     private function offerAudience(Activity $activity): string
     {
         $pairing = ActivityAudience::factory()->for($activity)->create();
