@@ -9,6 +9,7 @@ use App\Filament\Teams\Pages\Reports;
 use App\Models\Activity;
 use App\Models\Audience;
 use App\Models\Booking;
+use App\Models\BookingDebrief;
 use App\Models\Team;
 use App\Models\User;
 use App\Models\Venue;
@@ -74,12 +75,86 @@ class ManagerBookingReportsTest extends TestCase
         $this->assertSame(1, $summary['cancelled']['current']);
         $this->assertSame(0, $summary['cancelled']['previous']);
         $this->assertEqualsWithDelta(1 / 3, $summary['cancellation_rate']['current'], 0.0001);
-        $this->assertSame(5.0, $summary['scheduled_hours']['current']);
-        $this->assertSame(2.0, $summary['scheduled_hours']['previous']);
+        $this->assertSame(5.0, $summary['hours']['current']);
+        $this->assertSame(2.0, $summary['hours']['previous']);
+        $this->assertSame(0, $summary['participants']['current']);
+        $this->assertSame([
+            'debriefed' => 0,
+            'confirmed' => 2,
+        ], $summary['debrief_coverage']);
 
         $trend = $this->reports->yearTrend($this->team, 2026);
         $this->assertSame([2024, 2025], array_column($trend, 'year'));
         $this->assertSame([], array_column($this->reports->yearTrend($this->team, 2023), 'year'));
+    }
+
+    public function test_summary_prefers_debrief_hours_and_sums_participants(): void
+    {
+        $activity = Activity::factory()->create(['name' => 'Climbing']);
+        $audience = Audience::factory()->create(['name' => 'Youth']);
+        $this->team->addActivity($activity);
+
+        $withDebrief = Booking::factory()->forTeam($this->team)->confirmed()->create([
+            'activity_id' => $activity->getKey(),
+            'audience_id' => $audience->getKey(),
+            'start_at' => '2025-03-10 09:00:00',
+            'end_at' => '2025-03-10 12:00:00',
+        ]);
+        BookingDebrief::factory()->create([
+            'booking_id' => $withDebrief->getKey(),
+            'hours' => 2.5,
+            'participant_count' => 8,
+        ]);
+
+        Booking::factory()->forTeam($this->team)->confirmed()->create([
+            'activity_id' => $activity->getKey(),
+            'audience_id' => $audience->getKey(),
+            'start_at' => '2025-06-10 09:00:00',
+            'end_at' => '2025-06-10 11:00:00',
+        ]);
+
+        $zeroParticipants = Booking::factory()->forTeam($this->team)->confirmed()->create([
+            'activity_id' => $activity->getKey(),
+            'audience_id' => $audience->getKey(),
+            'start_at' => '2025-07-10 09:00:00',
+            'end_at' => '2025-07-10 10:00:00',
+        ]);
+        BookingDebrief::factory()->create([
+            'booking_id' => $zeroParticipants->getKey(),
+            'hours' => 1.0,
+            'participant_count' => 0,
+        ]);
+
+        $previous = Booking::factory()->forTeam($this->team)->confirmed()->create([
+            'activity_id' => $activity->getKey(),
+            'audience_id' => $audience->getKey(),
+            'start_at' => '2024-05-10 09:00:00',
+            'end_at' => '2024-05-10 11:00:00',
+        ]);
+        BookingDebrief::factory()->create([
+            'booking_id' => $previous->getKey(),
+            'hours' => 1.5,
+            'participant_count' => 4,
+        ]);
+
+        $summary = $this->reports->summary($this->team, 2025);
+
+        $this->assertSame(3, $summary['confirmed']['current']);
+        $this->assertSame(5.5, $summary['hours']['current']);
+        $this->assertSame(1.5, $summary['hours']['previous']);
+        $this->assertSame(8, $summary['participants']['current']);
+        $this->assertSame(4, $summary['participants']['previous']);
+        $this->assertSame([
+            'debriefed' => 2,
+            'confirmed' => 3,
+        ], $summary['debrief_coverage']);
+
+        $byAudience = $this->reports->breakdownByAudience($this->team, 2025);
+        $youth = $byAudience->first(fn (array $row): bool => $row['label'] === 'Youth');
+
+        $this->assertNotNull($youth);
+        $this->assertSame(8, $youth['participants']['current']);
+        $this->assertSame(4, $youth['participants']['previous']);
     }
 
     public function test_past_tentative_hygiene_and_breakdowns_are_team_scoped(): void
@@ -249,5 +324,42 @@ class ManagerBookingReportsTest extends TestCase
         $this->assertStringContainsString('filters%5Bschedule%5D%5Bto%5D='.$year.'-12-31', $cancelledHistoryUrl);
         $this->assertStringNotContainsString('activeTab=', $cancelledHistoryUrl);
         $this->assertStringNotContainsString('tableFilters', $cancelledHistoryUrl);
+    }
+
+    public function test_reports_page_hides_participant_ui_until_debriefs_exist(): void
+    {
+        $manager = User::factory()->create();
+        $this->team->grant($manager, MembershipRole::Manager);
+
+        $booking = Booking::factory()->forTeam($this->team)->confirmed()->create([
+            'start_at' => now()->setTime(9, 0),
+            'end_at' => now()->setTime(11, 0),
+        ]);
+
+        Filament::setCurrentPanel('teams');
+        $this->actingAs($manager);
+        Filament::setTenant($this->team);
+
+        $year = (int) now()->year;
+
+        Livewire::test(Reports::class)
+            ->set('year', $year)
+            ->assertSee(__('Hours'))
+            ->assertSee(__('0 of 1 sessions debriefed.'))
+            ->assertDontSee(__('Participants'))
+            ->assertDontSee(__('Participants :year', ['year' => $year]));
+
+        BookingDebrief::factory()->create([
+            'booking_id' => $booking->getKey(),
+            'hours' => 2.0,
+            'participant_count' => 6,
+        ]);
+
+        Livewire::test(Reports::class)
+            ->set('year', $year)
+            ->assertSee(__('Hours'))
+            ->assertSee(__('Participants'))
+            ->assertSee(__('1 of 1 sessions debriefed.'))
+            ->assertSee(__('Participants :year', ['year' => $year]));
     }
 }

@@ -45,7 +45,9 @@ class ManagerBookingReports
      *     confirmed: array{current: int, previous: int, absolute: int, percent: ?float},
      *     cancelled: array{current: int, previous: int, absolute: int, percent: ?float},
      *     cancellation_rate: array{current: ?float, previous: ?float, absolute: ?float, percent: ?float},
-     *     scheduled_hours: array{current: float, previous: float, absolute: float, percent: ?float},
+     *     hours: array{current: float, previous: float, absolute: float, percent: ?float},
+     *     participants: array{current: int, previous: int, absolute: int, percent: ?float},
+     *     debrief_coverage: array{debriefed: int, confirmed: int},
      *     past_tentative: array{current: int, previous: int, absolute: int, percent: ?float, live: int},
      *     response_rate: array{current: ?float, previous: ?float, absolute: ?float, percent: ?float},
      *     can_help_rate: array{current: ?float, previous: ?float, absolute: ?float, percent: ?float}
@@ -68,7 +70,12 @@ class ManagerBookingReports
                 $this->cancellationRate($currentVolume['confirmed'], $currentVolume['cancelled']),
                 $this->cancellationRate($previousVolume['confirmed'], $previousVolume['cancelled']),
             ),
-            'scheduled_hours' => $this->compareFloat($currentVolume['scheduled_hours'], $previousVolume['scheduled_hours']),
+            'hours' => $this->compareFloat($currentVolume['hours'], $previousVolume['hours']),
+            'participants' => $this->compareInt($currentVolume['participants'], $previousVolume['participants']),
+            'debrief_coverage' => [
+                'debriefed' => $currentVolume['debriefed'],
+                'confirmed' => $currentVolume['confirmed'],
+            ],
             'past_tentative' => [
                 ...$this->compareInt(
                     $this->pastTentativeCountForYear($team, $year),
@@ -90,11 +97,11 @@ class ManagerBookingReports
     }
 
     /**
-     * @return Collection<int, array{key: string|null, label: string, confirmed: array{current: int, previous: int, absolute: int, percent: ?float}, cancelled: array{current: int, previous: int, absolute: int, percent: ?float}}>
+     * @return Collection<int, array{key: string|null, label: string, confirmed: array{current: int, previous: int, absolute: int, percent: ?float}, cancelled: array{current: int, previous: int, absolute: int, percent: ?float}, participants: array{current: int, previous: int, absolute: int, percent: ?float}}>
      */
     public function breakdownByAudience(Team $team, int $year): Collection
     {
-        return $this->breakdown($team, $year, 'audience');
+        return $this->breakdown($team, $year, 'audience', withParticipants: true);
     }
 
     /**
@@ -286,22 +293,38 @@ class ManagerBookingReports
     }
 
     /**
-     * @return array{confirmed: int, cancelled: int, scheduled_hours: float}
+     * @return array{confirmed: int, cancelled: int, hours: float, participants: int, debriefed: int}
      */
     private function volumeTotals(Team $team, int $year): array
     {
+        $confirmed = BookingStatus::Confirmed->value;
+        $cancelled = BookingStatus::Cancelled->value;
+
         $row = Booking::query()
-            ->where('team_id', $team->getKey())
+            ->from('bookings')
+            ->where('bookings.team_id', $team->getKey())
             ->tap(fn (Builder $query) => $this->constrainToYear($query, $year))
+            ->leftJoin('booking_debriefs', 'booking_debriefs.booking_id', '=', 'bookings.id')
             ->selectRaw(
-                'SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as confirmed_count,
-                 SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as cancelled_count,
-                 SUM(CASE WHEN status = ? AND start_at IS NOT NULL AND end_at IS NOT NULL AND end_at > start_at
-                     THEN TIMESTAMPDIFF(SECOND, start_at, end_at) / 3600.0 ELSE 0 END) as scheduled_hours',
+                'SUM(CASE WHEN bookings.status = ? THEN 1 ELSE 0 END) as confirmed_count,
+                 SUM(CASE WHEN bookings.status = ? THEN 1 ELSE 0 END) as cancelled_count,
+                 SUM(CASE WHEN bookings.status = ? AND booking_debriefs.id IS NOT NULL THEN 1 ELSE 0 END) as debriefed_count,
+                 SUM(CASE WHEN bookings.status = ? AND booking_debriefs.id IS NOT NULL
+                     THEN booking_debriefs.participant_count ELSE 0 END) as participants,
+                 SUM(CASE WHEN bookings.status = ? THEN
+                     COALESCE(
+                         booking_debriefs.hours,
+                         CASE WHEN bookings.start_at IS NOT NULL AND bookings.end_at IS NOT NULL AND bookings.end_at > bookings.start_at
+                             THEN TIMESTAMPDIFF(SECOND, bookings.start_at, bookings.end_at) / 3600.0
+                             ELSE 0 END
+                     )
+                     ELSE 0 END) as hours',
                 [
-                    BookingStatus::Confirmed->value,
-                    BookingStatus::Cancelled->value,
-                    BookingStatus::Confirmed->value,
+                    $confirmed,
+                    $cancelled,
+                    $confirmed,
+                    $confirmed,
+                    $confirmed,
                 ],
             )
             ->first();
@@ -309,7 +332,9 @@ class ManagerBookingReports
         return [
             'confirmed' => (int) ($row->confirmed_count ?? 0),
             'cancelled' => (int) ($row->cancelled_count ?? 0),
-            'scheduled_hours' => round((float) ($row->scheduled_hours ?? 0), 2),
+            'hours' => round((float) ($row->hours ?? 0), 2),
+            'participants' => (int) ($row->participants ?? 0),
+            'debriefed' => (int) ($row->debriefed_count ?? 0),
         ];
     }
 
@@ -348,9 +373,9 @@ class ManagerBookingReports
 
     /**
      * @param  'activity'|'audience'|'venue'  $dimension
-     * @return Collection<int, array{key: string|null, label: string, confirmed: array{current: int, previous: int, absolute: int, percent: ?float}, cancelled: array{current: int, previous: int, absolute: int, percent: ?float}}>
+     * @return Collection<int, array{key: string|null, label: string, confirmed: array{current: int, previous: int, absolute: int, percent: ?float}, cancelled: array{current: int, previous: int, absolute: int, percent: ?float}, participants?: array{current: int, previous: int, absolute: int, percent: ?float}}>
      */
-    private function breakdown(Team $team, int $year, string $dimension): Collection
+    private function breakdown(Team $team, int $year, string $dimension, bool $withParticipants = false): Collection
     {
         $previousYear = $year - 1;
         $nullLabel = match ($dimension) {
@@ -358,22 +383,32 @@ class ManagerBookingReports
             'audience' => __('No audience'),
             default => __('No venue'),
         };
-        $current = $this->breakdownCounts($team, $year, $dimension, $nullLabel);
-        $previous = $this->breakdownCounts($team, $previousYear, $dimension, $nullLabel);
+        $current = $this->breakdownCounts($team, $year, $dimension, $nullLabel, $withParticipants);
+        $previous = $this->breakdownCounts($team, $previousYear, $dimension, $nullLabel, $withParticipants);
 
         $keys = $current->keys()->merge($previous->keys())->unique();
 
         return $keys
-            ->map(function (mixed $key) use ($current, $previous, $nullLabel): array {
-                $currentRow = $current->get($key, ['label' => $nullLabel, 'confirmed' => 0, 'cancelled' => 0]);
-                $previousRow = $previous->get($key, ['label' => $nullLabel, 'confirmed' => 0, 'cancelled' => 0]);
+            ->map(function (mixed $key) use ($current, $previous, $nullLabel, $withParticipants): array {
+                $defaults = ['label' => $nullLabel, 'confirmed' => 0, 'cancelled' => 0, 'participants' => 0];
+                $currentRow = $current->get($key, $defaults);
+                $previousRow = $previous->get($key, $defaults);
 
-                return [
+                $row = [
                     'key' => $key === '' ? null : (string) $key,
                     'label' => $currentRow['label'] !== $nullLabel ? $currentRow['label'] : $previousRow['label'],
                     'confirmed' => $this->compareInt((int) $currentRow['confirmed'], (int) $previousRow['confirmed']),
                     'cancelled' => $this->compareInt((int) $currentRow['cancelled'], (int) $previousRow['cancelled']),
                 ];
+
+                if ($withParticipants) {
+                    $row['participants'] = $this->compareInt(
+                        (int) $currentRow['participants'],
+                        (int) $previousRow['participants'],
+                    );
+                }
+
+                return $row;
             })
             ->sortByDesc(fn (array $row): int => $row['confirmed']['current'])
             ->values();
@@ -381,10 +416,15 @@ class ManagerBookingReports
 
     /**
      * @param  'activity'|'audience'|'venue'  $dimension
-     * @return Collection<string, array{label: string, confirmed: int, cancelled: int}>
+     * @return Collection<string, array{label: string, confirmed: int, cancelled: int, participants: int}>
      */
-    private function breakdownCounts(Team $team, int $year, string $dimension, string $nullLabel): Collection
-    {
+    private function breakdownCounts(
+        Team $team,
+        int $year,
+        string $dimension,
+        string $nullLabel,
+        bool $withParticipants = false,
+    ): Collection {
         [$foreignKey, $table, $labelExpression] = match ($dimension) {
             'activity' => [
                 'activity_id',
@@ -406,25 +446,39 @@ class ManagerBookingReports
         $confirmed = BookingStatus::Confirmed->value;
         $cancelled = BookingStatus::Cancelled->value;
 
-        return Booking::query()
+        $query = Booking::query()
             ->from('bookings')
             ->where('bookings.team_id', $team->getKey())
-            ->tap(fn (Builder $query) => $this->constrainToYear($query, $year))
-            ->leftJoin($table, "{$table}.id", '=', "bookings.{$foreignKey}")
-            ->groupBy("bookings.{$foreignKey}")
-            ->selectRaw(
-                "bookings.{$foreignKey} as dimension_key,
+            ->tap(fn (Builder $builder) => $this->constrainToYear($builder, $year))
+            ->leftJoin($table, "{$table}.id", '=', "bookings.{$foreignKey}");
+
+        if ($withParticipants) {
+            $query->leftJoin('booking_debriefs', 'booking_debriefs.booking_id', '=', 'bookings.id');
+        }
+
+        $select = "bookings.{$foreignKey} as dimension_key,
                  {$labelExpression} as label,
                  SUM(CASE WHEN bookings.status = ? THEN 1 ELSE 0 END) as confirmed,
-                 SUM(CASE WHEN bookings.status = ? THEN 1 ELSE 0 END) as cancelled",
-                [$nullLabel, $confirmed, $cancelled],
-            )
+                 SUM(CASE WHEN bookings.status = ? THEN 1 ELSE 0 END) as cancelled";
+        $bindings = [$nullLabel, $confirmed, $cancelled];
+
+        if ($withParticipants) {
+            $select .= ',
+                 SUM(CASE WHEN bookings.status = ? AND booking_debriefs.id IS NOT NULL
+                     THEN booking_debriefs.participant_count ELSE 0 END) as participants';
+            $bindings[] = $confirmed;
+        }
+
+        return $query
+            ->groupBy("bookings.{$foreignKey}")
+            ->selectRaw($select, $bindings)
             ->get()
             ->mapWithKeys(fn ($row): array => [
                 (string) ($row->dimension_key ?? '') => [
                     'label' => (string) $row->label,
                     'confirmed' => (int) $row->confirmed,
                     'cancelled' => (int) $row->cancelled,
+                    'participants' => (int) ($row->participants ?? 0),
                 ],
             ]);
     }

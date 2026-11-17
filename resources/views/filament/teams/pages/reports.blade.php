@@ -25,7 +25,17 @@
             </p>
         </x-filament::section>
 
-        <x-filament::section :icon="Heroicon::OutlinedChartBar" :heading="__('Overview')">
+        @php
+            $debriefCoverage = $summary['debrief_coverage'];
+            $showParticipants = $debriefCoverage['debriefed'] > 0;
+            $overviewDescription = $debriefCoverage['confirmed'] > 0
+                ? __(':debriefed of :confirmed sessions debriefed.', [
+                    'debriefed' => number_format($debriefCoverage['debriefed']),
+                    'confirmed' => number_format($debriefCoverage['confirmed']),
+                ])
+                : null;
+        @endphp
+        <x-filament::section :icon="Heroicon::OutlinedChartBar" :heading="__('Overview')" :description="$overviewDescription">
             <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
                 @include('filament.teams.pages.reports.metric', [
                     'label' => __('Confirmed'),
@@ -45,12 +55,20 @@
                     'hint' => __('Of decided bookings (confirmed + cancelled).'),
                 ])
                 @include('filament.teams.pages.reports.metric', [
-                    'label' => __('Scheduled hours'),
-                    'metric' => $summary['scheduled_hours'],
+                    'label' => __('Hours'),
+                    'metric' => $summary['hours'],
                     'previousYear' => $previousYear,
                     'hours' => true,
-                    'hint' => __('Sum of confirmed session lengths.'),
+                    'hint' => __('Debrief hours when recorded, otherwise confirmed session length.'),
                 ])
+                @if ($showParticipants)
+                    @include('filament.teams.pages.reports.metric', [
+                        'label' => __('Participants'),
+                        'metric' => $summary['participants'],
+                        'previousYear' => $previousYear,
+                        'hint' => __('Sum of participant numbers from completed debriefs.'),
+                    ])
+                @endif
                 @include('filament.teams.pages.reports.metric', [
                     'label' => __('Response rate'),
                     'metric' => $summary['response_rate'],
@@ -110,6 +128,7 @@
                 'heading' => __('Activity'),
                 'dimension' => 'activity',
                 'year' => $this->year,
+                'showParticipants' => false,
             ])
         </x-filament::section>
 
@@ -119,6 +138,7 @@
                 'heading' => __('Audience'),
                 'dimension' => 'audience',
                 'year' => $this->year,
+                'showParticipants' => $showParticipants,
             ])
         </x-filament::section>
 
@@ -128,6 +148,7 @@
                 'heading' => __('Venue'),
                 'dimension' => 'venue',
                 'year' => $this->year,
+                'showParticipants' => false,
             ])
         </x-filament::section>
 
