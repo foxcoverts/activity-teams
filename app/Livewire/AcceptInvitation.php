@@ -157,7 +157,8 @@ class AcceptInvitation extends SimplePage
                             ->dehydrated(false),
                         TimezoneSelect::make('timezone')
                             ->required()
-                            ->searchable(),
+                            ->searchable()
+                            ->detectFromBrowser(),
                     ]),
                 Section::make(__('Contact details'))
                     ->icon(Heroicon::OutlinedPhone)

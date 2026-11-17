@@ -394,7 +394,10 @@ class TeamInvitationTest extends TestCase
 
         $this->get(URL::temporarySignedRoute('invitation.show', $invitation->expires_at, ['invitation' => $invitation, 'token' => 'wrong']))->assertForbidden();
 
-        $this->get($this->acceptUrl($invitation))->assertOk()->assertSee('Create an account');
+        $this->get($this->acceptUrl($invitation))
+            ->assertOk()
+            ->assertSee('Create an account')
+            ->assertSee('Intl.DateTimeFormat().resolvedOptions().timeZone', false);
     }
 
     public function test_a_replaced_link_stops_working(): void
