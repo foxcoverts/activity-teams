@@ -84,6 +84,11 @@ class InviteAttendees extends Component
         ));
     }
 
+    public function clearQueued(): void
+    {
+        $this->queued = [];
+    }
+
     public function addShown(): void
     {
         foreach ($this->pickerPeople() as $person) {

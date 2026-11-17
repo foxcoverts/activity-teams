@@ -7,7 +7,13 @@
         ])
     @else
         <section class="invite-block">
-            <h3 class="invite-heading">{{ __('To be invited') }}</h3>
+            <div class="invite-toolbar">
+                <h3 class="invite-heading">{{ __('To be invited') }}</h3>
+
+                <x-filament::button size="sm" color="gray" outlined wire:click="clearQueued" :disabled="$queuedPeople === []">
+                    {{ __('Remove all') }}
+                </x-filament::button>
+            </div>
 
             <div class="invite-list">
                 @forelse ($queuedPeople as $person)
