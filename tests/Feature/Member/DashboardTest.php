@@ -180,7 +180,8 @@ class DashboardTest extends TestCase
 
         Livewire::test(ThisWeekWidget::class)
             ->assertSee('Lead instructor')
-            ->assertSee('Tentative');
+            ->assertSee('Tentative')
+            ->assertDontSeeHtml('fi-badge');
     }
 
     public function test_needs_response_separates_awaiting_from_maybe_and_limits_maybe_to_three_months(): void

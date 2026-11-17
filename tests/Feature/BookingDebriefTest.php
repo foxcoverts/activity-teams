@@ -209,7 +209,9 @@ class BookingDebriefTest extends TestCase
                     'mark' => ConfirmAttendanceAction::MARK_CONFIRM,
                 ]],
                 'confirmed' => [],
-            ]);
+            ])
+            ->assertDispatched('refresh-sidebar')
+            ->assertDispatched('refresh-topbar');
 
         $this->assertNotNull($booking->fresh()->debrief);
         $this->assertSame(4, $booking->fresh()->debrief->participant_count);

@@ -4,6 +4,7 @@ namespace App\Filament\Teams\Resources\Bookings;
 
 use App\Actions\UpdateBookingStatusAction;
 use App\Enums\BookingStatus;
+use App\Filament\Support\RefreshesNavigationChrome;
 use App\Filament\Support\SubmitsOnModEnter;
 use App\Filament\Teams\Resources\Bookings\Actions\EditAction;
 use App\Filament\Teams\Resources\Bookings\Schemas\BookingForm;
@@ -274,6 +275,8 @@ class BookingStatusActions
     private static function redirectAfter(Booking $record, Action $action): void
     {
         $livewire = $action->getLivewire();
+
+        RefreshesNavigationChrome::dispatch($livewire);
 
         if ($livewire instanceof ListRecords || ! method_exists($livewire, 'getResource')) {
             return;

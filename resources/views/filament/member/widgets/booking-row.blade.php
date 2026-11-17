@@ -24,6 +24,8 @@
         );
     $chip =
         'inline-flex items-center gap-1.5 rounded-full bg-gray-100 px-2.5 py-1 text-sm text-gray-700 dark:bg-white/10 dark:text-gray-300';
+    $colorChip =
+        'inline-flex items-center gap-1.5 rounded-full bg-color-50 px-2.5 py-1 text-sm text-color-600 dark:bg-color-400/10 dark:text-color-400';
 @endphp
 
 <li
@@ -47,10 +49,6 @@
             @if ($booking->audience)
                 <span class="font-normal text-gray-500 dark:text-gray-400">· {{ $booking->audience->name }}</span>
             @endif
-            @if ($booking->status === BookingStatus::Tentative)
-                <x-filament::badge class="ml-1 inline-flex align-middle" :color="$booking->status->getColor()"
-                    :icon="$booking->status->getIcon()">{{ $booking->status->getLabel() }}</x-filament::badge>
-            @endif
         </p>
 
         <div class="flex flex-wrap items-center gap-2">
@@ -62,7 +60,7 @@
             @endif
             @if ($booking->team)
                 <span
-                    class="inline-flex items-center gap-1.5 rounded-full bg-color-50 px-2.5 py-1 text-sm text-color-600 dark:bg-color-400/10 dark:text-color-400"
+                    class="{{ $colorChip }}"
                     @style([
                         \Filament\Support\get_color_css_variables(
                             $booking->team->brandColor()->getColor(),
@@ -73,19 +71,46 @@
                     <x-filament::icon :icon="Heroicon::OutlinedUserGroup" class="size-4" />{{ $booking->team->name }}
                 </span>
             @endif
+            @if ($booking->status === BookingStatus::Tentative)
+                <span
+                    class="{{ $colorChip }}"
+                    @style([
+                        \Filament\Support\get_color_css_variables(
+                            $booking->status->getColor(),
+                            shades: [50, 400, 600],
+                        ),
+                    ])
+                >
+                    <x-filament::icon :icon="$booking->status->getIcon()" class="size-4" />{{ $booking->status->getLabel() }}
+                </span>
+            @endif
+            @if ($isLead)
+                <span
+                    class="{{ $colorChip }}"
+                    @style([
+                        \Filament\Support\get_color_css_variables(
+                            \App\Support\Palette::manager(),
+                            shades: [50, 400, 600],
+                        ),
+                    ])
+                >
+                    <x-filament::icon :icon="Heroicon::OutlinedStar" class="size-4" />{{ __('Lead instructor') }}
+                </span>
+            @endif
+            @if ($showStatus && $own)
+                <span
+                    class="{{ $colorChip }}"
+                    @style([
+                        \Filament\Support\get_color_css_variables(
+                            $own->getColor(),
+                            shades: [50, 400, 600],
+                        ),
+                    ])
+                >
+                    <x-filament::icon :icon="$own->getIcon()" class="size-4" />{{ $own->getLabel() }}
+                </span>
+            @endif
         </div>
-
-        @if ($isLead || ($showStatus && $own))
-            <div class="flex flex-wrap items-center gap-2">
-                @if ($isLead)
-                    <x-filament::badge :color="\App\Support\Palette::manager()"
-                        :icon="Heroicon::OutlinedStar">{{ __('Lead instructor') }}</x-filament::badge>
-                @endif
-                @if ($showStatus && $own)
-                    <x-filament::badge :color="$own->getColor()" :icon="$own->getIcon()">{{ $own->getLabel() }}</x-filament::badge>
-                @endif
-            </div>
-        @endif
 
         @if ($warning)
             <p class="text-sm text-amber-700 dark:text-amber-400">{{ $warning }}</p>

@@ -32,7 +32,7 @@ class ReadyToConfirmWidget extends ManagerSection
             'total' => $total,
             'triage' => TentativeTriage::ReadyToConfirm,
             'seeAllUrl' => BookingResource::getUrl('index', [
-                'tableFilters' => [
+                'filters' => [
                     'status' => ['value' => 'tentative'],
                 ],
             ]),

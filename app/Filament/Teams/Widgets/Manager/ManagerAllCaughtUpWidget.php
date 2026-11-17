@@ -24,7 +24,7 @@ class ManagerAllCaughtUpWidget extends ManagerSection
                 && $attention->bouncedMembers()->isEmpty(),
             'bookingsUrl' => $canBrowseBookings
                 ? BookingResource::getUrl('index', [
-                    'tableFilters' => [
+                    'filters' => [
                         'status' => ['value' => 'tentative'],
                     ],
                 ])

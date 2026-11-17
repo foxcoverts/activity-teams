@@ -33,7 +33,7 @@ class NeedsStaffingWidget extends ManagerSection
             'total' => $total,
             'attention' => $attention,
             'seeAllUrl' => BookingResource::getUrl('index', [
-                'tableFilters' => [
+                'filters' => [
                     'status' => ['value' => 'tentative'],
                 ],
             ]),

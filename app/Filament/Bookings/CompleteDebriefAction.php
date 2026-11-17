@@ -5,6 +5,7 @@ namespace App\Filament\Bookings;
 use App\Actions\CompleteDebriefAction as CompleteDebrief;
 use App\Actions\ConfirmAttendanceAction;
 use App\Enums\TeamFeature;
+use App\Filament\Support\RefreshesNavigationChrome;
 use App\Models\Booking;
 use App\Models\BookingDebrief;
 use App\Models\EquipmentSet;
@@ -197,7 +198,9 @@ class CompleteDebriefAction
                     ->send();
 
                 $record->refresh()->unsetRelation('attendees')->unsetRelation('debrief');
-                $action->getLivewire()->dispatch('booking-attendance-updated');
+                $livewire = $action->getLivewire();
+                $livewire->dispatch('booking-attendance-updated');
+                RefreshesNavigationChrome::dispatch($livewire);
             });
     }
 

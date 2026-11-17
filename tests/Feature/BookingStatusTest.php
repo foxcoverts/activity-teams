@@ -302,6 +302,28 @@ class BookingStatusTest extends TestCase
         $this->assertSame($lead->id, $booking->lead_instructor_id);
     }
 
+    public function test_confirming_from_the_list_refreshes_navigation_chrome(): void
+    {
+        Queue::fake();
+        Mail::fake();
+
+        $manager = User::factory()->teamManager()->create();
+        $booking = Booking::factory()->create([
+            'requires_lead_instructor' => false,
+        ]);
+
+        $this->actingAs($manager);
+
+        Livewire::test(ListBookings::class)
+            ->callTableAction('confirmBooking', $booking, data: [
+                'requires_lead_instructor' => false,
+            ])
+            ->assertDispatched('refresh-sidebar')
+            ->assertDispatched('refresh-topbar');
+
+        $this->assertSame(BookingStatus::Confirmed, $booking->fresh()->status);
+    }
+
     public function test_confirm_without_a_lead_succeeds_when_lead_is_not_required(): void
     {
         Queue::fake();

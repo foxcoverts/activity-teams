@@ -3,6 +3,7 @@
 namespace App\Filament\Member\Widgets;
 
 use App\Filament\Member\Resources\Inbox\InboxResource;
+use App\Filament\Support\RefreshesNavigationChrome;
 
 class UnreadInboxWidget extends DashboardSection
 {
@@ -14,8 +15,7 @@ class UnreadInboxWidget extends DashboardSection
     {
         $this->dashboard()->markRead([$id]);
         $this->dispatch('dashboard-updated');
-        $this->dispatch('refresh-sidebar');
-        $this->dispatch('refresh-topbar');
+        RefreshesNavigationChrome::dispatch($this);
     }
 
     /**
@@ -25,16 +25,14 @@ class UnreadInboxWidget extends DashboardSection
     {
         $this->dashboard()->markRead($ids);
         $this->dispatch('dashboard-updated');
-        $this->dispatch('refresh-sidebar');
-        $this->dispatch('refresh-topbar');
+        RefreshesNavigationChrome::dispatch($this);
     }
 
     public function markAllRead(): void
     {
         $this->dashboard()->markAllRead();
         $this->dispatch('dashboard-updated');
-        $this->dispatch('refresh-sidebar');
-        $this->dispatch('refresh-topbar');
+        RefreshesNavigationChrome::dispatch($this);
     }
 
     protected function sectionData(): array
