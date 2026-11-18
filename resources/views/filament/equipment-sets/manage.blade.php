@@ -101,13 +101,32 @@
 
                             Sortable.create($el, {
                                 group: 'equipment-sets',
+                                // Sets are always A–Z; never let the user reorder within a group.
+                                sort: false,
                                 animation: 150,
                                 draggable: '[data-set-id]',
                                 handle: '[data-set-handle]',
                                 ghostClass: 'fi-sortable-ghost',
+                                onMove(event) {
+                                    return event.from !== event.to;
+                                },
                                 onAdd(event) {
                                     const setId = event.item.dataset.setId;
                                     const groupId = $el.dataset.groupId;
+                                    const name = (event.item.dataset.setName || '').toLocaleLowerCase();
+                                    const siblings = [...$el.querySelectorAll(':scope > [data-set-id]')].filter(
+                                        (node) => node !== event.item,
+                                    );
+                                    const next = siblings.find(
+                                        (node) => (node.dataset.setName || '').toLocaleLowerCase() > name,
+                                    );
+
+                                    if (next) {
+                                        $el.insertBefore(event.item, next);
+                                    } else {
+                                        $el.appendChild(event.item);
+                                    }
+
                                     if (setId && groupId) {
                                         $wire.moveSetToGroup(setId, groupId);
                                     }
@@ -116,7 +135,12 @@
                         "
                     >
                         @forelse ($group->equipmentSets as $set)
-                            <div class="invite-row" data-set-id="{{ $set->getKey() }}" wire:key="equipment-set-{{ $set->getKey() }}">
+                            <div
+                                class="invite-row"
+                                data-set-id="{{ $set->getKey() }}"
+                                data-set-name="{{ $set->name }}"
+                                wire:key="equipment-set-{{ $set->getKey() }}"
+                            >
                                 <div class="invite-person">
                                     <x-filament::icon-button
                                         data-set-handle
