@@ -4,6 +4,7 @@ namespace App\Filament\Teams\Resources\Tasks\Tables;
 
 use App\Enums\TaskPriority;
 use App\Enums\TaskStatus;
+use App\Filament\Tasks\TaskSummaryColumn;
 use App\Filament\Teams\Resources\Tasks\TaskResource;
 use App\Filament\Teams\Resources\Tasks\TaskStatusActions;
 use App\Models\Task;
@@ -32,20 +33,7 @@ class TasksTable
                     ->extraHeaderAttributes(['class' => 'task-complete-col'])
                     ->extraCellAttributes(['class' => 'task-complete-col'])
                     ->width('2.75rem'),
-                TextColumn::make('summary')
-                    ->label(__('Title'))
-                    ->searchable()
-                    ->sortable()
-                    ->html()
-                    ->formatStateUsing(fn (?string $state, Task $record): string => view(
-                        'filament.tasks.title-with-overdue',
-                        [
-                            'title' => $state,
-                            'overdue' => $record->isOverdue(),
-                            'priority' => $record->priority,
-                        ],
-                    )->render())
-                    ->description(fn (Task $record): ?string => $record->plainNotes(160)),
+                TaskSummaryColumn::make(),
                 ImageColumn::make('assignee_avatar')
                     ->label(__('To'))
                     ->state(fn (Task $record): ?string => $record->attendance?->user?->getFilamentAvatarUrl())

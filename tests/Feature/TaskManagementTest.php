@@ -80,6 +80,8 @@ class TaskManagementTest extends TestCase
 
         Livewire::test(ListTasks::class)
             ->assertCanSeeTableRecords([$task])
+            ->assertSeeHtml('fi-icon')
+            ->assertSee('High')
             ->call('toggleTaskComplete', $task->getKey())
             ->assertSuccessful();
 
