@@ -6,6 +6,7 @@ use App\Filament\Teams\Resources\Documents\DocumentResource;
 use App\Filament\Teams\Resources\Documents\Pages\CreateDocument;
 use App\Filament\Teams\Resources\Documents\Pages\EditDocument;
 use App\Filament\Teams\Resources\Documents\Pages\ListDocuments;
+use App\Filament\Teams\Resources\Documents\Pages\ViewDocument;
 use App\Models\Document;
 use App\Models\Team;
 use App\Models\User;
@@ -76,22 +77,26 @@ class DocumentResourceTest extends TestCase
         $manager = User::factory()->teamManager($climbing)->create(['name' => 'Zelda Uploader']);
         $document = Document::factory()->forTeam($climbing)->create([
             'title' => 'Wall procedure',
-            'notes' => 'Keep this with the kit.',
+            'notes' => 'Keep **this** with the kit.',
             'uploader_id' => $manager->getKey(),
         ]);
 
         $this->actingAs(User::factory()->teamMember($climbing)->create());
 
         Livewire::test(ListDocuments::class)
-            ->assertCanSeeTableRecords([$document])
-            ->assertSeeText('Keep this with the kit.')
-            ->assertDontSeeText('Zelda Uploader')
-            ->callTableAction('download', $document)
-            ->assertSuccessful();
+            ->assertSuccessful()
+            ->assertSeeText('Wall procedure')
+            ->assertSeeHtml('<strong>this</strong>')
+            ->assertDontSeeText('**this**')
+            ->assertDontSeeText('Zelda Uploader');
 
-        $this->get(DocumentResource::getUrl('view', ['record' => $document], tenant: $climbing))
-            ->assertOk()
-            ->assertDontSee('Zelda Uploader');
+        Livewire::test(ViewDocument::class, ['record' => $document->getKey()])
+            ->assertSuccessful()
+            ->assertSeeHtml('<strong>this</strong>')
+            ->assertDontSeeText('**this**')
+            ->assertDontSeeText('Zelda Uploader')
+            ->callAction('download')
+            ->assertSuccessful();
     }
 
     public function test_managers_can_create_a_pdf_document_for_their_team(): void
@@ -231,31 +236,19 @@ class DocumentResourceTest extends TestCase
         Storage::disk('local')->assertMissing($path);
     }
 
-    public function test_documents_are_sorted_by_title_and_can_be_sorted_by_date(): void
+    public function test_documents_are_sorted_by_title_by_default(): void
     {
         $manager = User::factory()->teamManager()->create();
         $team = $manager->managedTeams()->first();
-        $zebra = Document::factory()->forTeam($team)->create([
-            'title' => 'Zebra',
-            'updated_at' => now()->subDays(2),
-        ]);
-        $alpha = Document::factory()->forTeam($team)->create([
-            'title' => 'Alpha',
-            'updated_at' => now()->subDay(),
-        ]);
-        $middle = Document::factory()->forTeam($team)->create([
-            'title' => 'Middle',
-            'updated_at' => now(),
-        ]);
+        $zebra = Document::factory()->forTeam($team)->create(['title' => 'Zebra']);
+        $alpha = Document::factory()->forTeam($team)->create(['title' => 'Alpha']);
+        $middle = Document::factory()->forTeam($team)->create(['title' => 'Middle']);
 
         $this->actingAs($manager);
 
         Livewire::test(ListDocuments::class)
-            ->assertCanSeeTableRecords([$alpha, $middle, $zebra], inOrder: true)
-            ->sortTable('title', 'desc')
-            ->assertCanSeeTableRecords([$zebra, $middle, $alpha], inOrder: true)
-            ->sortTable('updated_at', 'desc')
-            ->assertCanSeeTableRecords([$middle, $alpha, $zebra], inOrder: true);
+            ->assertSuccessful()
+            ->assertSeeInOrder(['Alpha', 'Middle', 'Zebra']);
     }
 
     public function test_documents_table_hides_trashed_rows_by_default(): void
@@ -265,19 +258,24 @@ class DocumentResourceTest extends TestCase
 
         $this->actingAs($manager);
 
-        $documents = Document::factory()->forTeam($team)->count(3)->create([
+        $documents = Document::factory()->forTeam($team)->count(3)->sequence(
+            ['title' => 'Doc One'],
+            ['title' => 'Doc Two'],
+            ['title' => 'Doc Three'],
+        )->create([
             'uploader_id' => $manager->getKey(),
         ]);
-        $trashed = Document::factory()->forTeam($team)->trashed()->count(2)->create([
+        $trashed = Document::factory()->forTeam($team)->trashed()->count(2)->sequence(
+            ['title' => 'Trashed One'],
+            ['title' => 'Trashed Two'],
+        )->create([
             'uploader_id' => $manager->getKey(),
         ]);
 
         Livewire::test(ListDocuments::class)
             ->assertSuccessful()
-            ->assertCanSeeTableRecords($documents)
-            ->assertCanNotSeeTableRecords($trashed)
-            ->assertCanRenderTableColumn('title')
-            ->assertCanRenderTableColumn('updated_at');
+            ->assertSeeText($documents->pluck('title')->all())
+            ->assertDontSeeText($trashed->pluck('title')->all());
     }
 
     public function test_a_system_admin_can_view_documents_but_cannot_create_unless_they_manage_the_team(): void
@@ -285,13 +283,13 @@ class DocumentResourceTest extends TestCase
         $manager = User::factory()->teamManager()->create();
         $team = $manager->managedTeams()->first();
         $admin = User::factory()->systemAdmin()->create();
-        $document = Document::factory()->forTeam($team)->create();
+        $document = Document::factory()->forTeam($team)->create(['title' => 'Admin visible doc']);
 
         $this->actingAs($admin);
 
         Livewire::test(ListDocuments::class)
             ->assertSuccessful()
-            ->assertCanSeeTableRecords([$document]);
+            ->assertSeeText('Admin visible doc');
 
         $this->get(DocumentResource::getUrl('create'))
             ->assertForbidden();
@@ -335,8 +333,9 @@ class DocumentResourceTest extends TestCase
         $this->actingAs($manager);
 
         Livewire::test(ListDocuments::class)
-            ->assertCanSeeTableRecords([$own])
-            ->assertCanNotSeeTableRecords([$other]);
+            ->assertSuccessful()
+            ->assertSeeText($own->title)
+            ->assertDontSeeText($other->title);
 
         $this->get(DocumentResource::getUrl('edit', ['record' => $other]))
             ->assertNotFound();
