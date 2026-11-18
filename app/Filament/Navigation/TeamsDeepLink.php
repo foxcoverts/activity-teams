@@ -19,7 +19,6 @@ use App\Filament\Teams\Resources\Activities\ActivityResource as TeamsActivityRes
 use App\Filament\Teams\Resources\BookingDebriefs\BookingDebriefResource;
 use App\Filament\Teams\Resources\Bookings\BookingResource as TeamsBookingResource;
 use App\Filament\Teams\Resources\Documents\DocumentResource;
-use App\Filament\Teams\Resources\EquipmentSetGroups\EquipmentSetGroupResource;
 use App\Filament\Teams\Resources\EquipmentSets\EquipmentSetResource;
 use App\Filament\Teams\Resources\Keys\KeyResource as TeamsKeyResource;
 use App\Filament\Teams\Resources\Members\MemberResource;
@@ -65,7 +64,6 @@ class TeamsDeepLink
         TeamsTaskResource::class => TeamsTaskResource::class,
         TeamsActivityResource::class => TeamsActivityResource::class,
         EquipmentSetResource::class => EquipmentSetResource::class,
-        EquipmentSetGroupResource::class => EquipmentSetGroupResource::class,
         TeamsVenueResource::class => TeamsVenueResource::class,
         TeamsDashboard::class => TeamsDashboard::class,
         ManagerDashboard::class => ManagerDashboard::class,
@@ -95,7 +93,6 @@ class TeamsDeepLink
         'filament.teams.resources.tasks.' => TeamsTaskResource::class,
         'filament.teams.resources.activities.' => TeamsActivityResource::class,
         'filament.teams.resources.equipment-sets.' => EquipmentSetResource::class,
-        'filament.teams.resources.equipment-set-groups.' => EquipmentSetGroupResource::class,
         'filament.teams.resources.venues.' => TeamsVenueResource::class,
         'filament.teams.pages.dashboard' => TeamsDashboard::class,
         'filament.teams.pages.manager-dashboard' => ManagerDashboard::class,

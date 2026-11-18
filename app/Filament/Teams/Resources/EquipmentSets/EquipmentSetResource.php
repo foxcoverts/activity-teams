@@ -3,11 +3,8 @@
 namespace App\Filament\Teams\Resources\EquipmentSets;
 
 use App\Filament\Teams\NavigationGroup;
-use App\Filament\Teams\Resources\EquipmentSets\Pages\CreateEquipmentSet;
-use App\Filament\Teams\Resources\EquipmentSets\Pages\EditEquipmentSet;
-use App\Filament\Teams\Resources\EquipmentSets\Pages\ListEquipmentSets;
+use App\Filament\Teams\Resources\EquipmentSets\Pages\ManageEquipmentSets;
 use App\Filament\Teams\Resources\EquipmentSets\Schemas\EquipmentSetForm;
-use App\Filament\Teams\Resources\EquipmentSets\Tables\EquipmentSetsTable;
 use App\Models\EquipmentSet;
 use App\Models\EquipmentSetGroup;
 use App\Models\Team;
@@ -16,7 +13,6 @@ use Filament\Facades\Filament;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
-use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 
 class EquipmentSetResource extends Resource
@@ -46,11 +42,6 @@ class EquipmentSetResource extends Resource
         return EquipmentSetForm::configure($schema);
     }
 
-    public static function table(Table $table): Table
-    {
-        return EquipmentSetsTable::configure($table);
-    }
-
     public static function getEloquentQuery(): Builder
     {
         $query = parent::getEloquentQuery()->with(['activities', 'equipmentSetGroup']);
@@ -68,9 +59,7 @@ class EquipmentSetResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => ListEquipmentSets::route('/'),
-            'create' => CreateEquipmentSet::route('/create'),
-            'edit' => EditEquipmentSet::route('/{record}/edit'),
+            'index' => ManageEquipmentSets::route('/'),
         ];
     }
 

@@ -83,6 +83,40 @@ class EquipmentSetGroup extends Model
         });
     }
 
+    /**
+     * @param  list<string>  $orderedIds
+     */
+    public static function reorderForTeam(Team $team, array $orderedIds): void
+    {
+        $orderedIds = array_values(array_unique(array_filter($orderedIds, fn (mixed $id): bool => filled($id))));
+
+        if ($orderedIds === []) {
+            return;
+        }
+
+        DB::transaction(function () use ($team, $orderedIds): void {
+            $owned = $team->equipmentSetGroups()
+                ->whereKey($orderedIds)
+                ->pluck('id')
+                ->map(fn (mixed $id): string => (string) $id)
+                ->all();
+
+            $ownedLookup = array_flip($owned);
+
+            foreach ($orderedIds as $index => $id) {
+                if (! isset($ownedLookup[(string) $id])) {
+                    continue;
+                }
+
+                $team->equipmentSetGroups()
+                    ->whereKey($id)
+                    ->update(['rank' => 1_000_000 + $index]);
+            }
+
+            self::renumberForTeam($team);
+        });
+    }
+
     public function moveUp(): void
     {
         $this->swapWithNeighbour(-1);

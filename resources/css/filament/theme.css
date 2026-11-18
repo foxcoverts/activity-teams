@@ -132,14 +132,20 @@
 /* Compact header padding on mobile; match Guest list / Related / Tasks. */
 .related-bookings-panel.fi-section:not(.fi-section-not-contained)>.fi-section-header,
 .booking-tasks-panel.fi-section:not(.fi-section-not-contained)>.fi-section-header,
-.task-assignee-panel.fi-section:not(.fi-section-not-contained)>.fi-section-header {
+.task-assignee-panel.fi-section:not(.fi-section-not-contained)>.fi-section-header,
+.equipment-set-group-panel.fi-section:not(.fi-section-not-contained)>.fi-section-header {
     @apply p-4 sm:px-6;
 }
 
 .related-bookings-panel.fi-section:not(.fi-section-not-contained):not(.fi-divided)>.fi-section-content-ctn>.fi-section-content,
 .booking-tasks-panel.fi-section:not(.fi-section-not-contained):not(.fi-divided)>.fi-section-content-ctn>.fi-section-content,
-.task-assignee-panel.fi-section:not(.fi-section-not-contained):not(.fi-divided)>.fi-section-content-ctn>.fi-section-content {
+.task-assignee-panel.fi-section:not(.fi-section-not-contained):not(.fi-divided)>.fi-section-content-ctn>.fi-section-content,
+.equipment-set-group-panel.fi-section:not(.fi-section-not-contained):not(.fi-divided)>.fi-section-content-ctn>.fi-section-content {
     @apply p-0;
+}
+
+.equipment-set-list {
+    @apply min-h-10;
 }
 
 .booking-comments-panel.fi-section:not(.fi-section-not-contained) {
