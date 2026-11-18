@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Enums\BookingAttendeeStatus;
 use App\Enums\CalendarMethod;
+use App\Filament\Member\Resources\Bookings\BookingResource;
 use App\Models\Booking;
 use App\Models\User;
 use App\Models\Venue;
@@ -135,7 +136,7 @@ class BookingIcsLocationTest extends TestCase
         $ics = str_replace("\r\n ", '', app(BookingIcsFactory::class)->make([$booking], 'Test'));
 
         $this->assertValidIcs($ics);
-        $this->assertStringContainsString('URL:'.route('booking.preview', $booking), $ics);
+        $this->assertStringContainsString('URL:'.BookingResource::viewUrl($booking), $ics);
         $this->assertStringContainsString('LAST-MODIFIED:', $ics);
         $this->assertStringContainsString('TRANSP:OPAQUE', $ics);
         $this->assertStringContainsString('CLASS:PRIVATE', $ics);

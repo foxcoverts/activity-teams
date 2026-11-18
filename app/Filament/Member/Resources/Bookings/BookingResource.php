@@ -52,6 +52,8 @@ class BookingResource extends Resource
 
     public static function viewUrl(Booking $booking): string
     {
+        $booking->loadMissing('team');
+
         return TeamsBookingResource::getUrl('view', ['record' => $booking], panel: 'teams', tenant: $booking->team);
     }
 

@@ -555,54 +555,50 @@ class Booking extends Model implements Commentable
 
     public function relatedLabel(): string
     {
-        $this->loadMissing('activity', 'audience');
-
         $start = $this->start_at->copy()
             ->timezone($this->timezone)
             ->locale(config('app.locale'));
 
-        $parts = [
+        return collect([
             $start->isoFormat('ddd D MMM YYYY HH:mm'),
-            $this->activityTitle(),
-            $this->audience?->name,
-        ];
-
-        if (filled($this->group_name)) {
-            $parts[] = $this->group_name;
-        }
-
-        return implode(' · ', array_filter($parts));
+            ...$this->titleParts(),
+        ])->implode(' · ');
     }
 
     public function icsSummary(): string
     {
-        $this->loadMissing('activity', 'audience');
-
-        $parts = [
-            $this->activityTitle(),
-            $this->audience?->name,
-        ];
-
-        if (filled($this->group_name)) {
-            $parts[] = $this->group_name;
-        }
-
-        return implode(' — ', array_filter($parts));
+        return collect($this->titleParts())->implode(' — ');
     }
 
     public function displayName(): Attribute
     {
-        return Attribute::get(function (): string {
-            if (filled($this->group_name)) {
-                return (string) $this->group_name;
-            }
+        return Attribute::get(fn (): string => collect($this->titleParts())->implode(' · '));
+    }
 
-            $this->loadMissing('activity', 'audience');
+    /**
+     * Activity always, then group if set otherwise audience — never both.
+     *
+     * @return list<string>
+     */
+    public function titleParts(): array
+    {
+        $this->loadMissing('activity', 'audience');
 
-            return collect([$this->activityTitle(), $this->audience?->name])
-                ->filter(fn (?string $part): bool => filled($part))
-                ->implode(' · ');
-        });
+        return array_values(array_filter([
+            $this->activityTitle(),
+            $this->contextLabel(),
+        ], fn (?string $part): bool => filled($part)));
+    }
+
+    private function contextLabel(): ?string
+    {
+        if (filled($this->group_name)) {
+            return (string) $this->group_name;
+        }
+
+        $this->loadMissing('audience');
+
+        return $this->audience?->name;
     }
 
     public function leadInstructor(): BelongsTo
@@ -705,13 +701,6 @@ class Booking extends Model implements Commentable
         $this->loadMissing('team');
 
         return $this->team;
-    }
-
-    public function summary(): Attribute
-    {
-        return Attribute::make(
-            get: fn () => $this->activityTitle().' - '.$this->start_at->timezone($this->timezone)->toFormattedDayDateString()
-        );
     }
 
     /**

@@ -4,11 +4,13 @@ namespace Tests\Feature\Teams;
 
 use App\Enums\BookingAttendeeStatus;
 use App\Enums\MembershipRole;
+use App\Enums\TeamFeature;
 use App\Filament\Teams\Pages\Dashboard;
 use App\Filament\Teams\Pages\Leaders;
 use App\Filament\Teams\Resources\Bookings\BookingResource;
 use App\Filament\Teams\Resources\Bookings\Pages\ListBookings;
 use App\Filament\Teams\Resources\NewsPosts\NewsPostResource;
+use App\Filament\Teams\Resources\Tasks\TaskResource;
 use App\Filament\Teams\Widgets\AdminTeamVisitorWidget;
 use App\Filament\Teams\Widgets\AllCaughtUpWidget;
 use App\Filament\Teams\Widgets\LatestNewsWidget;
@@ -16,6 +18,7 @@ use App\Filament\Teams\Widgets\ThisWeekWidget;
 use App\Livewire\TeamLeaderContactDetails;
 use App\Models\Booking;
 use App\Models\NewsPost;
+use App\Models\Task;
 use App\Models\Team;
 use App\Models\User;
 use Filament\Facades\Filament;
@@ -59,6 +62,25 @@ class TeamsPanelResourcesTest extends TestCase
 
         $this->get(BookingResource::getUrl('view', ['record' => $climbing], tenant: $this->climbing))->assertOk();
         $this->get(BookingResource::getUrl('view', ['record' => $archery], tenant: $this->climbing))->assertNotFound();
+    }
+
+    public function test_tasks_are_scoped_to_the_active_team(): void
+    {
+        $this->climbing->enableFeature(TeamFeature::Tasks);
+        $this->climbing->save();
+        $this->archery->enableFeature(TeamFeature::Tasks);
+        $this->archery->save();
+
+        $climbing = Task::factory()->forTeam($this->climbing)->create(['summary' => 'Climbing task']);
+        $archery = Task::factory()->forTeam($this->archery)->create(['summary' => 'Archery task']);
+
+        $this->get(TaskResource::getUrl('index', tenant: $this->climbing))
+            ->assertOk()
+            ->assertSee('Climbing task')
+            ->assertDontSee('Archery task');
+
+        $this->get(TaskResource::getUrl('view', ['record' => $climbing], tenant: $this->climbing))->assertOk();
+        $this->get(TaskResource::getUrl('view', ['record' => $archery], tenant: $this->climbing))->assertNotFound();
     }
 
     public function test_news_is_scoped_to_the_active_team_and_hides_drafts(): void

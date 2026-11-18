@@ -15,3 +15,4 @@ As a team member opening a shared booking link, I want a read-only summary of th
 - The standard booking URL shows a read-only summary without a login wall: activity, date, time, and venue.
 - The summary does not show the group, status, notes, attendees, or lead instructor.
 - Guests are asked "Can you attend this event?", with "View full details" leading to login so they can see the full booking and RSVP. Login is where someone who is not a team member stops.
+- Calendar feeds and ICS events use that same teams booking URL (the Filament-era `/share/bookings/{id}` alternate was removed).

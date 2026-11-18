@@ -49,6 +49,21 @@ class LegacyUrlRedirectTest extends TestCase
             ->assertStatus(301);
     }
 
+    public function test_booking_share_redirects_to_teams_booking_view(): void
+    {
+        $team = Team::factory()->create();
+        $booking = Booking::factory()->forTeam($team)->create();
+
+        $this->get('/booking/'.$booking->getRouteKey().'/share')
+            ->assertRedirect(BookingResource::getUrl(
+                'view',
+                ['record' => $booking],
+                panel: 'teams',
+                tenant: $team,
+            ))
+            ->assertStatus(301);
+    }
+
     public function test_news_redirects_to_teams_news_view(): void
     {
         $team = Team::factory()->create();

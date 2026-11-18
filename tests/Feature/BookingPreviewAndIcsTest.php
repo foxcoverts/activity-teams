@@ -26,7 +26,7 @@ class BookingPreviewAndIcsTest extends TestCase
     {
         $booking = $this->sharedBooking();
 
-        $this->get(route('booking.preview', $booking))
+        $this->get(BookingResource::viewUrl($booking))
             ->assertOk()
             ->assertSee('Climbing on Sat, Oct 17, 2026')
             ->assertSee('Climbing')
@@ -79,7 +79,7 @@ class BookingPreviewAndIcsTest extends TestCase
             'end_at' => '2026-10-24 23:30:00',
         ]);
 
-        $this->get(route('booking.preview', $booking))
+        $this->get(BookingResource::viewUrl($booking))
             ->assertOk()
             ->assertSee('Climbing on Sat, Oct 24, 2026')
             ->assertSee('Climbing from Sat 24 Oct 2026 22:00 to Sun 25 Oct 2026 00:30 at Fox Coverts Campsite.', false)
@@ -87,18 +87,11 @@ class BookingPreviewAndIcsTest extends TestCase
             ->assertDontSee('Secret Group Name');
     }
 
-    public function test_signed_in_share_link_opens_the_booking(): void
+    public function test_the_filament_era_share_booking_path_is_gone(): void
     {
-        $user = User::factory()->teamMember()->create();
         $booking = $this->sharedBooking();
 
-        $this->actingAs($user)
-            ->get(route('booking.preview', $booking))
-            ->assertOk()
-            ->assertSee(__('View full details'))
-            ->assertSee(BookingResource::viewUrl($booking), false)
-            ->assertDontSee(__('Please log in to view full details and to RSVP.'))
-            ->assertDontSee('Secret Group Name');
+        $this->get('/share/bookings/'.$booking->getRouteKey())->assertNotFound();
     }
 
     public function test_booking_url_stays_the_full_view_for_members(): void
@@ -131,7 +124,7 @@ class BookingPreviewAndIcsTest extends TestCase
             'status' => BookingAttendeeStatus::Accepted->value,
         ]);
 
-        $this->get(route('booking.preview', $booking))
+        $this->get(BookingResource::viewUrl($booking))
             ->assertOk()
             ->assertSee('Tower Maintenance on Sat, Oct 17, 2026')
             ->assertDontSee('Climbing on Sat, Oct 17, 2026');

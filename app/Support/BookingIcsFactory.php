@@ -4,6 +4,7 @@ namespace App\Support;
 
 use App\Enums\BookingAttendeeStatus;
 use App\Enums\CalendarMethod;
+use App\Filament\Member\Resources\Bookings\BookingResource;
 use App\Models\Booking;
 use App\Models\User;
 use Carbon\Carbon;
@@ -100,7 +101,7 @@ class BookingIcsFactory
                 ->setSummary($booking->icsSummary())
                 ->setDescription($textDescription)
                 ->setHtmlDescription($htmlDescription)
-                ->setUrl(new Uri(route('booking.preview', $booking)))
+                ->setUrl(new Uri(BookingResource::viewUrl($booking)))
                 ->setOccurrence(new TimeSpan($start, $end));
 
             if ($booking->updated_at !== null) {
@@ -433,7 +434,7 @@ class BookingIcsFactory
         $parts = array_values(array_filter([
             filled($booking->group_name) ? (string) $booking->group_name : null,
             is_string($booking->notes) && filled($booking->notes) ? $booking->notes : null,
-            route('booking.preview', $booking),
+            BookingResource::viewUrl($booking),
         ]));
 
         $text = implode("\n\n", $parts);

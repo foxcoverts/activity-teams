@@ -37,8 +37,6 @@ class TaskResource extends Resource
 
     protected static ?string $slug = 'tasks';
 
-    protected static bool $isScopedToTenant = false;
-
     public static function form(Schema $schema): Schema
     {
         return TaskForm::configure($schema);
@@ -56,14 +54,7 @@ class TaskResource extends Resource
 
     public static function getEloquentQuery(): Builder
     {
-        $query = parent::getEloquentQuery();
-
-        $tenant = Filament::getTenant();
-        if ($tenant instanceof Team) {
-            $query->whereBelongsTo($tenant);
-        }
-
-        return $query->with(['attendance.user']);
+        return parent::getEloquentQuery()->with(['attendance.user']);
     }
 
     public static function getPages(): array
