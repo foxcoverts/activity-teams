@@ -3,7 +3,12 @@
 namespace Tests\Feature\Admin;
 
 use App\Filament\Admin\Resources\Keys\KeyResource;
+use App\Filament\Admin\Resources\Locks\LockResource;
 use App\Filament\Admin\Resources\Locks\Pages\ListLocks;
+use App\Filament\Admin\Resources\Locks\Pages\ViewLock;
+use App\Filament\Admin\Resources\Locks\RelationManagers\CoversRelationManager;
+use App\Filament\Admin\Resources\Locks\RelationManagers\KeysRelationManager;
+use App\Models\Key;
 use App\Models\Lock;
 use App\Models\User;
 use Filament\Facades\Filament;
@@ -44,5 +49,43 @@ class LockResourceTest extends TestCase
         Livewire::test(ListLocks::class)
             ->assertActionVisible('keys')
             ->assertActionHasUrl('keys', KeyResource::getUrl(panel: 'admin'));
+    }
+
+    public function test_view_defaults_relation_tab_to_keys_when_only_keys_are_attached(): void
+    {
+        $admin = User::factory()->systemAdmin()->create();
+        $lock = Lock::factory()->create();
+        Key::factory()->create()->locks()->attach($lock);
+
+        $this->actingAs($admin);
+
+        Livewire::test(ViewLock::class, ['record' => $lock->getKey()])
+            ->assertSet('activeRelationManager', $this->relationManagerKey(KeysRelationManager::class));
+    }
+
+    public function test_view_defaults_relation_tab_to_covers_when_covers_are_attached(): void
+    {
+        $admin = User::factory()->systemAdmin()->create();
+        $lock = Lock::factory()->create();
+        $covered = Lock::factory()->create();
+        $lock->covers()->attach($covered);
+        Key::factory()->create()->locks()->attach($lock);
+
+        $this->actingAs($admin);
+
+        Livewire::test(ViewLock::class, ['record' => $lock->getKey()])
+            ->assertSet('activeRelationManager', $this->relationManagerKey(CoversRelationManager::class));
+    }
+
+    /**
+     * @param  class-string  $manager
+     */
+    private function relationManagerKey(string $manager): int|string
+    {
+        $key = array_search($manager, LockResource::getRelations(), true);
+
+        $this->assertNotFalse($key);
+
+        return $key;
     }
 }
