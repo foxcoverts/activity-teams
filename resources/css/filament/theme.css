@@ -474,6 +474,14 @@
     @apply flex justify-end gap-2;
 }
 
+/* Give the complete-control column breathing room from the card edge on phones. */
+@media (max-width: 639px) {
+    .fi-ta-cell.task-complete-col,
+    .fi-ta-header-cell.task-complete-col {
+        padding-inline-start: calc(var(--spacing) * 3);
+    }
+}
+
 .task-complete-control {
     @apply inline-flex size-5 shrink-0 items-center justify-center rounded-full border-2 border-gray-400 bg-transparent text-gray-400 transition dark:border-gray-500 dark:text-gray-500;
 }

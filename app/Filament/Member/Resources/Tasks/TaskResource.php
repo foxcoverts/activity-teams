@@ -88,7 +88,9 @@ class TaskResource extends Resource
                     ->view('filament.tasks.complete-control-column')
                     ->disabledClick()
                     ->alignCenter()
-                    ->width('2.5rem'),
+                    ->extraHeaderAttributes(['class' => 'task-complete-col'])
+                    ->extraCellAttributes(['class' => 'task-complete-col'])
+                    ->width('2.75rem'),
                 TextColumn::make('summary')
                     ->label(__('Title'))
                     ->searchable()
@@ -99,13 +101,10 @@ class TaskResource extends Resource
                         [
                             'title' => $state,
                             'overdue' => $record->isOverdue(),
+                            'priority' => $record->priority,
                         ],
                     )->render())
                     ->description(fn (Task $record): ?string => $record->plainNotes(160)),
-                TextColumn::make('priority')
-                    ->badge()
-                    ->sortable()
-                    ->toggleable(),
                 TextColumn::make('due_at')
                     ->label(__('Due'))
                     ->dateTime('j M Y, H:i')
