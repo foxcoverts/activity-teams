@@ -110,7 +110,6 @@ class BookingKeysPanel extends Component implements HasActions, HasSchemas
                 ToggleButtons::make('response')
                     ->label(__('Status'))
                     ->options(BookingAttendeeResponse::class)
-                    ->inline()
                     ->required(),
                 Textarea::make('comment')
                     ->extraAlpineAttributes(SubmitsOnModEnter::attributes()),

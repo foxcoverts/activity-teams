@@ -403,7 +403,6 @@ class AttendeesRelationManager extends RelationManager
             ToggleButtons::make('response')
                 ->label(__('Status'))
                 ->options(BookingAttendeeResponse::class)
-                ->inline()
                 ->required(),
             Textarea::make('comment')
                 ->extraAlpineAttributes(SubmitsOnModEnter::attributes()),
