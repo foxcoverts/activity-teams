@@ -47,4 +47,29 @@ class BookingDebrief extends Model
     {
         return $this->belongsToMany(EquipmentSet::class);
     }
+
+    /**
+     * Role of the completer relative to the booking: lead instructor, then manager, then member.
+     */
+    public function completedByRoleLabel(): ?string
+    {
+        $this->loadMissing(['completedBy', 'booking.team']);
+
+        $user = $this->completedBy;
+        $booking = $this->booking;
+
+        if (! $user instanceof User || ! $booking instanceof Booking) {
+            return null;
+        }
+
+        if ($booking->isLead($user)) {
+            return __('Lead instructor');
+        }
+
+        if ($booking->team !== null && $user->manages($booking->team)) {
+            return __('Manager');
+        }
+
+        return __('Member');
+    }
 }

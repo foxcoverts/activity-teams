@@ -11,7 +11,9 @@ use App\Enums\MailChannel;
 use App\Enums\MailGroup;
 use App\Enums\TaskAttendeeStatus;
 use App\Enums\TaskStatus;
+use App\Filament\Teams\Resources\Members\MemberResource;
 use App\Filament\Teams\Resources\Tasks\Pages\EditTask;
+use App\Filament\Teams\Resources\Tasks\Pages\ListTasks;
 use App\Filament\Teams\Resources\Tasks\Pages\ViewTask;
 use App\Jobs\SendTaskNotification;
 use App\Livewire\TaskAssigneePanel;
@@ -400,6 +402,33 @@ class TaskAssigneeTest extends TestCase
     /**
      * @return array{0: Team, 1: User, 2: User, 3: Task}
      */
+    public function test_the_task_list_shows_the_assignee_with_a_responsive_heading(): void
+    {
+        [$team, $manager, $member, $task] = $this->taskContext();
+        $member->forceFill(['name' => 'Casey Assignee'])->save();
+
+        $this->actingAs($manager);
+        Filament::setCurrentPanel('teams');
+        Filament::setTenant($team);
+
+        app(AssignTaskAction::class)($task, $member, $manager);
+
+        $memberUrl = MemberResource::getUrl('view', ['record' => $member], panel: 'teams', tenant: $team);
+        $avatarUrl = (string) $member->fresh()->getFilamentAvatarUrl();
+
+        $list = Livewire::test(ListTasks::class)
+            ->assertCanSeeTableRecords([$task->fresh()])
+            ->assertSee('Casey Assignee')
+            ->assertSee('fi-ta-person', false)
+            ->assertSeeHtml($memberUrl)
+            ->assertSee(str_replace('&', '&amp;', $avatarUrl), false);
+
+        $this->assertSame(
+            'md',
+            $list->instance()->getTable()->getColumn('attendance.user.name')->getHeadingVisibleFrom(),
+        );
+    }
+
     private function taskContext(): array
     {
         $team = Team::factory()->withTasks()->create();

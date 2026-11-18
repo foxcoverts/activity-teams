@@ -3,6 +3,7 @@
 namespace App\Filament\Teams\Resources\Keys\Tables;
 
 use App\Filament\Keys\PassKeyAction;
+use App\Filament\Support\Tables\PersonColumn;
 use App\Filament\Teams\Resources\Keys\KeyResource;
 use App\Models\Key;
 use App\Models\Team;
@@ -22,14 +23,16 @@ class KeysTable
                 TextColumn::make('name')
                     ->label(__('Key'))
                     ->searchable(),
-                TextColumn::make('holder.name')
+                PersonColumn::make('holder.name')
                     ->label(__('Holder'))
-                    ->placeholder(__('In the cupboard')),
+                    ->placeholder(__('In the cupboard'))
+                    ->memberUrl(),
                 TextColumn::make('unlocks')
                     ->label(__('Unlocks'))
                     ->state(fn (Key $record): array => $record->lockNames())
                     ->listWithLineBreaks()
-                    ->placeholder('-'),
+                    ->placeholder('-')
+                    ->visibleFrom('md'),
             ])
             ->filters([
                 SelectFilter::make('holder_id')

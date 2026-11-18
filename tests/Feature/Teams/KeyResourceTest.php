@@ -3,6 +3,8 @@
 namespace Tests\Feature\Teams;
 
 use App\Filament\Teams\Resources\Keys\Pages\ListKeys;
+use App\Filament\Teams\Resources\Keys\Pages\ViewKey;
+use App\Filament\Teams\Resources\Members\MemberResource;
 use App\Models\Activity;
 use App\Models\Key;
 use App\Models\Lock;
@@ -93,5 +95,62 @@ class KeyResourceTest extends TestCase
         $this->assertTrue($names->contains($holder->name));
         $this->assertFalse($names->contains($memberElsewhere->name));
         $this->assertFalse($names->contains($suspended->name));
+    }
+
+    public function test_the_key_list_hides_unlocks_on_small_screens_and_links_the_holder(): void
+    {
+        $manager = User::factory()->teamManager()->create();
+        $team = $manager->managedTeams()->firstOrFail();
+        $holder = User::factory()->teamMember($team)->create(['name' => 'Casey Holder']);
+        $activity = Activity::factory()->create();
+        $venue = Venue::factory()->create();
+        $lock = Lock::factory()->create(['name' => 'Store cupboard']);
+        $lock->requirements()->create([
+            'activity_id' => $activity->getKey(),
+            'venue_id' => $venue->getKey(),
+        ]);
+        $ring = Key::factory()->heldBy($holder)->create(['name' => 'Store key']);
+        $ring->locks()->attach($lock);
+
+        $this->actingAs($manager);
+
+        $memberUrl = MemberResource::getUrl('view', ['record' => $holder], panel: 'teams', tenant: $team);
+        $avatarUrl = (string) $holder->getFilamentAvatarUrl();
+
+        $list = Livewire::test(ListKeys::class)
+            ->assertCanSeeTableRecords([$ring])
+            ->assertSee('Casey Holder')
+            ->assertSeeHtml($memberUrl)
+            ->assertSee('fi-ta-person', false)
+            ->assertSee(str_replace('&', '&amp;', $avatarUrl), false);
+
+        $this->assertSame('md', $list->instance()->getTable()->getColumn('unlocks')->getVisibleFrom());
+    }
+
+    public function test_the_key_view_shows_the_holder_avatar_and_member_link(): void
+    {
+        $manager = User::factory()->teamManager()->create();
+        $team = $manager->managedTeams()->firstOrFail();
+        $holder = User::factory()->teamMember($team)->create(['name' => 'Casey Holder']);
+        $activity = Activity::factory()->create();
+        $venue = Venue::factory()->create();
+        $lock = Lock::factory()->create(['name' => 'Store cupboard']);
+        $lock->requirements()->create([
+            'activity_id' => $activity->getKey(),
+            'venue_id' => $venue->getKey(),
+        ]);
+        $ring = Key::factory()->heldBy($holder)->create(['name' => 'Store key']);
+        $ring->locks()->attach($lock);
+
+        $this->actingAs($manager);
+
+        $memberUrl = MemberResource::getUrl('view', ['record' => $holder], panel: 'teams', tenant: $team);
+        $avatarUrl = (string) $holder->getFilamentAvatarUrl();
+
+        Livewire::test(ViewKey::class, ['record' => $ring->getRouteKey()])
+            ->assertSee('Casey Holder')
+            ->assertSeeHtml($memberUrl)
+            ->assertSee('fi-in-person', false)
+            ->assertSee(str_replace('&', '&amp;', $avatarUrl), false);
     }
 }

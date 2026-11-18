@@ -19,6 +19,7 @@ use App\Filament\Forms\Components\TimezoneSelect;
 use App\Filament\RelationManagers\QualificationsRelationManager;
 use App\Filament\Schemas\ContactFields;
 use App\Filament\Schemas\PersonalDataSection;
+use App\Filament\Support\Tables\PersonColumn;
 use App\Models\User;
 use App\Support\Palette;
 use BackedEnum;
@@ -38,7 +39,6 @@ use Filament\Schemas\Components\Component;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
-use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Contracts\HasTable;
 use Filament\Tables\Filters\Filter;
@@ -194,15 +194,7 @@ class UserResource extends Resource
                 ]);
             })
             ->columns([
-                ImageColumn::make('avatar')
-                    ->label('')
-                    ->state(fn (User $record): ?string => $record->getFilamentAvatarUrl())
-                    ->alt(fn (User $record): string => $record->name)
-                    ->imageSize(32)
-                    ->circular()
-                    ->width('1%')
-                    ->grow(false),
-                TextColumn::make('name')
+                PersonColumn::make('name')
                     ->searchable(),
                 TextColumn::make('status')
                     ->badge()

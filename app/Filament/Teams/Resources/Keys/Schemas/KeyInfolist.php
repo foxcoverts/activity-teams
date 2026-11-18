@@ -2,9 +2,9 @@
 
 namespace App\Filament\Teams\Resources\Keys\Schemas;
 
+use App\Filament\Support\Infolists\PersonEntry;
+use App\Filament\Teams\Resources\Keys\KeyResource;
 use App\Models\Key;
-use App\Models\Team;
-use Filament\Facades\Filament;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
@@ -22,9 +22,10 @@ class KeyInfolist
                     ->columnSpanFull()
                     ->schema([
                         TextEntry::make('name'),
-                        TextEntry::make('holder_name')
+                        PersonEntry::make('holder.name')
                             ->label(__('Holder'))
-                            ->state(fn (Key $record): string => $record->holderName()),
+                            ->placeholder(__('In the cupboard'))
+                            ->memberUrl(),
                     ]),
                 Section::make(__('Unlocks'))
                     ->icon(Heroicon::OutlinedLockClosed)
@@ -38,17 +39,10 @@ class KeyInfolist
                             ->placeholder('-'),
                         TextEntry::make('required_for')
                             ->label(__('Required for'))
-                            ->state(fn (Key $record): array => $record->requirementSummariesFor(static::currentTeam()))
+                            ->state(fn (Key $record): array => $record->requirementSummariesFor(KeyResource::currentTeam()))
                             ->listWithLineBreaks()
                             ->placeholder('-'),
                     ]),
             ]);
-    }
-
-    public static function currentTeam(): ?Team
-    {
-        $tenant = Filament::getTenant();
-
-        return $tenant instanceof Team ? $tenant : null;
     }
 }

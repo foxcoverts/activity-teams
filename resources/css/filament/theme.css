@@ -8,6 +8,48 @@
 @source '../../../resources/views/vendor/filament-activitylog/**/*.blade.php';
 @source '../../../vendor/saade/filament-fullcalendar/resources/views/**/*.blade.php';
 
+.fi-ta-person {
+    @apply flex w-full items-center gap-1.5;
+
+    & img {
+        @apply max-w-none shrink-0 object-cover object-center;
+    }
+
+    & .fi-ta-person-heading {
+        @apply text-sm leading-6 text-gray-950 dark:text-white;
+    }
+
+    &:not(.fi-inline) {
+        @apply px-3 py-4;
+    }
+
+    .fi-ta-table-stacked-on-mobile & {
+        @apply p-0 sm:px-3 sm:py-4;
+    }
+
+    &.fi-align-center {
+        @apply justify-center;
+    }
+
+    &.fi-align-end,
+    &.fi-align-right {
+        @apply justify-end;
+    }
+}
+
+.fi-ta-col-has-column-url .fi-ta-person-heading {
+    @apply text-primary-600 hover:underline focus-visible:underline dark:text-primary-400;
+}
+
+.fi-in-person-heading {
+    @apply text-sm leading-6 text-gray-950 dark:text-white;
+}
+
+a.fi-in-entry-content .fi-in-person-heading,
+a.fi-in-person-heading {
+    @apply text-primary-600 hover:underline focus-visible:underline dark:text-primary-400;
+}
+
 .inbox-notifications .fi-ta-row.fi-selected:not(.fi-striped) {
     @apply bg-primary-50 dark:bg-primary-400/10;
 }
