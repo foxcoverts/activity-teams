@@ -8,8 +8,6 @@ use Filament\Infolists\Components\TextEntry;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
-use Illuminate\Support\HtmlString;
-use Illuminate\Support\Str;
 
 class DocumentInfolist
 {
@@ -23,9 +21,7 @@ class DocumentInfolist
                 ->columnSpanFull()
                 ->schema([
                     TextEntry::make('notes')
-                        ->state(fn (Document $record): ?HtmlString => filled($record->notes)
-                            ? new HtmlString(Str::inlineMarkdown($record->notes))
-                            : null)
+                        ->markdown()
                         ->placeholder('-'),
                     TextEntry::make('updated_at')
                         ->label(__('Updated'))
