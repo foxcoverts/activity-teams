@@ -5,7 +5,7 @@ namespace App\Filament\Admin\Resources\Activities\Schemas;
 use App\Filament\Qualifications\QualificationSchema;
 use App\Models\Audience;
 use Closure;
-use Filament\Forms\Components\Repeater;
+use Filament\Forms\Components\Component;
 use Filament\Forms\Components\Select;
 use Illuminate\Support\Collection;
 
@@ -13,7 +13,7 @@ class ActivityAudienceForm
 {
     /**
      * @param  Closure(): array<string, string>|null  $options
-     * @return array{0: Select, 1: Repeater}
+     * @return list<Component>
      */
     public static function rowSchema(?Closure $options = null, bool $inRepeater = true): array
     {

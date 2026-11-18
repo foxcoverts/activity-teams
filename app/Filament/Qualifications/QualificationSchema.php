@@ -112,8 +112,13 @@ class QualificationSchema
         return Repeater::make('qualificationRequirements')
             ->relationship()
             ->orderColumn('sort')
+            ->reorderable(false)
+            ->live()
             ->label(__('Acceptable qualifications'))
-            ->helperText(__('Each row is one way to qualify. Leave a field blank for any value. A higher category, permit type, level, or award covers a lower one. Permit restrictions are ignored. Leave this empty when the activity needs no qualification.'))
+            ->belowLabel(fn (Repeater $component): ?string => count($component->getItems()) === 0
+                ? __('This audience needs no qualifications.')
+                : null)
+            ->helperText(__('Each row is one way to qualify. Leave a field blank for any value. A higher category, permit type, level, or award covers a lower one. Permit restrictions are ignored.'))
             ->schema(static::requirementFields())
             ->mutateRelationshipDataBeforeCreateUsing(fn (array $data): array => static::packRequirement($data))
             ->mutateRelationshipDataBeforeSaveUsing(fn (array $data): array => static::packRequirement($data))
@@ -125,7 +130,9 @@ class QualificationSchema
 
                 return (new ActivityQualificationRequirement(static::packRequirement($state)))->summary;
             })
-            ->addActionLabel(__('Add alternative'))
+            ->addActionLabel(fn (Repeater $component): string => count($component->getItems()) > 0
+                ? __('Add alternative')
+                : __('Add qualification'))
             ->defaultItems(0)
             ->columnSpanFull();
     }

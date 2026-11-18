@@ -11,7 +11,6 @@ use Filament\Actions\EditAction;
 use Filament\Forms\Components\Select;
 use Filament\Notifications\Notification;
 use Filament\Resources\RelationManagers\RelationManager;
-use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
@@ -27,11 +26,12 @@ class ActivityAudiencesRelationManager extends RelationManager
 
     public function form(Schema $schema): Schema
     {
-        [$audienceSelect, $requirements] = ActivityAudienceForm::rowSchema(
+        $components = ActivityAudienceForm::rowSchema(
             fn (?ActivityAudience $record): array => $this->audienceOptions($record),
             inRepeater: false,
         );
 
+        $audienceSelect = $components[0] ?? null;
         assert($audienceSelect instanceof Select);
 
         $audienceSelect
@@ -40,16 +40,7 @@ class ActivityAudiencesRelationManager extends RelationManager
             ->dehydrated(fn (string $operation): bool => $operation === 'create');
 
         return $schema
-            ->components([
-                Section::make(__('Audience'))
-                    ->icon(Heroicon::OutlinedMegaphone)
-                    ->columns(1)
-                    ->columnSpanFull()
-                    ->schema([
-                        $audienceSelect,
-                        $requirements,
-                    ]),
-            ]);
+            ->components($components);
     }
 
     public function table(Table $table): Table
@@ -66,7 +57,7 @@ class ActivityAudiencesRelationManager extends RelationManager
                         $record->loadMissing('qualificationRequirements');
 
                         if ($record->qualificationRequirements->isEmpty()) {
-                            return __('No qualification required.');
+                            return __('This audience needs no qualifications.');
                         }
 
                         return $record->qualificationRequirements
@@ -76,10 +67,13 @@ class ActivityAudiencesRelationManager extends RelationManager
             ])
             ->headerActions([
                 CreateAction::make()
-                    ->label(__('Add audience')),
+                    ->label(__('Add audience'))
+                    ->modalHeading(__('Add audience'))
+                    ->modalIcon(Heroicon::OutlinedMegaphone),
             ])
             ->recordActions([
-                EditAction::make(),
+                EditAction::make()
+                    ->modalIcon(Heroicon::OutlinedMegaphone),
                 DeleteAction::make()
                     ->before(function (ActivityAudience $record, DeleteAction $action): void {
                         if (! $record->isUsedByBookings()) {

@@ -345,7 +345,7 @@ class ActivityQualificationRequirementTest extends TestCase
         Livewire::test(ActivityAudiencesRelationManager::class, [
             'ownerRecord' => $activity,
             'pageClass' => ViewActivity::class,
-        ])->assertSee('No qualification required.');
+        ])->assertSee('This audience needs no qualifications.');
     }
 
     public function test_a_requirement_row_stores_one_scout_group(): void
