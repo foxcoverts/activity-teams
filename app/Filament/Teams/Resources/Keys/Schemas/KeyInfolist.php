@@ -2,9 +2,10 @@
 
 namespace App\Filament\Teams\Resources\Keys\Schemas;
 
+use App\Filament\Teams\Resources\Keys\KeyResource;
+use App\Filament\Teams\Resources\Members\MemberResource;
 use App\Models\Key;
-use App\Models\Team;
-use Filament\Facades\Filament;
+use Filament\Infolists\Components\ImageEntry;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
@@ -22,9 +23,21 @@ class KeyInfolist
                     ->columnSpanFull()
                     ->schema([
                         TextEntry::make('name'),
+                        ImageEntry::make('holder_avatar')
+                            ->hiddenLabel()
+                            ->state(fn (Key $record): ?string => $record->holder?->getFilamentAvatarUrl())
+                            ->alt(fn (Key $record): string => $record->holder?->name ?? '')
+                            ->imageSize(40)
+                            ->circular()
+                            ->visible(fn (Key $record): bool => $record->holder !== null),
                         TextEntry::make('holder_name')
                             ->label(__('Holder'))
-                            ->state(fn (Key $record): string => $record->holderName()),
+                            ->state(fn (Key $record): string => $record->holderName())
+                            ->url(fn (Key $record): ?string => MemberResource::viewUrlFor(
+                                $record->holder,
+                                KeyResource::currentTeam(),
+                            ))
+                            ->color(fn (Key $record): string => $record->holder !== null ? 'primary' : 'gray'),
                     ]),
                 Section::make(__('Unlocks'))
                     ->icon(Heroicon::OutlinedLockClosed)
@@ -38,17 +51,10 @@ class KeyInfolist
                             ->placeholder('-'),
                         TextEntry::make('required_for')
                             ->label(__('Required for'))
-                            ->state(fn (Key $record): array => $record->requirementSummariesFor(static::currentTeam()))
+                            ->state(fn (Key $record): array => $record->requirementSummariesFor(KeyResource::currentTeam()))
                             ->listWithLineBreaks()
                             ->placeholder('-'),
                     ]),
             ]);
-    }
-
-    public static function currentTeam(): ?Team
-    {
-        $tenant = Filament::getTenant();
-
-        return $tenant instanceof Team ? $tenant : null;
     }
 }
