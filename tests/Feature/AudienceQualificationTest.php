@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Filament\Member\Resources\Bookings\BookingResource as MemberBookingResource;
 use App\Filament\Teams\Resources\Activities\Pages\ListActivities;
 use App\Filament\Teams\Resources\Bookings\Pages\CreateBooking;
 use App\Mail\BookingInviteMail;
@@ -265,7 +266,7 @@ class AudienceQualificationTest extends TestCase
             'group_name' => 'Secret Group Name',
         ]);
 
-        $this->get(route('booking.preview', $booking))
+        $this->get(MemberBookingResource::viewUrl($booking))
             ->assertOk()
             ->assertSee('Climbing')
             ->assertDontSee('Guides Only Audience')

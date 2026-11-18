@@ -26,6 +26,15 @@ Route::get('booking/{booking}/preview', function (Booking $booking) {
     );
 });
 
+Route::get('booking/{booking}/share', function (Booking $booking) {
+    $booking->loadMissing('team');
+
+    return redirect(
+        BookingResource::getUrl('view', ['record' => $booking], panel: 'teams', tenant: $booking->team),
+        301,
+    );
+});
+
 Route::get('booking/{booking}', function (Booking $booking) {
     $booking->loadMissing('team');
 

@@ -13,3 +13,4 @@ As an Activity Manager or Team Member, I want standard booking URLs to remain st
 ## Acceptance criteria
 
 - Standard booking URLs remain fully functional and unauthenticated-friendly when shared externally.
+- ICS `URL` / description links use the teams booking path, not a separate share route.

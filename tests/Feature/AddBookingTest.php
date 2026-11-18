@@ -7,6 +7,7 @@ use App\Enums\BookingStatus;
 use App\Enums\MembershipRole;
 use App\Events\BookingChanged;
 use App\Filament\Forms\Components\TimezoneSelect;
+use App\Filament\Member\Resources\Bookings\BookingResource as MemberBookingResource;
 use App\Filament\Teams\Resources\Bookings\BookingResource;
 use App\Filament\Teams\Resources\Bookings\Pages\CreateBooking;
 use App\Filament\Teams\Resources\Bookings\Pages\EditBooking;
@@ -152,11 +153,15 @@ class AddBookingTest extends TestCase
             ->assertSee('1 Example Road')
             ->assertSee('AB1 2CD');
 
-        $this->get(route('booking.preview', $booking))
+        auth()->logout();
+
+        $this->get(MemberBookingResource::viewUrl($booking))
             ->assertOk()
             ->assertSee('A home address')
             ->assertDontSee('1 Example Road')
             ->assertDontSee('AB1 2CD');
+
+        $this->actingAs($manager);
 
         $lead = User::factory()->create();
         $booking->attendees()->attach($lead->getKey(), [
