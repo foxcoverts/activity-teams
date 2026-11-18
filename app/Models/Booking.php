@@ -590,7 +590,7 @@ class Booking extends Model implements Commentable
         ], fn (?string $part): bool => filled($part)));
     }
 
-    public function contextLabel(): ?string
+    private function contextLabel(): ?string
     {
         if (filled($this->group_name)) {
             return (string) $this->group_name;
@@ -701,13 +701,6 @@ class Booking extends Model implements Commentable
         $this->loadMissing('team');
 
         return $this->team;
-    }
-
-    public function summary(): Attribute
-    {
-        return Attribute::make(
-            get: fn () => $this->activityTitle().' - '.$this->start_at->timezone($this->timezone)->toFormattedDayDateString()
-        );
     }
 
     /**
