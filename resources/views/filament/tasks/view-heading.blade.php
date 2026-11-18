@@ -13,6 +13,7 @@
         @include('filament.tasks.title-with-overdue', [
             'title' => $task->summary,
             'overdue' => $task->isOverdue(),
+            'priority' => $task->priority,
             'heading' => true,
         ])
     </div>

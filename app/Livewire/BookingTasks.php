@@ -208,7 +208,6 @@ class BookingTasks extends Component implements HasActions, HasSchemas
                     ? TaskResource::getUrl('view', ['record' => $task], panel: 'teams', tenant: $team)
                     : null,
                 'overdue' => $task->isOverdue(),
-                'priority' => $task->priority !== TaskPriority::Medium ? $task->priority->getLabel() : null,
                 'canToggle' => $viewer->can('complete', $task),
                 'task' => $task,
             ];
