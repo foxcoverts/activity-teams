@@ -33,20 +33,41 @@
             <div data-equipment-group="{{ $group->getKey() }}" wire:key="equipment-group-{{ $group->getKey() }}">
                 <x-filament::section
                     class="equipment-set-group-panel"
-                    :heading="$group->label"
                     :has-content-el="false"
                 >
-                    <x-slot name="afterHeader">
-                        <div class="flex flex-wrap items-center gap-1">
-                            <x-filament::icon-button
+                    <x-slot name="heading">
+                        <div class="equipment-set-group-heading">
+                            <button
+                                type="button"
                                 data-group-handle
-                                icon="heroicon-o-bars-2"
-                                :label="__('Drag to reorder group')"
+                                class="equipment-set-group-handle"
+                                title="{{ __('Drag to reorder group') }}"
+                                aria-label="{{ __('Drag to reorder group') }}"
+                            >
+                                <x-filament::icon
+                                    icon="heroicon-o-folder"
+                                    class="equipment-set-group-handle-icon equipment-set-group-handle-icon--closed"
+                                />
+                                <x-filament::icon
+                                    icon="heroicon-o-folder-open"
+                                    class="equipment-set-group-handle-icon equipment-set-group-handle-icon--open"
+                                />
+                            </button>
+
+                            <span>{{ $group->label }}</span>
+
+                            <x-filament::icon-button
+                                icon="heroicon-o-pencil-square"
+                                :label="__('Edit group')"
                                 color="gray"
                                 size="sm"
-                                class="cursor-grab"
+                                wire:click="mountAction('editGroup', { group: '{{ $group->getKey() }}' })"
                             />
+                        </div>
+                    </x-slot>
 
+                    <x-slot name="afterHeader">
+                        <div class="flex flex-wrap items-center gap-1">
                             @if ($capabilities['canMoveUp'])
                                 <x-filament::icon-button
                                     icon="heroicon-o-arrow-up"
@@ -67,14 +88,6 @@
                                 />
                             @endif
 
-                            <x-filament::icon-button
-                                icon="heroicon-o-pencil-square"
-                                :label="__('Edit group')"
-                                color="gray"
-                                size="sm"
-                                wire:click="mountAction('editGroup', { group: '{{ $group->getKey() }}' })"
-                            />
-
                             {{ ($this->addSetAction)(['group' => $group->getKey()]) }}
 
                             @if ($capabilities['canDelete'])
@@ -89,28 +102,62 @@
                         </div>
                     </x-slot>
 
+                    {{--
+                        One Sortable per group: sort disabled, same-group moves rejected.
+                        Ghost is hidden; is-drop-target highlights the whole group instead
+                        of showing a between-row insert slot. onAdd places A–Z.
+                    --}}
                     <div
-                        class="equipment-set-list"
+                        class="equipment-set-drop-zone"
                         data-group-id="{{ $group->getKey() }}"
-                        wire:key="equipment-sets-{{ $group->getKey() }}-{{ $group->equipmentSets->pluck('id')->join('-') }}"
+                        wire:key="equipment-drop-{{ $group->getKey() }}-{{ $group->equipmentSets->pluck('id')->join('-') }}"
                         x-data
                         x-init="
                             if (typeof Sortable === 'undefined') {
                                 return;
                             }
 
+                            const clearDropTargets = () => {
+                                document
+                                    .querySelectorAll('.equipment-set-drop-zone.is-drop-target')
+                                    .forEach((zone) => zone.classList.remove('is-drop-target'));
+                            };
+
+                            // dragleave fires on the element being left (drop zone), not only the
+                            // drag source. Ignore moves into children so the ring does not flicker.
+                            $el.addEventListener('dragleave', (event) => {
+                                if ($el.contains(event.relatedTarget)) {
+                                    return;
+                                }
+
+                                $el.classList.remove('is-drop-target');
+                            });
+
                             Sortable.create($el, {
                                 group: 'equipment-sets',
-                                // Sets are always A–Z; never let the user reorder within a group.
                                 sort: false,
                                 animation: 150,
                                 draggable: '[data-set-id]',
                                 handle: '[data-set-handle]',
-                                ghostClass: 'fi-sortable-ghost',
+                                filter: '.invite-empty',
+                                ghostClass: 'equipment-set-move-ghost',
+                                chosenClass: 'equipment-set-move-chosen',
                                 onMove(event) {
-                                    return event.from !== event.to;
+                                    const fromGroup = event.from.dataset.groupId;
+                                    const toGroup = event.to.dataset.groupId;
+                                    const allowed = Boolean(toGroup && fromGroup !== toGroup);
+
+                                    clearDropTargets();
+
+                                    if (allowed) {
+                                        event.to.classList.add('is-drop-target');
+                                    }
+
+                                    return allowed;
                                 },
                                 onAdd(event) {
+                                    clearDropTargets();
+
                                     const setId = event.item.dataset.setId;
                                     const groupId = $el.dataset.groupId;
                                     const name = (event.item.dataset.setName || '').toLocaleLowerCase();
@@ -127,9 +174,17 @@
                                         $el.appendChild(event.item);
                                     }
 
+                                    const empty = $el.querySelector('.invite-empty');
+                                    if (empty) {
+                                        empty.remove();
+                                    }
+
                                     if (setId && groupId) {
                                         $wire.moveSetToGroup(setId, groupId);
                                     }
+                                },
+                                onEnd() {
+                                    clearDropTargets();
                                 },
                             });
                         "
@@ -144,7 +199,7 @@
                                 <div class="invite-person">
                                     <x-filament::icon-button
                                         data-set-handle
-                                        icon="heroicon-o-bars-2"
+                                        icon="heroicon-o-arrows-right-left"
                                         :label="__('Drag to another group')"
                                         color="gray"
                                         size="sm"

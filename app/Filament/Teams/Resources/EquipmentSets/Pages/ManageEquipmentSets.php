@@ -15,7 +15,6 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\Page;
-use Filament\Schemas\Components\Section;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Gate;
@@ -28,6 +27,11 @@ class ManageEquipmentSets extends Page
     protected static ?string $title = 'Equipment sets';
 
     protected string $view = 'filament.equipment-sets.manage';
+
+    public function getBreadcrumb(): ?string
+    {
+        return static::$breadcrumb ?? __('filament-panels::resources/pages/list-records.breadcrumb');
+    }
 
     public function mount(): void
     {
@@ -101,26 +105,22 @@ class ManageEquipmentSets extends Page
         return [
             CreateAction::make('createGroup')
                 ->label(__('New group'))
+                ->modalHeading(__('New group'))
+                ->modalIcon(Heroicon::OutlinedFolder)
                 ->model(EquipmentSetGroup::class)
                 ->authorize(fn (): bool => Gate::allows('create', EquipmentSetGroup::class))
                 ->schema([
-                    Section::make(__('Group'))
-                        ->icon(Heroicon::OutlinedRectangleStack)
-                        ->columns(1)
-                        ->columnSpanFull()
-                        ->schema([
-                            TextInput::make('label')
-                                ->label(__('Label'))
-                                ->required()
-                                ->maxLength(255)
-                                ->unique(
-                                    modifyRuleUsing: function ($rule) {
-                                        $team = $this->team();
+                    TextInput::make('label')
+                        ->label(__('Label'))
+                        ->required()
+                        ->maxLength(255)
+                        ->unique(
+                            modifyRuleUsing: function ($rule) {
+                                $team = $this->team();
 
-                                        return $rule->where('team_id', $team->getKey());
-                                    },
-                                ),
-                        ]),
+                                return $rule->where('team_id', $team->getKey());
+                            },
+                        ),
                 ])
                 ->mutateFormDataUsing(function (array $data): array {
                     $team = $this->team();
@@ -139,17 +139,13 @@ class ManageEquipmentSets extends Page
         return Action::make('editGroup')
             ->label(__('Edit'))
             ->icon(Heroicon::OutlinedPencilSquare)
+            ->modalHeading(__('Edit group'))
+            ->modalIcon(Heroicon::OutlinedFolder)
             ->schema([
-                Section::make(__('Group'))
-                    ->icon(Heroicon::OutlinedRectangleStack)
-                    ->columns(1)
-                    ->columnSpanFull()
-                    ->schema([
-                        TextInput::make('label')
-                            ->label(__('Label'))
-                            ->required()
-                            ->maxLength(255),
-                    ]),
+                TextInput::make('label')
+                    ->label(__('Label'))
+                    ->required()
+                    ->maxLength(255),
             ])
             ->fillForm(fn (array $arguments): array => [
                 'label' => $this->group((string) ($arguments['group'] ?? ''))->label,
@@ -196,19 +192,14 @@ class ManageEquipmentSets extends Page
         return Action::make('addSet')
             ->label(__('Add set'))
             ->icon(Heroicon::OutlinedPlus)
-            ->button()
+            ->iconButton()
             ->color('gray')
             ->modalHeading(__('New equipment set'))
+            ->modalIcon(Heroicon::OutlinedWrenchScrewdriver)
             ->modalSubmitActionLabel(__('Create'))
-            ->schema(fn (array $arguments): array => [
-                Section::make(__('Equipment set'))
-                    ->icon(Heroicon::OutlinedWrenchScrewdriver)
-                    ->columns(1)
-                    ->columnSpanFull()
-                    ->schema(EquipmentSetForm::fields(
-                        lockedGroupId: (string) ($arguments['group'] ?? ''),
-                    )),
-            ])
+            ->schema(fn (array $arguments): array => EquipmentSetForm::fields(
+                lockedGroupId: (string) ($arguments['group'] ?? ''),
+            ))
             ->action(function (array $arguments, array $data): void {
                 $group = $this->group((string) ($arguments['group'] ?? ''));
                 Gate::authorize('create', EquipmentSet::class);
@@ -230,15 +221,10 @@ class ManageEquipmentSets extends Page
             ->label(__('Edit'))
             ->icon(Heroicon::OutlinedPencilSquare)
             ->modalHeading(__('Edit equipment set'))
-            ->schema(fn (array $arguments): array => [
-                Section::make(__('Equipment set'))
-                    ->icon(Heroicon::OutlinedWrenchScrewdriver)
-                    ->columns(1)
-                    ->columnSpanFull()
-                    ->schema(EquipmentSetForm::fields(
-                        record: $this->set((string) ($arguments['set'] ?? '')),
-                    )),
-            ])
+            ->modalIcon(Heroicon::OutlinedWrenchScrewdriver)
+            ->schema(fn (array $arguments): array => EquipmentSetForm::fields(
+                record: $this->set((string) ($arguments['set'] ?? '')),
+            ))
             ->fillForm(function (array $arguments): array {
                 $set = $this->set((string) ($arguments['set'] ?? ''));
 

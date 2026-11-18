@@ -132,8 +132,7 @@
 /* Compact header padding on mobile; match Guest list / Related / Tasks. */
 .related-bookings-panel.fi-section:not(.fi-section-not-contained)>.fi-section-header,
 .booking-tasks-panel.fi-section:not(.fi-section-not-contained)>.fi-section-header,
-.task-assignee-panel.fi-section:not(.fi-section-not-contained)>.fi-section-header,
-.equipment-set-group-panel.fi-section:not(.fi-section-not-contained)>.fi-section-header {
+.task-assignee-panel.fi-section:not(.fi-section-not-contained)>.fi-section-header {
     @apply p-4 sm:px-6;
 }
 
@@ -144,8 +143,54 @@
     @apply p-0;
 }
 
-.equipment-set-list {
-    @apply min-h-10;
+/* Match set-row px-3 so group and set drag handles share a column; keep the header short. */
+.equipment-set-group-panel.fi-section:not(.fi-section-not-contained)>.fi-section-header {
+    @apply px-3 py-2;
+}
+
+.equipment-set-group-heading {
+    @apply flex items-center gap-1;
+}
+
+.equipment-set-group-handle {
+    @apply relative me-1 inline-flex size-8 shrink-0 cursor-grab items-center justify-center rounded-lg text-gray-400 outline-none transition hover:bg-gray-50 hover:text-gray-500 focus-visible:bg-gray-50 focus-visible:text-gray-500 dark:text-gray-500 dark:hover:bg-white/5 dark:hover:text-gray-400 dark:focus-visible:bg-white/5 dark:focus-visible:text-gray-400;
+}
+
+.equipment-set-group-handle-icon {
+    @apply size-5 transition-opacity;
+}
+
+.equipment-set-group-handle-icon--open {
+    @apply pointer-events-none absolute opacity-0;
+}
+
+.equipment-set-group-handle:hover .equipment-set-group-handle-icon--closed,
+.equipment-set-group-handle:focus-visible .equipment-set-group-handle-icon--closed,
+.equipment-set-group-handle:active .equipment-set-group-handle-icon--closed {
+    @apply opacity-0;
+}
+
+.equipment-set-group-handle:hover .equipment-set-group-handle-icon--open,
+.equipment-set-group-handle:focus-visible .equipment-set-group-handle-icon--open,
+.equipment-set-group-handle:active .equipment-set-group-handle-icon--open {
+    @apply opacity-100;
+}
+
+.equipment-set-drop-zone {
+    @apply min-h-10 rounded-b-xl transition-[box-shadow,background-color];
+}
+
+.equipment-set-drop-zone.is-drop-target {
+    @apply bg-primary-50 ring-2 ring-inset ring-primary-500 dark:bg-primary-400/10 dark:ring-primary-400;
+}
+
+/* Hide Sortable's between-row placeholder; the drop-zone ring is the affordance. */
+.equipment-set-move-ghost {
+    @apply pointer-events-none !h-0 !min-h-0 !overflow-hidden !border-0 !p-0 !opacity-0;
+}
+
+.equipment-set-move-chosen {
+    @apply opacity-60;
 }
 
 .booking-comments-panel.fi-section:not(.fi-section-not-contained) {
