@@ -298,6 +298,18 @@
     padding-block: calc(var(--spacing) * 4);
 }
 
+/* Invite picker: use the full viewport width on phones (drop Filament’s p-4 gutter). */
+@media (max-width: 639px) {
+    .fi-modal:not(.fi-modal-slide-over):not(.fi-width-screen)
+        > .fi-modal-window-ctn:has(> .invite-attendees-panel.fi-modal-window) {
+        @apply p-0;
+    }
+
+    .invite-attendees-panel.fi-modal-window {
+        @apply w-full max-w-none rounded-none;
+    }
+}
+
 .booking-person-details {
     @apply w-full text-sm;
 }

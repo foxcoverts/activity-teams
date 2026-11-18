@@ -112,6 +112,7 @@ class AttendeesRelationManager extends RelationManager
                         ->modalSubmitAction(false)
                         ->modalCancelAction(false)
                         ->modalWidth(Width::TwoExtraLarge)
+                        ->extraModalWindowAttributes(['class' => 'invite-attendees-panel'])
                         ->mountUsing(function (): void {
                             $this->inviteSession = (string) Str::ulid();
                         })
