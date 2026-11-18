@@ -2,6 +2,8 @@
 
 namespace Tests\Feature\Admin;
 
+use App\Filament\Admin\Resources\Audiences\AudienceResource;
+use App\Filament\Admin\Resources\Audiences\Pages\EditAudience;
 use App\Filament\Admin\Resources\Audiences\Pages\ListAudiences;
 use App\Models\Audience;
 use App\Models\User;
@@ -34,5 +36,23 @@ class AudienceResourceTest extends TestCase
             ->assertCanSeeTableRecords([$archery, $climbing, $zebra], inOrder: true)
             ->sortTable('name', 'desc')
             ->assertCanSeeTableRecords([$zebra, $climbing, $archery], inOrder: true);
+    }
+
+    public function test_saving_an_audience_returns_to_the_view_page(): void
+    {
+        $admin = User::factory()->systemAdmin()->create();
+        $audience = Audience::factory()->create(['name' => 'Scouts']);
+
+        $this->actingAs($admin);
+
+        Livewire::test(EditAudience::class, ['record' => $audience->getKey()])
+            ->fillForm([
+                'name' => 'Explorer Scouts',
+            ])
+            ->call('save')
+            ->assertHasNoFormErrors()
+            ->assertRedirect(AudienceResource::getUrl('view', ['record' => $audience]));
+
+        $this->assertSame('Explorer Scouts', $audience->fresh()->name);
     }
 }

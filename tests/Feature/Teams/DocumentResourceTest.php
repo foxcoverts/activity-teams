@@ -154,7 +154,8 @@ class DocumentResourceTest extends TestCase
                 'file_name' => 'wall procedure.pdf',
             ])
             ->call('save')
-            ->assertHasNoFormErrors();
+            ->assertHasNoFormErrors()
+            ->assertRedirect(DocumentResource::getUrl('view', ['record' => $document], tenant: $team));
 
         $this->assertSame('wall procedure.pdf', $document->fresh()->file_name);
 
