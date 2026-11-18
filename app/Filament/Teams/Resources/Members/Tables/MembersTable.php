@@ -4,6 +4,7 @@ namespace App\Filament\Teams\Resources\Members\Tables;
 
 use App\Enums\AccountStatus;
 use App\Enums\MembershipRole;
+use App\Filament\Support\Tables\PersonColumn;
 use App\Filament\Teams\Resources\Members\MemberResource;
 use App\Models\Lock;
 use App\Models\User;
@@ -12,7 +13,6 @@ use Filament\Actions\ActionGroup;
 use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
 use Filament\Support\Icons\Heroicon;
-use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
@@ -26,15 +26,7 @@ class MembersTable
         return $table
             ->defaultSort('name')
             ->columns([
-                ImageColumn::make('avatar')
-                    ->label('')
-                    ->state(fn (User $record): ?string => $record->getFilamentAvatarUrl())
-                    ->alt(fn (User $record): string => $record->name)
-                    ->imageSize(32)
-                    ->circular()
-                    ->width('1%')
-                    ->grow(false),
-                TextColumn::make('name')
+                PersonColumn::make('name')
                     ->searchable(),
                 TextColumn::make('membership_role')
                     ->label('Role')

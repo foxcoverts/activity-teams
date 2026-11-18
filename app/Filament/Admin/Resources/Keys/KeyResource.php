@@ -8,6 +8,8 @@ use App\Filament\Admin\Resources\Keys\Pages\EditKey;
 use App\Filament\Admin\Resources\Keys\Pages\ListKeys;
 use App\Filament\Admin\Resources\Keys\Pages\ViewKey;
 use App\Filament\Admin\Resources\Keys\RelationManagers\LocksRelationManager;
+use App\Filament\Support\Infolists\PersonEntry;
+use App\Filament\Support\Tables\PersonColumn;
 use App\Models\Key;
 use App\Models\User;
 use BackedEnum;
@@ -137,9 +139,9 @@ class KeyResource extends Resource
                     ->columns(1)
                     ->columnSpanFull()
                     ->schema([
-                        TextEntry::make('holder_name')
+                        PersonEntry::make('holder.name')
                             ->hiddenLabel()
-                            ->state(fn (Key $record): string => $record->holderName()),
+                            ->placeholder(__('In the cupboard')),
                     ]),
             ]);
     }
@@ -151,7 +153,7 @@ class KeyResource extends Resource
             ->columns([
                 TextColumn::make('name')
                     ->searchable(),
-                TextColumn::make('holder.name')
+                PersonColumn::make('holder.name')
                     ->label(__('Holder'))
                     ->placeholder(__('In the cupboard')),
             ])

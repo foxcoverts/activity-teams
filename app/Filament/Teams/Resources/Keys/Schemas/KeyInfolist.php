@@ -2,10 +2,9 @@
 
 namespace App\Filament\Teams\Resources\Keys\Schemas;
 
+use App\Filament\Support\Infolists\PersonEntry;
 use App\Filament\Teams\Resources\Keys\KeyResource;
-use App\Filament\Teams\Resources\Members\MemberResource;
 use App\Models\Key;
-use Filament\Infolists\Components\ImageEntry;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
@@ -23,21 +22,10 @@ class KeyInfolist
                     ->columnSpanFull()
                     ->schema([
                         TextEntry::make('name'),
-                        ImageEntry::make('holder_avatar')
-                            ->hiddenLabel()
-                            ->state(fn (Key $record): ?string => $record->holder?->getFilamentAvatarUrl())
-                            ->alt(fn (Key $record): string => $record->holder?->name ?? '')
-                            ->imageSize(40)
-                            ->circular()
-                            ->visible(fn (Key $record): bool => $record->holder !== null),
-                        TextEntry::make('holder_name')
+                        PersonEntry::make('holder.name')
                             ->label(__('Holder'))
-                            ->state(fn (Key $record): string => $record->holderName())
-                            ->url(fn (Key $record): ?string => MemberResource::viewUrlFor(
-                                $record->holder,
-                                KeyResource::currentTeam(),
-                            ))
-                            ->color(fn (Key $record): string => $record->holder !== null ? 'primary' : 'gray'),
+                            ->placeholder(__('In the cupboard'))
+                            ->memberUrl(),
                     ]),
                 Section::make(__('Unlocks'))
                     ->icon(Heroicon::OutlinedLockClosed)

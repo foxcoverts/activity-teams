@@ -121,6 +121,7 @@ class KeyResourceTest extends TestCase
             ->assertCanSeeTableRecords([$ring])
             ->assertSee('Casey Holder')
             ->assertSeeHtml($memberUrl)
+            ->assertSee('fi-ta-person', false)
             ->assertSee(str_replace('&', '&amp;', $avatarUrl), false);
 
         $this->assertSame('md', $list->instance()->getTable()->getColumn('unlocks')->getVisibleFrom());
@@ -149,6 +150,7 @@ class KeyResourceTest extends TestCase
         Livewire::test(ViewKey::class, ['record' => $ring->getRouteKey()])
             ->assertSee('Casey Holder')
             ->assertSeeHtml($memberUrl)
+            ->assertSee('fi-in-person', false)
             ->assertSee(str_replace('&', '&amp;', $avatarUrl), false);
     }
 }

@@ -2,8 +2,8 @@
 
 namespace App\Filament\Teams\Resources\BookingDebriefs\Schemas;
 
+use App\Filament\Support\Infolists\PersonEntry;
 use App\Filament\Teams\Resources\Bookings\BookingResource;
-use App\Filament\Teams\Resources\Members\MemberResource;
 use App\Models\Booking;
 use App\Models\BookingDebrief;
 use App\Support\BookingWhen;
@@ -67,14 +67,11 @@ class BookingDebriefInfolist
                         ->timezone(fn (): string => auth()->user()?->timezoneName() ?? (string) config('app.timezone'))
                         ->dateTime('j M Y, H:i')
                         ->placeholder('-'),
-                    TextEntry::make('completedBy.name')
+                    PersonEntry::make('completedBy.name')
                         ->label(__('Completed by'))
                         ->placeholder('-')
-                        ->url(fn (BookingDebrief $record): ?string => MemberResource::viewUrlFor(
-                            $record->completedBy,
-                            $record->booking?->team,
-                        ))
-                        ->color('primary'),
+                        ->memberUrl()
+                        ->description(fn (BookingDebrief $record): ?string => $record->completedByRoleLabel()),
                 ]),
         ]);
     }

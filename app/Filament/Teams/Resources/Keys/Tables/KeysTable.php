@@ -3,12 +3,11 @@
 namespace App\Filament\Teams\Resources\Keys\Tables;
 
 use App\Filament\Keys\PassKeyAction;
+use App\Filament\Support\Tables\PersonColumn;
 use App\Filament\Teams\Resources\Keys\KeyResource;
-use App\Filament\Teams\Resources\Members\MemberResource;
 use App\Models\Key;
 use App\Models\Team;
 use Filament\Actions\ViewAction;
-use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
@@ -24,22 +23,10 @@ class KeysTable
                 TextColumn::make('name')
                     ->label(__('Key'))
                     ->searchable(),
-                ImageColumn::make('holder_avatar')
-                    ->label('')
-                    ->state(fn (Key $record): ?string => $record->holder?->getFilamentAvatarUrl())
-                    ->alt(fn (Key $record): string => $record->holder?->name ?? '')
-                    ->imageSize(32)
-                    ->circular()
-                    ->width('1%')
-                    ->grow(false),
-                TextColumn::make('holder.name')
+                PersonColumn::make('holder.name')
                     ->label(__('Holder'))
                     ->placeholder(__('In the cupboard'))
-                    ->url(fn (Key $record): ?string => MemberResource::viewUrlFor(
-                        $record->holder,
-                        KeyResource::currentTeam(),
-                    ))
-                    ->color(fn (Key $record): string => $record->holder !== null ? 'primary' : 'gray'),
+                    ->memberUrl(),
                 TextColumn::make('unlocks')
                     ->label(__('Unlocks'))
                     ->state(fn (Key $record): array => $record->lockNames())

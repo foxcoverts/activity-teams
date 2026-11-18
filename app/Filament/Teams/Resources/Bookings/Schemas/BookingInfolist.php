@@ -5,7 +5,7 @@ namespace App\Filament\Teams\Resources\Bookings\Schemas;
 use App\Enums\BookingStatus;
 use App\Enums\TeamFeature;
 use App\Filament\Bookings\LocationMapAction;
-use App\Filament\Teams\Resources\Members\MemberResource;
+use App\Filament\Support\Infolists\PersonEntry;
 use App\Models\Booking;
 use App\Models\User;
 use App\Support\BookingWhen;
@@ -125,14 +125,11 @@ class BookingInfolist
                         ->label(__('Completed'))
                         ->dateTime('j M Y, H:i')
                         ->placeholder('-'),
-                    TextEntry::make('debrief.completedBy.name')
+                    PersonEntry::make('debrief.completedBy.name')
                         ->label(__('Completed by'))
                         ->placeholder('-')
-                        ->url(fn (Booking $record): ?string => MemberResource::viewUrlFor(
-                            $record->debrief?->completedBy,
-                            $record->team,
-                        ))
-                        ->color('primary'),
+                        ->memberUrl()
+                        ->description(fn (Booking $record): ?string => $record->debrief?->completedByRoleLabel()),
                 ]),
         ];
     }

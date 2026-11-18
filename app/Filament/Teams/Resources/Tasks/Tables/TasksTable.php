@@ -4,6 +4,7 @@ namespace App\Filament\Teams\Resources\Tasks\Tables;
 
 use App\Enums\TaskPriority;
 use App\Enums\TaskStatus;
+use App\Filament\Support\Tables\PersonColumn;
 use App\Filament\Tasks\TaskSummaryColumn;
 use App\Filament\Teams\Resources\Tasks\TaskResource;
 use App\Filament\Teams\Resources\Tasks\TaskStatusActions;
@@ -12,7 +13,6 @@ use Filament\Actions\ActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
-use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Columns\ViewColumn;
 use Filament\Tables\Filters\SelectFilter;
@@ -34,16 +34,11 @@ class TasksTable
                     ->extraCellAttributes(['class' => 'task-complete-col'])
                     ->width('2.75rem'),
                 TaskSummaryColumn::make(),
-                ImageColumn::make('assignee_avatar')
+                PersonColumn::make('attendance.user.name')
                     ->label(__('To'))
-                    ->state(fn (Task $record): ?string => $record->attendance?->user?->getFilamentAvatarUrl())
-                    ->alt(fn (Task $record): string => $record->attendance?->user?->name ?? '')
-                    ->tooltip(fn (Task $record): ?string => $record->attendance?->user?->name)
-                    ->imageSize(32)
-                    ->circular()
-                    ->width('1%')
-                    ->grow(false)
-                    ->alignCenter(),
+                    ->headingVisibleFrom('md')
+                    ->memberUrl()
+                    ->grow(false),
                 TextColumn::make('due_at')
                     ->label(__('Due'))
                     ->dateTime('j M Y, H:i')

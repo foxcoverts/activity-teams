@@ -217,6 +217,72 @@ class BookingDebriefTest extends TestCase
         $this->assertSame(4, $booking->fresh()->debrief->participant_count);
     }
 
+    public function test_completed_by_describes_lead_manager_or_member(): void
+    {
+        $manager = User::factory()->teamManager()->create();
+        $team = $manager->teams()->firstOrFail();
+        $team->enableFeature(TeamFeature::Debrief, now()->subMonths(2));
+        $team->save();
+
+        $lead = User::factory()->teamMember($team)->create(['name' => 'Casey Lead']);
+        $member = User::factory()->teamMember($team)->create(['name' => 'Morgan Member']);
+
+        $asLead = Booking::factory()->confirmed()->create([
+            'team_id' => $team->getKey(),
+            'start_at' => now()->subHours(4),
+            'end_at' => now()->subHours(2),
+            'lead_instructor_id' => $lead->getKey(),
+        ]);
+        $leadDebrief = app(CompleteDebriefAction::class)($asLead, $lead, [
+            'hours' => 2,
+            'participant_count' => 0,
+            'weather' => 'Dry',
+            'notes' => null,
+            'equipment_set_ids' => [],
+            'marks' => [],
+        ]);
+        $this->assertSame('Lead instructor', $leadDebrief->completedByRoleLabel());
+
+        $asManager = Booking::factory()->confirmed()->create([
+            'team_id' => $team->getKey(),
+            'start_at' => now()->subHours(4),
+            'end_at' => now()->subHours(2),
+            'lead_instructor_id' => $lead->getKey(),
+        ]);
+        $managerDebrief = app(CompleteDebriefAction::class)($asManager, $manager, [
+            'hours' => 2,
+            'participant_count' => 0,
+            'weather' => 'Dry',
+            'notes' => null,
+            'equipment_set_ids' => [],
+            'marks' => [],
+        ]);
+        $this->assertSame('Manager', $managerDebrief->completedByRoleLabel());
+
+        $asMember = Booking::factory()->confirmed()->create([
+            'team_id' => $team->getKey(),
+            'start_at' => now()->subHours(4),
+            'end_at' => now()->subHours(2),
+            'lead_instructor_id' => $lead->getKey(),
+        ]);
+        $memberDebrief = BookingDebrief::factory()->create([
+            'booking_id' => $asMember->getKey(),
+            'completed_by_id' => $member->getKey(),
+            'completed_at' => now(),
+            'hours' => 2,
+            'participant_count' => 0,
+            'weather' => 'Dry',
+        ]);
+        $this->assertSame('Member', $memberDebrief->completedByRoleLabel());
+
+        $this->actingAs($manager);
+        Filament::setTenant($team);
+
+        Livewire::test(ViewBooking::class, ['record' => $asLead->fresh()->getRouteKey()])
+            ->assertSee('Casey Lead')
+            ->assertSee('Lead instructor');
+    }
+
     public function test_complete_debrief_leaves_skipped_tentative_as_maybe(): void
     {
         $lead = User::factory()->teamMember()->create();
