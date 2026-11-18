@@ -43,7 +43,7 @@ class CompleteDebriefAction
             ->color(Palette::positive())
             ->modalHeading(__('Session debrief'))
             ->modalWidth(Width::TwoExtraLarge)
-            ->extraModalWindowAttributes(['class' => 'confirm-attendees-panel'])
+            ->extraModalWindowAttributes(['class' => 'confirm-attendees-panel modal-mobile-full'])
             ->modalSubmitActionLabel(__('Save debrief'))
             ->visible(fn (Booking $record): bool => self::isAvailable($record, auth()->user()))
             ->fillForm(fn (Booking $record): array => self::formState($record))

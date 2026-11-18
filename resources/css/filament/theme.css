@@ -298,6 +298,21 @@
     padding-block: calc(var(--spacing) * 4);
 }
 
+/*
+ * Field-work booking/task modals: use the full viewport width on phones
+ * (drop Filament’s p-4 gutter). Keep slide-overs / screen-width modals alone.
+ */
+@media (max-width: 639px) {
+    .fi-modal:not(.fi-modal-slide-over):not(.fi-width-screen)
+        > .fi-modal-window-ctn:has(> .modal-mobile-full.fi-modal-window) {
+        @apply p-0;
+    }
+
+    .modal-mobile-full.fi-modal-window {
+        @apply w-full max-w-none rounded-none;
+    }
+}
+
 .booking-person-details {
     @apply w-full text-sm;
 }
@@ -460,6 +475,14 @@
 
 .invite-footer {
     @apply flex justify-end gap-2;
+}
+
+/* Give the complete-control column breathing room from the card edge on phones. */
+@media (max-width: 639px) {
+    .fi-ta-cell.task-complete-col,
+    .fi-ta-header-cell.task-complete-col {
+        padding-inline-start: calc(var(--spacing) * 3);
+    }
 }
 
 .task-complete-control {
@@ -646,24 +669,40 @@ button.task-complete-control:disabled {
     opacity: 0.55;
 }
 
-.fi-fc .fc-event.fc-event--attendance-accepted,
-.fi-ta-row.booking-row--attendance-accepted {
+.fi-fc .fc-event.fc-event--attendance-accepted {
     box-shadow: inset 0.2rem 0 0 rgb(22 163 74);
 }
 
-.fi-fc .fc-event.fc-event--attendance-tentative,
-.fi-ta-row.booking-row--attendance-tentative {
+.fi-fc .fc-event.fc-event--attendance-tentative {
     box-shadow: inset 0.2rem 0 0 rgb(217 119 6);
 }
 
-.fi-fc .fc-event.fc-event--attendance-needs-action,
-.fi-ta-row.booking-row--attendance-needs-action {
+.fi-fc .fc-event.fc-event--attendance-needs-action {
     box-shadow: inset 0.2rem 0 0 rgb(107 114 128);
 }
 
-.fi-fc .fc-event.fc-event--attendance-declined,
-.fi-ta-row.booking-row--attendance-declined {
+.fi-fc .fc-event.fc-event--attendance-declined {
     box-shadow: inset 0.2rem 0 0 rgb(220 38 38);
+}
+
+/*
+ * Booking tables: inset box-shadow often fails to paint on Safari table rows.
+ * Use a start border so the attendance cue shows on mobile where the badge is hidden.
+ */
+.fi-ta-row.booking-row--attendance-accepted {
+    border-inline-start: 0.2rem solid rgb(22 163 74);
+}
+
+.fi-ta-row.booking-row--attendance-tentative {
+    border-inline-start: 0.2rem solid rgb(217 119 6);
+}
+
+.fi-ta-row.booking-row--attendance-needs-action {
+    border-inline-start: 0.2rem solid rgb(107 114 128);
+}
+
+.fi-ta-row.booking-row--attendance-declined {
+    border-inline-start: 0.2rem solid rgb(220 38 38);
 }
 
 .fi-fc .fc-event .fi-fc-event-leading-icon {

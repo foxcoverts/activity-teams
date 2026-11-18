@@ -30,4 +30,9 @@ class EditMember extends EditRecord
                 ->button(),
         ];
     }
+
+    protected function getRedirectUrl(): string
+    {
+        return $this->getResource()::getUrl('view', ['record' => $this->getRecord()]);
+    }
 }

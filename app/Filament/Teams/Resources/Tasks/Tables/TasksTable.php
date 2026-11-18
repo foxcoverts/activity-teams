@@ -4,6 +4,7 @@ namespace App\Filament\Teams\Resources\Tasks\Tables;
 
 use App\Enums\TaskPriority;
 use App\Enums\TaskStatus;
+use App\Filament\Tasks\TaskSummaryColumn;
 use App\Filament\Teams\Resources\Tasks\TaskResource;
 use App\Filament\Teams\Resources\Tasks\TaskStatusActions;
 use App\Models\Task;
@@ -29,20 +30,10 @@ class TasksTable
                     ->view('filament.tasks.complete-control-column')
                     ->disabledClick()
                     ->alignCenter()
-                    ->width('2.5rem'),
-                TextColumn::make('summary')
-                    ->label(__('Title'))
-                    ->searchable()
-                    ->sortable()
-                    ->html()
-                    ->formatStateUsing(fn (?string $state, Task $record): string => view(
-                        'filament.tasks.title-with-overdue',
-                        [
-                            'title' => $state,
-                            'overdue' => $record->isOverdue(),
-                        ],
-                    )->render())
-                    ->description(fn (Task $record): ?string => $record->plainNotes(160)),
+                    ->extraHeaderAttributes(['class' => 'task-complete-col'])
+                    ->extraCellAttributes(['class' => 'task-complete-col'])
+                    ->width('2.75rem'),
+                TaskSummaryColumn::make(),
                 ImageColumn::make('assignee_avatar')
                     ->label(__('To'))
                     ->state(fn (Task $record): ?string => $record->attendance?->user?->getFilamentAvatarUrl())
@@ -53,10 +44,6 @@ class TasksTable
                     ->width('1%')
                     ->grow(false)
                     ->alignCenter(),
-                TextColumn::make('priority')
-                    ->badge()
-                    ->sortable()
-                    ->toggleable(),
                 TextColumn::make('due_at')
                     ->label(__('Due'))
                     ->dateTime('j M Y, H:i')

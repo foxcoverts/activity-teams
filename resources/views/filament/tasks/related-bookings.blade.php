@@ -24,10 +24,25 @@
                     </a>
 
                     @if ($canManage)
-                        <x-filament::button size="sm" color="danger" outlined
-                            wire:click="remove('{{ $item['id'] }}')">
-                            {{ __('Remove') }}
-                        </x-filament::button>
+                        <x-filament::dropdown placement="bottom-end">
+                            <x-slot name="trigger">
+                                <x-filament::icon-button
+                                    icon="heroicon-o-ellipsis-vertical"
+                                    :label="__('Actions')"
+                                    color="gray"
+                                    size="sm"
+                                />
+                            </x-slot>
+
+                            <x-filament::dropdown.list>
+                                <x-filament::dropdown.list.item
+                                    wire:click="remove('{{ $item['id'] }}')"
+                                    color="danger"
+                                >
+                                    {{ __('Remove') }}
+                                </x-filament::dropdown.list.item>
+                            </x-filament::dropdown.list>
+                        </x-filament::dropdown>
                     @endif
                 </div>
             @empty

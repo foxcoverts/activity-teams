@@ -112,6 +112,7 @@ class AttendeesRelationManager extends RelationManager
                         ->modalSubmitAction(false)
                         ->modalCancelAction(false)
                         ->modalWidth(Width::TwoExtraLarge)
+                        ->extraModalWindowAttributes(['class' => 'modal-mobile-full'])
                         ->mountUsing(function (): void {
                             $this->inviteSession = (string) Str::ulid();
                         })
@@ -170,7 +171,7 @@ class AttendeesRelationManager extends RelationManager
                     ))
                     ->modalWidth(Width::Large)
                     ->extraModalWindowAttributes(fn (User $record): array => [
-                        'class' => 'booking-contact-panel booking-person-panel',
+                        'class' => 'booking-contact-panel booking-person-panel modal-mobile-full',
                         'x-data' => '{ hasViewMember: '.($this->canShowViewMember($record) ? 'true' : 'false').' }',
                         'x-init' => 'Alpine.store(\'bookingPersonDetails\', { qualification: null })',
                         'x-bind:data-footer-open' => 'hasViewMember || ($store.bookingPersonDetails?.qualification != null)',
@@ -402,7 +403,6 @@ class AttendeesRelationManager extends RelationManager
             ToggleButtons::make('response')
                 ->label(__('Status'))
                 ->options(BookingAttendeeResponse::class)
-                ->inline()
                 ->required(),
             Textarea::make('comment')
                 ->extraAlpineAttributes(SubmitsOnModEnter::attributes()),

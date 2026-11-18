@@ -20,6 +20,7 @@
 
                     <div class="min-w-0">
                         <div class="flex min-w-0 flex-wrap items-center gap-2">
+                            @include('filament.tasks.priority-icon', ['priority' => $item['task']->priority])
                             @if ($item['url'])
                                 <a href="{{ $item['url'] }}" class="task-row__title hover:underline">
                                     {{ $item['summary'] }}
@@ -33,11 +34,6 @@
                                 </x-filament::badge>
                             @endif
                         </div>
-                        @if ($item['priority'])
-                            <div class="task-row__meta">
-                                <span>{{ $item['priority'] }}</span>
-                            </div>
-                        @endif
                     </div>
 
                     <x-filament::dropdown placement="bottom-end">

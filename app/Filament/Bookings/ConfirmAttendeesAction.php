@@ -36,7 +36,7 @@ class ConfirmAttendeesAction
             ->button()
             ->modalHeading(__('Confirm attendees'))
             ->modalWidth(Width::TwoExtraLarge)
-            ->extraModalWindowAttributes(['class' => 'confirm-attendees-panel'])
+            ->extraModalWindowAttributes(['class' => 'confirm-attendees-panel modal-mobile-full'])
             ->modalSubmitActionLabel(__('Save'))
             ->visible(fn (Action $action): bool => self::isAvailable(self::booking($action), auth()->user()))
             ->fillForm(fn (Action $action): array => self::formState(self::booking($action)))

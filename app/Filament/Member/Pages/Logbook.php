@@ -186,6 +186,7 @@ class Logbook extends Page implements HasTable
                         ->label(__('Edit'))
                         ->modalHeading(__('Edit logbook entry'))
                         ->modalWidth(Width::Large)
+                        ->extraModalWindowAttributes(['class' => 'modal-mobile-full'])
                         ->schema(fn (LogbookEntry $record): array => LogbookEntryAction::schemaForEntry(
                             $record,
                             $this->actor(),
@@ -244,6 +245,7 @@ class Logbook extends Page implements HasTable
                 ->color(Palette::positive())
                 ->modalHeading(__('Add session'))
                 ->modalWidth(Width::Large)
+                ->extraModalWindowAttributes(['class' => 'modal-mobile-full'])
                 ->modalSubmitActionLabel(__('Save'))
                 ->fillForm(fn (): array => LogbookEntryAction::externalFormState())
                 ->schema(fn (): array => LogbookEntryAction::externalSchema($this->actor()))
@@ -301,6 +303,7 @@ class Logbook extends Page implements HasTable
             ->color(Palette::positive())
             ->modalHeading(__('Add to logbook'))
             ->modalWidth(Width::Large)
+            ->extraModalWindowAttributes(['class' => 'modal-mobile-full'])
             ->modalSubmitActionLabel(__('Save'))
             ->fillForm(function (array $arguments): array {
                 $booking = $this->bookingFromArguments($arguments);

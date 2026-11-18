@@ -84,6 +84,7 @@ class RelatedBookings extends Component implements HasActions, HasSchemas
                 : null)
             ->modalHeading(__('Add related booking'))
             ->modalSubmitActionLabel(__('Add'))
+            ->extraModalWindowAttributes(['class' => 'modal-mobile-full'])
             ->visible(fn (): bool => $this->record instanceof Booking
                 && $this->canManage($this->booking($this->record->getKey()))
                 && $this->candidates($this->booking($this->record->getKey()))->isNotEmpty())

@@ -82,6 +82,7 @@ class TaskRelatedBookings extends Component implements HasActions, HasSchemas
             ->button()
             ->modalHeading(__('Add related booking'))
             ->modalSubmitActionLabel(__('Add'))
+            ->extraModalWindowAttributes(['class' => 'modal-mobile-full'])
             ->visible(fn (): bool => $this->record instanceof Task
                 && $this->canManage($this->task($this->record->getKey()))
                 && $this->candidates($this->task($this->record->getKey()))->isNotEmpty())
