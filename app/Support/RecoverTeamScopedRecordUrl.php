@@ -13,6 +13,7 @@ use App\Models\Document;
 use App\Models\NewsPost;
 use App\Models\Task;
 use App\Models\Team;
+use App\Models\User;
 use Filament\Facades\Filament;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
@@ -121,6 +122,22 @@ final class RecoverTeamScopedRecordUrl
         $team = ($entry['team'])($record);
 
         if (! $team instanceof Team || (string) $team->slug === $urlSlug) {
+            return null;
+        }
+
+        $user = $request->user();
+
+        if ($user instanceof User) {
+            // Keep Filament tenant isolation: a real (but wrong) team slug stays 404.
+            // Only rewrite unknown/broken slugs, and only when the user can open that team.
+            if (Team::query()->where('slug', $urlSlug)->exists()) {
+                return null;
+            }
+
+            if (! $user->canAccessTenant($team)) {
+                return null;
+            }
+        } elseif ($matches[1] !== 'bookings' || $matches[2] !== 'view') {
             return null;
         }
 

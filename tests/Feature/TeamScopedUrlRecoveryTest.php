@@ -42,7 +42,31 @@ class TeamScopedUrlRecoveryTest extends TestCase
             ->assertStatus(301);
     }
 
-    public function test_authenticated_wrong_team_slug_redirects_to_the_booking_owner_team(): void
+    public function test_authenticated_unknown_team_slug_redirects_to_the_booking_owner_team(): void
+    {
+        $manager = User::factory()->teamManager()->create();
+        $owner = $manager->managedTeams()->firstOrFail();
+        $booking = Booking::factory()->forTeam($owner)->create();
+
+        $this->actingAs($manager)
+            ->get('/teams/broken-slug/bookings/'.$booking->getRouteKey())
+            ->assertRedirect(BookingResource::getUrl('view', ['record' => $booking], panel: 'teams', tenant: $owner))
+            ->assertStatus(301);
+    }
+
+    public function test_authenticated_unknown_team_slug_redirects_to_the_task_owner_team(): void
+    {
+        $manager = User::factory()->teamManager()->create();
+        $owner = $manager->managedTeams()->firstOrFail();
+        $task = Task::factory()->forTeam($owner)->create();
+
+        $this->actingAs($manager)
+            ->get('/teams/broken-slug/tasks/'.$task->getRouteKey())
+            ->assertRedirect(TaskResource::getUrl('view', ['record' => $task], panel: 'teams', tenant: $owner))
+            ->assertStatus(301);
+    }
+
+    public function test_authenticated_wrong_but_real_team_slug_stays_not_found(): void
     {
         $manager = User::factory()->teamManager()->create();
         $owner = $manager->managedTeams()->firstOrFail();
@@ -52,22 +76,7 @@ class TeamScopedUrlRecoveryTest extends TestCase
 
         $this->actingAs($manager)
             ->get(BookingResource::getUrl('view', ['record' => $booking], panel: 'teams', tenant: $other))
-            ->assertRedirect(BookingResource::getUrl('view', ['record' => $booking], panel: 'teams', tenant: $owner))
-            ->assertStatus(301);
-    }
-
-    public function test_authenticated_wrong_team_slug_redirects_to_the_task_owner_team(): void
-    {
-        $manager = User::factory()->teamManager()->create();
-        $owner = $manager->managedTeams()->firstOrFail();
-        $other = Team::factory()->create(['slug' => 'other-managed']);
-        $other->grant($manager, MembershipRole::Manager);
-        $task = Task::factory()->forTeam($owner)->create();
-
-        $this->actingAs($manager)
-            ->get(TaskResource::getUrl('view', ['record' => $task], panel: 'teams', tenant: $other))
-            ->assertRedirect(TaskResource::getUrl('view', ['record' => $task], panel: 'teams', tenant: $owner))
-            ->assertStatus(301);
+            ->assertNotFound();
     }
 
     public function test_unknown_booking_stays_not_found(): void
