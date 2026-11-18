@@ -55,6 +55,7 @@ class Leaders extends Page implements HasActions
             ->color('gray')
             ->modalHeading(fn (array $arguments): string => $this->leader($arguments)->name)
             ->modalWidth(Width::Large)
+            ->extraModalWindowAttributes(['class' => 'modal-mobile-full'])
             ->modalSubmitAction(false)
             ->modalCancelActionLabel(__('Close'))
             ->modalContent(fn (array $arguments): View => view('filament.teams.leaders-host', [

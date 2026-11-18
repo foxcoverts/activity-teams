@@ -49,6 +49,7 @@ class LogbookEntryAction
                 ? __('Edit logbook entry')
                 : __('Add to logbook'))
             ->modalWidth(Width::Large)
+            ->extraModalWindowAttributes(['class' => 'modal-mobile-full'])
             ->modalSubmitActionLabel(__('Save'))
             ->visible(fn (Booking $record): bool => self::isAvailable($record, auth()->user()))
             ->fillForm(function (Booking $record): array {

@@ -20,7 +20,7 @@ class LocationMapAction
             ->modalHeading(fn (Booking $record): string => $record->location->name)
             ->modalIcon(Heroicon::Map)
             ->modalCancelAction(false)
-            ->extraModalWindowAttributes(['class' => 'venue-map-panel'])
+            ->extraModalWindowAttributes(['class' => 'venue-map-panel modal-mobile-full'])
             ->schema([
                 MapEntry::make('map')
                     ->hidden(fn (Booking $record): bool => ! $record->coords)

@@ -67,7 +67,7 @@ class BookingKeysPanel extends Component implements HasActions, HasSchemas
                 ])->render(),
             ))
             ->modalWidth(Width::Large)
-            ->extraModalWindowAttributes(['class' => 'booking-contact-panel'])
+            ->extraModalWindowAttributes(['class' => 'booking-contact-panel modal-mobile-full'])
             ->modalSubmitAction(false)
             ->modalCancelActionLabel(__('Close'))
             ->authorize(function (array $arguments): bool {

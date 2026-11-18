@@ -298,14 +298,17 @@
     padding-block: calc(var(--spacing) * 4);
 }
 
-/* Invite picker: use the full viewport width on phones (drop Filament’s p-4 gutter). */
+/*
+ * Field-work booking/task modals: use the full viewport width on phones
+ * (drop Filament’s p-4 gutter). Keep slide-overs / screen-width modals alone.
+ */
 @media (max-width: 639px) {
     .fi-modal:not(.fi-modal-slide-over):not(.fi-width-screen)
-        > .fi-modal-window-ctn:has(> .invite-attendees-panel.fi-modal-window) {
+        > .fi-modal-window-ctn:has(> .modal-mobile-full.fi-modal-window) {
         @apply p-0;
     }
 
-    .invite-attendees-panel.fi-modal-window {
+    .modal-mobile-full.fi-modal-window {
         @apply w-full max-w-none rounded-none;
     }
 }

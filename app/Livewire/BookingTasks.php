@@ -110,6 +110,7 @@ class BookingTasks extends Component implements HasActions, HasSchemas
             ->icon(Heroicon::OutlinedArrowDownOnSquare)
             ->modalHeading(__('Add existing task'))
             ->modalSubmitActionLabel(__('Add'))
+            ->extraModalWindowAttributes(['class' => 'modal-mobile-full'])
             ->visible(fn (): bool => $this->record instanceof Booking
                 && $this->canManage($this->booking($this->record->getKey()))
                 && $this->candidates($this->booking($this->record->getKey()))->isNotEmpty())
@@ -136,6 +137,7 @@ class BookingTasks extends Component implements HasActions, HasSchemas
             ->icon(Heroicon::OutlinedPencilSquare)
             ->modalHeading(__('Add new task'))
             ->modalSubmitActionLabel(__('Create'))
+            ->extraModalWindowAttributes(['class' => 'modal-mobile-full'])
             ->visible(fn (): bool => $this->record instanceof Booking
                 && $this->canManage($this->booking($this->record->getKey())))
             ->fillForm(function (): array {

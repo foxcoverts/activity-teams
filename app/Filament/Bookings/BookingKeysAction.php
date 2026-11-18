@@ -25,6 +25,7 @@ class BookingKeysAction
                 ? Palette::neutral()
                 : self::attendance($record)->getColor())
             ->tooltip(fn (Booking $record): string => self::attendance($record)->getLabel())
+            ->extraModalWindowAttributes(['class' => 'modal-mobile-full'])
             ->modalContent(fn (Booking $record): View => view('filament.bookings.keys-host', [
                 'booking' => $record,
             ]));
