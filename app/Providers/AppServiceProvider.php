@@ -45,6 +45,11 @@ class AppServiceProvider extends ServiceProvider
         );
 
         FilamentView::registerRenderHook(
+            PanelsRenderHook::SCRIPTS_AFTER,
+            fn (): View => view('filament.hooks.dismiss-tooltips-on-modal-open'),
+        );
+
+        FilamentView::registerRenderHook(
             PanelsRenderHook::HEAD_END,
             fn (): View => view('partials.browser-icons'),
         );
