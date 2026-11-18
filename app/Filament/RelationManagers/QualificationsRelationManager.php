@@ -2,6 +2,7 @@
 
 namespace App\Filament\RelationManagers;
 
+use App\Filament\Member\Resources\Qualifications\QualificationResource;
 use App\Filament\Qualifications\QualificationSchema;
 use App\Models\Qualification;
 use App\Models\User;
@@ -72,6 +73,7 @@ class QualificationsRelationManager extends RelationManager
                     ->modalHeading(fn (): string => __('Add :label', [
                         'label' => str(static::getModelLabel())->ucwords()->toString(),
                     ]))
+                    ->modalIcon(QualificationResource::ICON)
                     ->schema(fn (): array => QualificationSchema::memberFields($this->owner()))
                     ->using(function (array $data): Qualification {
                         $owner = $this->owner();
@@ -88,6 +90,7 @@ class QualificationsRelationManager extends RelationManager
             ])
             ->recordActions([
                 EditAction::make()
+                    ->modalIcon(QualificationResource::ICON)
                     ->schema(fn (Qualification $record): array => QualificationSchema::memberFields($this->owner(), $record))
                     ->mutateRecordDataUsing(fn (array $data): array => QualificationSchema::unpackRecord($data))
                     ->using(function (array $data, Qualification $record): Qualification {

@@ -6,6 +6,7 @@ use App\Filament\Teams\Resources\Venues\VenueResource;
 use App\Models\Venue;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Select;
+use Filament\Support\Icons\Heroicon;
 
 class GiveVenueAction extends Action
 {
@@ -19,6 +20,8 @@ class GiveVenueAction extends Action
         parent::setUp();
 
         $this->label('Give a venue')
+            ->modalHeading(__('Give a venue'))
+            ->modalIcon(Heroicon::OutlinedMapPin)
             ->authorize(fn (): bool => VenueResource::canViewAny() && auth()->user()?->isSystemAdmin() === true)
             ->schema([
                 Select::make('venue_id')

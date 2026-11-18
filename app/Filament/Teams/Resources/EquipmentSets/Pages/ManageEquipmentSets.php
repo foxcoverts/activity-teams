@@ -257,6 +257,7 @@ class ManageEquipmentSets extends Page
             ->label(__('Move to…'))
             ->icon(Heroicon::OutlinedArrowsRightLeft)
             ->modalHeading(__('Move equipment set'))
+            ->modalIcon(Heroicon::OutlinedFolder)
             ->modalSubmitActionLabel(__('Move'))
             ->schema(fn (array $arguments): array => [
                 Select::make('equipment_set_group_id')

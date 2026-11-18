@@ -70,6 +70,7 @@ class BookingStatusActions
             ->slideOver()
             ->modalWidth(Width::ScreenLarge)
             ->modalHeading(__('Confirm booking'))
+            ->modalIcon(BookingStatus::Confirmed->getIcon())
             ->fillForm(fn (Booking $record): array => [
                 'lead_instructor_id' => self::currentQualifiedLead($record),
                 ...self::detailDefaults($record),
@@ -106,6 +107,7 @@ class BookingStatusActions
             ->visible(fn (Booking $record): bool => $record->isTentative() || $record->isConfirmed())
             ->authorize(fn (Booking $record): bool => self::canUpdate($record))
             ->modalHeading(__('Cancel booking'))
+            ->modalIcon(BookingStatus::Cancelled->getIcon())
             ->schema([
                 Textarea::make('reason')
                     ->label(__('Reason'))
@@ -129,6 +131,7 @@ class BookingStatusActions
             ->slideOver()
             ->modalWidth(Width::ScreenLarge)
             ->modalHeading(__('Restore booking'))
+            ->modalIcon(BookingStatus::Tentative->getIcon())
             ->modalDescription(__('Make any necessary changes before restoring. The email will include them. Anyone who had not declined will be asked to respond again. An existing decline stands.'))
             ->modalSubmitActionLabel(__('Restore'))
             ->fillForm(fn (Booking $record): array => self::detailDefaults($record))
@@ -173,6 +176,7 @@ class BookingStatusActions
                 : null)
             ->authorize(fn (Booking $record): bool => self::canUpdate($record))
             ->modalHeading(__('Change lead instructor'))
+            ->modalIcon(Heroicon::OutlinedUser)
             ->schema([
                 Select::make('lead_instructor_id')
                     ->label(__('Lead instructor'))

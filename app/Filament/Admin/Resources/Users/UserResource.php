@@ -307,6 +307,13 @@ class UserResource extends Resource
                 InvitationStatus::Declined => __('Invite again'),
                 default => __('Send invitation'),
             })
+            ->icon(Heroicon::OutlinedPaperAirplane)
+            ->modalHeading(fn (User $record): string => match ($record->invitationStatus()) {
+                InvitationStatus::Invited, InvitationStatus::Expired => __('Resend invitation'),
+                InvitationStatus::Declined => __('Invite again'),
+                default => __('Send invitation'),
+            })
+            ->modalIcon(Heroicon::OutlinedEnvelope)
             ->visible(fn (User $record): bool => static::canManageSiteInvitation($record))
             ->modalDescription(fn (User $record): ?string => $record->invitationStatus() === InvitationStatus::Declined
                 ? __('This person declined the invitation. Check the email address is correct before inviting them again.')

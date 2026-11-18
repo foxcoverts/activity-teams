@@ -19,6 +19,8 @@ class ScheduleAction
             ->label(__('Schedule'))
             ->color(NewsPostStatus::Scheduled->getColor())
             ->icon(NewsPostStatus::Scheduled->getIcon())
+            ->modalHeading(__('Schedule'))
+            ->modalIcon(NewsPostStatus::Scheduled->getIcon())
             ->visible(fn (NewsPost $record): bool => is_null($record->deleted_at)
                 && is_null($record->published_at)
                 && auth()->user()->can('update', $record))

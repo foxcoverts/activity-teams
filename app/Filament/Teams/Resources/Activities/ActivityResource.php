@@ -110,6 +110,8 @@ class ActivityResource extends Resource
                     ->action(
                         Action::make('setDefaultAudience')
                             ->label(__('Default audience'))
+                            ->modalHeading(__('Default audience'))
+                            ->modalIcon(Heroicon::OutlinedMegaphone)
                             ->authorize(fn (): bool => static::canViewAny())
                             ->fillForm(fn (Activity $record): array => [
                                 'default_audience_id' => static::defaultAudience($record)?->getKey(),

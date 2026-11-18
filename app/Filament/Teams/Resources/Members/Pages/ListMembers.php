@@ -11,7 +11,6 @@ use Filament\Forms\Components\Toggle;
 use Filament\Forms\Components\ToggleButtons;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ListRecords;
-use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Validation\ValidationException;
@@ -26,29 +25,25 @@ class ListMembers extends ListRecords
             Action::make('add')
                 ->label('Add a member')
                 ->visible(fn (): bool => MemberResource::canInvite())
+                ->modalHeading(__('Add a member'))
+                ->modalIcon(Heroicon::User)
                 ->modalDescription(__('They are added to your team straight away and sent an invitation to take over this name with their own account.'))
                 ->schema([
-                    Section::make(__('Member'))
-                        ->icon(Heroicon::User)
-                        ->columns(1)
-                        ->columnSpanFull()
-                        ->schema([
-                            TextInput::make('name')
-                                ->required()
-                                ->maxLength(255),
-                            TextInput::make('email')
-                                ->label('Email address to invite')
-                                ->email()
-                                ->required(),
-                            ToggleButtons::make('role')
-                                ->options(MembershipRole::class)
-                                ->default(MembershipRole::Member)
-                                ->inline()
-                                ->required(),
-                            Toggle::make('under_18')
-                                ->label(__('Under 18'))
-                                ->default(false),
-                        ]),
+                    TextInput::make('name')
+                        ->required()
+                        ->maxLength(255),
+                    TextInput::make('email')
+                        ->label('Email address to invite')
+                        ->email()
+                        ->required(),
+                    ToggleButtons::make('role')
+                        ->options(MembershipRole::class)
+                        ->default(MembershipRole::Member)
+                        ->inline()
+                        ->required(),
+                    Toggle::make('under_18')
+                        ->label(__('Under 18'))
+                        ->default(false),
                 ])
                 ->action(function (array $data, Schema $schema): void {
                     try {

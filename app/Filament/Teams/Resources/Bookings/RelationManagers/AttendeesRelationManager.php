@@ -108,6 +108,7 @@ class AttendeesRelationManager extends RelationManager
                         ->icon(Heroicon::OutlinedPaperAirplane)
                         ->visible(fn (): bool => $this->canManageBooking() && $this->booking()->acceptsInvites())
                         ->modalHeading(__('Invite'))
+                        ->modalIcon(Heroicon::OutlinedPaperAirplane)
                         ->modalSubmitAction(false)
                         ->modalCancelAction(false)
                         ->modalWidth(Width::TwoExtraLarge)
@@ -121,6 +122,8 @@ class AttendeesRelationManager extends RelationManager
                     Action::make('add')
                         ->label(__('Add'))
                         ->icon(Heroicon::OutlinedUserPlus)
+                        ->modalHeading(__('Add'))
+                        ->modalIcon(Heroicon::OutlinedUserPlus)
                         ->visible(fn (): bool => $this->canManageBooking()
                             && ! $this->booking()->isCancelled()
                             && (bool) auth()->user()?->can('create', [BookingAttendance::class, $this->booking()]))
@@ -229,6 +232,8 @@ class AttendeesRelationManager extends RelationManager
                 Action::make('editAttendance')
                     ->label(__('Edit'))
                     ->icon(Heroicon::OutlinedPencilSquare)
+                    ->modalHeading(__('Edit attendance'))
+                    ->modalIcon(Heroicon::OutlinedClipboardDocumentCheck)
                     ->visible(fn (): bool => $this->canManageBooking())
                     ->authorize(function (User $record): bool {
                         $attendance = $record->attendance;
