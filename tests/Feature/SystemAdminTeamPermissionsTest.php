@@ -15,7 +15,7 @@ use App\Filament\Teams\Pages\Calendar as TeamsCalendar;
 use App\Filament\Teams\Pages\ManagerDashboard;
 use App\Filament\Teams\Resources\Bookings\BookingResource;
 use App\Filament\Teams\Resources\EquipmentSets\EquipmentSetResource;
-use App\Filament\Teams\Resources\EquipmentSets\Pages\ListEquipmentSets;
+use App\Filament\Teams\Resources\EquipmentSets\Pages\ManageEquipmentSets;
 use App\Filament\Teams\Resources\Tasks\TaskResource as TeamsTaskResource;
 use App\Filament\Teams\Widgets\Manager\NeedsLeadWidget;
 use App\Filament\Teams\Widgets\Manager\OutstandingDebriefsWidget;
@@ -64,7 +64,7 @@ class SystemAdminTeamPermissionsTest extends TestCase
 
         $this->assertTrue(EquipmentSetResource::canViewAny());
 
-        Livewire::test(ListEquipmentSets::class)->assertSuccessful();
+        Livewire::test(ManageEquipmentSets::class)->assertSuccessful();
     }
 
     public function test_system_admin_who_is_not_a_manager_cannot_perform_manager_only_booking_actions(): void

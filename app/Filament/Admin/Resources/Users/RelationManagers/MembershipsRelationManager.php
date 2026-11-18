@@ -12,6 +12,7 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\ToggleButtons;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Schemas\Schema;
+use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
@@ -46,6 +47,8 @@ class MembershipsRelationManager extends RelationManager
             ->headerActions([
                 Action::make('grant')
                     ->label('Add to a team')
+                    ->modalHeading(__('Add to a team'))
+                    ->modalIcon(Heroicon::OutlinedUserGroup)
                     ->visible(fn (): bool => ($owner = $this->getOwnerRecord()) instanceof User && ! $owner->trashed())
                     ->schema([
                         Select::make('team_id')
@@ -76,6 +79,8 @@ class MembershipsRelationManager extends RelationManager
             ->recordActions([
                 Action::make('changeRole')
                     ->label('Change role')
+                    ->modalHeading(__('Change role'))
+                    ->modalIcon(Heroicon::OutlinedUser)
                     ->visible(fn (TeamMembership $record): bool => $record->left_at === null && ($owner = $this->getOwnerRecord()) instanceof User && ! $owner->trashed())
                     ->disabled(fn (TeamMembership $record): bool => static::cannotStepDown($record))
                     ->tooltip(fn (TeamMembership $record): ?string => static::stepDownHint($record))

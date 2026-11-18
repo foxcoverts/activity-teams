@@ -6,8 +6,7 @@ use App\Actions\CompleteDebriefAction;
 use App\Actions\ConfirmAttendanceAction;
 use App\Enums\BookingAttendeeStatus;
 use App\Enums\TeamFeature;
-use App\Filament\Teams\Resources\EquipmentSetGroups\Pages\ManageEquipmentSetGroups;
-use App\Filament\Teams\Resources\EquipmentSets\Pages\CreateEquipmentSet;
+use App\Filament\Teams\Resources\EquipmentSets\Pages\ManageEquipmentSets;
 use App\Models\Activity;
 use App\Models\Booking;
 use App\Models\EquipmentSet;
@@ -56,8 +55,8 @@ class EquipmentSetGroupTest extends TestCase
 
         $default = EquipmentSetGroup::ensureDefaultFor($team);
 
-        Livewire::test(ManageEquipmentSetGroups::class)
-            ->callAction('create', data: [
+        Livewire::test(ManageEquipmentSets::class)
+            ->callAction('createGroup', data: [
                 'label' => 'Ropes',
             ])
             ->assertHasNoActionErrors();
@@ -69,13 +68,19 @@ class EquipmentSetGroupTest extends TestCase
         $this->assertNotNull($ropes);
         $this->assertSame(2, $ropes->rank);
 
-        $ropes->moveUp();
+        Livewire::test(ManageEquipmentSets::class)
+            ->call('moveGroupUp', $ropes->getKey())
+            ->assertSuccessful();
+
         $this->assertSame(1, $ropes->fresh()->rank);
         $this->assertSame(2, $default->fresh()->rank);
 
-        $ropes->fresh()->moveDown();
-        $this->assertSame(2, $ropes->fresh()->rank);
+        Livewire::test(ManageEquipmentSets::class)
+            ->call('reorderGroups', [$default->getKey(), $ropes->getKey()])
+            ->assertSuccessful();
+
         $this->assertSame(1, $default->fresh()->rank);
+        $this->assertSame(2, $ropes->fresh()->rank);
     }
 
     public function test_cannot_delete_last_group(): void
@@ -110,8 +115,10 @@ class EquipmentSetGroupTest extends TestCase
 
         $this->assertTrue($manager->can('delete', $second));
 
-        Livewire::test(ManageEquipmentSetGroups::class)
-            ->callTableAction('delete', $second)
+        Livewire::test(ManageEquipmentSets::class)
+            ->callAction('deleteGroup', arguments: [
+                'group' => $second->getKey(),
+            ])
             ->assertSuccessful();
 
         $this->assertDatabaseMissing('equipment_set_groups', ['id' => $second->getKey()]);
@@ -119,7 +126,7 @@ class EquipmentSetGroupTest extends TestCase
         $this->assertSame(1, $default->fresh()->rank);
     }
 
-    public function test_creating_equipment_set_defaults_to_first_group(): void
+    public function test_creating_equipment_set_defaults_to_section_group(): void
     {
         [$manager, $team] = $this->managerWithDebrief();
         $default = EquipmentSetGroup::ensureDefaultFor($team);
@@ -133,14 +140,15 @@ class EquipmentSetGroupTest extends TestCase
         $this->actingAs($manager);
         Filament::setTenant($team);
 
-        Livewire::test(CreateEquipmentSet::class)
-            ->fillForm([
+        Livewire::test(ManageEquipmentSets::class)
+            ->callAction('addSet', data: [
                 'name' => 'Belay kit',
                 'equipment_set_group_id' => $default->getKey(),
                 'activities' => [$activity->getKey()],
+            ], arguments: [
+                'group' => $default->getKey(),
             ])
-            ->call('create')
-            ->assertHasNoFormErrors();
+            ->assertHasNoActionErrors();
 
         $set = EquipmentSet::query()->where('name', 'Belay kit')->first();
         $this->assertNotNull($set);

@@ -6,6 +6,7 @@ use App\Filament\Teams\Resources\Activities\ActivityResource;
 use App\Models\Activity;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Select;
+use Filament\Support\Icons\Heroicon;
 
 class GiveActivityAction extends Action
 {
@@ -19,6 +20,8 @@ class GiveActivityAction extends Action
         parent::setUp();
 
         $this->label(fn (): string => auth()->user()?->isSystemAdmin() ? 'Give an activity' : 'Add an activity')
+            ->modalHeading(fn (): string => auth()->user()?->isSystemAdmin() ? __('Give an activity') : __('Add an activity'))
+            ->modalIcon(Heroicon::OutlinedFlag)
             ->authorize(fn (): bool => ActivityResource::canViewAny())
             ->schema([
                 Select::make('activity_id')

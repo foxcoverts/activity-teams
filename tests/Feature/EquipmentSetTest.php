@@ -4,8 +4,7 @@ namespace Tests\Feature;
 
 use App\Enums\TeamFeature;
 use App\Filament\Teams\Resources\EquipmentSets\EquipmentSetResource;
-use App\Filament\Teams\Resources\EquipmentSets\Pages\CreateEquipmentSet;
-use App\Filament\Teams\Resources\EquipmentSets\Pages\ListEquipmentSets;
+use App\Filament\Teams\Resources\EquipmentSets\Pages\ManageEquipmentSets;
 use App\Models\Activity;
 use App\Models\EquipmentSet;
 use App\Models\EquipmentSetGroup;
@@ -36,20 +35,22 @@ class EquipmentSetTest extends TestCase
         $team->save();
 
         $activity = Activity::factory()->create();
+        $team->addActivity($activity);
 
         $this->actingAs($manager);
         Filament::setTenant($team);
 
         $defaultGroup = EquipmentSetGroup::ensureDefaultFor($team);
 
-        Livewire::test(CreateEquipmentSet::class)
-            ->fillForm([
+        Livewire::test(ManageEquipmentSets::class)
+            ->callAction('addSet', data: [
                 'name' => 'Belay kit',
                 'equipment_set_group_id' => $defaultGroup->getKey(),
                 'activities' => [$activity->getKey()],
+            ], arguments: [
+                'group' => $defaultGroup->getKey(),
             ])
-            ->call('create')
-            ->assertHasNoFormErrors();
+            ->assertHasNoActionErrors();
 
         $set = EquipmentSet::query()->where('team_id', $team->getKey())->where('name', 'Belay kit')->first();
         $this->assertNotNull($set);
@@ -86,7 +87,45 @@ class EquipmentSetTest extends TestCase
 
         $this->assertTrue(EquipmentSetResource::canViewAny());
 
-        Livewire::test(ListEquipmentSets::class)
+        Livewire::test(ManageEquipmentSets::class)
             ->assertSuccessful();
+    }
+
+    public function test_manager_can_move_set_between_groups(): void
+    {
+        $manager = User::factory()->teamManager()->create();
+        $team = $manager->teams()->first();
+        assert($team instanceof Team);
+        $team->enableFeature(TeamFeature::Debrief, now()->subDay());
+        $team->save();
+
+        $default = EquipmentSetGroup::ensureDefaultFor($team);
+        $ropes = EquipmentSetGroup::factory()->forTeam($team)->create([
+            'label' => 'Ropes',
+            'rank' => 2,
+        ]);
+        $set = EquipmentSet::factory()->forTeam($team)->create([
+            'name' => 'Dynamic',
+            'equipment_set_group_id' => $default->getKey(),
+        ]);
+
+        $this->actingAs($manager);
+        Filament::setTenant($team);
+
+        Livewire::test(ManageEquipmentSets::class)
+            ->call('moveSetToGroup', $set->getKey(), $ropes->getKey())
+            ->assertSuccessful();
+
+        $this->assertSame((string) $ropes->getKey(), (string) $set->fresh()->equipment_set_group_id);
+
+        Livewire::test(ManageEquipmentSets::class)
+            ->callAction('moveSet', data: [
+                'equipment_set_group_id' => $default->getKey(),
+            ], arguments: [
+                'set' => $set->getKey(),
+            ])
+            ->assertHasNoActionErrors();
+
+        $this->assertSame((string) $default->getKey(), (string) $set->fresh()->equipment_set_group_id);
     }
 }

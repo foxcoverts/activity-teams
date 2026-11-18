@@ -258,6 +258,12 @@ class MemberResource extends Resource
                 default => __('Send invitation'),
             })
             ->icon(Heroicon::OutlinedPaperAirplane)
+            ->modalHeading(fn (User $record): string => match ($record->invitationStatus()) {
+                InvitationStatus::Invited, InvitationStatus::Expired => __('Resend invitation'),
+                InvitationStatus::Declined => __('Invite again'),
+                default => __('Send invitation'),
+            })
+            ->modalIcon(Heroicon::OutlinedEnvelope)
             ->visible(fn (User $record): bool => static::canManageInvitation($record))
             ->modalDescription(fn (User $record): ?string => $record->invitationStatus() === InvitationStatus::Declined
                 ? __('This person declined the invitation. Check the email address is correct before inviting them again.')
@@ -302,6 +308,8 @@ class MemberResource extends Resource
             ->record($record)
             ->label(__('Change role'))
             ->icon(Heroicon::OutlinedUser)
+            ->modalHeading(__('Change role'))
+            ->modalIcon(Heroicon::OutlinedUser)
             ->visible(fn (?User $record): bool => static::canChangeRole() && $record instanceof User && ! $record->trashed())
             ->disabled(fn (User $record): bool => static::cannotStepDown($record))
             ->tooltip(fn (User $record): ?string => static::stepDownHint($record))

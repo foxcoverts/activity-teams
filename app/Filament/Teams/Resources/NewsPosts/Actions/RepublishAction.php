@@ -15,6 +15,8 @@ class RepublishAction
             ->label(__('Republish'))
             ->color(NewsPostStatus::Published->getColor())
             ->icon(NewsPostStatus::Published->getIcon())
+            ->modalHeading(__('Republish'))
+            ->modalIcon(NewsPostStatus::Published->getIcon())
             ->visible(fn (NewsPost $record): bool => is_null($record->deleted_at)
                 && is_null($record->published_at)
                 && filled($record->notified_at)

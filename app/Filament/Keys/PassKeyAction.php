@@ -19,6 +19,7 @@ class PassKeyAction
             ->label(__('Pass'))
             ->icon(Heroicon::OutlinedArrowsRightLeft)
             ->modalHeading(__('Pass key'))
+            ->modalIcon(Heroicon::OutlinedKey)
             ->authorize(fn (Key $record): bool => auth()->user()?->can('pass', $record) ?? false)
             ->visible(fn (Key $record): bool => static::canShow($record))
             ->schema([
