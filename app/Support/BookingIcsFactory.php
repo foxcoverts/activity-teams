@@ -390,9 +390,12 @@ class BookingIcsFactory
             return '';
         }
 
-        $lines = self::icsAddressLines($location);
+        $parts = array_values(array_filter([
+            filled($location->name) ? $location->name : null,
+            ...self::icsAddressLines($location),
+        ], fn (?string $value): bool => filled($value)));
 
-        return $lines === [] ? $location->name : implode("\n", $lines);
+        return implode(', ', $parts);
     }
 
     /**
@@ -455,9 +458,9 @@ class BookingIcsFactory
     }
 
     /**
-     * Postal lines for ICS LOCATION / VLOCATION ADDRESS. Omits the country name
-     * when the code is GB so LOCATION matches UK postal order. Views keep
-     * addressArray() unchanged.
+     * Postal parts for LOCATION (comma-joined with the venue name) and for
+     * VLOCATION ADDRESS (newline-joined). Omits the country name when the code
+     * is GB. Views keep addressArray() unchanged.
      *
      * @return list<string>
      */

@@ -40,10 +40,11 @@ class BookingIcsLocationTest extends TestCase
 
         $this->assertValidIcs($ics);
         $this->assertStringContainsString('LOCATION;ALTREP=', $ics);
-        $this->assertStringContainsString('1 Scout Lane', $ics);
-        $this->assertStringContainsString('Field Gate', $ics);
-        $this->assertStringContainsString('Leicester', $ics);
-        $this->assertStringContainsString('LE1 1AA', $ics);
+        $unfolded = str_replace("\r\n ", '', $ics);
+        $this->assertStringContainsString(
+            'Fox Coverts Campsite\\, 1 Scout Lane\\, Field Gate\\, Leicester\\, Leicestershire\\, LE1 1AA',
+            $unfolded,
+        );
         $this->assertStringNotContainsString('United Kingdom', explode('LOCATION', $ics)[1] ?? '');
         $this->assertStringContainsString('GEO:52.636200;-1.133200', $ics);
         $this->assertStringContainsString('X-APPLE-STRUCTURED-LOCATION', $ics);
@@ -54,6 +55,7 @@ class BookingIcsLocationTest extends TestCase
         $this->assertStringContainsString('X-MICROSOFT-LOCATIONCOUNTRY:United Kingdom', $ics);
         $this->assertStringContainsString('BEGIN:VLOCATION', $ics);
         $this->assertStringContainsString('NAME:Fox Coverts Campsite', $ics);
+        $this->assertStringContainsString('ADDRESS:1 Scout Lane\\nField Gate\\nLeicester\\nLeicestershire\\nLE1 1AA', $ics);
         $this->assertStringNotContainsString('METHOD:', $ics);
     }
 
