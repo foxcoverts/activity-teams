@@ -42,9 +42,9 @@ final class BookingActivityColumn
                 });
         }
 
-        $column = BadgeableColumn::make('activity.name')
+        $column = BadgeableColumn::make('display_name')
             ->label(__('Activity'))
-            ->state(fn (Booking $record): string => $record->activityTitle())
+            ->state(fn (Booking $record): string => $record->display_name)
             ->description(fn (Booking $record): ?string => $record->venue?->name)
             ->wrap()
             ->icon(fn (Booking $record): Heroicon => $record->status->getIcon())
@@ -63,7 +63,10 @@ final class BookingActivityColumn
                 ->where(function (Builder $query) use ($search): void {
                     $query
                         ->where('activity_label', 'like', "%{$search}%")
+                        ->orWhere('group_name', 'like', "%{$search}%")
                         ->orWhereHas('activity', fn (Builder $activityQuery) => $activityQuery
+                            ->where('name', 'like', "%{$search}%"))
+                        ->orWhereHas('audience', fn (Builder $audienceQuery) => $audienceQuery
                             ->where('name', 'like', "%{$search}%"))
                         ->orWhereHas('venue', fn (Builder $venueQuery) => $venueQuery
                             ->where('name', 'like', "%{$search}%"));

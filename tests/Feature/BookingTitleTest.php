@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Filament\Teams\Resources\Bookings\Pages\ListBookings;
 use App\Filament\Teams\Resources\Bookings\Pages\ViewBooking;
 use App\Models\Audience;
 use App\Models\Booking;
@@ -64,5 +65,29 @@ class BookingTitleTest extends TestCase
 
         $this->assertSame('Climbing · 1st Anytown Scouts', $component->instance()->getTitle());
         $component->assertDontSee('View Climbing · 1st Anytown Scouts', false);
+    }
+
+    public function test_booking_table_shows_the_display_name(): void
+    {
+        $manager = User::factory()->teamManager()->create();
+        $team = $manager->managedTeams()->firstOrFail();
+        $audience = Audience::factory()->create(['name' => 'Scouts']);
+        $booking = Booking::factory()->forTeam($team)->confirmed()->create([
+            'activity_label' => 'Climbing',
+            'audience_id' => $audience->getKey(),
+            'group_name' => '1st Anytown Scouts',
+            'start_at' => now()->addDay(),
+            'end_at' => now()->addDay()->addHours(2),
+        ]);
+
+        $this->actingAs($manager);
+
+        Filament::setCurrentPanel('teams');
+        Filament::setTenant($team);
+
+        Livewire::test(ListBookings::class)
+            ->assertCanSeeTableRecords([$booking])
+            ->assertSee('Climbing · 1st Anytown Scouts')
+            ->assertDontSeeText('Climbing · Scouts');
     }
 }
