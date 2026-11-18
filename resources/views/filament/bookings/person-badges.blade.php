@@ -28,7 +28,6 @@
             size="sm"
             :icon="\App\Filament\Member\Resources\Qualifications\QualificationResource::ICON"
             :label="__('Qualified')"
-            :tooltip="__('Qualified')"
             wire:click.stop="mountTableAction('personDetails', '{{ $person['id'] }}', { tab: 'qualifications' })"
         />
     @else
@@ -37,7 +36,6 @@
             size="sm"
             :icon="\App\Filament\Member\Resources\Qualifications\QualificationResource::ICON"
             :label="__('Qualified')"
-            :tooltip="__('Qualified')"
             wire:click="openQualifications('{{ $person['id'] }}')"
         />
     @endif
@@ -50,7 +48,6 @@
             size="sm"
             :icon="\Filament\Support\Icons\Heroicon::OutlinedKey"
             :label="__('Key holder')"
-            :tooltip="__('Key holder')"
             wire:click.stop="mountTableAction('personDetails', '{{ $person['id'] }}', { tab: 'keys' })"
         />
     @else
@@ -59,7 +56,6 @@
             size="sm"
             :icon="\Filament\Support\Icons\Heroicon::OutlinedKey"
             :label="__('Key holder')"
-            :tooltip="__('Key holder')"
             wire:click="openKeys('{{ $person['id'] }}')"
         />
     @endif
