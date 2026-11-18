@@ -22,7 +22,6 @@ class DocumentInfolist
                 ->columns(1)
                 ->columnSpanFull()
                 ->schema([
-                    TextEntry::make('title'),
                     TextEntry::make('notes')
                         ->state(fn (Document $record): ?HtmlString => filled($record->notes)
                             ? new HtmlString(Str::inlineMarkdown($record->notes))
