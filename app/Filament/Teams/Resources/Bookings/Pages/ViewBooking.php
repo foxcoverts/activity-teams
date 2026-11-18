@@ -21,12 +21,18 @@ use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Group;
 use Filament\Schemas\Components\Livewire;
 use Filament\Schemas\Schema;
+use Illuminate\Contracts\Support\Htmlable;
 
 class ViewBooking extends ViewRecord
 {
     use RefreshesWhenAttendanceChanges;
 
     protected static string $resource = BookingResource::class;
+
+    public function getTitle(): string|Htmlable
+    {
+        return $this->getRecordTitle();
+    }
 
     public function content(Schema $schema): Schema
     {
