@@ -157,52 +157,47 @@ class UsersTable
             return $query;
         }
 
-        $includeNone = in_array('__empty', $values, true);
-        $roles = array_values(array_filter(array_map(
-            fn (mixed $value): AccountRole|MembershipRole|null => is_string($value)
-                ? (AccountRole::tryFrom($value) ?? MembershipRole::tryFrom($value))
-                : null,
-            $values,
-        )));
+        return $query->where(function (Builder $query) use ($values): void {
+            /** @var list<string> $membershipRoles */
+            $membershipRoles = [];
 
-        if (! $includeNone && $roles === []) {
-            return $query;
-        }
+            foreach ($values as $value) {
+                if (! is_string($value)) {
+                    continue;
+                }
 
-        return $query->where(function (Builder $query) use ($includeNone, $roles): void {
-            $membershipRoles = array_values(array_filter(
-                $roles,
-                fn (AccountRole|MembershipRole $role): bool => $role instanceof MembershipRole,
-            ));
-            $accountRoles = array_values(array_filter(
-                $roles,
-                fn (AccountRole|MembershipRole $role): bool => $role instanceof AccountRole,
-            ));
+                if ($value === '__empty') {
+                    $query->orWhere(function (Builder $query): void {
+                        $query
+                            ->where('is_system_admin', false)
+                            ->where('oversight', false)
+                            ->whereDoesntHave('teams');
+                    });
+
+                    continue;
+                }
+
+                $accountRole = AccountRole::tryFrom($value);
+
+                if ($accountRole instanceof AccountRole) {
+                    match ($accountRole) {
+                        AccountRole::Oversight => $query->orWhere('oversight', true),
+                        AccountRole::SystemAdmin => $query->orWhere('is_system_admin', true),
+                    };
+
+                    continue;
+                }
+
+                if (MembershipRole::tryFrom($value) instanceof MembershipRole) {
+                    $membershipRoles[] = $value;
+                }
+            }
 
             if ($membershipRoles !== []) {
                 $query->orWhereHas(
                     'teams',
-                    fn (Builder $query): Builder => $query->whereIn(
-                        'role',
-                        array_map(fn (MembershipRole $role): string => $role->value, $membershipRoles),
-                    ),
+                    fn (Builder $query): Builder => $query->whereIn('role', $membershipRoles),
                 );
-            }
-
-            foreach ($accountRoles as $role) {
-                match ($role) {
-                    AccountRole::Oversight => $query->orWhere('oversight', true),
-                    AccountRole::SystemAdmin => $query->orWhere('is_system_admin', true),
-                };
-            }
-
-            if ($includeNone) {
-                $query->orWhere(function (Builder $query): void {
-                    $query
-                        ->where('is_system_admin', false)
-                        ->where('oversight', false)
-                        ->whereDoesntHave('teams');
-                });
             }
         });
     }
