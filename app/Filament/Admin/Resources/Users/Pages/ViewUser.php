@@ -2,6 +2,7 @@
 
 namespace App\Filament\Admin\Resources\Users\Pages;
 
+use App\Filament\Admin\Resources\Users\UserInvitationActions;
 use App\Filament\Admin\Resources\Users\UserResource;
 use App\Filament\Concerns\AcknowledgesPersonalData;
 use App\Models\User;
@@ -22,7 +23,7 @@ class ViewUser extends ViewRecord
         abort_unless($record instanceof User, 404);
 
         return [
-            UserResource::invitationActions($record),
+            UserInvitationActions::group($record),
             EditAction::make(),
             RestoreAction::make(),
         ];
