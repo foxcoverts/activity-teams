@@ -4,7 +4,7 @@ namespace App\Filament\Teams\Resources\Bookings\Schemas;
 
 use App\Enums\BookingStatus;
 use App\Enums\TeamFeature;
-use App\Filament\Bookings\LocationMapAction;
+use App\Filament\Support\Infolists\LocationEntry;
 use App\Filament\Support\Infolists\PersonEntry;
 use App\Models\Booking;
 use App\Models\User;
@@ -43,16 +43,7 @@ class BookingInfolist
                     TextEntry::make('when')
                         ->label(__('When'))
                         ->state(fn (Booking $record): string => BookingWhen::format($record)),
-                    TextEntry::make('location')
-                        ->label(__('Location'))
-                        ->state(fn (Booking $record): array => array_filter([
-                            $record->location->name,
-                            ...$record->location->addressArray(),
-                        ]))
-                        ->listWithLineBreaks()->limitList(1)->expandableLimitedList()
-                        ->afterLabel([
-                            LocationMapAction::make(),
-                        ]),
+                    LocationEntry::make(),
                     TextEntry::make('activity_title')
                         ->label(__('Activity'))
                         ->state(fn (Booking $record): string => $record->activityTitle())

@@ -3,6 +3,7 @@
 namespace App\Filament\Teams\Resources\Tasks\Schemas;
 
 use App\Enums\TaskStatus;
+use App\Filament\Support\Infolists\LocationEntry;
 use App\Models\Task;
 use App\Support\Palette;
 use Filament\Infolists\Components\TextEntry;
@@ -31,16 +32,7 @@ class TaskInfolist
                             ->markdown()
                             ->placeholder('-')
                             ->columnSpanFull(),
-                        TextEntry::make('location')
-                            ->label(__('Venue'))
-                            ->state(fn (Task $record): ?string => filled($record->location?->name)
-                                ? implode("\n", array_filter([
-                                    $record->location->name,
-                                    ...$record->location->addressArray(),
-                                ]))
-                                : null)
-                            ->visible(fn (Task $record): bool => filled($record->location?->name))
-                            ->columnSpanFull(),
+                        LocationEntry::make(),
                         TextEntry::make('priority')
                             ->badge(),
                         TextEntry::make('status')
