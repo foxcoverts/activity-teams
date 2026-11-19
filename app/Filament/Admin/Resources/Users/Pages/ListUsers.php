@@ -3,6 +3,7 @@
 namespace App\Filament\Admin\Resources\Users\Pages;
 
 use App\Actions\SendTeamInvitationAction;
+use App\Filament\Admin\Resources\Users\UserInvitationActions;
 use App\Filament\Admin\Resources\Users\UserResource;
 use App\Models\User;
 use Filament\Actions\Action;
@@ -36,7 +37,7 @@ class ListUsers extends ListRecords
                                 ->required()
                                 ->maxLength(255),
                             TextInput::make('email')
-                                ->label('Email address to invite')
+                                ->label(__('Email address to invite'))
                                 ->email()
                                 ->required(),
                             Toggle::make('under_18')
@@ -50,7 +51,7 @@ class ListUsers extends ListRecords
                         ->schema([
                             Toggle::make('oversight'),
                             Toggle::make('is_system_admin')
-                                ->label('System admin'),
+                                ->label(__('System admin')),
                         ]),
                 ])
                 ->action(function (array $data, Schema $schema): void {
@@ -70,7 +71,7 @@ class ListUsers extends ListRecords
                             (bool) ($data['under_18'] ?? false),
                         );
                     } catch (ValidationException $exception) {
-                        UserResource::reportOnField($exception, $schema, collect($exception->errors())->keys()->first() ?? 'email');
+                        UserInvitationActions::reportOnField($exception, $schema, collect($exception->errors())->keys()->first() ?? 'email');
                     }
 
                     Notification::make()->success()->title(__('Person added and invitation sent'))->send();

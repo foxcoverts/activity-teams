@@ -44,23 +44,26 @@ class UserDirectoryDisplayTest extends TestCase
             ->assertTableColumnStateSet('status', AccountStatus::NotInvited, $notInvited);
     }
 
-    public function test_the_users_list_roles_column_combines_oversight_and_system_admin(): void
+    public function test_the_users_list_roles_column_combines_team_and_system_roles(): void
     {
-        $admin = User::factory()->systemAdmin()->create();
+        $climbing = Team::factory()->create();
+        $admin = User::factory()->systemAdmin()->teamManager($climbing)->create();
         $oversight = User::factory()->oversight()->create();
         $both = User::factory()->systemAdmin()->oversight()->create();
-        $member = User::factory()->create();
+        $member = User::factory()->teamMember($climbing)->create();
+        $unattached = User::factory()->create();
         $suspendedAdmin = User::factory()->systemAdmin()->suspended()->create();
 
         Filament::setCurrentPanel('admin');
         $this->actingAs($admin);
 
         Livewire::test(ListUsers::class)
-            ->assertTableColumnStateSet('roles', [AccountRole::SystemAdmin], $admin)
+            ->assertTableColumnStateSet('roles', [MembershipRole::Manager, AccountRole::SystemAdmin], $admin)
             ->assertTableColumnStateSet('roles', [AccountRole::Oversight], $oversight)
             ->assertTableColumnStateSet('roles', [AccountRole::SystemAdmin, AccountRole::Oversight], $both)
-            ->assertTableColumnStateSet('roles', null, $member)
-            ->assertTableColumnStateSet('roles', null, $suspendedAdmin);
+            ->assertTableColumnStateSet('roles', [MembershipRole::Member], $member)
+            ->assertTableColumnStateSet('roles', null, $unattached)
+            ->assertTableColumnStateSet('roles', [MembershipRole::Member], $suspendedAdmin);
     }
 
     public function test_the_user_view_combines_status_team_role_and_access_badges(): void
