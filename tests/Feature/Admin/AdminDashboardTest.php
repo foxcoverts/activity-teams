@@ -6,6 +6,11 @@ use App\Enums\AttentionSeverity;
 use App\Enums\InboundMailOutcome;
 use App\Enums\MembershipRole;
 use App\Filament\Admin\Pages\Dashboard;
+use App\Filament\Admin\Resources\Activities\ActivityResource;
+use App\Filament\Admin\Resources\Audiences\AudienceResource;
+use App\Filament\Admin\Resources\Keys\KeyResource;
+use App\Filament\Admin\Resources\Teams\TeamResource;
+use App\Filament\Admin\Resources\Venues\VenueResource;
 use App\Filament\Admin\Widgets\ActivitiesWithoutTeamsWidget;
 use App\Filament\Admin\Widgets\AdminAllCaughtUpWidget;
 use App\Filament\Admin\Widgets\AdminSnapshotWidget;
@@ -71,11 +76,12 @@ class AdminDashboardTest extends TestCase
         $this->get(Dashboard::getUrl(panel: 'admin'))->assertOk();
 
         Livewire::test(AdminSnapshotWidget::class)
-            ->assertSee('At a glance')
-            ->assertSee('Activities')
-            ->assertSee('Venues')
-            ->assertSee('Audiences')
-            ->assertSee('Keys');
+            ->assertSeeTextInOrder(['At a glance', 'Teams', 'Activities', 'Venues', 'Audiences', 'Keys'])
+            ->assertSeeHtml('href="'.TeamResource::getUrl('index').'"')
+            ->assertSeeHtml('href="'.ActivityResource::getUrl('index').'"')
+            ->assertSeeHtml('href="'.VenueResource::getUrl('index').'"')
+            ->assertSeeHtml('href="'.AudienceResource::getUrl('index').'"')
+            ->assertSeeHtml('href="'.KeyResource::getUrl('index').'"');
         Livewire::test(InboundNeedsReviewWidget::class)->assertSee('Review me please');
         Livewire::test(PendingSiteInvitesWidget::class)->assertSee('Pending Invitee');
         Livewire::test(TeamsWithoutManagersWidget::class)->assertSee('Orphan Admin Team');
