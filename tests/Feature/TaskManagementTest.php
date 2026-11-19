@@ -183,7 +183,8 @@ class TaskManagementTest extends TestCase
 
         Livewire::test(ViewTask::class, ['record' => $task->getRouteKey()])
             ->assertSuccessful()
-            ->assertDontSee(__('Venue'));
+            ->assertDontSee(__('Location'))
+            ->assertDontSee('View Map');
 
         $ics = app(TaskIcsFactory::class)->make([$task->fresh(['venue', 'bookings', 'attendance'])], 'Tasks');
         $this->assertStringContainsString('BEGIN:VTODO', $ics);
@@ -201,6 +202,80 @@ class TaskManagementTest extends TestCase
             ->assertHasNoFormErrors();
 
         $this->assertNull($task->fresh()->venue_id);
+    }
+
+    public function test_task_view_shows_location_and_map_when_the_venue_has_a_pin(): void
+    {
+        $team = Team::factory()->withTasks()->create();
+        $manager = User::factory()->teamManager($team)->create();
+        $member = User::factory()->teamMember($team)->create();
+        $venue = Venue::factory()->located()->create([
+            'name' => 'Pinned Hall',
+            'street' => '1 High Street',
+            'city' => 'Leicester',
+            'postcode' => 'LE1 1AA',
+            'country' => 'GB',
+        ]);
+        $team->addVenue($venue);
+        $task = Task::factory()->forTeam($team)->create([
+            'venue_id' => $venue->getKey(),
+        ]);
+
+        $this->actingAs($manager);
+        Filament::setTenant($team);
+
+        Livewire::test(ViewTask::class, ['record' => $task->getRouteKey()])
+            ->assertSuccessful()
+            ->assertSee(__('Location'))
+            ->assertSee('Pinned Hall')
+            ->assertSee('View Map')
+            ->assertInfolistActionVisible('location', 'map')
+            ->mountInfolistAction('location', 'map')
+            ->assertMountedActionModalSee('Pinned Hall');
+
+        $this->actingAs($member);
+        Filament::setTenant($team);
+
+        Livewire::test(ViewTask::class, ['record' => $task->getRouteKey()])
+            ->assertSee('View Map')
+            ->assertInfolistActionVisible('location', 'map')
+            ->mountInfolistAction('location', 'map')
+            ->assertMountedActionModalSee('Pinned Hall');
+    }
+
+    public function test_task_view_map_action_is_hidden_when_the_venue_has_no_pin(): void
+    {
+        $team = Team::factory()->withTasks()->create();
+        $manager = User::factory()->teamManager($team)->create();
+        $member = User::factory()->teamMember($team)->create();
+        $venue = Venue::factory()->create([
+            'name' => 'Unpinned Hall',
+            'street' => '2 High Street',
+            'city' => 'Leicester',
+            'postcode' => 'LE1 1BB',
+            'country' => 'GB',
+        ]);
+        $team->addVenue($venue);
+        $task = Task::factory()->forTeam($team)->create([
+            'venue_id' => $venue->getKey(),
+        ]);
+
+        $this->actingAs($manager);
+        Filament::setTenant($team);
+
+        Livewire::test(ViewTask::class, ['record' => $task->getRouteKey()])
+            ->assertSuccessful()
+            ->assertSee(__('Location'))
+            ->assertSee('Unpinned Hall')
+            ->assertDontSee('View Map')
+            ->assertInfolistActionDoesNotExist('location', 'map');
+
+        $this->actingAs($member);
+        Filament::setTenant($team);
+
+        Livewire::test(ViewTask::class, ['record' => $task->getRouteKey()])
+            ->assertDontSee('View Map')
+            ->assertInfolistActionDoesNotExist('location', 'map');
     }
 
     public function test_clearing_venue_deletes_a_private_task_venue(): void
