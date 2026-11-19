@@ -177,6 +177,14 @@ class UserResource extends Resource
         return [...$badges, ...$user->roles()];
     }
 
+    /**
+     * @return list<MembershipRole|AccountRole>
+     */
+    protected static function roleBadges(User $user): array
+    {
+        return array_values(array_filter([$user->teamRole(), ...$user->roles()]));
+    }
+
     public static function table(Table $table): Table
     {
         return $table
@@ -201,7 +209,7 @@ class UserResource extends Resource
                     ->state(fn (User $record): AccountStatus => $record->status()),
                 TextColumn::make('roles')
                     ->badge()
-                    ->state(fn (User $record): array => $record->roles()),
+                    ->state(fn (User $record): array => static::roleBadges($record)),
                 TextColumn::make('teams.name')
                     ->label('Teams')
                     ->visible(fn (HasTable $livewire): bool => blank($livewire->getTableFilterState('team')['value'] ?? null))
@@ -227,6 +235,22 @@ class UserResource extends Resource
                     }),
             ])
             ->filters([
+                SelectFilter::make('roles')
+                    ->label(__('Roles'))
+                    ->multiple()
+                    ->options([
+                        '__empty' => __('None'),
+                        __('Team') => [
+                            MembershipRole::Manager->value => MembershipRole::Manager->getLabel(),
+                            MembershipRole::Member->value => MembershipRole::Member->getLabel(),
+                            MembershipRole::Parent->value => MembershipRole::Parent->getLabel(),
+                        ],
+                        __('System') => [
+                            AccountRole::Oversight->value => AccountRole::Oversight->getLabel(),
+                            AccountRole::SystemAdmin->value => AccountRole::SystemAdmin->getLabel(),
+                        ],
+                    ])
+                    ->query(fn (Builder $query, array $data): Builder => static::applyRolesFilter($query, $data)),
                 SelectFilter::make('team')
                     ->relationship('teams', 'name', hasEmptyOption: true),
                 Filter::make('not_accepted')
@@ -392,5 +416,68 @@ class UserResource extends Resource
         }
 
         return $value;
+    }
+
+    /**
+     * @param  Builder<User>  $query
+     * @param  array{values?: list<string>|null}  $data
+     * @return Builder<User>
+     */
+    private static function applyRolesFilter(Builder $query, array $data): Builder
+    {
+        $values = $data['values'] ?? [];
+
+        if (! is_array($values) || $values === []) {
+            return $query;
+        }
+
+        $includeNone = in_array('__empty', $values, true);
+        $roles = array_values(array_filter(array_map(
+            fn (mixed $value): AccountRole|MembershipRole|null => is_string($value)
+                ? (AccountRole::tryFrom($value) ?? MembershipRole::tryFrom($value))
+                : null,
+            $values,
+        )));
+
+        if (! $includeNone && $roles === []) {
+            return $query;
+        }
+
+        return $query->where(function (Builder $query) use ($includeNone, $roles): void {
+            $membershipRoles = array_values(array_filter(
+                $roles,
+                fn (AccountRole|MembershipRole $role): bool => $role instanceof MembershipRole,
+            ));
+            $accountRoles = array_values(array_filter(
+                $roles,
+                fn (AccountRole|MembershipRole $role): bool => $role instanceof AccountRole,
+            ));
+
+            if ($membershipRoles !== []) {
+                $query->orWhereHas(
+                    'teams',
+                    fn (Builder $query): Builder => $query->whereIn(
+                        'role',
+                        array_map(fn (MembershipRole $role): string => $role->value, $membershipRoles),
+                    ),
+                );
+            }
+
+            foreach ($accountRoles as $role) {
+                match ($role) {
+                    AccountRole::Oversight => $query->orWhere('oversight', true),
+                    AccountRole::SystemAdmin => $query->orWhere('is_system_admin', true),
+                };
+            }
+
+            if ($includeNone) {
+                $query->orWhere(function (Builder $query): void {
+                    $query
+                        ->where('is_system_admin', false)
+                        ->where('oversight', false)
+                        ->whereDoesntHave('teams');
+                });
+            }
+        });
     }
 }
