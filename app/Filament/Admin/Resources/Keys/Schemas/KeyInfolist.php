@@ -28,7 +28,8 @@ class KeyInfolist
                     ->schema([
                         PersonEntry::make('holder.name')
                             ->hiddenLabel()
-                            ->placeholder(__('In the cupboard')),
+                            ->placeholder(__('In the cupboard'))
+                            ->memberUrl(),
                     ]),
             ]);
     }

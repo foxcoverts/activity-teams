@@ -23,7 +23,8 @@ class KeysTable
                     ->searchable(),
                 PersonColumn::make('holder.name')
                     ->label(__('Holder'))
-                    ->placeholder(__('In the cupboard')),
+                    ->placeholder(__('In the cupboard'))
+                    ->memberUrl(),
             ])
             ->filters([
                 Filter::make('without_locks')
