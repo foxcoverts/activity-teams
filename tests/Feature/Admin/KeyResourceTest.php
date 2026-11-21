@@ -56,12 +56,12 @@ class KeyResourceTest extends TestCase
 
         $this->actingAs($admin);
 
-        $membersUrl = UserResource::getUrl('view', ['record' => $user], panel: 'admin');
+        $userUrl = UserResource::getUrl('view', ['record' => $user], panel: 'admin');
 
         Livewire::test(ListKeys::class)
             ->assertSuccessful()
             ->assertSeeText($user->name)
-            ->assertSeeHtml('href="'.$membersUrl.'"');
+            ->assertSeeHtml('href="'.$userUrl.'"');
     }
 
     public function test_the_view_key_links_to_the_holder(): void
@@ -72,11 +72,11 @@ class KeyResourceTest extends TestCase
 
         $this->actingAs($admin);
 
-        $membersUrl = UserResource::getUrl('view', ['record' => $user], panel: 'admin');
+        $userUrl = UserResource::getUrl('view', ['record' => $user], panel: 'admin');
 
         Livewire::test(ViewKey::class, ['record' => $key->getKey()])
             ->assertSuccessful()
             ->assertSeeText($user->name)
-            ->assertSeeHtml('href="'.$membersUrl.'"');
+            ->assertSeeHtml('href="'.$userUrl.'"');
     }
 }

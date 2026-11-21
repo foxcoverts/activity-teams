@@ -66,7 +66,8 @@ trait HasPersonDisplay
     }
 
     /**
-     * Link to the Teams member view when the viewer may open it.
+     * Link to the Teams member view when available, otherwise the admin user view
+     * when the viewer can open that record.
      */
     public function memberUrl(?Team $team = null): static
     {
@@ -81,9 +82,10 @@ trait HasPersonDisplay
                 return $memberUrl;
             }
 
-            // Fallback to the admin panel if the user can view the user.
+            // Fall back to admin Users when the viewer can open that record.
             if (($viewer = auth()->user()) instanceof User) {
                 $panel = Filament::getPanel('admin');
+
                 if ($viewer->canAccessPanel($panel) && $viewer->can('view', $user)) {
                     return UserResource::getUrl('view', ['record' => $user], panel: $panel->getId());
                 }

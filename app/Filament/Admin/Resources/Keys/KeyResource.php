@@ -8,6 +8,8 @@ use App\Filament\Admin\Resources\Keys\Pages\EditKey;
 use App\Filament\Admin\Resources\Keys\Pages\ListKeys;
 use App\Filament\Admin\Resources\Keys\Pages\ViewKey;
 use App\Filament\Admin\Resources\Keys\RelationManagers\LocksRelationManager;
+use App\Filament\Admin\Resources\Keys\Schemas\KeyForm;
+use App\Filament\Admin\Resources\Keys\Schemas\KeyInfolist;
 use App\Filament\Admin\Resources\Keys\Tables\KeysTable;
 use App\Models\Key;
 use App\Models\User;
@@ -44,12 +46,12 @@ class KeyResource extends Resource
 
     public static function form(Schema $schema): Schema
     {
-        return Schemas\KeyForm::configure($schema);
+        return KeyForm::configure($schema);
     }
 
     public static function infolist(Schema $schema): Schema
     {
-        return Schemas\KeyInfolist::configure($schema);
+        return KeyInfolist::configure($schema);
     }
 
     public static function table(Table $table): Table
