@@ -3,6 +3,7 @@
 namespace App\Filament\Admin\Resources\InboundMails\Pages;
 
 use App\Filament\Admin\Resources\InboundMails\InboundMailResource;
+use App\Filament\Support\RefreshesNavigationChrome;
 use App\Models\InboundMail;
 use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
@@ -26,8 +27,7 @@ class ViewInboundMail extends ViewRecord
                     $record = $this->getRecord();
                     $record->markReviewed()->save();
 
-                    $this->dispatch('refresh-sidebar');
-                    $this->dispatch('refresh-topbar');
+                    RefreshesNavigationChrome::dispatch($this);
 
                     Notification::make()
                         ->title(__('Marked reviewed'))
@@ -36,8 +36,7 @@ class ViewInboundMail extends ViewRecord
                 }),
             DeleteAction::make()
                 ->after(function (): void {
-                    $this->dispatch('refresh-sidebar');
-                    $this->dispatch('refresh-topbar');
+                    RefreshesNavigationChrome::dispatch($this);
                 }),
         ];
     }

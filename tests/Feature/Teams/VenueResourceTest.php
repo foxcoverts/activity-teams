@@ -147,9 +147,10 @@ class VenueResourceTest extends TestCase
 
     public function test_a_system_admin_can_give_a_venue_from_a_searchable_list(): void
     {
+        // Venue factory attaches to the latest team when one exists.
+        $venue = Venue::factory()->create();
         $admin = User::factory()->systemAdmin()->create();
         $team = Team::factory()->create();
-        $venue = Venue::factory()->create();
 
         $this->actingAs($admin);
         Filament::setTenant($team);
@@ -160,9 +161,28 @@ class VenueResourceTest extends TestCase
             ->assertSchemaComponentExists('venue_id', checkComponentUsing: fn (Select $select): bool => $select->isSearchable());
 
         Livewire::test(ListVenues::class)
-            ->callAction('give', data: ['venue_id' => $venue->getKey()]);
+            ->callAction('give', data: ['venue_id' => $venue->getKey()])
+            ->assertDispatched('refresh-sidebar')
+            ->assertDispatched('refresh-topbar');
 
         $this->assertTrue($team->venues()->whereKey($venue->getKey())->exists());
+    }
+
+    public function test_removing_a_venue_refreshes_navigation_chrome(): void
+    {
+        $manager = User::factory()->teamManager()->create();
+        $team = $manager->managedTeams()->firstOrFail();
+        $venue = Venue::factory()->create();
+        $team->addVenue($venue);
+
+        $this->actingAs($manager);
+
+        Livewire::test(ListVenues::class)
+            ->callTableAction('remove', $venue)
+            ->assertDispatched('refresh-sidebar')
+            ->assertDispatched('refresh-topbar');
+
+        $this->assertFalse($team->fresh()->venues()->whereKey($venue->getKey())->exists());
     }
 
     public function test_a_manager_can_edit_a_catalog_venue_used_only_by_their_team(): void

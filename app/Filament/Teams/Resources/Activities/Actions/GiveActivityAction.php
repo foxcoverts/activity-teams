@@ -2,6 +2,7 @@
 
 namespace App\Filament\Teams\Resources\Activities\Actions;
 
+use App\Filament\Support\RefreshesNavigationChrome;
 use App\Filament\Teams\Resources\Activities\ActivityResource;
 use App\Models\Activity;
 use Filament\Actions\Action;
@@ -42,7 +43,7 @@ class GiveActivityAction extends Action
                     ->searchable()
                     ->required(),
             ])
-            ->action(function (array $data): void {
+            ->action(function (array $data, Action $action): void {
                 $team = ActivityResource::currentTeam();
                 abort_unless($team !== null, 404);
 
@@ -51,6 +52,8 @@ class GiveActivityAction extends Action
                     ->findOrFail($data['activity_id']);
 
                 $team->addActivity($activity);
+
+                RefreshesNavigationChrome::dispatch($action->getLivewire());
             });
     }
 }

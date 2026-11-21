@@ -3,6 +3,7 @@
 namespace App\Filament\Admin\Resources\Activities\RelationManagers;
 
 use App\Filament\Admin\Resources\Activities\Schemas\ActivityAudienceForm;
+use App\Filament\Support\RefreshesNavigationChrome;
 use App\Models\Activity;
 use App\Models\ActivityAudience;
 use Filament\Actions\CreateAction;
@@ -15,6 +16,7 @@ use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Livewire\Component;
 
 class ActivityAudiencesRelationManager extends RelationManager
 {
@@ -69,7 +71,10 @@ class ActivityAudiencesRelationManager extends RelationManager
                 CreateAction::make()
                     ->label(__('Add audience'))
                     ->modalHeading(__('Add audience'))
-                    ->modalIcon(Heroicon::OutlinedMegaphone),
+                    ->modalIcon(Heroicon::OutlinedMegaphone)
+                    ->after(function (Component $livewire): void {
+                        RefreshesNavigationChrome::dispatch($livewire);
+                    }),
             ])
             ->recordActions([
                 EditAction::make()
@@ -86,6 +91,9 @@ class ActivityAudiencesRelationManager extends RelationManager
                             ->send();
 
                         $action->halt();
+                    })
+                    ->after(function (Component $livewire): void {
+                        RefreshesNavigationChrome::dispatch($livewire);
                     }),
             ]);
     }

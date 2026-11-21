@@ -2,6 +2,7 @@
 
 namespace App\Filament\Teams\Resources\Venues\Actions;
 
+use App\Filament\Support\RefreshesNavigationChrome;
 use App\Filament\Teams\Resources\Venues\VenueResource;
 use App\Models\Venue;
 use Filament\Actions\Action;
@@ -43,7 +44,7 @@ class GiveVenueAction extends Action
                     ->searchable()
                     ->required(),
             ])
-            ->action(function (array $data): void {
+            ->action(function (array $data, Action $action): void {
                 $team = VenueResource::currentTeam();
                 abort_unless($team !== null, 404);
 
@@ -52,6 +53,8 @@ class GiveVenueAction extends Action
                     ->findOrFail($data['venue_id']);
 
                 $team->addVenue($venue);
+
+                RefreshesNavigationChrome::dispatch($action->getLivewire());
             });
     }
 }

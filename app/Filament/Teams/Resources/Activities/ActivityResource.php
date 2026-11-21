@@ -2,6 +2,7 @@
 
 namespace App\Filament\Teams\Resources\Activities;
 
+use App\Filament\Support\RefreshesNavigationChrome;
 use App\Filament\Teams\NavigationGroup;
 use App\Filament\Teams\Resources\Activities\Pages\ListActivities;
 use App\Models\Activity;
@@ -19,6 +20,7 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Livewire\Component;
 
 class ActivityResource extends Resource
 {
@@ -145,8 +147,10 @@ class ActivityResource extends Resource
                     ->label('Remove from team')
                     ->color(Palette::destructive())
                     ->requiresConfirmation()
-                    ->action(function (Activity $record): void {
+                    ->action(function (Activity $record, Component $livewire): void {
                         static::currentTeam()?->removeActivity($record);
+
+                        RefreshesNavigationChrome::dispatch($livewire);
                     }),
             ]);
     }
