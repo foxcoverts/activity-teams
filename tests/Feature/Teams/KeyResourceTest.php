@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Teams;
 
+use App\Filament\Admin\Resources\Users\UserResource;
 use App\Filament\Teams\Resources\Keys\Pages\ListKeys;
 use App\Filament\Teams\Resources\Keys\Pages\ViewKey;
 use App\Filament\Teams\Resources\Members\MemberResource;
@@ -152,5 +153,102 @@ class KeyResourceTest extends TestCase
             ->assertSeeHtml($memberUrl)
             ->assertSee('fi-in-person', false)
             ->assertSee(str_replace('&', '&amp;', $avatarUrl), false);
+    }
+
+    public function test_the_key_views_show_admins_links_to_user_view(): void
+    {
+        $admin = User::factory()->systemAdmin()->create();
+        $team = Team::factory()->create();
+        $outsideHolder = User::factory()->create();
+        $activity = Activity::factory()->create();
+        $venue = Venue::factory()->create();
+        $lock = Lock::factory()->create(['name' => 'Store cupboard']);
+        $lock->requirements()->create([
+            'activity_id' => $activity->getKey(),
+            'venue_id' => $venue->getKey(),
+        ]);
+        $ring = Key::factory()->heldBy($outsideHolder)->create(['name' => 'Store key']);
+        $ring->locks()->attach($lock);
+
+        $this->actingAs($admin);
+        Filament::setTenant($team);
+
+        $userUrl = UserResource::getUrl('view', ['record' => $outsideHolder], panel: 'admin');
+
+        Livewire::test(ListKeys::class)
+            ->assertSuccessful()
+            ->assertSeeText($outsideHolder->name)
+            ->assertSeeHtml('href="'.$userUrl.'"');
+
+        Livewire::test(ViewKey::class, ['record' => $ring->getRouteKey()])
+            ->assertSuccessful()
+            ->assertSeeText($outsideHolder->name)
+            ->assertSeeHtml('href="'.$userUrl.'"');
+    }
+
+    public function test_the_key_views_prefer_member_links_for_admins_when_the_holder_is_on_the_team(): void
+    {
+        $admin = User::factory()->systemAdmin()->create();
+        $team = Team::factory()->create();
+        $holder = User::factory()->teamMember($team)->create(['name' => 'Casey Holder']);
+        $activity = Activity::factory()->create();
+        $venue = Venue::factory()->create();
+        $lock = Lock::factory()->create(['name' => 'Store cupboard']);
+        $lock->requirements()->create([
+            'activity_id' => $activity->getKey(),
+            'venue_id' => $venue->getKey(),
+        ]);
+        $ring = Key::factory()->heldBy($holder)->create(['name' => 'Store key']);
+        $ring->locks()->attach($lock);
+
+        $this->actingAs($admin);
+        Filament::setTenant($team);
+
+        $memberUrl = MemberResource::getUrl('view', ['record' => $holder], panel: 'teams', tenant: $team);
+        $userUrl = UserResource::getUrl('view', ['record' => $holder], panel: 'admin');
+
+        Livewire::test(ListKeys::class)
+            ->assertSuccessful()
+            ->assertSeeText($holder->name)
+            ->assertSeeHtml('href="'.$memberUrl.'"')
+            ->assertDontSeeHtml('href="'.$userUrl.'"');
+
+        Livewire::test(ViewKey::class, ['record' => $ring->getRouteKey()])
+            ->assertSuccessful()
+            ->assertSeeText($holder->name)
+            ->assertSeeHtml('href="'.$memberUrl.'"')
+            ->assertDontSeeHtml('href="'.$userUrl.'"');
+    }
+
+    public function test_the_key_views_do_not_show_managers_links_to_outside_holders(): void
+    {
+        $team = Team::factory()->create();
+        $manager = User::factory()->teamManager($team)->create();
+        $outsideHolder = User::factory()->create();
+        $activity = Activity::factory()->create();
+        $venue = Venue::factory()->create();
+        $lock = Lock::factory()->create(['name' => 'Store cupboard']);
+        $lock->requirements()->create([
+            'activity_id' => $activity->getKey(),
+            'venue_id' => $venue->getKey(),
+        ]);
+        $ring = Key::factory()->heldBy($outsideHolder)->create(['name' => 'Store key']);
+        $ring->locks()->attach($lock);
+        $this->actingAs($manager);
+
+        $memberUrl = MemberResource::getUrl('view', ['record' => $outsideHolder], panel: 'teams', tenant: $team);
+        $userUrl = UserResource::getUrl('view', ['record' => $outsideHolder], panel: 'admin');
+
+        Livewire::test(ListKeys::class)
+            ->assertSuccessful()
+            ->assertSeeText($outsideHolder->name)
+            ->assertDontSeeHtml('href="'.$memberUrl.'"')
+            ->assertDontSeeHtml('href="'.$userUrl.'"');
+
+        Livewire::test(ViewKey::class, ['record' => $ring->getRouteKey()])
+            ->assertSuccessful()
+            ->assertSeeText($outsideHolder->name)
+            ->assertDontSeeHtml('href="'.$memberUrl.'"')
+            ->assertDontSeeHtml('href="'.$userUrl.'"');
     }
 }

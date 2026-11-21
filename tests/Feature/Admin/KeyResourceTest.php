@@ -3,7 +3,9 @@
 namespace Tests\Feature\Admin;
 
 use App\Filament\Admin\Resources\Keys\Pages\ListKeys;
+use App\Filament\Admin\Resources\Keys\Pages\ViewKey;
 use App\Filament\Admin\Resources\Locks\LockResource;
+use App\Filament\Admin\Resources\Users\UserResource;
 use App\Models\Key;
 use App\Models\User;
 use Filament\Facades\Filament;
@@ -22,7 +24,7 @@ class KeyResourceTest extends TestCase
         Filament::setCurrentPanel('admin');
     }
 
-    public function test_the_key_ring_list_is_sorted_by_name(): void
+    public function test_the_keys_list_is_sorted_by_name(): void
     {
         $admin = User::factory()->systemAdmin()->create();
         $zebra = Key::factory()->create(['name' => 'Zebra']);
@@ -44,5 +46,37 @@ class KeyResourceTest extends TestCase
         Livewire::test(ListKeys::class)
             ->assertActionVisible('locks')
             ->assertActionHasUrl('locks', LockResource::getUrl(panel: 'admin'));
+    }
+
+    public function test_the_keys_list_links_to_the_holder(): void
+    {
+        $admin = User::factory()->systemAdmin()->create();
+        $user = User::factory()->create();
+        Key::factory()->heldBy($user)->create();
+
+        $this->actingAs($admin);
+
+        $userUrl = UserResource::getUrl('view', ['record' => $user], panel: 'admin');
+
+        Livewire::test(ListKeys::class)
+            ->assertSuccessful()
+            ->assertSeeText($user->name)
+            ->assertSeeHtml('href="'.$userUrl.'"');
+    }
+
+    public function test_the_view_key_links_to_the_holder(): void
+    {
+        $admin = User::factory()->systemAdmin()->create();
+        $user = User::factory()->create();
+        $key = Key::factory()->heldBy($user)->create();
+
+        $this->actingAs($admin);
+
+        $userUrl = UserResource::getUrl('view', ['record' => $user], panel: 'admin');
+
+        Livewire::test(ViewKey::class, ['record' => $key->getKey()])
+            ->assertSuccessful()
+            ->assertSeeText($user->name)
+            ->assertSeeHtml('href="'.$userUrl.'"');
     }
 }
