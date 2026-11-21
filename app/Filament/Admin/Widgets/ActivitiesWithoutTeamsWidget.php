@@ -33,7 +33,10 @@ class ActivitiesWithoutTeamsWidget extends AdminSection
             'rows' => $rows->take(AdminAttention::PREVIEW_LIMIT)->values(),
             'total' => $total,
             'rowKeyPrefix' => 'activity-no-team',
-            'recordUrl' => fn ($record): string => ActivityResource::getUrl('view', ['record' => $record]),
+            'recordUrl' => fn ($record): string => ActivityResource::getUrl('view', [
+                'record' => $record,
+                'relation' => 'teams',
+            ]),
             'seeAllUrl' => ActivityResource::getUrl('index', [
                 'filters' => [
                     'without_team' => ['isActive' => true],

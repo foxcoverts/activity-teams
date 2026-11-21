@@ -145,8 +145,8 @@ class ActivityResource extends Resource
     public static function getRelations(): array
     {
         return [
-            ActivityAudiencesRelationManager::class,
-            TeamsRelationManager::class,
+            'audiences' => ActivityAudiencesRelationManager::class,
+            'teams' => TeamsRelationManager::class,
         ];
     }
 

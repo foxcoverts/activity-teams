@@ -33,7 +33,10 @@ class VenuesWithoutTeamsWidget extends AdminSection
             'rows' => $rows->take(AdminAttention::PREVIEW_LIMIT)->values(),
             'total' => $total,
             'rowKeyPrefix' => 'venue-no-team',
-            'recordUrl' => fn ($record): string => VenueResource::getUrl('view', ['record' => $record]),
+            'recordUrl' => fn ($record): string => VenueResource::getUrl('view', [
+                'record' => $record,
+                'relation' => 'teams',
+            ]),
             'seeAllUrl' => VenueResource::getUrl('index', [
                 'filters' => [
                     'without_team' => ['isActive' => true],
