@@ -8,6 +8,7 @@ use App\Filament\Admin\Resources\Activities\Pages\EditActivity;
 use App\Filament\Admin\Resources\Activities\Pages\ListActivities;
 use App\Filament\Admin\Resources\Activities\Pages\ViewActivity;
 use App\Filament\Admin\Resources\Activities\RelationManagers\ActivityAudiencesRelationManager;
+use App\Filament\Admin\Resources\Activities\RelationManagers\TeamsRelationManager;
 use App\Filament\Admin\Resources\Activities\Schemas\ActivityAudienceForm;
 use App\Models\Activity;
 use App\Models\User;
@@ -121,6 +122,9 @@ class ActivityResource extends Resource
                 TextColumn::make('audiences.name')
                     ->label(__('Audiences'))
                     ->placeholder(__('No audiences')),
+                TextColumn::make('teams_count')
+                    ->counts('teams')
+                    ->label(__('Teams')),
             ])
             ->filters([
                 Filter::make('without_team')
@@ -142,6 +146,7 @@ class ActivityResource extends Resource
     {
         return [
             ActivityAudiencesRelationManager::class,
+            TeamsRelationManager::class,
         ];
     }
 

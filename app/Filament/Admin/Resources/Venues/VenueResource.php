@@ -7,6 +7,7 @@ use App\Filament\Admin\Resources\Venues\Pages\CreateVenue;
 use App\Filament\Admin\Resources\Venues\Pages\EditVenue;
 use App\Filament\Admin\Resources\Venues\Pages\ListVenues;
 use App\Filament\Admin\Resources\Venues\Pages\ViewVenue;
+use App\Filament\Admin\Resources\Venues\RelationManagers\TeamsRelationManager;
 use App\Filament\Venues\VenueLocationSchema;
 use App\Models\User;
 use App\Models\Venue;
@@ -104,6 +105,9 @@ class VenueResource extends Resource
                 TextColumn::make('address')
                     ->state(fn (Venue $record): array => $record->location->addressArray())
                     ->searchable(),
+                TextColumn::make('teams_count')
+                    ->counts('teams')
+                    ->label(__('Teams')),
             ])
             ->filters([
                 Filter::make('without_team')
@@ -124,7 +128,7 @@ class VenueResource extends Resource
     public static function getRelations(): array
     {
         return [
-            //
+            TeamsRelationManager::class,
         ];
     }
 

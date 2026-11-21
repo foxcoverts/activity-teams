@@ -23,4 +23,4 @@ As an Activity Manager, I want each activity to offer audiences with their own q
 
 Audiences are a site-admin catalogue. On an activity, each attached audience has the acceptable-qualification repeater from [US-02](US-02-activity-specific-qualification-staffing.md): each row is one way to qualify, a blank field means any value, and no rows means anyone may lead. Rows for one pairing do not qualify a different audience of the same activity. A booking must name an audience that activity offers. Mixed audiences on one booking stay out of scope.
 
-The manage guest list, invite picker, confirm, and change-lead use that pairing, as of the booking end date. Keys are unchanged. A team sets the optional default audience on its activity list, stored on the team–activity row. The logged-out page is still [US-12](US-12-public-booking-summary.md).
+The manage guest list, invite picker, confirm, and change-lead use that pairing, as of the booking end date. Keys are unchanged. A team sets the optional default audience on its activity list (or when giving an activity), stored on the team–activity row. The logged-out page is still [US-12](US-12-public-booking-summary.md).
