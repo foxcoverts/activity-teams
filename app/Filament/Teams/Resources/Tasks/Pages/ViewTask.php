@@ -2,6 +2,8 @@
 
 namespace App\Filament\Teams\Resources\Tasks\Pages;
 
+use App\Enums\TimelineAudience;
+use App\Filament\Concerns\TogglesTimelineAudience;
 use App\Filament\Tasks\Concerns\TogglesTaskCompletion;
 use App\Filament\Teams\Resources\Tasks\TaskResource;
 use App\Filament\Teams\Resources\Tasks\TaskStatusActions;
@@ -22,6 +24,7 @@ use Illuminate\Contracts\Support\Htmlable;
 class ViewTask extends ViewRecord
 {
     use TogglesTaskCompletion;
+    use TogglesTimelineAudience;
 
     protected static string $resource = TaskResource::class;
 
@@ -96,10 +99,27 @@ class ViewTask extends ViewRecord
 
     public function timeline(Schema $schema): Schema
     {
+        $record = $this->getRecord();
+        $viewer = auth()->user();
+        $manages = $record instanceof Task
+            && $viewer instanceof User
+            && $record->team !== null
+            && $viewer->manages($record->team);
+
+        $audience = $manages && ! $this->timelineAsMember
+            ? TimelineAudience::Manager
+            : TimelineAudience::Member;
+
         return $schema
-            ->record($this->getRecord())
+            ->record($record)
             ->components([
-                TaskTimeline::section(),
+                TaskTimeline::section(
+                    audience: $audience,
+                    showAudienceToggle: $manages,
+                    livewire: $this,
+                    task: $record instanceof Task ? $record : null,
+                    viewer: $viewer instanceof User ? $viewer : null,
+                ),
             ]);
     }
 

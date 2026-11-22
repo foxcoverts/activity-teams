@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Actions\InviteAttendeesAction;
 use App\Actions\OverrideAttendanceAction;
 use App\Actions\RespondToBookingAction;
 use App\Enums\BookingAttendeeStatus;
@@ -100,8 +101,9 @@ class BookingTimelineTest extends TestCase
 
         Livewire::test(TeamsViewBooking::class, ['record' => $booking->getRouteKey()])
             ->assertSeeHtml("<strong>{$manager->name}</strong>")
-            ->assertSeeHtml('<strong>Can help</strong>')
-            ->assertSeeHtml("<strong>{$member->name}</strong>")
+            ->assertSee('recorded that you')
+            ->assertSeeHtml('<strong>can help</strong>')
+            ->assertDontSeeHtml("<strong>{$member->name}</strong>")
             ->assertDontSeeHtml('O&amp;#039;Brien')
             ->assertDontSeeHtml('/members/');
     }
@@ -390,5 +392,152 @@ class BookingTimelineTest extends TestCase
             ->assertSee('Set the')
             ->assertSee('Joe Climber')
             ->assertDontSee('set the lead instructor');
+    }
+
+    public function test_self_invite_uses_themself_on_the_manager_timeline(): void
+    {
+        Filament::setCurrentPanel('teams');
+
+        $manager = User::factory()->teamManager()->create(['name' => 'Phill Sparks']);
+        $team = $manager->managedTeams()->firstOrFail();
+
+        $this->actingAs($manager);
+
+        $booking = Booking::factory()->confirmed()->forTeam($team)->create();
+        app(InviteAttendeesAction::class)($booking, [$manager->getKey()], $manager);
+
+        Livewire::test(TeamsViewBooking::class, ['record' => $booking->getRouteKey()])
+            ->assertSee('invited')
+            ->assertSee('themself')
+            ->assertDontSee('invited Phill Sparks');
+    }
+
+    public function test_members_do_not_see_invite_events(): void
+    {
+        Filament::setCurrentPanel('teams');
+
+        $manager = User::factory()->teamManager()->create(['name' => 'Manager']);
+        $team = $manager->managedTeams()->firstOrFail();
+        $invitee = User::factory()->create(['name' => 'Casey']);
+        $onlooker = User::factory()->create(['name' => 'Onlooker']);
+        $team->grant($invitee, MembershipRole::Member);
+        $team->grant($onlooker, MembershipRole::Member);
+
+        $this->actingAs($manager);
+
+        $booking = Booking::factory()->confirmed()->forTeam($team)->create();
+        app(InviteAttendeesAction::class)($booking, [$invitee->getKey()], $manager);
+
+        Livewire::test(TeamsViewBooking::class, ['record' => $booking->getRouteKey()])
+            ->assertSee('invited')
+            ->assertSee('Casey');
+
+        $this->actingAs($onlooker);
+
+        Livewire::test(TeamsViewBooking::class, ['record' => $booking->getRouteKey()])
+            ->assertDontSee('invited')
+            ->assertDontSee('Casey');
+    }
+
+    public function test_managers_can_preview_the_member_timeline(): void
+    {
+        Filament::setCurrentPanel('teams');
+
+        $manager = User::factory()->teamManager()->create(['name' => 'Manager']);
+        $team = $manager->managedTeams()->firstOrFail();
+        $invitee = User::factory()->create(['name' => 'Casey']);
+        $team->grant($invitee, MembershipRole::Member);
+
+        $this->actingAs($manager);
+
+        $booking = Booking::factory()->confirmed()->forTeam($team)->create();
+        app(InviteAttendeesAction::class)($booking, [$invitee->getKey()], $manager);
+
+        Livewire::test(TeamsViewBooking::class, ['record' => $booking->getRouteKey()])
+            ->assertSee('View as member')
+            ->assertSee('invited')
+            ->assertSee('Casey')
+            ->call('toggleTimelineAudience')
+            ->assertSet('timelineAsMember', true)
+            ->assertSee('Viewing as member')
+            ->assertDontSee('invited')
+            ->assertDontSeeHtml('/members/')
+            ->call('toggleTimelineAudience')
+            ->assertSet('timelineAsMember', false)
+            ->assertSee('View as member')
+            ->assertSee('invited')
+            ->assertSee('Casey');
+    }
+
+    public function test_other_members_see_overrides_as_if_the_attendee_responded(): void
+    {
+        Filament::setCurrentPanel('teams');
+
+        $manager = User::factory()->teamManager()->create(['name' => 'Manager']);
+        $team = $manager->managedTeams()->firstOrFail();
+        $attendee = User::factory()->create(['name' => 'Casey']);
+        $onlooker = User::factory()->create(['name' => 'Onlooker']);
+        $team->grant($attendee, MembershipRole::Member);
+        $team->grant($onlooker, MembershipRole::Member);
+
+        $booking = Booking::factory()->confirmed()->forTeam($team)->create();
+        $booking->attendees()->attach($attendee->id, [
+            'status' => BookingAttendeeStatus::NeedsAction->value,
+        ]);
+
+        $this->actingAs($manager);
+        app(OverrideAttendanceAction::class)($booking, $attendee, $manager, BookingAttendeeStatus::Accepted);
+
+        Livewire::test(TeamsViewBooking::class, ['record' => $booking->getRouteKey()])
+            ->assertSee('recorded')
+            ->assertSee('Can help')
+            ->assertSee('Casey');
+
+        $this->actingAs($onlooker);
+
+        Livewire::test(TeamsViewBooking::class, ['record' => $booking->getRouteKey()])
+            ->assertSeeHtml('<strong>Casey</strong>')
+            ->assertSee('said they')
+            ->assertSeeHtml('<strong>can help</strong>')
+            ->assertDontSee('recorded');
+    }
+
+    public function test_members_do_not_see_lead_instructor_notes_changes_unless_they_are_lead(): void
+    {
+        Filament::setCurrentPanel('teams');
+
+        $manager = User::factory()->teamManager()->create();
+        $team = $manager->managedTeams()->firstOrFail();
+        $lead = User::factory()->create(['name' => 'Lead']);
+        $member = User::factory()->create(['name' => 'Member']);
+        $team->grant($lead, MembershipRole::Member);
+        $team->grant($member, MembershipRole::Member);
+
+        $this->actingAs($manager);
+
+        $booking = Booking::factory()->confirmed()->forTeam($team)->create([
+            'lead_instructor_id' => $lead->getKey(),
+            'requires_lead_instructor' => true,
+            'lead_instructor_notes' => null,
+            'notes' => null,
+        ]);
+        $booking->attendees()->attach($lead->id, [
+            'status' => BookingAttendeeStatus::Accepted->value,
+        ]);
+        $booking->lead_instructor_notes = 'Bring helmets';
+        $booking->save();
+
+        Livewire::test(TeamsViewBooking::class, ['record' => $booking->getRouteKey()])
+            ->assertSeeHtml('set the <strong>lead instructor notes</strong>');
+
+        $this->actingAs($member);
+
+        Livewire::test(TeamsViewBooking::class, ['record' => $booking->getRouteKey()])
+            ->assertDontSee('lead instructor notes');
+
+        $this->actingAs($lead);
+
+        Livewire::test(TeamsViewBooking::class, ['record' => $booking->getRouteKey()])
+            ->assertSeeHtml('set the <strong>lead instructor notes</strong>');
     }
 }
