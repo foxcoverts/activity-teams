@@ -45,6 +45,21 @@ class QualificationResource extends Resource
         return false;
     }
 
+    /**
+     * @return array<string>
+     */
+    public static function getGloballySearchableAttributes(): array
+    {
+        // summary is a computed accessor; search the stored fields that feed it.
+        return [
+            'kind',
+            'payload->activity',
+            'payload->category',
+            'payload->permit_type',
+            'payload->restrictions',
+        ];
+    }
+
     public static function getEloquentQuery(): Builder
     {
         return parent::getEloquentQuery()
