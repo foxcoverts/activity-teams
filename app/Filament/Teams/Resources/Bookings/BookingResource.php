@@ -2,6 +2,7 @@
 
 namespace App\Filament\Teams\Resources\Bookings;
 
+use App\Filament\Bookings\SearchesBookingsGlobally;
 use App\Filament\Teams\Resources\Bookings\Pages\CreateBooking;
 use App\Filament\Teams\Resources\Bookings\Pages\EditBooking;
 use App\Filament\Teams\Resources\Bookings\Pages\ListBookings;
@@ -23,6 +24,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class BookingResource extends Resource
 {
+    use SearchesBookingsGlobally;
+
     protected static ?string $model = Booking::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedCalendarDays;
