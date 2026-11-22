@@ -5,6 +5,7 @@ namespace App\Filament\Member\Resources\Bookings;
 use App\Enums\BookingStatus;
 use App\Filament\Bookings\BookingActivityColumn;
 use App\Filament\Bookings\BookingStartDateGroup;
+use App\Filament\Bookings\SearchesBookingsGlobally;
 use App\Filament\Member\Resources\Bookings\Pages\ListBookings;
 use App\Filament\Teams\Resources\Bookings\BookingResource as TeamsBookingResource;
 use App\Models\Booking;
@@ -20,6 +21,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class BookingResource extends Resource
 {
+    use SearchesBookingsGlobally;
+
     protected static ?string $model = Booking::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedCalendarDays;
@@ -55,6 +58,15 @@ class BookingResource extends Resource
         $booking->loadMissing('team');
 
         return TeamsBookingResource::getUrl('view', ['record' => $booking], panel: 'teams', tenant: $booking->team);
+    }
+
+    public static function getGlobalSearchResultUrl(Model $record): ?string
+    {
+        if (! $record instanceof Booking || ! static::canView($record)) {
+            return null;
+        }
+
+        return static::viewUrl($record);
     }
 
     public static function table(Table $table): Table
