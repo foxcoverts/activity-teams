@@ -10,8 +10,8 @@ use App\Filament\Bookings\RefreshesWhenAttendanceChanges;
 use App\Filament\Teams\Resources\Bookings\BookingResource;
 use App\Filament\Teams\Resources\Bookings\BookingStatusActions;
 use App\Filament\Teams\Resources\Bookings\BookingTimeline;
-use App\Livewire\BookingComments;
 use App\Livewire\BookingTasks;
+use App\Livewire\Comments;
 use App\Livewire\RelatedBookings;
 use App\Models\Booking;
 use App\Models\User;
@@ -68,7 +68,7 @@ class ViewBooking extends ViewRecord
                 ->schema([
                     Group::make([
                         $this->getInfolistContentComponent(),
-                        Livewire::make(BookingComments::class, [
+                        Livewire::make(Comments::class, [
                             'record' => $record,
                             'highlightId' => is_string(request()->query('comment'))
                                 ? request()->query('comment')
@@ -79,7 +79,7 @@ class ViewBooking extends ViewRecord
 
                             return $booking instanceof Booking
                                 && $viewer instanceof User
-                                && BookingComments::shouldShowPanel($booking, $viewer);
+                                && Comments::shouldShowPanel($booking, $viewer);
                         }),
                     ])
                         ->columnSpan(['default' => 1, 'lg' => 3]),

@@ -6,6 +6,7 @@ use App\Filament\Tasks\Concerns\TogglesTaskCompletion;
 use App\Filament\Teams\Resources\Tasks\TaskResource;
 use App\Filament\Teams\Resources\Tasks\TaskStatusActions;
 use App\Filament\Teams\Resources\Tasks\TaskTimeline;
+use App\Livewire\Comments;
 use App\Livewire\TaskAssigneePanel;
 use App\Livewire\TaskRelatedBookings;
 use App\Models\Task;
@@ -68,6 +69,19 @@ class ViewTask extends ViewRecord
                 ->schema([
                     Group::make([
                         $this->getInfolistContentComponent(),
+                        Livewire::make(Comments::class, [
+                            'record' => $record,
+                            'highlightId' => is_string(request()->query('comment'))
+                                ? request()->query('comment')
+                                : null,
+                        ])->visible(function (): bool {
+                            $task = $this->getRecord();
+                            $viewer = auth()->user();
+
+                            return $task instanceof Task
+                                && $viewer instanceof User
+                                && Comments::shouldShowPanel($task, $viewer);
+                        }),
                     ])
                         ->columnSpan(['default' => 1, 'lg' => 3]),
                     Group::make($sidebar)

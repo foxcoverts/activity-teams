@@ -3,17 +3,19 @@
 namespace App\Notifications;
 
 use App\Enums\MailChannel;
-use App\Mail\BookingCommentMail;
+use App\Mail\CommentMail;
 use App\Models\Booking;
 use App\Models\Comment;
+use App\Models\Task;
 use App\Models\Team;
 use App\Models\User;
 use App\Notifications\Concerns\RecordsInbox;
 use Illuminate\Bus\Queueable;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Mail\Mailable;
 use Illuminate\Notifications\Notification;
 
-class BookingCommentNotification extends Notification
+class CommentNotification extends Notification
 {
     use Queueable;
     use RecordsInbox;
@@ -28,12 +30,14 @@ class BookingCommentNotification extends Notification
 
     public function inboxBody(object $notifiable): string
     {
-        $booking = $this->booking();
-        $activity = $booking?->activityTitle() ?? __('a booking');
+        $commentable = $this->commentable();
+        $parent = $commentable instanceof Booking
+            ? ($commentable->activityTitle() ?? __('a booking'))
+            : ($commentable?->summary ?? __('a task'));
 
         return __(':author commented on :activity.', [
             'author' => $this->comment->author?->name ?? __('someone'),
-            'activity' => $activity,
+            'activity' => $parent,
         ]);
     }
 
@@ -44,12 +48,22 @@ class BookingCommentNotification extends Notification
 
     public function inboxChannel(): ?MailChannel
     {
-        return MailChannel::BookingsComments;
+        $commentable = $this->commentable();
+
+        if ($commentable instanceof Booking) {
+            return MailChannel::BookingsComments;
+        }
+
+        if ($commentable instanceof Task) {
+            return MailChannel::TasksComments;
+        }
+
+        return null;
     }
 
-    public function inboxSubject(): ?Booking
+    public function inboxSubject(): ?Model
     {
-        return $this->booking();
+        return $this->commentable();
     }
 
     /**
@@ -76,18 +90,20 @@ class BookingCommentNotification extends Notification
     {
         assert($notifiable instanceof User);
 
-        return new BookingCommentMail($this->comment, $notifiable);
+        return new CommentMail($this->comment, $notifiable);
     }
 
     public function inboxTeam(?object $notifiable = null): ?Team
     {
-        return $this->booking()?->team;
+        return $this->commentable()?->commentTeam();
     }
 
-    private function booking(): ?Booking
+    private function commentable(): Booking|Task|null
     {
         $commentable = $this->comment->commentable;
 
-        return $commentable instanceof Booking ? $commentable : null;
+        return $commentable instanceof Booking || $commentable instanceof Task
+            ? $commentable
+            : null;
     }
 }

@@ -134,6 +134,7 @@ These show up next to roles in UI and stories — do not treat them as the same 
 - [US-38 Manager Centralised Activity Audit Feed](US-38-manager-activity-audit-feed.md) — `partial`
 - [US-39 Member Booking Transparency & Audit Stream](US-39-member-booking-audit-stream.md) — `done`
 - [US-40 Booking & Content Commenting Threads](US-40-booking-commenting-threads.md) — `done`
+- [US-93 Task Commenting Threads](US-93-task-commenting-threads.md) — `done`
 
 ## Safety, Compliance & Operational Tools
 

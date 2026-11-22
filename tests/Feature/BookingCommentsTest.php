@@ -9,13 +9,13 @@ use App\Enums\MembershipRole;
 use App\Filament\Member\Resources\Bookings\BookingResource as MemberBookingResource;
 use App\Filament\Member\Resources\Inbox\InboxResource;
 use App\Filament\Teams\Resources\Bookings\Pages\ViewBooking as TeamsViewBooking;
-use App\Livewire\BookingComments;
-use App\Mail\BookingCommentMail;
+use App\Livewire\Comments;
+use App\Mail\CommentMail;
 use App\Models\Booking;
 use App\Models\Comment;
 use App\Models\Team;
 use App\Models\User;
-use App\Notifications\BookingCommentNotification;
+use App\Notifications\CommentNotification;
 use App\Support\Avatars;
 use App\Support\BookingMailThread;
 use Filament\Facades\Filament;
@@ -35,7 +35,7 @@ class BookingCommentsTest extends TestCase
         Filament::setCurrentPanel('member');
         $this->actingAs($member);
 
-        Livewire::test(BookingComments::class, ['record' => $booking])
+        Livewire::test(Comments::class, ['record' => $booking])
             ->set('body', 'Bring helmets.')
             ->call('post')
             ->assertSee('Bring helmets.')
@@ -59,13 +59,13 @@ class BookingCommentsTest extends TestCase
         Filament::setCurrentPanel('member');
 
         $this->actingAs($guest);
-        Livewire::test(BookingComments::class, ['record' => $booking])->assertForbidden();
+        Livewire::test(Comments::class, ['record' => $booking])->assertForbidden();
 
         $this->actingAs($outsider);
-        Livewire::test(BookingComments::class, ['record' => $booking])->assertForbidden();
+        Livewire::test(Comments::class, ['record' => $booking])->assertForbidden();
 
         $this->actingAs($onlooker);
-        Livewire::test(BookingComments::class, ['record' => $booking])
+        Livewire::test(Comments::class, ['record' => $booking])
             ->assertDontSee('Comments')
             ->assertDontSee('Add a comment...')
             ->set('body', 'Should not save')
@@ -89,7 +89,7 @@ class BookingCommentsTest extends TestCase
         Filament::setCurrentPanel('member');
         $this->actingAs($member);
 
-        Livewire::test(BookingComments::class, ['record' => $booking])
+        Livewire::test(Comments::class, ['record' => $booking])
             ->set('body', 'I cannot make it, but here is a note.')
             ->call('post')
             ->assertSee('I cannot make it, but here is a note.');
@@ -115,13 +115,13 @@ class BookingCommentsTest extends TestCase
         Filament::setCurrentPanel('member');
         $this->actingAs($member);
 
-        Livewire::test(BookingComments::class, ['record' => $past])
+        Livewire::test(Comments::class, ['record' => $past])
             ->assertDontSee('Comments')
             ->set('body', 'Too late')
             ->call('post')
             ->assertForbidden();
 
-        Livewire::test(BookingComments::class, ['record' => $cancelled])
+        Livewire::test(Comments::class, ['record' => $cancelled])
             ->assertDontSee('Comments')
             ->set('body', 'Too late')
             ->call('post')
@@ -142,7 +142,7 @@ class BookingCommentsTest extends TestCase
         Filament::setCurrentPanel('member');
         $this->actingAs($member);
 
-        Livewire::test(BookingComments::class, ['record' => $booking])
+        Livewire::test(Comments::class, ['record' => $booking])
             ->call('remove', $comment->getKey())
             ->assertSee('Please ignore this.')
             ->assertSee('Deleted')
@@ -152,13 +152,13 @@ class BookingCommentsTest extends TestCase
         $this->assertSoftDeleted($comment);
 
         $this->actingAs($manager);
-        Livewire::test(BookingComments::class, ['record' => $booking])
+        Livewire::test(Comments::class, ['record' => $booking])
             ->assertSee('Please ignore this.')
             ->assertSeeHtml('comment-row-ghosted')
             ->assertSee('Restore');
 
         $this->actingAs($other);
-        Livewire::test(BookingComments::class, ['record' => $booking])
+        Livewire::test(Comments::class, ['record' => $booking])
             ->assertDontSee('Please ignore this.');
     }
 
@@ -173,14 +173,14 @@ class BookingCommentsTest extends TestCase
         Filament::setCurrentPanel('member');
         $this->actingAs($member);
 
-        Livewire::test(BookingComments::class, ['record' => $booking])
+        Livewire::test(Comments::class, ['record' => $booking])
             ->call('restore', $comment->getKey())
             ->assertForbidden();
 
         $this->assertTrue($comment->fresh()->trashed());
 
         $this->actingAs($manager);
-        Livewire::test(BookingComments::class, ['record' => $booking])
+        Livewire::test(Comments::class, ['record' => $booking])
             ->call('restore', $comment->getKey())
             ->assertSee('Hold this.')
             ->assertDontSeeHtml('comment-row-ghosted');
@@ -203,7 +203,7 @@ class BookingCommentsTest extends TestCase
         Filament::setCurrentPanel('member');
         $this->actingAs($member);
 
-        Livewire::test(BookingComments::class, ['record' => $booking])
+        Livewire::test(Comments::class, ['record' => $booking])
             ->call('remove', $comment->getKey())
             ->assertSee('Deleted')
             ->assertDontSee('Edited');
@@ -211,7 +211,7 @@ class BookingCommentsTest extends TestCase
         $this->assertSame('2026-11-01 15:00:00', $comment->fresh()->updated_at?->format('Y-m-d H:i:s'));
 
         $this->actingAs($manager);
-        Livewire::test(BookingComments::class, ['record' => $booking])
+        Livewire::test(Comments::class, ['record' => $booking])
             ->call('restore', $comment->getKey())
             ->assertSee('Keep the timestamp.')
             ->assertDontSee('Deleted')
@@ -237,13 +237,13 @@ class BookingCommentsTest extends TestCase
         Filament::setCurrentPanel('member');
         $this->actingAs($member);
 
-        Livewire::test(BookingComments::class, ['record' => $booking])
+        Livewire::test(Comments::class, ['record' => $booking])
             ->call('remove', $authors->getKey());
 
         $this->assertModelMissing($authors);
 
         $this->actingAs($manager);
-        Livewire::test(BookingComments::class, ['record' => $booking])
+        Livewire::test(Comments::class, ['record' => $booking])
             ->call('remove', $managed->getKey());
 
         $this->assertModelMissing($managed);
@@ -263,7 +263,7 @@ class BookingCommentsTest extends TestCase
         Filament::setCurrentPanel('member');
         $this->actingAs($other);
 
-        Livewire::test(BookingComments::class, ['record' => $booking])
+        Livewire::test(Comments::class, ['record' => $booking])
             ->assertDontSee('Remove')
             ->call('remove', $comment->getKey())
             ->assertForbidden();
@@ -286,7 +286,7 @@ class BookingCommentsTest extends TestCase
         Filament::setCurrentPanel('member');
         $this->actingAs($member);
 
-        Livewire::test(BookingComments::class, ['record' => $booking])
+        Livewire::test(Comments::class, ['record' => $booking])
             ->assertSee('2 hours ago')
             ->assertSee('1 Nov 2026, 15:32')
             ->assertDontSee('Edited')
@@ -312,7 +312,7 @@ class BookingCommentsTest extends TestCase
         Filament::setCurrentPanel('member');
         $this->actingAs($member);
 
-        Livewire::test(BookingComments::class, ['record' => $booking])
+        Livewire::test(Comments::class, ['record' => $booking])
             ->call('startEdit', $live->getKey())
             ->set('editBody', 'Final')
             ->call('saveEdit')
@@ -320,12 +320,12 @@ class BookingCommentsTest extends TestCase
             ->assertSee('Edited')
             ->assertDontSee('Draft');
 
-        Livewire::test(BookingComments::class, ['record' => $booking])
+        Livewire::test(Comments::class, ['record' => $booking])
             ->call('startEdit', $trashed->getKey())
             ->assertForbidden();
 
         $this->actingAs($manager);
-        Livewire::test(BookingComments::class, ['record' => $booking])
+        Livewire::test(Comments::class, ['record' => $booking])
             ->call('startEdit', $live->fresh()->getKey())
             ->assertForbidden();
     }
@@ -346,10 +346,10 @@ class BookingCommentsTest extends TestCase
         Filament::setCurrentPanel('member');
         $this->actingAs($member);
 
-        Livewire::test(BookingComments::class, ['record' => $otherBooking])->assertForbidden();
+        Livewire::test(Comments::class, ['record' => $otherBooking])->assertForbidden();
 
         $this->actingAs($otherManager);
-        Livewire::test(BookingComments::class, ['record' => $otherBooking])
+        Livewire::test(Comments::class, ['record' => $otherBooking])
             ->assertDontSee('Team A only');
     }
 
@@ -388,7 +388,7 @@ class BookingCommentsTest extends TestCase
         foreach ([$manager, $absentManager] as $recipient) {
             $row = $recipient->notifications()->first();
             $this->assertNotNull($row);
-            $this->assertSame(BookingCommentNotification::class, $row->type);
+            $this->assertSame(CommentNotification::class, $row->type);
             $this->assertSame(MailChannel::BookingsComments->value, $row->data['mail_channel']);
             $this->assertStringContainsString('comment='.$comment->getKey(), $row->data['url']);
             $this->assertStringContainsString((string) $booking->getKey(), $row->data['url']);
@@ -409,10 +409,10 @@ class BookingCommentsTest extends TestCase
         Filament::setCurrentPanel('member');
         (new PostCommentAction)($booking, $member, 'Helmets in the porch.');
 
-        Mail::assertQueued(BookingCommentMail::class, function (BookingCommentMail $mail) use ($manager): bool {
+        Mail::assertQueued(CommentMail::class, function (CommentMail $mail) use ($manager): bool {
             return $mail->hasTo($manager->email);
         });
-        Mail::assertNotQueued(BookingCommentMail::class, function (BookingCommentMail $mail) use ($member): bool {
+        Mail::assertNotQueued(CommentMail::class, function (CommentMail $mail) use ($member): bool {
             return $mail->hasTo($member->email);
         });
 
@@ -456,7 +456,7 @@ class BookingCommentsTest extends TestCase
             'author_id' => $member->getKey(),
             'body' => 'Bring a stove.',
         ]);
-        $mail = new BookingCommentMail($comment, $manager);
+        $mail = new CommentMail($comment, $manager);
         $reference = '<'.BookingMailThread::reference($booking).'>';
 
         $mail->assertHasSubject(BookingMailThread::subject($booking, 'Re'));
@@ -492,7 +492,7 @@ class BookingCommentsTest extends TestCase
         Filament::setCurrentPanel('member');
         $this->actingAs($member);
 
-        Livewire::test(BookingComments::class, [
+        Livewire::test(Comments::class, [
             'record' => $booking,
             'highlightId' => $target->getKey(),
         ])
@@ -503,7 +503,7 @@ class BookingCommentsTest extends TestCase
             ->call('showOlderComments')
             ->assertSeeInOrder(['Oldest note', 'Linked note', 'Newest note']);
 
-        Livewire::test(BookingComments::class, [
+        Livewire::test(Comments::class, [
             'record' => $booking,
             'highlightId' => 'missing',
         ])
@@ -550,7 +550,7 @@ class BookingCommentsTest extends TestCase
         Filament::setCurrentPanel('member');
         $this->actingAs($member);
 
-        Livewire::test(BookingComments::class, ['record' => $booking])
+        Livewire::test(Comments::class, ['record' => $booking])
             ->assertSee('Lead')
             ->assertSee('Manager')
             ->assertSee('Lead note')
@@ -567,7 +567,7 @@ class BookingCommentsTest extends TestCase
         Filament::setCurrentPanel('member');
         $this->actingAs($member);
 
-        Livewire::test(BookingComments::class, ['record' => $booking])
+        Livewire::test(Comments::class, ['record' => $booking])
             ->assertSee('Comments')
             ->assertSee($member->name)
             ->assertSee('Add a comment...')
@@ -596,7 +596,7 @@ class BookingCommentsTest extends TestCase
         Filament::setCurrentPanel('member');
         $this->actingAs($member);
 
-        Livewire::test(BookingComments::class, ['record' => $past])
+        Livewire::test(Comments::class, ['record' => $past])
             ->assertSee('Comments')
             ->assertSee('We left the mats out.')
             ->assertDontSee('Add a comment...');
@@ -614,7 +614,7 @@ class BookingCommentsTest extends TestCase
         ]);
         $past->attendees()->attach($member->id, ['status' => BookingAttendeeStatus::Accepted->value]);
 
-        $this->assertFalse(BookingComments::shouldShowPanel($past, $member));
+        $this->assertFalse(Comments::shouldShowPanel($past, $member));
 
         $this->actingAs($member);
         Filament::setCurrentPanel('teams');
@@ -622,7 +622,7 @@ class BookingCommentsTest extends TestCase
 
         Livewire::test(TeamsViewBooking::class, ['record' => $past->getRouteKey()])
             ->assertSee('Recent activity')
-            ->assertDontSeeLivewire(BookingComments::class)
+            ->assertDontSeeLivewire(Comments::class)
             ->assertDontSee('Comments');
     }
 
@@ -638,7 +638,7 @@ class BookingCommentsTest extends TestCase
         Filament::setCurrentPanel('member');
         $this->actingAs($member);
 
-        Livewire::test(BookingComments::class, ['record' => $booking])
+        Livewire::test(Comments::class, ['record' => $booking])
             ->assertSee('Bring helmets.')
             ->assertSee('fi-user-avatar', false)
             ->assertSee(
@@ -659,7 +659,7 @@ class BookingCommentsTest extends TestCase
         Filament::setCurrentPanel('member');
         $this->actingAs($member);
 
-        Livewire::test(BookingComments::class, ['record' => $booking])
+        Livewire::test(Comments::class, ['record' => $booking])
             ->assertSeeHtml('<strong>helmets</strong>')
             ->assertDontSeeHtml('<script>')
             ->assertSee('alert(1)');

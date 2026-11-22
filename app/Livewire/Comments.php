@@ -3,20 +3,23 @@
 namespace App\Livewire;
 
 use App\Actions\PostCommentAction;
+use App\Contracts\Commentable;
 use App\Enums\MembershipRole;
 use App\Models\Booking;
 use App\Models\Comment;
+use App\Models\Task;
 use App\Models\User;
 use Filament\Notifications\Notification;
 use Illuminate\Contracts\View\View;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Livewire\Attributes\Locked;
 use Livewire\Component;
 
-class BookingComments extends Component
+class Comments extends Component
 {
-    public ?Booking $record = null;
+    public Booking|Task|null $record = null;
 
     #[Locked]
     public ?string $highlightId = null;
@@ -29,11 +32,11 @@ class BookingComments extends Component
 
     public string $editBody = '';
 
-    public function mount(?Booking $record = null, ?string $highlightId = null): void
+    public function mount(Booking|Task|null $record = null, ?string $highlightId = null): void
     {
-        abort_unless($record instanceof Booking, 404);
+        abort_unless($record instanceof Booking || $record instanceof Task, 404);
 
-        $this->record = $this->booking($record->getKey());
+        $this->record = $this->commentable($record->getKey());
         $this->highlightId = filled($highlightId) ? $highlightId : null;
 
         abort_unless($this->viewer()?->can('view', $this->record) ?? false, 403);
@@ -41,18 +44,18 @@ class BookingComments extends Component
 
     public function post(): void
     {
-        $booking = $this->currentBooking();
+        $commentable = $this->currentCommentable();
         $viewer = $this->viewer();
-        abort_unless($viewer instanceof User && $viewer->can('create', [Comment::class, $booking]), 403);
+        abort_unless($viewer instanceof User && $viewer->can('create', [Comment::class, $commentable]), 403);
 
         $this->validate([
             'body' => ['required', 'string', 'max:5000'],
         ]);
 
-        (new PostCommentAction)($booking, $viewer, $this->body);
+        (new PostCommentAction)($commentable, $viewer, $this->body);
 
         $this->body = '';
-        $this->record = $this->booking($booking->getKey());
+        $this->record = $this->commentable($commentable->getKey());
 
         Notification::make()->success()->title(__('Comment posted.'))->send();
     }
@@ -125,25 +128,24 @@ class BookingComments extends Component
     }
 
     /**
-     * Whether the comments block should occupy layout on a booking view.
-     * Used by the Filament schema so an empty panel does not leave a gap.
+     * Whether the comments block should occupy layout on a commentable view.
      */
-    public static function shouldShowPanel(Booking $booking, User $viewer): bool
+    public static function shouldShowPanel(Commentable&Model $commentable, User $viewer): bool
     {
-        if ($viewer->can('create', [Comment::class, $booking])) {
+        if ($viewer->can('create', [Comment::class, $commentable])) {
             return true;
         }
 
-        return static::visibleCommentsFor($booking, $viewer)->isNotEmpty();
+        return static::visibleCommentsFor($commentable, $viewer)->isNotEmpty();
     }
 
     public function render(): View
     {
-        $booking = $this->currentBooking();
+        $commentable = $this->currentCommentable();
         $viewer = $this->viewer();
-        abort_unless($viewer?->can('view', $booking) ?? false, 403);
+        abort_unless($viewer?->can('view', $commentable) ?? false, 403);
 
-        $comments = static::visibleCommentsFor($booking, $viewer);
+        $comments = static::visibleCommentsFor($commentable, $viewer);
         $target = $this->target($comments);
         $older = collect();
         $visible = $comments;
@@ -160,11 +162,11 @@ class BookingComments extends Component
             $this->highlightId = null;
         }
 
-        $canPost = $viewer->can('create', [Comment::class, $booking]);
+        $canPost = $viewer->can('create', [Comment::class, $commentable]);
         $hasOlder = $older->isNotEmpty();
 
-        return view('filament.bookings.comments', [
-            'rows' => $visible->map(fn (Comment $comment): array => $this->row($comment, $booking, $viewer, $target))->values(),
+        return view('filament.comments.panel', [
+            'rows' => $visible->map(fn (Comment $comment): array => $this->row($comment, $commentable, $viewer, $target))->values(),
             'canPost' => $canPost,
             'hasOlder' => $hasOlder,
             'showOlder' => $this->showOlder,
@@ -177,15 +179,15 @@ class BookingComments extends Component
     /**
      * @return Collection<int, Comment>
      */
-    public static function visibleCommentsFor(Booking $booking, User $viewer): Collection
+    public static function visibleCommentsFor(Commentable&Model $commentable, User $viewer): Collection
     {
-        return $booking->comments()
+        return $commentable->comments()
             ->withTrashed()
             ->with(['author.teams'])
             ->orderBy('created_at')
             ->orderBy('id')
             ->get()
-            ->each(fn (Comment $comment) => $comment->setRelation('commentable', $booking))
+            ->each(fn (Comment $comment) => $comment->setRelation('commentable', $commentable))
             ->filter(fn (Comment $comment): bool => $viewer->can('view', $comment))
             ->values();
     }
@@ -219,10 +221,10 @@ class BookingComments extends Component
     /**
      * @return array<string, mixed>
      */
-    private function row(Comment $comment, Booking $booking, User $viewer, ?Comment $target): array
+    private function row(Comment $comment, Commentable&Model $commentable, User $viewer, ?Comment $target): array
     {
         $author = $comment->author;
-        $team = $booking->commentTeam();
+        $team = $commentable->commentTeam();
 
         return [
             'id' => $comment->getKey(),
@@ -236,7 +238,8 @@ class BookingComments extends Component
             'trashed' => $comment->trashed(),
             'highlight' => $target instanceof Comment && $comment->is($target),
             'is_manager' => $author instanceof User && $team !== null && $author->roleOn($team) === MembershipRole::Manager,
-            'is_lead' => $author instanceof User && $booking->isLead($author),
+            'is_lead' => $author instanceof User && $commentable instanceof Booking && $commentable->isLead($author),
+            'is_assignee' => $author instanceof User && $commentable instanceof Task && $commentable->isAssignedTo($author),
             'can_edit' => $viewer->can('update', $comment),
             'can_remove' => $comment->trashed()
                 ? $viewer->can('forceDelete', $comment)
@@ -292,21 +295,21 @@ class BookingComments extends Component
         return '';
     }
 
-    private function currentBooking(): Booking
+    private function currentCommentable(): Booking|Task
     {
-        abort_unless($this->record instanceof Booking, 404);
+        abort_unless($this->record instanceof Booking || $this->record instanceof Task, 404);
 
-        return $this->booking($this->record->getKey());
+        return $this->commentable($this->record->getKey());
     }
 
     private function comment(string $id): Comment
     {
-        $booking = $this->currentBooking();
+        $commentable = $this->currentCommentable();
 
-        $comment = $booking->comments()->withTrashed()->whereKey($id)->first();
+        $comment = $commentable->comments()->withTrashed()->whereKey($id)->first();
         abort_unless($comment instanceof Comment, 404);
 
-        return $comment->setRelation('commentable', $booking);
+        return $comment->setRelation('commentable', $commentable);
     }
 
     private function viewer(): ?User
@@ -316,8 +319,10 @@ class BookingComments extends Component
         return $user instanceof User ? $user : null;
     }
 
-    private function booking(string $id): Booking
+    private function commentable(string $id): Booking|Task
     {
-        return Booking::query()->findOrFail($id);
+        abort_unless($this->record instanceof Booking || $this->record instanceof Task, 404);
+
+        return $this->record::query()->findOrFail($id);
     }
 }

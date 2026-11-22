@@ -5,6 +5,7 @@ namespace App\Policies;
 use App\Contracts\Commentable;
 use App\Models\Booking;
 use App\Models\Comment;
+use App\Models\Task;
 use App\Models\Team;
 use App\Models\User;
 
@@ -27,11 +28,17 @@ class CommentPolicy
 
     public function create(User $user, Commentable $commentable): bool
     {
-        if (! $commentable instanceof Booking) {
-            return false;
+        if ($commentable instanceof Booking) {
+            return $user->can('respond', [$commentable, $user]);
         }
 
-        return $user->can('respond', [$commentable, $user]);
+        if ($commentable instanceof Task) {
+            return ! $commentable->isComplete()
+                && ! $commentable->isCancelled()
+                && $user->can('complete', $commentable);
+        }
+
+        return false;
     }
 
     public function update(User $user, Comment $comment): bool

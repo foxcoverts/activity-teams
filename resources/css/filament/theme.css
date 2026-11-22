@@ -235,16 +235,16 @@ a.fi-in-person-heading {
     @apply opacity-60;
 }
 
-.booking-comments-panel.fi-section:not(.fi-section-not-contained) {
+.comments-panel.fi-section:not(.fi-section-not-contained) {
     @apply overflow-visible;
 }
 
-.booking-comments-panel.fi-section:not(.fi-section-not-contained)>.fi-section-header {
+.comments-panel.fi-section:not(.fi-section-not-contained)>.fi-section-header {
     @apply p-4 sm:px-6;
 }
 
-.booking-comments-panel.fi-section:not(.fi-section-not-contained):not(.fi-divided)>.fi-section-content-ctn,
-.booking-comments-panel.fi-section:not(.fi-section-not-contained):not(.fi-divided)>.fi-section-content-ctn>.fi-section-content {
+.comments-panel.fi-section:not(.fi-section-not-contained):not(.fi-divided)>.fi-section-content-ctn,
+.comments-panel.fi-section:not(.fi-section-not-contained):not(.fi-divided)>.fi-section-content-ctn>.fi-section-content {
     @apply overflow-visible p-0;
 }
 

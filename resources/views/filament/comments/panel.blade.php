@@ -1,6 +1,6 @@
 <div>
     @if ($showPanel)
-        <x-filament::section class="booking-comments-panel" :heading="__('Comments')" :icon="\Filament\Support\Icons\Heroicon::OutlinedChatBubbleLeftRight" :has-content-el="false">
+        <x-filament::section class="comments-panel" :heading="__('Comments')" :icon="\Filament\Support\Icons\Heroicon::OutlinedChatBubbleLeftRight" :has-content-el="false">
             @if ($hasOlder && !$showOlder)
                 <div class="comment-toolbar">
                     <x-filament::button color="gray" outlined size="sm" wire:click="showOlderComments">
@@ -31,6 +31,12 @@
                                 @if ($row['is_lead'])
                                     <x-filament::badge :color="\App\Support\Palette::informative()" :icon="\Filament\Support\Icons\Heroicon::OutlinedFlag">
                                         {{ __('Lead') }}
+                                    </x-filament::badge>
+                                @endif
+
+                                @if ($row['is_assignee'])
+                                    <x-filament::badge :color="\App\Support\Palette::informative()" :icon="\Filament\Support\Icons\Heroicon::OutlinedUser">
+                                        {{ __('Assignee') }}
                                     </x-filament::badge>
                                 @endif
 
@@ -116,7 +122,7 @@
                         </div>
 
                         <div class="comment-compose">
-                            <textarea id="booking-comment-body" wire:model="body" rows="1" class="comment-input"
+                            <textarea id="comment-body" wire:model="body" rows="1" class="comment-input"
                                 aria-label="{{ __('Add a comment') }}" placeholder="{{ __('Add a comment...') }}" x-init="$el.style.height = '0px';
                                 $el.style.height = $el.scrollHeight + 'px'"
                                 x-on:input="canPost = $el.value.trim() !== ''; $el.style.height = '0px'; $el.style.height = $el.scrollHeight + 'px'"
