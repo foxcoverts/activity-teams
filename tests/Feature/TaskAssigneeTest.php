@@ -335,6 +335,7 @@ class TaskAssigneeTest extends TestCase
         );
 
         Livewire::test(ViewTask::class, ['record' => $task->getRouteKey()])
+            ->assertSee('View as member')
             ->assertSee('invited')
             ->assertSee('recorded')
             ->assertSee('Accepted');
@@ -348,6 +349,47 @@ class TaskAssigneeTest extends TestCase
 
         Livewire::test(ViewTask::class, ['record' => $task->getRouteKey()])
             ->assertSee('declined the assignment');
+    }
+
+    public function test_members_do_not_see_task_invite_events_and_see_friendly_overrides(): void
+    {
+        [$team, $manager, $member, $task] = $this->taskContext();
+        $onlooker = User::factory()->teamMember($team)->create(['name' => 'Onlooker']);
+
+        $this->actingAs($manager);
+        Filament::setCurrentPanel('teams');
+        Filament::setTenant($team);
+
+        app(AssignTaskAction::class)($task, $member, $manager);
+        app(RespondToTaskAssigneeAction::class)(
+            $task->fresh(),
+            $member,
+            TaskAttendeeStatus::Accepted,
+            actor: $manager,
+        );
+
+        Livewire::test(ViewTask::class, ['record' => $task->getRouteKey()])
+            ->assertSee('invited')
+            ->assertSee('recorded')
+            ->assertSee('Accepted')
+            ->call('toggleTimelineAudience')
+            ->assertSet('timelineAsMember', true)
+            ->assertSee('Viewing as member')
+            ->assertDontSee('invited');
+
+        $this->actingAs($member);
+
+        Livewire::test(ViewTask::class, ['record' => $task->getRouteKey()])
+            ->assertDontSee('invited')
+            ->assertSee('recorded that you accepted')
+            ->assertDontSee('View as member');
+
+        $this->actingAs($onlooker);
+
+        Livewire::test(ViewTask::class, ['record' => $task->getRouteKey()])
+            ->assertDontSee('invited')
+            ->assertSee('accepted the assignment')
+            ->assertDontSee('recorded');
     }
 
     public function test_assignee_panel_is_hidden_for_members_when_unassigned(): void

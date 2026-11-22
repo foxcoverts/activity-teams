@@ -2,11 +2,13 @@
 
 namespace App\Filament\Teams\Resources\Bookings\Pages;
 
+use App\Enums\TimelineAudience;
 use App\Filament\Bookings\BookingKeysAction;
 use App\Filament\Bookings\BookingViewRespondActions;
 use App\Filament\Bookings\CompleteDebriefAction;
 use App\Filament\Bookings\LogbookEntryAction;
 use App\Filament\Bookings\RefreshesWhenAttendanceChanges;
+use App\Filament\Concerns\TogglesTimelineAudience;
 use App\Filament\Teams\Resources\Bookings\BookingResource;
 use App\Filament\Teams\Resources\Bookings\BookingStatusActions;
 use App\Filament\Teams\Resources\Bookings\BookingTimeline;
@@ -26,6 +28,7 @@ use Illuminate\Contracts\Support\Htmlable;
 class ViewBooking extends ViewRecord
 {
     use RefreshesWhenAttendanceChanges;
+    use TogglesTimelineAudience;
 
     protected static string $resource = BookingResource::class;
 
@@ -94,10 +97,27 @@ class ViewBooking extends ViewRecord
 
     public function timeline(Schema $schema): Schema
     {
+        $record = $this->getRecord();
+        $viewer = auth()->user();
+        $manages = $record instanceof Booking
+            && $viewer instanceof User
+            && $record->team !== null
+            && $viewer->manages($record->team);
+
+        $audience = $manages && ! $this->timelineAsMember
+            ? TimelineAudience::Manager
+            : TimelineAudience::Member;
+
         return $schema
-            ->record($this->getRecord())
+            ->record($record)
             ->components([
-                BookingTimeline::section(),
+                BookingTimeline::section(
+                    audience: $audience,
+                    showAudienceToggle: $manages,
+                    livewire: $this,
+                    booking: $record instanceof Booking ? $record : null,
+                    viewer: $viewer instanceof User ? $viewer : null,
+                ),
             ]);
     }
 

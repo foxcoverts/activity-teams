@@ -15,6 +15,7 @@ use App\Models\Team;
 use App\Models\User;
 use App\Models\Venue;
 use App\Support\Palette;
+use App\Support\TimelineView;
 use Carbon\CarbonInterface;
 use DateTimeInterface;
 use Filament\Support\Icons\Heroicon;
@@ -117,9 +118,9 @@ class TimelineProvider extends ServiceProvider
                 ->eventDescription('restored', fn (ActivityLog $activity, ?string $causerName, Timeline $timeline): HtmlString => static::withActor($timeline, $activity, $causerName, 'restored the booking.'), Booking::class)
                 ->eventDescription('attendees_invited', fn (ActivityLog $activity, ?string $causerName, Timeline $timeline): HtmlString => static::withActor($timeline, $activity, $causerName, static::invitedUpdate($timeline, $activity), escape: false), Booking::class)
                 ->eventDescription('attendee_removed', fn (ActivityLog $activity, ?string $causerName, Timeline $timeline): HtmlString => static::withActor($timeline, $activity, $causerName, static::removedUpdate($timeline, $activity), escape: false), Booking::class)
-                ->eventDescription('attendance_updated', fn (ActivityLog $activity, ?string $causerName, Timeline $timeline): HtmlString => static::withActor($timeline, $activity, $causerName, static::attendanceUpdate($timeline, $activity), escape: false), Booking::class)
-                ->eventDescription('attendance_confirmed', fn (ActivityLog $activity, ?string $causerName, Timeline $timeline): HtmlString => static::withActor($timeline, $activity, $causerName, static::attendanceUpdate($timeline, $activity), escape: false), Booking::class)
-                ->eventDescription('lead_stepped_down', fn (ActivityLog $activity, ?string $causerName, Timeline $timeline): HtmlString => static::withActor($timeline, $activity, $causerName, static::leadSteppedDownUpdate($timeline, $activity), escape: false), Booking::class)
+                ->eventDescription('attendance_updated', fn (ActivityLog $activity, ?string $causerName, Timeline $timeline): HtmlString => static::bookingAttendanceDescription($timeline, $activity, $causerName), Booking::class)
+                ->eventDescription('attendance_confirmed', fn (ActivityLog $activity, ?string $causerName, Timeline $timeline): HtmlString => static::bookingAttendanceDescription($timeline, $activity, $causerName), Booking::class)
+                ->eventDescription('lead_stepped_down', fn (ActivityLog $activity, ?string $causerName, Timeline $timeline): HtmlString => static::leadSteppedDownDescription($timeline, $activity, $causerName), Booking::class)
                 ->eventDescription('debrief_completed', fn (ActivityLog $activity, ?string $causerName, Timeline $timeline): HtmlString => static::withActor($timeline, $activity, $causerName, 'completed the debrief.'), Booking::class)
                 ->eventDescription('updated', function (ActivityLog $activity, ?string $causerName, ?string $changesSummary, Timeline $timeline): ?HtmlString {
                     return static::updatedDescription($timeline, $activity, $causerName, $changesSummary);
@@ -139,9 +140,9 @@ class TimelineProvider extends ServiceProvider
                 }, Task::class)
                 ->eventDescription('created', fn (ActivityLog $activity, ?string $causerName, Timeline $timeline): HtmlString => static::withActor($timeline, $activity, $causerName, 'created the task.'), Task::class)
                 ->eventDescription('deleted', fn (ActivityLog $activity, ?string $causerName, Timeline $timeline): HtmlString => static::withActor($timeline, $activity, $causerName, 'deleted the task.'), Task::class)
-                ->eventDescription('assignee_assigned', fn (ActivityLog $activity, ?string $causerName, Timeline $timeline): HtmlString => static::withActor($timeline, $activity, $causerName, static::taskAssigneeAssignedUpdate($timeline, $activity), escape: false), Task::class)
+                ->eventDescription('assignee_assigned', fn (ActivityLog $activity, ?string $causerName, Timeline $timeline): HtmlString => static::taskAssigneeAssignedDescription($timeline, $activity, $causerName), Task::class)
                 ->eventDescription('assignee_cleared', fn (ActivityLog $activity, ?string $causerName, Timeline $timeline): HtmlString => static::withActor($timeline, $activity, $causerName, static::taskAssigneeClearedUpdate($timeline, $activity), escape: false), Task::class)
-                ->eventDescription('assignee_responded', fn (ActivityLog $activity, ?string $causerName, Timeline $timeline): HtmlString => static::withActor($timeline, $activity, $causerName, static::taskAssigneeRespondedUpdate($timeline, $activity), escape: false), Task::class)
+                ->eventDescription('assignee_responded', fn (ActivityLog $activity, ?string $causerName, Timeline $timeline): HtmlString => static::taskAssigneeRespondedDescription($timeline, $activity, $causerName), Task::class)
                 ->eventDescription('updated', function (ActivityLog $activity, ?string $causerName, ?string $changesSummary, Timeline $timeline): ?HtmlString {
                     return static::updatedDescription($timeline, $activity, $causerName, $changesSummary);
                 }, Task::class);
@@ -161,7 +162,8 @@ class TimelineProvider extends ServiceProvider
         $clauses = static::changeClauses($timeline, $activity);
 
         if ($clauses->isEmpty()) {
-            return null;
+            // Truthy empty HtmlString: null falls through to the package default and leaks filtered fields.
+            return new HtmlString('');
         }
 
         if ($clauses->count() === 1) {
@@ -243,8 +245,19 @@ class TimelineProvider extends ServiceProvider
             $subject !== null && method_exists($subject, 'getDeletedAtColumn') ? $subject->getDeletedAtColumn() : null,
         ]);
 
+        $hiddenForMember = [];
+
+        if (TimelineView::audience()->isMember()) {
+            $hiddenForMember[] = 'lead_needed_at';
+
+            if (! TimelineView::viewerIsLead()) {
+                $hiddenForMember[] = 'lead_instructor_notes';
+            }
+        }
+
         return $attributes
-            ->reject(fn (mixed $value, string $key): bool => in_array($key, $ignored, true))
+            ->reject(fn (mixed $value, string $key): bool => in_array($key, $ignored, true)
+                || in_array($key, $hiddenForMember, true))
             ->filter(fn (mixed $value, string $key): bool => $item->parseAttributeValue($oldAttributes->get($key), $key, 'old') !== $item->parseAttributeValue($value, $key))
             ->map(fn (mixed $value, string $key): string => static::changeClause($timeline, $item, $key, $value, $oldAttributes->get($key)))
             ->values();
@@ -362,49 +375,108 @@ class TimelineProvider extends ServiceProvider
         return null;
     }
 
-    protected static function attendanceUpdate(Timeline $timeline, ActivityLog $activity): string
-    {
+    protected static function bookingAttendanceDescription(
+        Timeline $timeline,
+        ActivityLog $activity,
+        ?string $causerName,
+    ): HtmlString {
+        [$actorName, $update] = static::bookingAttendanceParts($timeline, $activity, $causerName);
+
+        return static::withActor($timeline, $activity, $actorName, $update, escape: false);
+    }
+
+    protected static function leadSteppedDownDescription(
+        Timeline $timeline,
+        ActivityLog $activity,
+        ?string $causerName,
+    ): HtmlString {
+        [$actorName, $attendance] = static::bookingAttendanceParts($timeline, $activity, $causerName);
+        $attendance = rtrim($attendance, '.');
+        $becameTentative = data_get($activity->properties, 'booking_status') === BookingStatus::Tentative->value;
+
+        $update = $becameTentative
+            ? __(':attendance and stepped down as lead instructor, leaving the booking tentative.', [
+                'attendance' => $attendance,
+            ])
+            : __(':attendance and stepped down as lead instructor.', [
+                'attendance' => $attendance,
+            ]);
+
+        return static::withActor($timeline, $activity, $actorName, $update, escape: false);
+    }
+
+    /**
+     * @return array{0: ?string, 1: string}
+     */
+    protected static function bookingAttendanceParts(
+        Timeline $timeline,
+        ActivityLog $activity,
+        ?string $causerName,
+    ): array {
         $attendeeId = data_get($activity->properties, 'attendee_id');
         $name = static::linkedUser($timeline, $activity, $attendeeId);
         $status = static::attendanceStatus($activity);
+        $isSelf = $status instanceof BookingAttendeeStatus
+            && filled($attendeeId)
+            && (string) $activity->causer_id === (string) $attendeeId;
+        $viewer = TimelineView::viewer();
+        $viewerIsAttendee = $viewer instanceof User
+            && filled($attendeeId)
+            && (string) $viewer->getKey() === (string) $attendeeId;
 
-        if ($status instanceof BookingAttendeeStatus && filled($attendeeId) && (string) $activity->causer_id === (string) $attendeeId) {
-            $statusLabel = lcfirst($status->getLabel());
+        if ($isSelf && $status instanceof BookingAttendeeStatus) {
+            return [$causerName, static::selfBookingAttendancePhrase($status)];
+        }
 
-            return $status === BookingAttendeeStatus::Tentative
-                ? __('said **:status**.', ['status' => $statusLabel])
-                : __('said they **:status**.', ['status' => $statusLabel]);
+        if (TimelineView::audience()->isMember() && $status instanceof BookingAttendeeStatus && filled($attendeeId)) {
+            if ($viewerIsAttendee) {
+                return [$causerName, static::recordedBookingAttendanceForYouPhrase($status)];
+            }
+
+            $attendee = User::query()->find($attendeeId);
+
+            return [
+                $attendee instanceof User ? $attendee->name : $causerName,
+                static::selfBookingAttendancePhrase($status),
+            ];
         }
 
         if (filled($name) && $status instanceof BookingAttendeeStatus) {
-            return __('recorded **:status** for :name.', [
+            return [$causerName, __('recorded **:status** for :name.', [
                 'status' => $status->getLabel(),
                 'name' => $name,
-            ]);
+            ])];
         }
 
-        return lcfirst((string) $activity->description);
+        return [$causerName, lcfirst((string) $activity->description)];
     }
 
-    protected static function leadSteppedDownUpdate(Timeline $timeline, ActivityLog $activity): string
+    protected static function selfBookingAttendancePhrase(BookingAttendeeStatus $status): string
     {
-        $attendance = rtrim(static::attendanceUpdate($timeline, $activity), '.');
-        $becameTentative = data_get($activity->properties, 'booking_status') === BookingStatus::Tentative->value;
+        $statusLabel = lcfirst($status->getLabel());
 
-        if ($becameTentative) {
-            return __(':attendance and stepped down as lead instructor, leaving the booking tentative.', [
-                'attendance' => $attendance,
-            ]);
-        }
+        return $status === BookingAttendeeStatus::Tentative
+            ? __('said **:status**.', ['status' => $statusLabel])
+            : __('said they **:status**.', ['status' => $statusLabel]);
+    }
 
-        return __(':attendance and stepped down as lead instructor.', [
-            'attendance' => $attendance,
-        ]);
+    protected static function recordedBookingAttendanceForYouPhrase(BookingAttendeeStatus $status): string
+    {
+        $statusLabel = lcfirst($status->getLabel());
+
+        return $status === BookingAttendeeStatus::Tentative
+            ? __('recorded that you said **:status**.', ['status' => $statusLabel])
+            : __('recorded that you **:status**.', ['status' => $statusLabel]);
     }
 
     protected static function invitedUpdate(Timeline $timeline, ActivityLog $activity): string
     {
-        $names = static::linkedUsers($timeline, $activity, data_get($activity->properties, 'user_ids', []));
+        $names = static::linkedUsers(
+            $timeline,
+            $activity,
+            data_get($activity->properties, 'user_ids', []),
+            themselfId: $activity->causer_id,
+        );
 
         if ($names->isEmpty()) {
             return lcfirst((string) $activity->description);
@@ -451,13 +523,21 @@ class TimelineProvider extends ServiceProvider
      * @param  iterable<mixed>  $ids
      * @return Collection<int, string>
      */
-    protected static function linkedUsers(Timeline $timeline, ActivityLog $activity, iterable $ids): Collection
-    {
+    protected static function linkedUsers(
+        Timeline $timeline,
+        ActivityLog $activity,
+        iterable $ids,
+        mixed $themselfId = null,
+    ): Collection {
         $ids = collect($ids)->filter()->values();
         $users = User::query()->whereKey($ids)->get()->keyBy(fn (User $user): mixed => $user->getKey());
 
         return $ids
-            ->map(function (mixed $id) use ($activity, $timeline, $users): ?string {
+            ->map(function (mixed $id) use ($activity, $timeline, $users, $themselfId): ?string {
+                if ($themselfId !== null && (string) $id === (string) $themselfId) {
+                    return __('themself');
+                }
+
                 $user = $users->get($id);
 
                 if (! $user instanceof User) {
@@ -541,18 +621,52 @@ class TimelineProvider extends ServiceProvider
         return is_string($status) ? TaskAttendeeStatus::tryFrom($status) : null;
     }
 
-    protected static function taskAssigneeAssignedUpdate(Timeline $timeline, ActivityLog $activity): string
-    {
-        $name = static::linkedUser($timeline, $activity, data_get($activity->properties, 'user_id'));
+    protected static function taskAssigneeAssignedDescription(
+        Timeline $timeline,
+        ActivityLog $activity,
+        ?string $causerName,
+    ): HtmlString {
+        $userId = data_get($activity->properties, 'user_id');
         $invited = (bool) data_get($activity->properties, 'invite');
+        $isThemself = filled($userId) && (string) $activity->causer_id === (string) $userId;
+        $name = $isThemself
+            ? __('themself')
+            : static::linkedUser($timeline, $activity, $userId);
+        $viewer = TimelineView::viewer();
+        $viewerIsAssignee = $viewer instanceof User
+            && filled($userId)
+            && (string) $viewer->getKey() === (string) $userId;
 
-        if (! filled($name)) {
-            return $invited ? __('sent an assignment invite.') : __('assigned someone.');
+        if (TimelineView::audience()->isMember() && ! $invited) {
+            if ($viewerIsAssignee) {
+                return static::withActor($timeline, $activity, $causerName, __('assigned you.'));
+            }
+
+            if (filled($name)) {
+                return static::plainDescription(__(':name was assigned.', ['name' => $name]));
+            }
+
+            return static::plainDescription(__('Someone was assigned.'));
         }
 
-        return $invited
-            ? __('invited **:name**.', ['name' => $name])
-            : __('assigned **:name**.', ['name' => $name]);
+        if (! filled($name)) {
+            return static::withActor(
+                $timeline,
+                $activity,
+                $causerName,
+                $invited ? __('sent an assignment invite.') : __('assigned someone.'),
+            );
+        }
+
+        return static::withActor(
+            $timeline,
+            $activity,
+            $causerName,
+            $invited
+                ? __('invited :name.', ['name' => $name])
+                : __('assigned :name.', ['name' => $name]),
+            escape: false,
+        );
     }
 
     protected static function taskAssigneeClearedUpdate(Timeline $timeline, ActivityLog $activity): string
@@ -560,34 +674,86 @@ class TimelineProvider extends ServiceProvider
         $name = static::linkedUser($timeline, $activity, data_get($activity->properties, 'user_id'));
 
         return filled($name)
-            ? __('removed **:name** as assignee.', ['name' => $name])
+            ? __('removed :name as assignee.', ['name' => $name])
             : __('cleared the assignee.');
     }
 
-    protected static function taskAssigneeRespondedUpdate(Timeline $timeline, ActivityLog $activity): string
-    {
+    protected static function taskAssigneeRespondedDescription(
+        Timeline $timeline,
+        ActivityLog $activity,
+        ?string $causerName,
+    ): HtmlString {
         $userId = data_get($activity->properties, 'user_id');
         $name = static::linkedUser($timeline, $activity, $userId);
         $status = static::taskAssigneeStatus($activity);
+        $isSelf = $status instanceof TaskAttendeeStatus
+            && filled($userId)
+            && (string) $activity->causer_id === (string) $userId;
+        $viewer = TimelineView::viewer();
+        $viewerIsAssignee = $viewer instanceof User
+            && filled($userId)
+            && (string) $viewer->getKey() === (string) $userId;
 
-        if ($status instanceof TaskAttendeeStatus && filled($userId) && (string) $activity->causer_id === (string) $userId) {
-            return match ($status) {
-                TaskAttendeeStatus::Accepted => __('accepted the assignment.'),
-                TaskAttendeeStatus::Declined => __('declined the assignment.'),
-                TaskAttendeeStatus::Tentative => __('said maybe.'),
-                TaskAttendeeStatus::InProcess => __('marked the task in process.'),
-                TaskAttendeeStatus::Completed => __('marked the task completed.'),
-                TaskAttendeeStatus::NeedsAction => __('cleared their response.'),
-            };
+        if ($isSelf && $status instanceof TaskAttendeeStatus) {
+            return static::withActor($timeline, $activity, $causerName, static::selfTaskResponsePhrase($status));
+        }
+
+        if (TimelineView::audience()->isMember() && $status instanceof TaskAttendeeStatus && filled($userId)) {
+            if ($viewerIsAssignee) {
+                return static::withActor(
+                    $timeline,
+                    $activity,
+                    $causerName,
+                    static::recordedTaskResponseForYouPhrase($status),
+                );
+            }
+
+            $assignee = User::query()->find($userId);
+
+            return static::withActor(
+                $timeline,
+                $activity,
+                $assignee instanceof User ? $assignee->name : $causerName,
+                static::selfTaskResponsePhrase($status),
+            );
         }
 
         if ($status instanceof TaskAttendeeStatus && filled($name)) {
-            return __('recorded **:status** for :name.', [
+            return static::withActor($timeline, $activity, $causerName, __('recorded **:status** for :name.', [
                 'status' => $status->getLabel(),
                 'name' => $name,
-            ]);
+            ]), escape: false);
         }
 
-        return __('updated the assignee response.');
+        return static::withActor($timeline, $activity, $causerName, __('updated the assignee response.'));
+    }
+
+    protected static function selfTaskResponsePhrase(TaskAttendeeStatus $status): string
+    {
+        return match ($status) {
+            TaskAttendeeStatus::Accepted => __('accepted the assignment.'),
+            TaskAttendeeStatus::Declined => __('declined the assignment.'),
+            TaskAttendeeStatus::Tentative => __('said maybe.'),
+            TaskAttendeeStatus::InProcess => __('marked the task in process.'),
+            TaskAttendeeStatus::Completed => __('marked the task completed.'),
+            TaskAttendeeStatus::NeedsAction => __('cleared their response.'),
+        };
+    }
+
+    protected static function recordedTaskResponseForYouPhrase(TaskAttendeeStatus $status): string
+    {
+        return match ($status) {
+            TaskAttendeeStatus::Accepted => __('recorded that you accepted.'),
+            TaskAttendeeStatus::Declined => __('recorded that you declined.'),
+            TaskAttendeeStatus::Tentative => __('recorded that you said **maybe**.'),
+            TaskAttendeeStatus::InProcess => __('recorded that you marked the task in process.'),
+            TaskAttendeeStatus::Completed => __('recorded that you marked the task completed.'),
+            TaskAttendeeStatus::NeedsAction => __('recorded that you cleared your response.'),
+        };
+    }
+
+    protected static function plainDescription(string $update): HtmlString
+    {
+        return str(str($update)->ucfirst())->inlineMarkdown()->toHtmlString();
     }
 }
