@@ -13,6 +13,7 @@ use App\Filament\Teams\Resources\Bookings\Pages\CreateBooking;
 use App\Filament\Teams\Resources\Bookings\Pages\EditBooking;
 use App\Filament\Teams\Resources\Bookings\Pages\ListBookings;
 use App\Filament\Teams\Resources\Bookings\Pages\ViewBooking;
+use App\Filament\Teams\Resources\Bookings\Schemas\BookingForm;
 use App\Models\Activity;
 use App\Models\ActivityAudience;
 use App\Models\Booking;
@@ -28,6 +29,7 @@ use Filament\Schemas\Components\FusedGroup;
 use Filament\Schemas\Components\Grid;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Queue;
@@ -871,6 +873,45 @@ class AddBookingTest extends TestCase
         $this->actingAs($user)
             ->get('/teams/'.$user->teams()->first()->slug.'/bookings/create')
             ->assertForbidden();
+    }
+
+    public function test_activity_options_omit_catalog_activities_without_audiences(): void
+    {
+        $manager = User::factory()->teamManager()->create();
+        $team = $manager->managedTeams()->firstOrFail();
+        $ok = Activity::factory()->create(['name' => 'Climbing']);
+        $broken = Activity::factory()->withoutAudiences()->create(['name' => 'Broken']);
+        $team->activities()->syncWithoutDetaching([$broken->getKey()]);
+
+        $this->actingAs($manager);
+        Filament::setTenant($team);
+
+        $options = BookingForm::activityOptions();
+
+        $this->assertArrayHasKey($ok->getKey(), $options);
+        $this->assertArrayNotHasKey($broken->getKey(), $options);
+        $this->assertSame(__('Other'), $options[BookingForm::OTHER_ACTIVITY]);
+    }
+
+    public function test_editing_keeps_an_activity_that_lost_its_audiences(): void
+    {
+        $manager = User::factory()->teamManager()->create();
+        $team = $manager->managedTeams()->firstOrFail();
+        $activity = Activity::factory()->create(['name' => 'Climbing']);
+        $activity->activityAudiences()->get()->each(function (ActivityAudience $pairing): void {
+            DB::table('activity_audiences')->where('id', $pairing->getKey())->delete();
+        });
+
+        $this->actingAs($manager);
+        Filament::setTenant($team);
+
+        $options = BookingForm::activityOptions((string) $activity->getKey());
+
+        $this->assertSame(
+            __('Climbing (no audiences)'),
+            $options[$activity->getKey()] ?? null,
+        );
+        $this->assertSame(__('Other'), $options[BookingForm::OTHER_ACTIVITY]);
     }
 
     public function test_editing_keeps_an_activity_removed_from_the_team(): void

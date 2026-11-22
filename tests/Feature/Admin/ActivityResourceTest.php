@@ -39,10 +39,11 @@ class ActivityResourceTest extends TestCase
     public function test_the_activity_list_shows_audiences_and_an_empty_placeholder(): void
     {
         $admin = User::factory()->systemAdmin()->create();
-        $climbing = Activity::factory()->create(['name' => 'Climbing']);
-        Activity::factory()->create(['name' => 'Archery']);
-        ActivityAudience::factory()->for($climbing)->for(Audience::factory()->create(['name' => 'Scouts']))->create();
-        ActivityAudience::factory()->for($climbing)->for(Audience::factory()->create(['name' => 'Guides']))->create();
+        $scouts = Audience::factory()->create(['name' => 'Scouts']);
+        $guides = Audience::factory()->create(['name' => 'Guides']);
+        $climbing = Activity::factory()->withAudience($scouts)->create(['name' => 'Climbing']);
+        ActivityAudience::factory()->for($climbing)->for($guides)->create();
+        Activity::factory()->withoutAudiences()->create(['name' => 'Archery']);
 
         $this->actingAs($admin);
 

@@ -20,7 +20,7 @@ use App\Mail\BookingChangedMail;
 use App\Mail\BookingInviteMail;
 use App\Mail\LeadNeededMail;
 use App\Models\Activity;
-use App\Models\ActivityAudience;
+use App\Models\Audience;
 use App\Models\Booking;
 use App\Models\BookingAttendance;
 use App\Models\Qualification;
@@ -54,9 +54,10 @@ class BookingStatusTest extends TestCase
     public function test_a_new_booking_is_tentative_and_cannot_be_created_confirmed(): void
     {
         $manager = User::factory()->teamManager()->create();
-        $activity = Activity::factory()->create();
+        $audience = Audience::factory()->create();
+        $activity = Activity::factory()->withAudience($audience)->create();
         $venue = Venue::factory()->create();
-        $audienceId = ActivityAudience::factory()->for($activity)->create()->audience_id;
+        $audienceId = $audience->getKey();
 
         $this->actingAs($manager);
 
@@ -155,11 +156,13 @@ class BookingStatusTest extends TestCase
         $manager = User::factory()->teamManager()->create();
         $qualified = User::factory()->teamMember()->create(['name' => 'Sam Holder']);
         $other = User::factory()->teamMember()->create(['name' => 'Alex Guest']);
-        $activity = Activity::factory()->create();
-        ActivityAudience::factory()->for($activity)->create()->qualificationRequirements()->create([
-            'kind' => 'mountain_training',
-            'criteria' => ['award' => 'Climbing Wall Instructor'],
-        ]);
+        $audience = Audience::factory()->create();
+        $activity = Activity::factory()->withAudience($audience, [
+            [
+                'kind' => 'mountain_training',
+                'criteria' => ['award' => 'Climbing Wall Instructor'],
+            ],
+        ])->create();
         $booking = Booking::factory()->create(['activity_id' => $activity->getKey()]);
         Qualification::factory()->forMember($qualified)->mountainTraining()->create();
         $this->attend($booking, $qualified, BookingAttendeeStatus::Accepted);
@@ -192,11 +195,13 @@ class BookingStatusTest extends TestCase
         $manager = User::factory()->teamManager()->create();
         $qualified = User::factory()->create(['name' => 'Qualified Lead']);
         $attending = User::factory()->create(['name' => 'Attending Only']);
-        $activity = Activity::factory()->create();
-        ActivityAudience::factory()->for($activity)->create()->qualificationRequirements()->create([
-            'kind' => 'mountain_training',
-            'criteria' => ['award' => 'Climbing Wall Instructor'],
-        ]);
+        $audience = Audience::factory()->create();
+        $activity = Activity::factory()->withAudience($audience, [
+            [
+                'kind' => 'mountain_training',
+                'criteria' => ['award' => 'Climbing Wall Instructor'],
+            ],
+        ])->create();
         $booking = Booking::factory()->create(['activity_id' => $activity->getKey()]);
         Qualification::factory()->forMember($qualified)->mountainTraining()->create();
         $this->attend($booking, $qualified, BookingAttendeeStatus::Accepted);

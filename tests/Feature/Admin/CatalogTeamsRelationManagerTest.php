@@ -96,6 +96,37 @@ class CatalogTeamsRelationManagerTest extends TestCase
         $this->assertTrue($team->activities()->whereKey($existing->getKey())->exists());
     }
 
+    public function test_admin_give_is_hidden_when_the_activity_has_no_audiences(): void
+    {
+        $admin = User::factory()->systemAdmin()->create();
+        $activity = Activity::factory()->withoutAudiences()->create(['name' => 'Broken']);
+        $team = Team::factory()->create();
+
+        $this->actingAs($admin);
+
+        Livewire::test(ActivityTeamsRelationManager::class, [
+            'ownerRecord' => $activity,
+            'pageClass' => ViewActivity::class,
+        ])->assertActionHidden(TestAction::make('give')->table());
+
+        $this->assertFalse($team->activities()->whereKey($activity->getKey())->exists());
+    }
+
+    public function test_admin_activity_list_can_filter_without_audiences(): void
+    {
+        $admin = User::factory()->systemAdmin()->create();
+        $broken = Activity::factory()->withoutAudiences()->create(['name' => 'Broken']);
+        $ok = Activity::factory()->create(['name' => 'Climbing']);
+
+        $this->actingAs($admin);
+
+        Livewire::test(ListActivities::class)
+            ->assertCanSeeTableRecords([$broken, $ok])
+            ->filterTable('without_audience')
+            ->assertCanSeeTableRecords([$broken])
+            ->assertCanNotSeeTableRecords([$ok]);
+    }
+
     public function test_admin_can_give_and_remove_a_venue_from_a_team(): void
     {
         $admin = User::factory()->systemAdmin()->create();

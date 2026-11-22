@@ -10,7 +10,7 @@ use Filament\Support\Icons\Heroicon;
 
 class KeysWithoutLocksWidget extends AdminSection
 {
-    protected static ?int $sort = 9;
+    protected static ?int $sort = 10;
 
     protected string $view = 'filament.admin.widgets.simple-attention-list';
 

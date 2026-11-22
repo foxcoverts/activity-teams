@@ -129,6 +129,7 @@ final class AdminAttention
 
         return $this->activitiesWithoutTeams()->count()
             + $this->venuesWithoutTeams()->count()
+            + $this->activitiesWithoutAudiences()->count()
             + $this->audiencesWithoutActivities()->count()
             + $this->keysWithoutLocks()->count();
     }
@@ -174,6 +175,21 @@ final class AdminAttention
 
         return Venue::query()
             ->whereDoesntHave('teams')
+            ->orderBy('name')
+            ->get();
+    }
+
+    /**
+     * @return Collection<int, Activity>
+     */
+    public function activitiesWithoutAudiences(): Collection
+    {
+        if (! $this->includesCatalogTriage()) {
+            return collect();
+        }
+
+        return Activity::query()
+            ->whereDoesntHave('activityAudiences')
             ->orderBy('name')
             ->get();
     }

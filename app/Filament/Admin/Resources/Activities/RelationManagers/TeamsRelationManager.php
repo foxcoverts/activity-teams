@@ -82,6 +82,11 @@ class TeamsRelationManager extends RelationManager
                     ->label(__('Give to a team'))
                     ->modalHeading(__('Give to a team'))
                     ->modalIcon(Heroicon::OutlinedUserGroup)
+                    ->visible(function (): bool {
+                        $activity = $this->getOwnerRecord();
+
+                        return $activity instanceof Activity && $activity->hasAudiences();
+                    })
                     ->schema([
                         Select::make('team_id')
                             ->label(__('Team'))

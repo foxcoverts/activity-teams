@@ -108,13 +108,25 @@ class ActivityResource extends Resource
                     ),
                 TextColumn::make('default_audience')
                     ->label(__('Default audience'))
-                    ->state(fn (Activity $record): string => static::defaultAudience($record)?->name ?? __('Set default audience'))
+                    ->state(function (Activity $record): string {
+                        $default = static::defaultAudience($record);
+
+                        if ($default !== null) {
+                            return $default->name;
+                        }
+
+                        return $record->activityAudiences->isEmpty()
+                            ? __('None')
+                            : __('Set default audience');
+                    })
+                    ->disabledClick(fn (Activity $record): bool => $record->activityAudiences->isEmpty())
                     ->action(
                         Action::make('setDefaultAudience')
                             ->label(__('Default audience'))
                             ->modalHeading(__('Default audience'))
                             ->modalIcon(Heroicon::OutlinedMegaphone)
                             ->authorize(fn (): bool => static::canViewAny())
+                            ->visible(fn (Activity $record): bool => $record->activityAudiences->isNotEmpty())
                             ->fillForm(fn (Activity $record): array => [
                                 'default_audience_id' => static::defaultAudience($record)?->getKey(),
                             ])

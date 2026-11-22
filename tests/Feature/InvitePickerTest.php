@@ -10,7 +10,7 @@ use App\Filament\Teams\Resources\Bookings\Pages\EditBooking;
 use App\Filament\Teams\Resources\Bookings\RelationManagers\AttendeesRelationManager;
 use App\Livewire\InviteAttendees;
 use App\Models\Activity;
-use App\Models\ActivityAudience;
+use App\Models\Audience;
 use App\Models\Booking;
 use App\Models\BookingAttendance;
 use App\Models\Key;
@@ -149,11 +149,13 @@ class InvitePickerTest extends TestCase
     {
         $manager = User::factory()->teamManager()->create(['name' => 'Alex Leader']);
         $member = User::factory()->teamMember()->create(['name' => 'Casey Member']);
-        $activity = Activity::factory()->create();
-        ActivityAudience::factory()->for($activity)->create()->qualificationRequirements()->create([
-            'kind' => 'mountain_training',
-            'criteria' => ['award' => 'Climbing Wall Instructor'],
-        ]);
+        $audience = Audience::factory()->create();
+        $activity = Activity::factory()->withAudience($audience, [
+            [
+                'kind' => 'mountain_training',
+                'criteria' => ['award' => 'Climbing Wall Instructor'],
+            ],
+        ])->create();
         $booking = Booking::factory()->create(['activity_id' => $activity->getKey()]);
         $booking->attendees()->attach($member->id, [
             'status' => BookingAttendeeStatus::NeedsAction->value,
@@ -280,11 +282,13 @@ class InvitePickerTest extends TestCase
         $manager = User::factory()->teamManager()->create();
         $qualified = User::factory()->teamMember()->create(['name' => 'Sam Holder']);
         $other = User::factory()->teamMember()->create(['name' => 'Alex Guest']);
-        $activity = Activity::factory()->create();
-        ActivityAudience::factory()->for($activity)->create()->qualificationRequirements()->create([
-            'kind' => 'mountain_training',
-            'criteria' => ['award' => 'Climbing Wall Instructor'],
-        ]);
+        $audience = Audience::factory()->create();
+        $activity = Activity::factory()->withAudience($audience, [
+            [
+                'kind' => 'mountain_training',
+                'criteria' => ['award' => 'Climbing Wall Instructor'],
+            ],
+        ])->create();
         $booking = Booking::factory()->create(['activity_id' => $activity->getKey()]);
         Qualification::factory()->forMember($qualified)->mountainTraining()->create();
 

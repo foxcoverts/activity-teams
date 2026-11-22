@@ -42,6 +42,7 @@ class GiveActivityAction extends Action
                         }
 
                         return Activity::query()
+                            ->withAudiences()
                             ->whereDoesntHave('teams', fn ($teams) => $teams->whereKey($team->getKey()))
                             ->orderBy('name')
                             ->pluck('name', 'id')
@@ -68,6 +69,7 @@ class GiveActivityAction extends Action
                 $hadDefault = $team->default_activity_id !== null;
 
                 $activity = Activity::query()
+                    ->withAudiences()
                     ->whereDoesntHave('teams', fn ($teams) => $teams->whereKey($team->getKey()))
                     ->findOrFail($data['activity_id']);
 

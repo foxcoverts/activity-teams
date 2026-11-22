@@ -11,6 +11,7 @@ use App\Filament\Admin\Resources\Audiences\AudienceResource;
 use App\Filament\Admin\Resources\Keys\KeyResource;
 use App\Filament\Admin\Resources\Teams\TeamResource;
 use App\Filament\Admin\Resources\Venues\VenueResource;
+use App\Filament\Admin\Widgets\ActivitiesWithoutAudiencesWidget;
 use App\Filament\Admin\Widgets\ActivitiesWithoutTeamsWidget;
 use App\Filament\Admin\Widgets\AdminAllCaughtUpWidget;
 use App\Filament\Admin\Widgets\AdminSnapshotWidget;
@@ -123,6 +124,26 @@ class AdminDashboardTest extends TestCase
             ]));
         Livewire::test(AudiencesWithoutActivitiesWidget::class)->assertSee('Lone Audience');
         Livewire::test(KeysWithoutLocksWidget::class)->assertSee('Bare Key');
+    }
+
+    public function test_system_admin_sees_activities_without_audiences(): void
+    {
+        $admin = User::factory()->systemAdmin()->create();
+        $this->actingAs($admin);
+
+        $activity = Activity::factory()->withoutAudiences()->create(['name' => 'Broken Climbing']);
+        Team::factory()->create()->grant($admin, MembershipRole::Manager);
+
+        $attention = AdminAttention::for($admin);
+        $this->assertCount(1, $attention->activitiesWithoutAudiences());
+        $this->assertSame(2, $attention->catalogOrphanTotal());
+
+        Livewire::test(ActivitiesWithoutAudiencesWidget::class)
+            ->assertSee('Broken Climbing')
+            ->assertSeeHtml(ActivityResource::getUrl('view', [
+                'record' => $activity,
+                'relation' => 'audiences',
+            ]));
     }
 
     public function test_triage_columns_pack_only_non_empty_widgets(): void

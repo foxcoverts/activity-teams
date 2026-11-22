@@ -402,6 +402,41 @@ class ActivityQualificationRequirementTest extends TestCase
             ->assertHasFormErrors(['activityAudiences']);
     }
 
+    public function test_cannot_remove_the_last_audience_from_an_activity(): void
+    {
+        $admin = User::factory()->systemAdmin()->create();
+        $activity = Activity::factory()->create();
+        $pairing = $activity->activityAudiences()->first();
+        $this->assertInstanceOf(ActivityAudience::class, $pairing);
+        $this->actingAs($admin);
+
+        Livewire::test(ActivityAudiencesRelationManager::class, [
+            'ownerRecord' => $activity,
+            'pageClass' => EditActivity::class,
+        ])->callTableAction('delete', $pairing)
+            ->assertNotified(__('An activity must keep at least one audience.'));
+
+        $this->assertTrue($activity->activityAudiences()->whereKey($pairing->getKey())->exists());
+    }
+
+    public function test_can_remove_an_audience_when_another_remains(): void
+    {
+        $admin = User::factory()->systemAdmin()->create();
+        $activity = Activity::factory()->create();
+        $first = $activity->activityAudiences()->first();
+        $this->assertInstanceOf(ActivityAudience::class, $first);
+        $second = ActivityAudience::factory()->for($activity)->create();
+        $this->actingAs($admin);
+
+        Livewire::test(ActivityAudiencesRelationManager::class, [
+            'ownerRecord' => $activity,
+            'pageClass' => EditActivity::class,
+        ])->callTableAction('delete', $first);
+
+        $this->assertFalse($activity->activityAudiences()->whereKey($first->getKey())->exists());
+        $this->assertTrue($activity->activityAudiences()->whereKey($second->getKey())->exists());
+    }
+
     public function test_adding_qualifications_preselects_the_only_audience(): void
     {
         $admin = User::factory()->systemAdmin()->create();

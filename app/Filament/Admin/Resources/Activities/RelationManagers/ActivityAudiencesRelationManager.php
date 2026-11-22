@@ -81,16 +81,25 @@ class ActivityAudiencesRelationManager extends RelationManager
                     ->modalIcon(Heroicon::OutlinedMegaphone),
                 DeleteAction::make()
                     ->before(function (ActivityAudience $record, DeleteAction $action): void {
-                        if (! $record->isUsedByBookings()) {
-                            return;
+                        if ($record->isUsedByBookings()) {
+                            Notification::make()
+                                ->title(__('This audience is used by a booking.'))
+                                ->danger()
+                                ->send();
+
+                            $action->halt();
                         }
 
-                        Notification::make()
-                            ->title(__('This audience is used by a booking.'))
-                            ->danger()
-                            ->send();
+                        $siblings = $record->activity?->activityAudiences()->count() ?? 0;
 
-                        $action->halt();
+                        if ($siblings <= 1) {
+                            Notification::make()
+                                ->title(__('An activity must keep at least one audience.'))
+                                ->danger()
+                                ->send();
+
+                            $action->halt();
+                        }
                     })
                     ->after(function (Component $livewire): void {
                         RefreshesNavigationChrome::dispatch($livewire);

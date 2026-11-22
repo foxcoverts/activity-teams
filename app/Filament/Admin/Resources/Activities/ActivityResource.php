@@ -130,6 +130,9 @@ class ActivityResource extends Resource
                 Filter::make('without_team')
                     ->label(__('Not on a team'))
                     ->query(fn (Builder $query): Builder => $query->whereDoesntHave('teams')),
+                Filter::make('without_audience')
+                    ->label(__('Without audiences'))
+                    ->query(fn (Builder $query): Builder => $query->whereDoesntHave('activityAudiences')),
             ])
             ->recordActions([
                 ViewAction::make(),

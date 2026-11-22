@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Database\Factories\ActivityFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -81,5 +82,19 @@ class Activity extends Model
             'id', // Local key on the activities table...
             'audience_id' // Local key on the activity_audiences table...
         );
+    }
+
+    public function hasAudiences(): bool
+    {
+        if ($this->relationLoaded('activityAudiences')) {
+            return $this->activityAudiences->isNotEmpty();
+        }
+
+        return $this->activityAudiences()->exists();
+    }
+
+    public function scopeWithAudiences(Builder $query): void
+    {
+        $query->whereHas('activityAudiences');
     }
 }
