@@ -8,6 +8,7 @@ use App\Contracts\Commentable;
 use App\Enums\BookingAttendeeStatus;
 use App\Enums\BookingStatus;
 use App\Enums\TeamFeature;
+use App\Filament\Support\Person;
 use App\Support\Coords;
 use App\Support\Location;
 use Carbon\Carbon;
@@ -305,7 +306,9 @@ class Booking extends Model implements Commentable
         foreach ([__('Adult') => false, __('Under 18') => true] as $label => $under18) {
             $group = $attendees
                 ->filter(fn (User $user): bool => $user->isUnder18() === $under18)
-                ->mapWithKeys(fn (User $user): array => [$user->getKey() => $user->name])
+                ->mapWithKeys(fn (User $user): array => [
+                    (string) $user->getKey() => Person::optionLabel($user),
+                ])
                 ->all();
 
             if ($group !== []) {

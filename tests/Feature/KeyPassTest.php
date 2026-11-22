@@ -7,6 +7,7 @@ use App\Actions\PassKeyAction;
 use App\Enums\MembershipRole;
 use App\Filament\Member\Resources\Keys\KeyResource as MemberKeyResource;
 use App\Filament\Member\Resources\Keys\Pages\ListKeys as MemberListKeys;
+use App\Filament\Support\Person;
 use App\Filament\Teams\Resources\Keys\KeyResource as TeamsKeyResource;
 use App\Filament\Teams\Resources\Keys\Pages\ListKeys as TeamsListKeys;
 use App\Models\Activity;
@@ -323,10 +324,11 @@ class KeyPassTest extends TestCase
                 $options = $select->getOptions();
                 $members = $options[__('Members')] ?? [];
                 $cupboard = $options[__('Cupboard')] ?? [];
+                $label = $members[(string) $receiver->getKey()] ?? null;
 
                 return ($cupboard[Key::CUPBOARD] ?? null) === __('In the cupboard')
-                    && ($members[(string) $receiver->getKey()] ?? null) === 'Alex Receiver'
-                    && ! in_array('alex-receiver@example.com', $members, true)
+                    && $label === Person::optionLabel($receiver)
+                    && ! str_contains((string) $label, 'alex-receiver@example.com')
                     && ! isset($members[(string) $holder->getKey()]);
             });
     }

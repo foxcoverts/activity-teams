@@ -4,6 +4,8 @@ namespace App\Filament\Teams\Resources\Bookings;
 
 use App\Actions\UpdateBookingStatusAction;
 use App\Enums\BookingStatus;
+use App\Filament\Support\Forms\PersonSelect;
+use App\Filament\Support\Person;
 use App\Filament\Support\RefreshesNavigationChrome;
 use App\Filament\Support\SubmitsOnModEnter;
 use App\Filament\Teams\Resources\Bookings\Actions\EditAction;
@@ -14,7 +16,6 @@ use App\Support\Palette;
 use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
 use Filament\Actions\DeleteAction;
-use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Resources\Pages\ListRecords;
 use Filament\Resources\Pages\ViewRecord;
@@ -76,7 +77,7 @@ class BookingStatusActions
                 ...self::detailDefaults($record),
             ])
             ->schema([
-                Select::make('lead_instructor_id')
+                PersonSelect::make('lead_instructor_id')
                     ->label(__('Lead instructor'))
                     ->options(fn (Booking $record): array => $record->leadOptions())
                     ->visible(fn (Get $get): bool => (bool) ($get('requires_lead_instructor') ?? true))
@@ -178,7 +179,7 @@ class BookingStatusActions
             ->modalHeading(__('Change lead instructor'))
             ->modalIcon(Heroicon::OutlinedUser)
             ->schema([
-                Select::make('lead_instructor_id')
+                PersonSelect::make('lead_instructor_id')
                     ->label(__('Lead instructor'))
                     ->options(function (Booking $record): array {
                         $options = $record->leadOptions();
@@ -188,6 +189,17 @@ class BookingStatusActions
                         }
 
                         return $options;
+                    })
+                    ->getOptionLabelUsing(function (?string $value): ?string {
+                        if ($value === 'remove') {
+                            return __('Remove lead instructor');
+                        }
+
+                        $person = Person::resolveId($value);
+
+                        return $person instanceof User
+                            ? Person::optionLabel($person)
+                            : null;
                     })
                     ->default(fn (Booking $record): ?string => self::currentQualifiedLead($record))
                     ->live()
@@ -240,7 +252,7 @@ class BookingStatusActions
         }
 
         $leadIsAvailable = collect($record->leadOptions())
-            ->contains(fn (array $group): bool => array_key_exists($leadId, $group));
+            ->contains(fn (array $group): bool => array_key_exists((string) $leadId, $group));
 
         return $leadIsAvailable ? $leadId : null;
     }
