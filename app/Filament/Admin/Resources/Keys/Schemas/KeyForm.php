@@ -2,6 +2,7 @@
 
 namespace App\Filament\Admin\Resources\Keys\Schemas;
 
+use App\Filament\Support\Forms\PersonSelect;
 use App\Models\Key;
 use App\Models\User;
 use Closure;
@@ -31,7 +32,7 @@ class KeyForm
                     ->columns(1)
                     ->columnSpanFull()
                     ->schema([
-                        Select::make('holder_id')
+                        PersonSelect::make('holder_id')
                             ->hiddenLabel()
                             ->relationship(
                                 'holder',
@@ -48,7 +49,6 @@ class KeyForm
                                         });
                                 },
                             )
-                            ->searchable()
                             ->preload()
                             ->placeholder(__('In the cupboard'))
                             ->nullable()

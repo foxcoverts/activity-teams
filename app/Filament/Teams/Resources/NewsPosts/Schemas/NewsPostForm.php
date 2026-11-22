@@ -2,10 +2,10 @@
 
 namespace App\Filament\Teams\Resources\NewsPosts\Schemas;
 
+use App\Filament\Support\Forms\PersonSelect;
 use App\Models\NewsPost;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\MarkdownEditor;
-use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
@@ -27,7 +27,7 @@ class NewsPostForm
                         TextInput::make('title')
                             ->required(),
 
-                        Select::make('author_id')
+                        PersonSelect::make('author_id')
                             ->relationship(
                                 'author',
                                 'name',
@@ -35,7 +35,6 @@ class NewsPostForm
                                     ->whereRelation('teams', 'teams.id', $record->team_id)
                                     ->orderBy('name'),
                             )
-                            ->searchable()
                             ->required()
                             ->visible(fn (string $operation): bool => $operation === 'edit'),
 

@@ -7,6 +7,7 @@ use App\Actions\ClearTaskAssigneeAction;
 use App\Actions\ResendTaskIcsAction;
 use App\Actions\RespondToTaskAssigneeAction;
 use App\Enums\TaskAttendeeStatus;
+use App\Filament\Support\Forms\PersonSelect;
 use App\Filament\Teams\Resources\Members\MemberResource;
 use App\Filament\Teams\Resources\Tasks\Schemas\TaskForm;
 use App\Models\Task;
@@ -76,12 +77,10 @@ class TaskAssigneePanel extends Component implements HasActions, HasSchemas
                 ];
             })
             ->schema([
-                Select::make('assignee_id')
+                PersonSelect::make('assignee_id')
                     ->label(__('Assignee'))
                     ->options(fn (): array => TaskForm::assigneeOptions())
-                    ->searchable()
                     ->required()
-                    ->native(false)
                     ->live()
                     ->afterStateUpdated(function (Set $set, mixed $state): void {
                         if (TaskForm::assigneeChanged($state, livewire: $this)) {

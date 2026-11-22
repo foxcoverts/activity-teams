@@ -5,6 +5,7 @@ namespace App\Filament\Admin\Resources\Teams\Schemas;
 use App\Enums\BrandColor;
 use App\Enums\MembershipRole;
 use App\Enums\TeamFeature;
+use App\Filament\Support\Forms\PersonSelect;
 use App\Models\Team;
 use App\Support\Avatars;
 use Filament\Forms\Components\Select;
@@ -48,9 +49,8 @@ class TeamForm
                             ->nullable()
                             ->placeholder(__('Automatic from name'))
                             ->helperText(__('Leave blank to derive from the team name (updates if the name changes). Pick a colour to lock it.')),
-                        Select::make('manager_id')
-                            ->label('First manager')
-                            ->searchable()
+                        PersonSelect::make('manager_id')
+                            ->label(__('First manager'))
                             ->relationship('managers', 'name')
                             ->pivotData([
                                 'role' => MembershipRole::Manager,

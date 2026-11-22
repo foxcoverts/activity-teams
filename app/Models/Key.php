@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Filament\Support\Person;
 use Database\Factories\KeyFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
@@ -213,7 +214,9 @@ class Key extends Model
         }
 
         $members = $this->passRecipients()
-            ->mapWithKeys(fn (User $user): array => [(string) $user->getKey() => $user->name])
+            ->mapWithKeys(fn (User $user): array => [
+                (string) $user->getKey() => Person::optionLabel($user),
+            ])
             ->all();
 
         if ($members !== []) {

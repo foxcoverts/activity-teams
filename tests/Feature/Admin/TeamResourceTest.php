@@ -2,12 +2,15 @@
 
 namespace Tests\Feature\Admin;
 
+use App\Filament\Admin\Resources\Teams\Pages\CreateTeam;
 use App\Filament\Admin\Resources\Teams\Pages\ListTeams;
 use App\Filament\Teams\Resources\Members\MemberResource;
 use App\Models\Team;
 use App\Models\User;
+use App\Support\Avatars;
 use Filament\Actions\Testing\TestAction;
 use Filament\Facades\Filament;
+use Filament\Forms\Components\Select;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
 use Tests\TestCase;
@@ -48,6 +51,24 @@ class TeamResourceTest extends TestCase
         Livewire::test(ListTeams::class)
             ->assertSee('No managers')
             ->assertSeeHtml('fi-ta-placeholder');
+    }
+
+    public function test_the_first_manager_select_shows_person_avatars(): void
+    {
+        $admin = User::factory()->systemAdmin()->create();
+        $manager = User::factory()->create(['name' => 'Casey Manager']);
+        $avatarUrl = Avatars::userUrl($manager, 64);
+
+        $this->actingAs($admin);
+
+        Livewire::test(CreateTeam::class)
+            ->assertSchemaComponentExists('manager_id', checkComponentUsing: function (Select $select) use ($manager, $avatarUrl): bool {
+                $label = $select->getOptionLabelFromRecord($manager);
+
+                return is_string($label)
+                    && str_contains($label, 'Casey Manager')
+                    && str_contains($label, e($avatarUrl));
+            });
     }
 
     public function test_the_managers_column_links_a_single_manager(): void

@@ -7,6 +7,7 @@ use App\Actions\UpdateBookingStatusAction;
 use App\Enums\BookingAttendeeStatus;
 use App\Enums\BookingStatus;
 use App\Enums\MembershipRole;
+use App\Filament\Support\Person;
 use App\Filament\Teams\Resources\Bookings\BookingResource;
 use App\Filament\Teams\Resources\Bookings\Pages\CreateBooking;
 use App\Filament\Teams\Resources\Bookings\Pages\EditBooking;
@@ -212,7 +213,7 @@ class BookingStatusTest extends TestCase
         $this->actingAs($manager);
 
         $this->assertSame(
-            [__('Adult') => [$qualified->getKey() => 'Qualified Lead']],
+            [__('Adult') => [(string) $qualified->getKey() => Person::optionLabel($qualified)]],
             $booking->fresh()->leadOptions(),
         );
 
@@ -261,8 +262,8 @@ class BookingStatusTest extends TestCase
             ->assertSchemaComponentExists('lead_instructor_id', checkComponentUsing: function (Select $select) use ($accepted, $alsoAccepted): bool {
                 return $select->getOptions() === [
                     __('Adult') => [
-                        $accepted->getKey() => $accepted->name,
-                        $alsoAccepted->getKey() => $alsoAccepted->name,
+                        (string) $accepted->getKey() => Person::optionLabel($accepted),
+                        (string) $alsoAccepted->getKey() => Person::optionLabel($alsoAccepted),
                     ],
                 ];
             });
@@ -280,8 +281,8 @@ class BookingStatusTest extends TestCase
         $this->actingAs($manager);
 
         $this->assertSame([
-            __('Adult') => [$adult->getKey() => 'Adult Lead'],
-            __('Under 18') => [$youngPerson->getKey() => 'Young Lead'],
+            __('Adult') => [(string) $adult->getKey() => Person::optionLabel($adult)],
+            __('Under 18') => [(string) $youngPerson->getKey() => Person::optionLabel($youngPerson)],
         ], $booking->fresh()->leadOptions());
     }
 

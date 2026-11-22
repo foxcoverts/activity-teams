@@ -4,11 +4,12 @@ namespace App\Filament\Keys;
 
 use App\Actions\PassKeyAction as PassKey;
 use App\Filament\Member\Resources\Keys\KeyResource as MemberKeyResource;
+use App\Filament\Support\Forms\PersonSelect;
+use App\Filament\Support\Person;
 use App\Models\Key;
 use App\Models\User;
 use Filament\Actions\Action;
 use Filament\Facades\Filament;
-use Filament\Forms\Components\Select;
 use Filament\Support\Icons\Heroicon;
 
 class PassKeyAction
@@ -23,10 +24,20 @@ class PassKeyAction
             ->authorize(fn (Key $record): bool => auth()->user()?->can('pass', $record) ?? false)
             ->visible(fn (Key $record): bool => static::canShow($record))
             ->schema([
-                Select::make('holder_id')
+                PersonSelect::make('holder_id')
                     ->label(__('Pass to'))
                     ->options(fn (Key $record): array => $record->passOptions())
-                    ->searchable()
+                    ->getOptionLabelUsing(function (?string $value): ?string {
+                        if ($value === Key::CUPBOARD) {
+                            return __('In the cupboard');
+                        }
+
+                        $person = Person::resolveId($value);
+
+                        return $person instanceof User
+                            ? Person::optionLabel($person)
+                            : null;
+                    })
                     ->required()
                     ->selectablePlaceholder(false),
             ])

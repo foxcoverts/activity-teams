@@ -21,6 +21,7 @@ use App\Models\BookingAttendance;
 use App\Models\User;
 use App\Notifications\AttendanceRecordedNotification;
 use App\Notifications\LeadNeededNotification;
+use App\Support\Avatars;
 use App\Support\BookingMailThread;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\Select;
@@ -64,8 +65,12 @@ class OverrideAttendanceTest extends TestCase
             ->assertTableActionHasLabel('editAttendance', 'Edit', $member)
             ->mountTableAction('editAttendance', $member)
             ->assertSchemaComponentExists('user_id', checkComponentUsing: function (Select $select) use ($member): bool {
+                $label = $select->getOptions()[(string) $member->getKey()] ?? null;
+
                 return $select->isDisabled()
-                    && $select->getOptions() === [$member->getKey() => $member->name];
+                    && is_string($label)
+                    && str_contains($label, $member->name)
+                    && str_contains($label, e(Avatars::userUrl($member, 64)));
             })
             ->assertSchemaComponentExists('response', checkComponentUsing: function (ToggleButtons $buttons): bool {
                 return array_keys($buttons->getOptions()) === [
@@ -283,9 +288,12 @@ class OverrideAttendanceTest extends TestCase
             ->mountTableAction('add')
             ->assertSchemaComponentExists('user_id', checkComponentUsing: function (Select $select) use ($already, $member): bool {
                 $options = $select->getOptions();
+                $label = $options[(string) $member->getKey()] ?? null;
 
-                return array_key_exists($member->getKey(), $options)
-                    && ! array_key_exists($already->getKey(), $options);
+                return is_string($label)
+                    && str_contains($label, 'Casey')
+                    && str_contains($label, e(Avatars::userUrl($member, 64)))
+                    && ! array_key_exists((string) $already->getKey(), $options);
             })
             ->setTableActionData([
                 'user_id' => $member->getKey(),

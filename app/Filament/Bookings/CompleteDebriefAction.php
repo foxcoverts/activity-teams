@@ -5,6 +5,8 @@ namespace App\Filament\Bookings;
 use App\Actions\CompleteDebriefAction as CompleteDebrief;
 use App\Actions\ConfirmAttendanceAction;
 use App\Enums\TeamFeature;
+use App\Filament\Support\Forms\PersonSelect;
+use App\Filament\Support\Person;
 use App\Filament\Support\RefreshesNavigationChrome;
 use App\Models\Booking;
 use App\Models\BookingDebrief;
@@ -18,7 +20,6 @@ use Filament\Forms\Components\CheckboxList;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Repeater;
-use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\ToggleButtons;
 use Filament\Notifications\Notification;
@@ -105,26 +106,16 @@ class CompleteDebriefAction
                             ->dehydrated(false),
                         self::marksRepeater('needs_confirming', defaultMark: null)
                             ->visible(fn (Get $get): bool => filled($get('needs_confirming'))),
-                        Select::make('add_user_id')
+                        PersonSelect::make('add_user_id')
                             ->label(__('Add attendee'))
                             ->placeholder(__('Declined or awaiting response'))
-                            ->searchable()
                             ->preload(false)
-                            ->allowHtml()
-                            ->native(false)
                             ->options(fn (): array => [])
                             ->getSearchResultsUsing(fn (string $search, Get $get): array => self::searchAddable(
                                 $record,
                                 $search,
                                 $get,
                             ))
-                            ->getOptionLabelUsing(function (?string $value): ?string {
-                                $person = filled($value) ? User::query()->find($value) : null;
-
-                                return $person instanceof User
-                                    ? self::personOptionLabel($person)
-                                    : null;
-                            })
                             ->visible(fn (Get $get): bool => (bool) $get('show_add_person'))
                             ->live()
                             ->afterStateUpdated(function (?string $state, Get $get, Set $set): void {
@@ -413,21 +404,9 @@ class CompleteDebriefAction
             ->sortBy(fn (User $attendee): string => $attendee->name)
             ->take(20)
             ->mapWithKeys(fn (User $attendee): array => [
-                (string) $attendee->getKey() => self::personOptionLabel($attendee),
+                (string) $attendee->getKey() => Person::optionLabel($attendee),
             ])
             ->all();
-    }
-
-    private static function personOptionLabel(User $person): string
-    {
-        return '<span class="inline-flex items-center gap-2">'
-            .view('filament.bookings.person-identity', [
-                'person' => [
-                    'name' => $person->name,
-                    'avatar_url' => Avatars::userUrl($person, 64),
-                ],
-            ])->render()
-            .'</span>';
     }
 
     private static function teamHasEquipmentSets(Booking $booking): bool

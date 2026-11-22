@@ -8,6 +8,7 @@ use App\Filament\Admin\Resources\Activities\Pages\CreateActivity;
 use App\Filament\Admin\Resources\Activities\Pages\EditActivity;
 use App\Filament\Admin\Resources\Activities\Pages\ViewActivity;
 use App\Filament\Admin\Resources\Activities\RelationManagers\ActivityAudiencesRelationManager;
+use App\Filament\Support\Person;
 use App\Models\Activity;
 use App\Models\ActivityAudience;
 use App\Models\Audience;
@@ -222,7 +223,7 @@ class ActivityQualificationRequirementTest extends TestCase
 
         $this->assertSame([], $booking->fresh()->leadOptions());
         $this->assertSame(
-            ['Adult' => [$member->getKey() => $member->name]],
+            ['Adult' => [(string) $member->getKey() => Person::optionLabel($member)]],
             $lastDay->fresh()->leadOptions(),
         );
     }
