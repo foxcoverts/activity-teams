@@ -1,7 +1,7 @@
 ---
 id: US-29
 title: "Booking Share Link Copy Action"
-status: not-started
+status: retired
 area: communications
 scope: extra
 ---
@@ -16,4 +16,4 @@ As an Activity Manager or Team Member, I want a convenient UI action to copy a b
 
 ## Progress
 
-The legacy climbing-team app provides this UI action. It is not currently implemented in Activity Teams and is not a priority for a new release.
+Retired. [US-30](US-30-standard-url-sharing.md) already makes the Teams booking URL the stable, address-bar share path (with slug recovery redirects), and [US-12](US-12-public-booking-summary.md) is the public view at that URL. A dedicated copy-link control would only duplicate the address bar. Legacy climbing-team also offered preformatted share-post text; that is out of scope here and would need a separate story if wanted later.
