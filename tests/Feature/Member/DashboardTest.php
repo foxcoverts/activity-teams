@@ -19,6 +19,8 @@ use App\Filament\Member\Widgets\NextLedBookingWidget;
 use App\Filament\Member\Widgets\ThisWeekWidget;
 use App\Filament\Member\Widgets\UnreadInboxWidget;
 use App\Filament\Teams\Resources\NewsPosts\Pages\ViewNewsPost;
+use App\Models\Activity;
+use App\Models\Audience;
 use App\Models\Booking;
 use App\Models\NewsPost;
 use App\Models\Task;
@@ -86,6 +88,24 @@ class DashboardTest extends TestCase
         ], Livewire::test(Dashboard::class)->instance()->getWidgets());
 
         $this->get(Dashboard::getUrl(panel: 'member'))->assertOk();
+    }
+
+    public function test_booking_widgets_prefer_group_over_audience_in_the_title_suffix(): void
+    {
+        $audience = Audience::factory()->create(['name' => 'Scouts']);
+        $activity = Activity::factory()->withAudience($audience)->create(['name' => 'Climbing']);
+
+        $this->booking(now()->addDay()->toDateTimeString(), BookingAttendeeStatus::Accepted, [
+            'activity_id' => $activity->getKey(),
+            'activity_label' => null,
+            'audience_id' => $audience->getKey(),
+            'group_name' => '1st Anytown Scouts',
+        ]);
+
+        Livewire::test(ThisWeekWidget::class)
+            ->assertSee('Climbing')
+            ->assertSeeHtml('· 1st Anytown Scouts')
+            ->assertDontSeeHtml('· Scouts');
     }
 
     public function test_it_shows_all_caught_up_and_no_other_section_when_nothing_needs_attention(): void

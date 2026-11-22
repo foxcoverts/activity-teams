@@ -16,6 +16,8 @@ use App\Filament\Teams\Widgets\Manager\ManagerAllCaughtUpWidget;
 use App\Filament\Teams\Widgets\Manager\NeedsLeadWidget;
 use App\Filament\Teams\Widgets\Manager\NeedsStaffingWidget;
 use App\Filament\Teams\Widgets\Manager\ReadyToConfirmWidget;
+use App\Models\Activity;
+use App\Models\Audience;
 use App\Models\Booking;
 use App\Models\Team;
 use App\Models\User;
@@ -410,6 +412,28 @@ class ManagerAttentionDashboardTest extends TestCase
         Livewire::test(ReadyToConfirmWidget::class)
             ->assertSee('Far ready climb')
             ->assertDontSeeHtml('manager-day-urgent-ready');
+    }
+
+    public function test_triage_widgets_use_display_name_preferring_group_over_audience(): void
+    {
+        $audience = Audience::factory()->create(['name' => 'Scouts']);
+        $activity = Activity::factory()->withAudience($audience)->create(['name' => 'Climbing']);
+
+        $ready = Booking::factory()->forTeam($this->team)->create([
+            'activity_id' => $activity->getKey(),
+            'activity_label' => null,
+            'audience_id' => $audience->getKey(),
+            'group_name' => '1st Anytown Scouts',
+            'requires_lead_instructor' => false,
+            'start_at' => now()->addDays(10),
+            'end_at' => now()->addDays(10)->addHours(2),
+        ]);
+        $ready->attendees()->attach($this->member->getKey(), ['status' => BookingAttendeeStatus::Accepted->value]);
+
+        Livewire::test(ReadyToConfirmWidget::class)
+            ->assertSee('Climbing')
+            ->assertSeeHtml('· 1st Anytown Scouts')
+            ->assertDontSeeHtml('· Scouts');
     }
 
     public function test_manager_widget_deep_links_use_filters_query_key(): void

@@ -169,7 +169,7 @@ final class ManagerAttentionCatchUp
         $line = trim(
             $triage->getLabel()
             .' · '
-            .$booking->activityTitle()
+            .$booking->display_name
             .' '
             .$booking->start_at?->timezone(config('app.timezone'))->format('j M Y, H:i')
         );
