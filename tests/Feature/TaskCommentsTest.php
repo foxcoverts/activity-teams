@@ -99,6 +99,42 @@ class TaskCommentsTest extends TestCase
             ->assertDontSee(__('Add a comment...'));
     }
 
+    public function test_the_composer_hides_and_returns_when_task_status_changes_without_remounting(): void
+    {
+        [, $manager, $assignee, $task] = $this->party(assigned: true);
+
+        Comment::factory()->forTask($task)->create([
+            'author_id' => $assignee->getKey(),
+            'body' => 'History',
+        ]);
+
+        $this->actingAs($manager);
+        Filament::setCurrentPanel('teams');
+        Filament::setTenant($task->team);
+
+        $comments = Livewire::test(Comments::class, ['record' => $task])
+            ->assertSee('History')
+            ->assertSee(__('Add a comment...'));
+
+        $task->markCompleted();
+
+        $comments
+            ->dispatch('task-status-changed', taskId: (string) $task->getKey())
+            ->assertSee('History')
+            ->assertDontSee(__('Add a comment...'));
+
+        $task->reopen();
+
+        $comments
+            ->dispatch('task-status-changed', taskId: (string) $task->getKey())
+            ->assertSee('History')
+            ->assertSee(__('Add a comment...'));
+
+        Livewire::test(TeamsViewTask::class, ['record' => $task->getRouteKey()])
+            ->call('toggleTaskComplete', $task->getKey())
+            ->assertDispatched('task-status-changed');
+    }
+
     public function test_system_admin_without_membership_cannot_post(): void
     {
         [, , , $task] = $this->party(assigned: false);

@@ -27,6 +27,8 @@ trait TogglesTaskCompletion
             $this->flushCachedTableRecords();
         }
 
+        $this->dispatch('task-status-changed', taskId: (string) $taskId);
+
         Notification::make()
             ->success()
             ->title($wasCompleteOrCancelled ? __('Marked incomplete.') : __('Marked complete.'))

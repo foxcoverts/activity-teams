@@ -49,8 +49,9 @@ class TaskStatusActions
             ->color(TaskStatus::InProcess->getColor())
             ->visible(fn (Task $record): bool => $record->status === TaskStatus::NeedsAction)
             ->authorize(fn (Task $record): bool => self::canComplete($record))
-            ->action(function (Task $record): void {
+            ->action(function (Task $record, Action $action): void {
                 $record->markStarted();
+                self::dispatchStatusChanged($action, $record);
             });
     }
 
@@ -62,8 +63,9 @@ class TaskStatusActions
             ->color(TaskStatus::Completed->getColor())
             ->visible(fn (Task $record): bool => ! $record->isComplete() && ! $record->isCancelled())
             ->authorize(fn (Task $record): bool => self::canComplete($record))
-            ->action(function (Task $record): void {
+            ->action(function (Task $record, Action $action): void {
                 $record->markCompleted();
+                self::dispatchStatusChanged($action, $record);
             });
     }
 
@@ -75,8 +77,9 @@ class TaskStatusActions
             ->color(Palette::uncertain())
             ->visible(fn (Task $record): bool => $record->isComplete() || $record->isCancelled())
             ->authorize(fn (Task $record): bool => self::canUpdate($record) || self::canComplete($record))
-            ->action(function (Task $record): void {
+            ->action(function (Task $record, Action $action): void {
                 $record->reopen();
+                self::dispatchStatusChanged($action, $record);
             });
     }
 
@@ -91,9 +94,15 @@ class TaskStatusActions
             ->modalDescription(__('Cancelled tasks stay on the team for history. You can reopen them later, or delete them once cancelled.'))
             ->visible(fn (Task $record): bool => ! $record->isCancelled())
             ->authorize(fn (Task $record): bool => self::canUpdate($record))
-            ->action(function (Task $record): void {
+            ->action(function (Task $record, Action $action): void {
                 $record->markCancelled();
+                self::dispatchStatusChanged($action, $record);
             });
+    }
+
+    private static function dispatchStatusChanged(Action $action, Task $record): void
+    {
+        $action->getLivewire()?->dispatch('task-status-changed', taskId: (string) $record->getKey());
     }
 
     private static function canUpdate(Task $record): bool
