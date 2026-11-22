@@ -37,6 +37,7 @@ class TasksTable
                 PersonColumn::make('attendance.user.name')
                     ->label(__('To'))
                     ->headingVisibleFrom('md')
+                    ->description(fn (Task $record): ?string => $record->attendance?->status?->getLabel())
                     ->memberUrl()
                     ->grow(false),
                 TextColumn::make('due_at')

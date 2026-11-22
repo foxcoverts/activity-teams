@@ -456,18 +456,27 @@ class TaskAssigneeTest extends TestCase
 
         $memberUrl = MemberResource::getUrl('view', ['record' => $member], panel: 'teams', tenant: $team);
         $avatarUrl = (string) $member->fresh()->getFilamentAvatarUrl();
+        $statusLabel = TaskAttendeeStatus::NeedsAction->getLabel();
 
         $list = Livewire::test(ListTasks::class)
             ->assertCanSeeTableRecords([$task->fresh()])
             ->assertSee('Casey Assignee')
+            ->assertSee($statusLabel)
             ->assertSee('fi-ta-person', false)
+            ->assertSee('fi-ta-person-description', false)
+            ->assertSee('md:fi-visible', false)
+            ->assertSee('data-size-from="md"', false)
+            ->assertSee('--fi-person-avatar-size: 32px', false)
+            ->assertSee('--fi-person-avatar-size-from: 48px', false)
             ->assertSeeHtml($memberUrl)
             ->assertSee(str_replace('&', '&amp;', $avatarUrl), false);
 
-        $this->assertSame(
-            'md',
-            $list->instance()->getTable()->getColumn('attendance.user.name')->getHeadingVisibleFrom(),
-        );
+        $column = $list->instance()->getTable()->getColumn('attendance.user.name');
+
+        $this->assertSame('md', $column->getHeadingVisibleFrom());
+        $this->assertSame($statusLabel, $column->getPersonDescription());
+        $this->assertTrue($column->usesResponsiveDescribedAvatarSize());
+        $this->assertSame(48, $column->getPersonSize());
     }
 
     private function taskContext(): array

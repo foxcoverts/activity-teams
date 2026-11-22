@@ -15,8 +15,54 @@
         @apply max-w-none shrink-0 object-cover object-center;
     }
 
+    & .fi-person-avatar {
+        height: var(--fi-person-avatar-size);
+        width: var(--fi-person-avatar-size);
+    }
+
     & .fi-ta-person-heading {
         @apply text-sm leading-6 text-gray-950 dark:text-white;
+    }
+
+    /* Nested heading wrappers use Filament's fi-visible/fi-hidden tokens; cells alone get those rules. */
+    & .sm\:fi-visible {
+        @apply hidden sm:block;
+    }
+
+    & .md\:fi-visible {
+        @apply hidden md:block;
+    }
+
+    & .lg\:fi-visible {
+        @apply hidden lg:block;
+    }
+
+    & .xl\:fi-visible {
+        @apply hidden xl:block;
+    }
+
+    & .\32xl\:fi-visible {
+        @apply hidden 2xl:block;
+    }
+
+    & .sm\:fi-hidden {
+        @apply sm:hidden;
+    }
+
+    & .md\:fi-hidden {
+        @apply md:hidden;
+    }
+
+    & .lg\:fi-hidden {
+        @apply lg:hidden;
+    }
+
+    & .xl\:fi-hidden {
+        @apply xl:hidden;
+    }
+
+    & .\32xl\:fi-hidden {
+        @apply 2xl:hidden;
     }
 
     &:not(.fi-inline) {
@@ -39,6 +85,83 @@
 
 .fi-ta-col-has-column-url .fi-ta-person-heading {
     @apply text-primary-600 hover:underline focus-visible:underline dark:text-primary-400;
+}
+
+@media (min-width: 40rem) {
+    .fi-person-avatar[data-size-from='sm'] {
+        height: var(--fi-person-avatar-size-from);
+        width: var(--fi-person-avatar-size-from);
+    }
+}
+
+@media (min-width: 48rem) {
+    .fi-person-avatar[data-size-from='md'] {
+        height: var(--fi-person-avatar-size-from);
+        width: var(--fi-person-avatar-size-from);
+    }
+}
+
+@media (min-width: 64rem) {
+    .fi-person-avatar[data-size-from='lg'] {
+        height: var(--fi-person-avatar-size-from);
+        width: var(--fi-person-avatar-size-from);
+    }
+}
+
+@media (min-width: 80rem) {
+    .fi-person-avatar[data-size-from='xl'] {
+        height: var(--fi-person-avatar-size-from);
+        width: var(--fi-person-avatar-size-from);
+    }
+}
+
+@media (min-width: 96rem) {
+    .fi-person-avatar[data-size-from='2xl'] {
+        height: var(--fi-person-avatar-size-from);
+        width: var(--fi-person-avatar-size-from);
+    }
+}
+
+.fi-in-person {
+    & .sm\:fi-visible {
+        @apply hidden sm:block;
+    }
+
+    & .md\:fi-visible {
+        @apply hidden md:block;
+    }
+
+    & .lg\:fi-visible {
+        @apply hidden lg:block;
+    }
+
+    & .xl\:fi-visible {
+        @apply hidden xl:block;
+    }
+
+    & .\32xl\:fi-visible {
+        @apply hidden 2xl:block;
+    }
+
+    & .sm\:fi-hidden {
+        @apply sm:hidden;
+    }
+
+    & .md\:fi-hidden {
+        @apply md:hidden;
+    }
+
+    & .lg\:fi-hidden {
+        @apply lg:hidden;
+    }
+
+    & .xl\:fi-hidden {
+        @apply xl:hidden;
+    }
+
+    & .\32xl\:fi-hidden {
+        @apply 2xl:hidden;
+    }
 }
 
 .fi-in-person-heading {

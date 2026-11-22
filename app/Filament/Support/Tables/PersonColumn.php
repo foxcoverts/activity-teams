@@ -51,13 +51,13 @@ class PersonColumn extends Column implements HasEmbeddedView
             <?php return (string) ob_get_clean();
         }
 
-        $size = $this->getPersonSize();
         $avatarUrl = $this->personAvatarUrl($user);
         $heading = $this->personHeading($user);
         $description = $this->getPersonDescription();
         $showHeading = $this->shouldRenderHeading();
         $headingClasses = implode(' ', $this->headingVisibilityClasses());
         $tooltip = $this->personTooltip($heading);
+        $avatar = $this->personAvatarAttributes();
 
         $attributes = $attributes->merge([
             'x-tooltip' => filled($tooltip)
@@ -77,8 +77,11 @@ class PersonColumn extends Column implements HasEmbeddedView
                 <img
                     src="<?= e($avatarUrl) ?>"
                     alt="<?= e($heading) ?>"
-                    class="fi-avatar fi-circular"
-                    style="height: <?= e($size) ?>px; width: <?= e($size) ?>px"
+                    class="<?= e($avatar['class']) ?>"
+                    style="<?= e($avatar['style']) ?>"
+                    <?php if (filled($avatar['expandFrom'])) { ?>
+                        data-size-from="<?= e($avatar['expandFrom']) ?>"
+                    <?php } ?>
                 />
             <?php } ?>
 

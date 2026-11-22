@@ -103,6 +103,43 @@ trait HasPersonDisplay
         return $this->defaultPersonSize;
     }
 
+    /**
+     * When a description enlarges the avatar and the heading is breakpoint-gated,
+     * keep the compact size below that breakpoint (avatar-only on small screens).
+     */
+    public function usesResponsiveDescribedAvatarSize(): bool
+    {
+        return ! $this->personSizeWasSet
+            && filled($this->getPersonDescription())
+            && filled($this->getHeadingVisibleFrom());
+    }
+
+    /**
+     * @return array{class: string, style: string, expandFrom: ?string}
+     */
+    public function personAvatarAttributes(): array
+    {
+        if ($this->usesResponsiveDescribedAvatarSize()) {
+            return [
+                'class' => 'fi-avatar fi-circular fi-person-avatar',
+                'style' => sprintf(
+                    '--fi-person-avatar-size: %dpx; --fi-person-avatar-size-from: %dpx',
+                    $this->defaultPersonSize,
+                    $this->describedPersonSize,
+                ),
+                'expandFrom' => $this->getHeadingVisibleFrom(),
+            ];
+        }
+
+        $size = $this->getPersonSize();
+
+        return [
+            'class' => 'fi-avatar fi-circular',
+            'style' => sprintf('height: %dpx; width: %dpx', $size, $size),
+            'expandFrom' => null,
+        ];
+    }
+
     public function showsHeading(): bool
     {
         return (bool) $this->evaluate($this->showHeading);
