@@ -54,27 +54,20 @@ class KeyAccessTest extends TestCase
         $campsite = Venue::factory()->create(['name' => 'Campsite']);
         $britannia = Venue::factory()->create(['name' => 'Britannia']);
 
-        $store = Lock::factory()->create(['name' => 'Climbing store']);
-        $store->requirements()->create([
-            'activity_id' => $climbing->getKey(),
-            'venue_id' => $campsite->getKey(),
-        ]);
-
-        $guns = Lock::factory()->create(['name' => 'Britannia shooting store']);
-        $guns->requirements()->create([
-            'activity_id' => $shooting->getKey(),
-            'venue_id' => $campsite->getKey(),
-        ]);
-        $guns->requirements()->create([
-            'activity_id' => $shooting->getKey(),
-            'venue_id' => $britannia->getKey(),
-        ]);
+        $store = Lock::factory()
+            ->requiredFor($climbing, $campsite)
+            ->create(['name' => 'Climbing store']);
 
         $door = Lock::factory()->create(['name' => 'Britannia front door']);
-        $guns->covers()->attach($door);
+        $guns = Lock::factory()
+            ->requiredFor($shooting, $campsite)
+            ->requiredFor($shooting, $britannia)
+            ->covers($door)
+            ->create(['name' => 'Britannia shooting store']);
 
-        $warden = Lock::factory()->create(['name' => 'Warden key']);
-        $warden->covers()->attach($store);
+        $warden = Lock::factory()
+            ->covers($store)
+            ->create(['name' => 'Warden key']);
 
         $team = Team::factory()->create();
         $team->activities()->sync([$climbing->getKey(), $shooting->getKey()]);
@@ -101,22 +94,22 @@ class KeyAccessTest extends TestCase
         $this->assertSame(['Britannia shooting store'], $shootingAtHq->requiredLocks()->pluck('name')->all());
 
         $climber = User::factory()->create();
-        Key::factory()->heldBy($climber)->create(['name' => 'Shared climbing'])->locks()->attach($store);
+        Key::factory()->heldBy($climber)->unlocks($store)->create(['name' => 'Shared climbing']);
         $this->assertTrue($climber->holdsLock($store));
         $this->assertFalse($climber->holdsLock($guns));
 
         $wardenHolder = User::factory()->create();
-        Key::factory()->heldBy($wardenHolder)->create(['name' => 'Warden'])->locks()->attach($warden);
+        Key::factory()->heldBy($wardenHolder)->unlocks($warden)->create(['name' => 'Warden']);
         $this->assertTrue($wardenHolder->holdsLock($store));
         $this->assertFalse($wardenHolder->holdsLock($guns));
 
         $doorHolder = User::factory()->create();
-        Key::factory()->heldBy($doorHolder)->create(['name' => 'Front door only'])->locks()->attach($door);
+        Key::factory()->heldBy($doorHolder)->unlocks($door)->create(['name' => 'Front door only']);
         $this->assertFalse($doorHolder->holdsLock($guns));
         $this->assertTrue($doorHolder->holdsLock($door));
 
         $gunHolder = User::factory()->create();
-        Key::factory()->heldBy($gunHolder)->create(['name' => 'Shooting'])->locks()->attach($guns);
+        Key::factory()->heldBy($gunHolder)->unlocks($guns)->create(['name' => 'Shooting']);
         $this->assertTrue($gunHolder->holdsLock($guns));
         $this->assertTrue($gunHolder->holdsLock($door));
 
@@ -228,33 +221,30 @@ class KeyAccessTest extends TestCase
         $team->activities()->sync([$climbing->getKey()]);
         $team->venues()->sync([$campsite->getKey()]);
 
-        $store = Lock::factory()->create(['name' => 'Climbing store']);
-        $store->requirements()->create([
-            'activity_id' => $climbing->getKey(),
-            'venue_id' => $campsite->getKey(),
-        ]);
+        $store = Lock::factory()
+            ->requiredFor($climbing, $campsite)
+            ->create(['name' => 'Climbing store']);
 
-        $guns = Lock::factory()->create(['name' => 'Britannia shooting store']);
-        $guns->requirements()->create([
-            'activity_id' => $shooting->getKey(),
-            'venue_id' => $britannia->getKey(),
-        ]);
+        $guns = Lock::factory()
+            ->requiredFor($shooting, $britannia)
+            ->create(['name' => 'Britannia shooting store']);
 
-        $wardenKey = Lock::factory()->create(['name' => 'Warden key']);
-        $wardenKey->covers()->attach($store);
+        $wardenKey = Lock::factory()
+            ->covers($store)
+            ->create(['name' => 'Warden key']);
 
         $outsider = User::factory()->create([
             'name' => 'Robin Outsider',
             'phone' => '07000999888',
             'emergency_phone' => '07000111222',
         ]);
-        Key::factory()->heldBy($outsider)->create(['name' => 'Shared climbing'])->locks()->attach($store);
-        Key::factory()->create(['name' => 'Spare climbing'])->locks()->attach($store);
+        Key::factory()->heldBy($outsider)->unlocks($store)->create(['name' => 'Shared climbing']);
+        Key::factory()->unlocks($store)->create(['name' => 'Spare climbing']);
 
         $warden = User::factory()->create(['name' => 'Sam Warden']);
-        Key::factory()->heldBy($warden)->create(['name' => 'Warden ring'])->locks()->attach($wardenKey);
+        Key::factory()->heldBy($warden)->unlocks($wardenKey)->create(['name' => 'Warden ring']);
 
-        Key::factory()->heldBy($outsider)->create(['name' => 'Shooting ring'])->locks()->attach($guns);
+        Key::factory()->heldBy($outsider)->unlocks($guns)->create(['name' => 'Shooting ring']);
 
         $this->actingAs($manager);
 
@@ -281,11 +271,11 @@ class KeyAccessTest extends TestCase
         $other = User::factory()->create(['name' => 'Blake Other']);
 
         $store = Lock::factory()->create(['name' => 'Climbing store']);
-        $wardenKey = Lock::factory()->create(['name' => 'Warden key']);
-        $wardenKey->covers()->attach($store);
+        $wardenKey = Lock::factory()
+            ->covers($store)
+            ->create(['name' => 'Warden key']);
 
-        $own = Key::factory()->heldBy($member)->create(['name' => 'My warden ring']);
-        $own->locks()->attach($wardenKey);
+        $own = Key::factory()->heldBy($member)->unlocks($wardenKey)->create(['name' => 'My warden ring']);
         Key::factory()->heldBy($other)->create(['name' => 'Someone else']);
 
         Filament::setCurrentPanel('member');
@@ -323,18 +313,13 @@ class KeyAccessTest extends TestCase
             'token' => BookingAttendance::generateToken(),
         ]);
 
-        $store = Lock::factory()->create(['name' => 'Climbing store']);
-        $store->requirements()->create([
-            'activity_id' => $booking->activity_id,
-            'venue_id' => $booking->venue_id,
-        ]);
-        $shared = Key::factory()->heldBy($holder)->create(['name' => 'Shared climbing']);
-        $shared->locks()->attach($store);
-        Key::factory()->create(['name' => 'Spare climbing']);
-        $spare = Key::query()->where('name', 'Spare climbing')->first();
-        $spare->locks()->attach($store);
+        $store = Lock::factory()
+            ->requiredFor($booking->activity_id, $booking->venue_id)
+            ->create(['name' => 'Climbing store']);
+        $shared = Key::factory()->heldBy($holder)->unlocks($store)->create(['name' => 'Shared climbing']);
+        Key::factory()->unlocks($store)->create(['name' => 'Spare climbing']);
         $door = Lock::factory()->create(['name' => 'Front door']);
-        Key::factory()->heldBy($other)->create(['name' => 'Door ring'])->locks()->attach($door);
+        Key::factory()->heldBy($other)->unlocks($door)->create(['name' => 'Door ring']);
 
         Filament::setCurrentPanel('teams');
         $this->actingAs($manager);
@@ -412,14 +397,12 @@ class KeyAccessTest extends TestCase
             'permit_type' => 'supervisory',
         ])->create(['expires_on' => now()->subDay()->toDateString()]);
 
-        $store = Lock::factory()->create(['name' => 'Climbing store']);
-        $store->requirements()->create([
-            'activity_id' => $booking->activity_id,
-            'venue_id' => $booking->venue_id,
-        ]);
-        Key::factory()->heldBy($holder)->create(['name' => 'Shared climbing'])->locks()->attach($store);
+        $store = Lock::factory()
+            ->requiredFor($booking->activity_id, $booking->venue_id)
+            ->create(['name' => 'Climbing store']);
+        Key::factory()->heldBy($holder)->unlocks($store)->create(['name' => 'Shared climbing']);
         $unrelated = Lock::factory()->create(['name' => 'Unrelated key']);
-        Key::factory()->heldBy($member)->create(['name' => 'Unrelated ring'])->locks()->attach($unrelated);
+        Key::factory()->heldBy($member)->unlocks($unrelated)->create(['name' => 'Unrelated ring']);
 
         foreach ([$lead, $holder, $member] as $person) {
             $booking->attendees()->attach($person->id, [
@@ -513,32 +496,29 @@ class KeyAccessTest extends TestCase
         $team->activities()->sync([$climbing->getKey()]);
         $team->venues()->sync([$campsite->getKey()]);
 
-        $store = Lock::factory()->create(['name' => 'Climbing store']);
-        $store->requirements()->create([
-            'activity_id' => $climbing->getKey(),
-            'venue_id' => $campsite->getKey(),
-        ]);
+        $store = Lock::factory()
+            ->requiredFor($climbing, $campsite)
+            ->create(['name' => 'Climbing store']);
 
-        $guns = Lock::factory()->create(['name' => 'Britannia shooting store']);
-        $guns->requirements()->create([
-            'activity_id' => $shooting->getKey(),
-            'venue_id' => $britannia->getKey(),
-        ]);
+        $guns = Lock::factory()
+            ->requiredFor($shooting, $britannia)
+            ->create(['name' => 'Britannia shooting store']);
 
-        $wardenKey = Lock::factory()->create(['name' => 'Warden key']);
-        $wardenKey->covers()->attach($store);
+        $wardenKey = Lock::factory()
+            ->covers($store)
+            ->create(['name' => 'Warden key']);
 
         $climber = User::factory()->create(['name' => 'Pat Climber']);
         $team->grant($climber, MembershipRole::Member);
-        Key::factory()->heldBy($climber)->create(['name' => 'Shared climbing'])->locks()->attach($store);
+        Key::factory()->heldBy($climber)->unlocks($store)->create(['name' => 'Shared climbing']);
 
         $warden = User::factory()->create(['name' => 'Sam Warden']);
         $team->grant($warden, MembershipRole::Member);
-        Key::factory()->heldBy($warden)->create(['name' => 'Warden ring'])->locks()->attach($wardenKey);
+        Key::factory()->heldBy($warden)->unlocks($wardenKey)->create(['name' => 'Warden ring']);
 
         $shooter = User::factory()->create(['name' => 'Alex Shooter']);
         $team->grant($shooter, MembershipRole::Member);
-        Key::factory()->heldBy($shooter)->create(['name' => 'Shooting ring'])->locks()->attach($guns);
+        Key::factory()->heldBy($shooter)->unlocks($guns)->create(['name' => 'Shooting ring']);
 
         $this->actingAs($manager);
 
@@ -592,15 +572,13 @@ class KeyAccessTest extends TestCase
         $uninvited = User::factory()->teamMember($team)->create(['name' => 'Uma Uninvited']);
         $booking = Booking::factory()->forTeam($team)->create();
 
-        $store = Lock::factory()->create(['name' => 'Climbing store']);
-        $store->requirements()->create([
-            'activity_id' => $booking->activity_id,
-            'venue_id' => $booking->venue_id,
-        ]);
-        Key::factory()->heldBy($declined)->create(['name' => 'Declined ring'])->locks()->attach($store);
-        Key::factory()->heldBy($maybe)->create(['name' => 'Maybe ring'])->locks()->attach($store);
-        Key::factory()->heldBy($uninvited)->create(['name' => 'Uninvited ring'])->locks()->attach($store);
-        Key::factory()->create(['name' => 'Cupboard ring'])->locks()->attach($store);
+        $store = Lock::factory()
+            ->requiredFor($booking->activity_id, $booking->venue_id)
+            ->create(['name' => 'Climbing store']);
+        Key::factory()->heldBy($declined)->unlocks($store)->create(['name' => 'Declined ring']);
+        Key::factory()->heldBy($maybe)->unlocks($store)->create(['name' => 'Maybe ring']);
+        Key::factory()->heldBy($uninvited)->unlocks($store)->create(['name' => 'Uninvited ring']);
+        Key::factory()->unlocks($store)->create(['name' => 'Cupboard ring']);
 
         $booking->attendees()->attach($declined->id, [
             'status' => BookingAttendeeStatus::Declined->value,
@@ -679,13 +657,11 @@ class KeyAccessTest extends TestCase
             'lead_instructor_id' => $manager->getKey(),
         ]);
 
-        $store = Lock::factory()->create(['name' => 'Climbing store']);
-        $store->requirements()->create([
-            'activity_id' => $booking->activity_id,
-            'venue_id' => $booking->venue_id,
-        ]);
-        Key::factory()->heldBy($accepted)->create(['name' => 'Accepted ring'])->locks()->attach($store);
-        Key::factory()->heldBy($uninvited)->create(['name' => 'Uninvited ring'])->locks()->attach($store);
+        $store = Lock::factory()
+            ->requiredFor($booking->activity_id, $booking->venue_id)
+            ->create(['name' => 'Climbing store']);
+        Key::factory()->heldBy($accepted)->unlocks($store)->create(['name' => 'Accepted ring']);
+        Key::factory()->heldBy($uninvited)->unlocks($store)->create(['name' => 'Uninvited ring']);
 
         $booking->attendees()->attach($accepted->id, [
             'status' => BookingAttendeeStatus::Accepted->value,
@@ -748,13 +724,11 @@ class KeyAccessTest extends TestCase
             'lead_instructor_id' => $lead->getKey(),
         ]);
 
-        $store = Lock::factory()->create(['name' => 'Climbing store']);
-        $store->requirements()->create([
-            'activity_id' => $booking->activity_id,
-            'venue_id' => $booking->venue_id,
-        ]);
-        Key::factory()->heldBy($accepted)->create(['name' => 'Accepted ring'])->locks()->attach($store);
-        Key::factory()->heldBy($uninvited)->create(['name' => 'Uninvited ring'])->locks()->attach($store);
+        $store = Lock::factory()
+            ->requiredFor($booking->activity_id, $booking->venue_id)
+            ->create(['name' => 'Climbing store']);
+        Key::factory()->heldBy($accepted)->unlocks($store)->create(['name' => 'Accepted ring']);
+        Key::factory()->heldBy($uninvited)->unlocks($store)->create(['name' => 'Uninvited ring']);
 
         foreach ([$lead, $accepted] as $person) {
             $booking->attendees()->attach($person->id, [
@@ -789,12 +763,10 @@ class KeyAccessTest extends TestCase
             'token' => BookingAttendance::generateToken(),
         ]);
 
-        $store = Lock::factory()->create(['name' => 'Climbing store']);
-        $store->requirements()->create([
-            'activity_id' => $booking->activity_id,
-            'venue_id' => $booking->venue_id,
-        ]);
-        Key::factory()->heldBy($holder)->create(['name' => 'Shared climbing'])->locks()->attach($store);
+        $store = Lock::factory()
+            ->requiredFor($booking->activity_id, $booking->venue_id)
+            ->create(['name' => 'Climbing store']);
+        Key::factory()->heldBy($holder)->unlocks($store)->create(['name' => 'Shared climbing']);
 
         Filament::setCurrentPanel('teams');
         $this->actingAs($manager);

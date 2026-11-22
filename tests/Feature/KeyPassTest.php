@@ -397,23 +397,19 @@ class KeyPassTest extends TestCase
         $team->activities()->sync([$activity->getKey()]);
         $team->venues()->sync([$venue->getKey()]);
 
-        $key = Lock::factory()->create(['name' => 'Climbing store']);
-        $key->requirements()->create([
-            'activity_id' => $activity->getKey(),
-            'venue_id' => $venue->getKey(),
-        ]);
+        $key = Lock::factory()
+            ->requiredFor($activity, $venue)
+            ->create(['name' => 'Climbing store']);
 
         return [$team, $key];
     }
 
     private function heldRing(?User $holder, Lock $key, string $name = 'Shared climbing'): Key
     {
-        $ring = $holder instanceof User
-            ? Key::factory()->heldBy($holder)->create(['name' => $name])
-            : Key::factory()->create(['name' => $name]);
+        $factory = Key::factory()->unlocks($key);
 
-        $ring->locks()->attach($key);
-
-        return $ring;
+        return $holder instanceof User
+            ? $factory->heldBy($holder)->create(['name' => $name])
+            : $factory->create(['name' => $name]);
     }
 }

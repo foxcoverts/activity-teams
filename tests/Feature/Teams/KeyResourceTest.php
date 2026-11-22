@@ -33,15 +33,11 @@ class KeyResourceTest extends TestCase
         $manager = User::factory()->teamManager()->create();
         $activity = Activity::factory()->create();
         $venue = Venue::factory()->create();
-        $key = Lock::factory()->create();
-        $key->requirements()->create([
-            'activity_id' => $activity->getKey(),
-            'venue_id' => $venue->getKey(),
-        ]);
-        $zebra = Key::factory()->create(['name' => 'Zebra']);
-        $zebra->locks()->attach($key);
-        $archery = Key::factory()->create(['name' => 'Archery']);
-        $archery->locks()->attach($key);
+        $key = Lock::factory()
+            ->requiredFor($activity, $venue)
+            ->create();
+        $zebra = Key::factory()->unlocks($key)->create(['name' => 'Zebra']);
+        $archery = Key::factory()->unlocks($key)->create(['name' => 'Archery']);
 
         $this->actingAs($manager);
 
@@ -55,20 +51,16 @@ class KeyResourceTest extends TestCase
         $manager = User::factory()->teamManager($team)->create();
         $activity = Activity::factory()->create();
         $venue = Venue::factory()->create();
-        $lock = Lock::factory()->create();
-        $lock->requirements()->create([
-            'activity_id' => $activity->getKey(),
-            'venue_id' => $venue->getKey(),
-        ]);
+        $lock = Lock::factory()
+            ->requiredFor($activity, $venue)
+            ->create();
 
         $otherTeam = Team::factory()->create();
         $otherActivity = Activity::factory()->create();
         $otherVenue = Venue::factory()->create();
-        $otherLock = Lock::factory()->create();
-        $otherLock->requirements()->create([
-            'activity_id' => $otherActivity->getKey(),
-            'venue_id' => $otherVenue->getKey(),
-        ]);
+        $otherLock = Lock::factory()
+            ->requiredFor($otherActivity, $otherVenue)
+            ->create();
 
         $holder = User::factory()->create(['name' => 'Team Holder']);
         $memberElsewhere = User::factory()->teamMember($team)->create(['name' => 'Member Elsewhere']);
@@ -77,12 +69,9 @@ class KeyResourceTest extends TestCase
             'suspended' => true,
         ]);
 
-        $teamKey = Key::factory()->heldBy($holder)->create();
-        $teamKey->locks()->attach($lock);
-        $otherKey = Key::factory()->heldBy($memberElsewhere)->create();
-        $otherKey->locks()->attach($otherLock);
-        $suspendedKey = Key::factory()->heldBy($suspended)->create();
-        $suspendedKey->locks()->attach($lock);
+        $teamKey = Key::factory()->heldBy($holder)->unlocks($lock)->create();
+        $otherKey = Key::factory()->heldBy($memberElsewhere)->unlocks($otherLock)->create();
+        $suspendedKey = Key::factory()->heldBy($suspended)->unlocks($lock)->create();
 
         $this->actingAs($manager);
 
@@ -105,13 +94,10 @@ class KeyResourceTest extends TestCase
         $holder = User::factory()->teamMember($team)->create(['name' => 'Casey Holder']);
         $activity = Activity::factory()->create();
         $venue = Venue::factory()->create();
-        $lock = Lock::factory()->create(['name' => 'Store cupboard']);
-        $lock->requirements()->create([
-            'activity_id' => $activity->getKey(),
-            'venue_id' => $venue->getKey(),
-        ]);
-        $ring = Key::factory()->heldBy($holder)->create(['name' => 'Store key']);
-        $ring->locks()->attach($lock);
+        $lock = Lock::factory()
+            ->requiredFor($activity, $venue)
+            ->create(['name' => 'Store cupboard']);
+        $ring = Key::factory()->heldBy($holder)->unlocks($lock)->create(['name' => 'Store key']);
 
         $this->actingAs($manager);
 
@@ -135,13 +121,10 @@ class KeyResourceTest extends TestCase
         $holder = User::factory()->teamMember($team)->create(['name' => 'Casey Holder']);
         $activity = Activity::factory()->create();
         $venue = Venue::factory()->create();
-        $lock = Lock::factory()->create(['name' => 'Store cupboard']);
-        $lock->requirements()->create([
-            'activity_id' => $activity->getKey(),
-            'venue_id' => $venue->getKey(),
-        ]);
-        $ring = Key::factory()->heldBy($holder)->create(['name' => 'Store key']);
-        $ring->locks()->attach($lock);
+        $lock = Lock::factory()
+            ->requiredFor($activity, $venue)
+            ->create(['name' => 'Store cupboard']);
+        $ring = Key::factory()->heldBy($holder)->unlocks($lock)->create(['name' => 'Store key']);
 
         $this->actingAs($manager);
 
@@ -162,13 +145,10 @@ class KeyResourceTest extends TestCase
         $outsideHolder = User::factory()->create();
         $activity = Activity::factory()->create();
         $venue = Venue::factory()->create();
-        $lock = Lock::factory()->create(['name' => 'Store cupboard']);
-        $lock->requirements()->create([
-            'activity_id' => $activity->getKey(),
-            'venue_id' => $venue->getKey(),
-        ]);
-        $ring = Key::factory()->heldBy($outsideHolder)->create(['name' => 'Store key']);
-        $ring->locks()->attach($lock);
+        $lock = Lock::factory()
+            ->requiredFor($activity, $venue)
+            ->create(['name' => 'Store cupboard']);
+        $ring = Key::factory()->heldBy($outsideHolder)->unlocks($lock)->create(['name' => 'Store key']);
 
         $this->actingAs($admin);
         Filament::setTenant($team);
@@ -193,13 +173,10 @@ class KeyResourceTest extends TestCase
         $holder = User::factory()->teamMember($team)->create(['name' => 'Casey Holder']);
         $activity = Activity::factory()->create();
         $venue = Venue::factory()->create();
-        $lock = Lock::factory()->create(['name' => 'Store cupboard']);
-        $lock->requirements()->create([
-            'activity_id' => $activity->getKey(),
-            'venue_id' => $venue->getKey(),
-        ]);
-        $ring = Key::factory()->heldBy($holder)->create(['name' => 'Store key']);
-        $ring->locks()->attach($lock);
+        $lock = Lock::factory()
+            ->requiredFor($activity, $venue)
+            ->create(['name' => 'Store cupboard']);
+        $ring = Key::factory()->heldBy($holder)->unlocks($lock)->create(['name' => 'Store key']);
 
         $this->actingAs($admin);
         Filament::setTenant($team);
@@ -227,13 +204,10 @@ class KeyResourceTest extends TestCase
         $outsideHolder = User::factory()->create();
         $activity = Activity::factory()->create();
         $venue = Venue::factory()->create();
-        $lock = Lock::factory()->create(['name' => 'Store cupboard']);
-        $lock->requirements()->create([
-            'activity_id' => $activity->getKey(),
-            'venue_id' => $venue->getKey(),
-        ]);
-        $ring = Key::factory()->heldBy($outsideHolder)->create(['name' => 'Store key']);
-        $ring->locks()->attach($lock);
+        $lock = Lock::factory()
+            ->requiredFor($activity, $venue)
+            ->create(['name' => 'Store cupboard']);
+        $ring = Key::factory()->heldBy($outsideHolder)->unlocks($lock)->create(['name' => 'Store key']);
         $this->actingAs($manager);
 
         $memberUrl = MemberResource::getUrl('view', ['record' => $outsideHolder], panel: 'teams', tenant: $team);

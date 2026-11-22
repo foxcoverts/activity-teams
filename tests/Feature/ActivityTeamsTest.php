@@ -538,14 +538,11 @@ class ActivityTeamsTest extends TestCase
         $this->assertTrue($team->activities()->whereKey($activity->getKey())->exists());
         $this->assertTrue($team->venues()->whereKey($venue->getKey())->exists());
 
-        $key = Lock::factory()->create();
-        $key->requirements()->create([
-            'activity_id' => $activity->getKey(),
-            'venue_id' => $venue->getKey(),
-        ]);
+        $key = Lock::factory()
+            ->requiredFor($activity, $venue)
+            ->create();
 
-        $keyRing = Key::factory()->create(['name' => 'Climbing keys']);
-        $keyRing->locks()->attach($key);
+        $keyRing = Key::factory()->unlocks($key)->create(['name' => 'Climbing keys']);
 
         $this->get(KeyResource::getUrl('index'))
             ->assertOk()

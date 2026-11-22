@@ -218,15 +218,12 @@ class InvitePickerTest extends TestCase
     {
         [$manager, $booking, $qualified, $other] = $this->teamWithRequirement();
         $holder = User::factory()->teamMember()->create(['name' => 'Robin Outsider']);
-        $key = Lock::factory()->create(['name' => 'Climbing store']);
-        $key->requirements()->create([
-            'activity_id' => $booking->activity_id,
-            'venue_id' => $booking->venue_id,
-        ]);
-        $ring = Key::factory()->heldBy($holder)->create(['name' => 'Shared climbing']);
-        $ring->locks()->attach($key);
+        $key = Lock::factory()
+            ->requiredFor($booking->activity_id, $booking->venue_id)
+            ->create(['name' => 'Climbing store']);
+        $ring = Key::factory()->heldBy($holder)->unlocks($key)->create(['name' => 'Shared climbing']);
         $spare = Lock::factory()->create(['name' => 'Front door']);
-        Key::factory()->heldBy($other)->create(['name' => 'Spare door'])->locks()->attach($spare);
+        Key::factory()->heldBy($other)->unlocks($spare)->create(['name' => 'Spare door']);
 
         $this->actingAs($manager);
 
