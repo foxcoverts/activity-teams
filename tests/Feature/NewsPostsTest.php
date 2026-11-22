@@ -93,7 +93,11 @@ class NewsPostsTest extends TestCase
                 $label.' News Post',
                 $label,
                 $formattedPublishedAt,
-            ]);
+            ])
+            ->assertSee('by')
+            ->assertSee('John Smith')
+            ->assertSeeHtml('fi-avatar')
+            ->assertSeeHtml('text-xl font-semibold');
     }
 
     public function test_news_posts_list_filters_trashed_posts(): void
@@ -160,7 +164,8 @@ class NewsPostsTest extends TestCase
 
         Livewire::test(ViewNewsPost::class, ['record' => $draftPost->slug])
             ->assertSuccessful()
-            ->assertSee('By '.$manager->name)
+            ->assertSee($manager->name)
+            ->assertDontSee('By '.$manager->name)
             ->assertSee('Draft')
             ->assertActionVisible('publish')
             ->assertActionHidden('republish')
@@ -187,7 +192,8 @@ class NewsPostsTest extends TestCase
             ->assertSchemaStateSet([
                 'published_at' => null,
             ])
-            ->assertSee('By '.$manager->name)
+            ->assertSee($manager->name)
+            ->assertDontSee('By '.$manager->name)
             ->assertSee('Draft')
             ->callAction('schedule', [
                 'published_at' => $scheduledAt,
@@ -853,6 +859,37 @@ class NewsPostsTest extends TestCase
         Filament::setTenant($team);
         $this->assertTrue($team->hasNewsForNavigation());
         $this->assertTrue(NewsPostResource::shouldRegisterNavigation());
+    }
+
+    public function test_the_news_view_shows_a_horizontal_author_byline_with_avatar_and_time(): void
+    {
+        $manager = User::factory()->teamManager()->create([
+            'name' => 'Ada Manager',
+            'timezone' => 'Europe/London',
+        ]);
+        $team = $manager->managedTeams()->firstOrFail();
+        $publishedAt = now()->subHours(3);
+        $post = NewsPost::factory()->forTeam($team)->published()->create([
+            'author_id' => $manager->getKey(),
+            'published_at' => $publishedAt,
+            'title' => 'Avatar byline post',
+        ]);
+
+        $this->actingAs($manager);
+        Filament::setTenant($team);
+
+        $avatarUrl = (string) $manager->getFilamentAvatarUrl();
+        $relative = $publishedAt->timezone('Europe/London')->diffForHumans();
+
+        Livewire::test(ViewNewsPost::class, ['record' => $post->slug])
+            ->assertSuccessful()
+            ->assertSee('by')
+            ->assertSee('Ada Manager')
+            ->assertSee($relative)
+            ->assertSee('Published')
+            ->assertDontSee('By Ada Manager')
+            ->assertSeeHtml('fi-avatar')
+            ->assertSee(str_replace('&', '&amp;', $avatarUrl), false);
     }
 
     /**
