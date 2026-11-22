@@ -54,30 +54,59 @@ class SendBookingNotification implements ShouldQueue
         }
 
         $kinds = $pending['kinds'] ?? [];
+        $inviteUserIds = array_values(array_unique(array_map(
+            fn (mixed $userId): string => (string) $userId,
+            $pending['invite_user_ids'] ?? [],
+        )));
 
+        // First-time invitees in this window always get a plain invitation, even when
+        // the booking was edited or confirmed in the same debounce window.
         if (in_array(BookingNotificationWindow::CONFIRMED, $kinds, true) && $booking->isConfirmed()) {
             $this->sendStatus($booking, fn (User $attendee): BookingConfirmedMail => new BookingConfirmedMail(
                 $booking,
                 $attendee,
                 $pending['changes'] ?? [],
                 $pending['previous_schedule'] ?? null,
+            ), onlyUserIds: $this->statusRecipientUserIds(
+                $booking,
+                $pending['recipient_user_ids'] ?? null,
+                $inviteUserIds,
             ));
-
-            return;
-        }
-
-        if (in_array(BookingNotificationWindow::UPDATED, $kinds, true)) {
+        } elseif (in_array(BookingNotificationWindow::UPDATED, $kinds, true)) {
             $this->sendStatus($booking, fn (User $attendee): BookingChangedMail => new BookingChangedMail(
                 $booking,
                 $attendee,
                 $pending['changes'] ?? [],
                 $pending['previous_schedule'] ?? null,
-            ), skipOrdinaryDeclined: true, onlyUserIds: $pending['recipient_user_ids'] ?? null);
-
-            return;
+            ), skipOrdinaryDeclined: true, onlyUserIds: $this->statusRecipientUserIds(
+                $booking,
+                $pending['recipient_user_ids'] ?? null,
+                $inviteUserIds,
+            ));
         }
 
-        $this->sendInvites($booking, $pending['invite_user_ids'] ?? []);
+        $this->sendInvites($booking, $inviteUserIds);
+    }
+
+    /**
+     * @param  list<string>|null  $recipientUserIds
+     * @param  list<string>  $inviteUserIds
+     * @return list<string>|null
+     */
+    private function statusRecipientUserIds(Booking $booking, ?array $recipientUserIds, array $inviteUserIds): ?array
+    {
+        if ($inviteUserIds === []) {
+            return $recipientUserIds;
+        }
+
+        $candidates = $recipientUserIds ?? $booking->attendees
+            ->map(fn (User $attendee): string => (string) $attendee->getKey())
+            ->all();
+
+        return array_values(array_filter(
+            $candidates,
+            fn (string $userId): bool => ! in_array($userId, $inviteUserIds, true),
+        ));
     }
 
     /**
