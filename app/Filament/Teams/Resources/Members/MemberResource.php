@@ -12,10 +12,12 @@ use App\Filament\Teams\NavigationGroup;
 use App\Filament\Teams\Resources\Members\Pages\EditMember;
 use App\Filament\Teams\Resources\Members\Pages\ListMembers;
 use App\Filament\Teams\Resources\Members\Pages\ViewMember;
-use App\Filament\Teams\Resources\Members\RelationManagers\LocksRelationManager;
+use App\Filament\Teams\Resources\Members\RelationManagers\AccessRelationManager;
+use App\Filament\Teams\Resources\Members\RelationManagers\KeysRelationManager;
 use App\Filament\Teams\Resources\Members\Schemas\MemberForm;
 use App\Filament\Teams\Resources\Members\Schemas\MemberInfolist;
 use App\Filament\Teams\Resources\Members\Tables\MembersTable;
+use App\Models\Key;
 use App\Models\Lock;
 use App\Models\Team;
 use App\Models\User;
@@ -107,7 +109,8 @@ class MemberResource extends Resource
     public static function getRelations(): array
     {
         return [
-            LocksRelationManager::class,
+            AccessRelationManager::class,
+            KeysRelationManager::class,
             QualificationsRelationManager::class,
         ];
     }
@@ -197,9 +200,9 @@ class MemberResource extends Resource
     }
 
     /**
-     * @return list<array{name: string, required_for: list<string>}>
+     * @return list<array{name: string, unlocks: list<string>, required_for: list<string>}>
      */
-    public static function openedKeyLines(User $member): array
+    public static function heldKeyLines(User $member): array
     {
         $team = static::currentTeam();
 
@@ -207,11 +210,19 @@ class MemberResource extends Resource
             return [];
         }
 
-        return $member->openedLocksQuery($team)
-            ->with(['requirements.activity', 'requirements.venue'])
+        return $member->keys()
+            ->relevantTo($team)
+            ->with([
+                'locks.covers.requirements.activity',
+                'locks.covers.requirements.venue',
+                'locks.requirements.activity',
+                'locks.requirements.venue',
+            ])
+            ->orderBy('name')
             ->get()
-            ->map(fn (Lock $key): array => [
+            ->map(fn (Key $key): array => [
                 'name' => $key->name,
+                'unlocks' => $key->lockNames(),
                 'required_for' => $key->requirementSummariesFor($team),
             ])
             ->all();
@@ -220,7 +231,7 @@ class MemberResource extends Resource
     public static function heldKeysAction(): Action
     {
         return Action::make('heldKeys')
-            ->label(__('Locks'))
+            ->label(__('Keys'))
             ->modalHeading(fn (User $record): string => $record->name)
             ->modalWidth(Width::Large)
             ->modalSubmitAction(false)
@@ -228,7 +239,7 @@ class MemberResource extends Resource
             ->visible(fn (?User $record): bool => $record instanceof User
                 && $record->namesOfOpenedLocks(static::teamLocks()) !== [])
             ->modalContent(fn (User $record): View => view('filament.members.held-keys', [
-                'keys' => static::openedKeyLines($record),
+                'keys' => static::heldKeyLines($record),
             ]));
     }
 

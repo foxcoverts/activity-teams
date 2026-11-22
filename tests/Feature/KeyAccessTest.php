@@ -22,7 +22,8 @@ use App\Filament\Teams\Resources\Keys\KeyResource as TeamKeyResource;
 use App\Filament\Teams\Resources\Members\MemberResource;
 use App\Filament\Teams\Resources\Members\Pages\ListMembers;
 use App\Filament\Teams\Resources\Members\Pages\ViewMember;
-use App\Filament\Teams\Resources\Members\RelationManagers\LocksRelationManager;
+use App\Filament\Teams\Resources\Members\RelationManagers\AccessRelationManager;
+use App\Filament\Teams\Resources\Members\RelationManagers\KeysRelationManager as MemberKeysRelationManager;
 use App\Livewire\BookingKeysPanel;
 use App\Models\Activity;
 use App\Models\Audience;
@@ -529,6 +530,7 @@ class KeyAccessTest extends TestCase
             ->assertTableColumnStateSet('keys', null, $shooter)
             ->assertDontSee('Britannia shooting store')
             ->mountAction(TestAction::make('heldKeys')->table($climber))
+            ->assertMountedActionModalSee('Shared climbing')
             ->assertMountedActionModalSee('Climbing store')
             ->assertMountedActionModalSee('Scout climbing at Campsite')
             ->assertMountedActionModalSee('Pat Climber');
@@ -539,25 +541,55 @@ class KeyAccessTest extends TestCase
             ->assertCanSeeTableRecords([$climber, $warden])
             ->assertCanNotSeeTableRecords([$shooter]);
 
-        Livewire::test(LocksRelationManager::class, [
+        $climberKey = $climber->keys()->first();
+        $wardenRing = $warden->keys()->first();
+
+        Livewire::test(MemberKeysRelationManager::class, [
+            'ownerRecord' => $climber,
+            'pageClass' => ViewMember::class,
+        ])
+            ->assertCanSeeTableRecords([$climberKey])
+            ->assertTableColumnStateSet('unlocks', ['Climbing store'], $climberKey)
+            ->assertTableColumnStateSet('required_for', ['Scout climbing at Campsite'], $climberKey)
+            ->assertDontSee('Britannia shooting store')
+            ->assertDontSee('Warden ring')
+            ->assertDontSee('Shooting ring');
+
+        Livewire::test(MemberKeysRelationManager::class, [
+            'ownerRecord' => $warden,
+            'pageClass' => ViewMember::class,
+        ])
+            ->assertCanSeeTableRecords([$wardenRing])
+            ->assertTableColumnStateSet('unlocks', ['Warden key'], $wardenRing)
+            ->assertTableColumnStateSet('required_for', ['Scout climbing at Campsite'], $wardenRing)
+            ->assertDontSee('Britannia shooting store')
+            ->assertDontSee('Shared climbing')
+            ->assertDontSee('Shooting ring');
+
+        Livewire::test(MemberKeysRelationManager::class, [
+            'ownerRecord' => $shooter,
+            'pageClass' => ViewMember::class,
+        ])->assertForbidden();
+
+        Livewire::test(AccessRelationManager::class, [
             'ownerRecord' => $climber,
             'pageClass' => ViewMember::class,
         ])
             ->assertCanSeeTableRecords([$store])
-            ->assertTableColumnStateSet('required_for', ['Scout climbing at Campsite'], $store)
+            ->assertTableColumnStateSet('opens_for', ['Scout climbing at Campsite'], $store)
             ->assertDontSee('Britannia shooting store')
             ->assertDontSee('Warden key');
 
-        Livewire::test(LocksRelationManager::class, [
+        Livewire::test(AccessRelationManager::class, [
             'ownerRecord' => $warden,
             'pageClass' => ViewMember::class,
         ])
             ->assertCanSeeTableRecords([$store])
-            ->assertTableColumnStateSet('required_for', ['Scout climbing at Campsite'], $store)
+            ->assertTableColumnStateSet('opens_for', ['Scout climbing at Campsite'], $store)
             ->assertDontSee('Britannia shooting store')
             ->assertDontSee('Warden key');
 
-        Livewire::test(LocksRelationManager::class, [
+        Livewire::test(AccessRelationManager::class, [
             'ownerRecord' => $shooter,
             'pageClass' => ViewMember::class,
         ])->assertForbidden();

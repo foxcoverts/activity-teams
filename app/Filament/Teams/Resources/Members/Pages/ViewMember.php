@@ -3,11 +3,13 @@
 namespace App\Filament\Teams\Resources\Members\Pages;
 
 use App\Filament\Concerns\AcknowledgesPersonalData;
+use App\Filament\RelationManagers\QualificationsRelationManager;
 use App\Filament\Teams\Resources\Members\MemberResource;
 use App\Models\User;
 use Filament\Actions\ActionGroup;
 use Filament\Actions\EditAction;
 use Filament\Resources\Pages\ViewRecord;
+use Filament\Resources\RelationManagers\RelationGroup;
 use Filament\Support\Icons\Heroicon;
 
 class ViewMember extends ViewRecord
@@ -33,5 +35,35 @@ class ViewMember extends ViewRecord
                 ->icon(Heroicon::OutlinedCog6Tooth)
                 ->button(),
         ];
+    }
+
+    public function renderingHasRelationManagers(): void
+    {
+        $managers = $this->getCachedRelationManagers();
+
+        if (array_key_exists($this->activeRelationManager ?? '', $managers)) {
+            return;
+        }
+
+        if ($this->hasCombinedRelationManagerTabsWithContent()) {
+            return;
+        }
+
+        foreach ($managers as $key => $manager) {
+            if ($manager instanceof RelationGroup) {
+                continue;
+            }
+
+            /** @var class-string $class */
+            $class = $this->normalizeRelationManagerClass($manager);
+
+            if ($class === QualificationsRelationManager::class) {
+                $this->activeRelationManager = $key;
+
+                return;
+            }
+        }
+
+        $this->activeRelationManager = array_key_first($managers);
     }
 }
