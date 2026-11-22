@@ -33,6 +33,7 @@ use Filament\Actions\ActionGroup;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\Select;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Validation\ValidationException;
@@ -49,6 +50,7 @@ class BookingStatusTest extends TestCase
         parent::setUp();
 
         Filament::setCurrentPanel('teams');
+        $this->travelTo(Carbon::parse('2026-10-01 12:00:00', 'UTC'));
     }
 
     public function test_a_new_booking_is_tentative_and_cannot_be_created_confirmed(): void

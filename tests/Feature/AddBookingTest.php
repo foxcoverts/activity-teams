@@ -46,6 +46,7 @@ class AddBookingTest extends TestCase
         parent::setUp();
 
         Filament::setCurrentPanel('teams');
+        $this->travelTo(Carbon::parse('2026-10-01 12:00:00', 'UTC'));
     }
 
     public function test_team_leader_can_create_a_booking(): void
@@ -988,6 +989,151 @@ class AddBookingTest extends TestCase
             ])
             ->call('create')
             ->assertHasNoFormErrors();
+    }
+
+    public function test_creating_a_past_booking_requires_confirmation(): void
+    {
+        $user = User::factory()->teamManager()->create();
+        $activity = Activity::factory()->create();
+        $venue = Venue::factory()->create();
+        $audienceId = $this->offerAudience($activity);
+
+        $this->actingAs($user);
+        $this->travelTo(Carbon::parse('2026-11-22 12:00:00', 'UTC'));
+
+        Livewire::test(CreateBooking::class)
+            ->fillForm([
+                'activity_id' => $activity->id,
+                'audience_id' => $audienceId,
+                'venue_id' => $venue->id,
+                'start_date' => '2026-10-24',
+                'start_time' => '09:30',
+                'end_time' => '11:30',
+                'timezone' => 'Europe/London',
+            ])
+            ->assertFormFieldIsVisible('confirm_past')
+            ->call('create')
+            ->assertHasFormErrors(['confirm_past' => 'Confirm that this booking starts in the past.']);
+
+        $this->assertSame(0, Booking::query()->count());
+    }
+
+    public function test_creating_a_past_booking_succeeds_when_confirmed(): void
+    {
+        $user = User::factory()->teamManager()->create();
+        $activity = Activity::factory()->create();
+        $venue = Venue::factory()->create();
+        $audienceId = $this->offerAudience($activity);
+
+        $this->actingAs($user);
+        $this->travelTo(Carbon::parse('2026-11-22 12:00:00', 'UTC'));
+
+        Livewire::test(CreateBooking::class)
+            ->fillForm([
+                'activity_id' => $activity->id,
+                'audience_id' => $audienceId,
+                'venue_id' => $venue->id,
+                'start_date' => '2026-10-24',
+                'start_time' => '09:30',
+                'end_time' => '11:30',
+                'timezone' => 'Europe/London',
+                'confirm_past' => true,
+            ])
+            ->call('create')
+            ->assertHasNoFormErrors();
+
+        $booking = Booking::query()->first();
+        $this->assertNotNull($booking);
+        $this->assertSame('2026-10-24 08:30', $booking->start_at->utc()->format('Y-m-d H:i'));
+    }
+
+    public function test_creating_a_future_booking_hides_the_past_confirmation(): void
+    {
+        $user = User::factory()->teamManager()->create();
+        $activity = Activity::factory()->create();
+        $venue = Venue::factory()->create();
+        $audienceId = $this->offerAudience($activity);
+
+        $this->actingAs($user);
+
+        Livewire::test(CreateBooking::class)
+            ->fillForm([
+                'activity_id' => $activity->id,
+                'audience_id' => $audienceId,
+                'venue_id' => $venue->id,
+                'start_date' => '2026-10-24',
+                'start_time' => '09:30',
+                'end_time' => '11:30',
+                'timezone' => 'Europe/London',
+            ])
+            ->assertFormFieldIsHidden('confirm_past')
+            ->call('create')
+            ->assertHasNoFormErrors();
+    }
+
+    public function test_moving_a_booking_into_the_past_requires_confirmation(): void
+    {
+        $user = User::factory()->teamManager()->create();
+        $booking = Booking::factory()->create([
+            'start_at' => Carbon::parse('2026-10-24 08:30:00', 'UTC'),
+            'end_at' => Carbon::parse('2026-10-24 10:30:00', 'UTC'),
+            'timezone' => 'Europe/London',
+        ]);
+
+        $this->actingAs($user);
+        $this->travelTo(Carbon::parse('2026-10-20 12:00:00', 'UTC'));
+
+        Livewire::test(EditBooking::class, ['record' => $booking->getRouteKey()])
+            ->fillForm([
+                'start_date' => '2026-10-17',
+                'start_time' => '09:30',
+                'end_time' => '11:30',
+                'timezone' => 'Europe/London',
+            ])
+            ->assertFormFieldIsVisible('confirm_past')
+            ->call('save')
+            ->assertHasFormErrors(['confirm_past' => 'Confirm that you want to move this booking into the past.']);
+
+        Livewire::test(EditBooking::class, ['record' => $booking->getRouteKey()])
+            ->fillForm([
+                'start_date' => '2026-10-17',
+                'start_time' => '09:30',
+                'end_time' => '11:30',
+                'timezone' => 'Europe/London',
+                'confirm_past' => true,
+            ])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $booking->refresh();
+        $this->assertSame('2026-10-17 08:30', $booking->start_at->utc()->format('Y-m-d H:i'));
+    }
+
+    public function test_editing_an_already_past_booking_does_not_require_past_confirmation(): void
+    {
+        $user = User::factory()->teamManager()->create();
+        $booking = Booking::factory()->create([
+            'start_at' => Carbon::parse('2026-10-17 08:30:00', 'UTC'),
+            'end_at' => Carbon::parse('2026-10-17 10:30:00', 'UTC'),
+            'timezone' => 'Europe/London',
+        ]);
+
+        $this->actingAs($user);
+        $this->travelTo(Carbon::parse('2026-11-22 12:00:00', 'UTC'));
+
+        Livewire::test(EditBooking::class, ['record' => $booking->getRouteKey()])
+            ->fillForm([
+                'start_date' => '2026-10-18',
+                'start_time' => '09:30',
+                'end_time' => '11:30',
+                'timezone' => 'Europe/London',
+            ])
+            ->assertFormFieldIsHidden('confirm_past')
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $booking->refresh();
+        $this->assertSame('2026-10-18 08:30', $booking->start_at->utc()->format('Y-m-d H:i'));
     }
 
     private function offerAudience(Activity $activity): string

@@ -244,6 +244,29 @@ class BookingForm
                     static::changeScheduleTimezone($state, $old, $set, $get);
                 })
                 ->columnSpanFull(),
+            Toggle::make('confirm_past')
+                ->label(__('This booking starts in the past'))
+                ->helperText(fn (string $operation): string => $operation === 'edit'
+                    ? __('Check here to confirm you want to move this booking into the past.')
+                    : __('Check here to confirm you want to create this booking in the past.'))
+                ->visible(fn (Get $get, string $operation, ?Booking $record): bool => static::shouldConfirmPastStart(
+                    $get,
+                    $operation,
+                    $record,
+                ))
+                ->accepted(fn (Get $get, string $operation, ?Booking $record): bool => static::shouldConfirmPastStart(
+                    $get,
+                    $operation,
+                    $record,
+                ))
+                ->validationMessages([
+                    'accepted' => fn (string $operation): string => $operation === 'edit'
+                        ? __('Confirm that you want to move this booking into the past.')
+                        : __('Confirm that this booking starts in the past.'),
+                ])
+                ->dehydrated(false)
+                ->default(false)
+                ->columnSpanFull(),
             Select::make('venue_id')
                 ->label(__('Venue'))
                 ->options(fn (): array => static::venueOptions())
@@ -523,6 +546,36 @@ class BookingForm
     {
         return $operation === 'edit'
             || (filled($get('end_date')) && $get('end_date') !== $get('start_date'));
+    }
+
+    public static function shouldConfirmPastStart(Get $get, string $operation, ?Booking $record = null): bool
+    {
+        $start = static::scheduleStartFromGet($get);
+
+        if ($start === null || ! $start->lt(now())) {
+            return false;
+        }
+
+        if ($operation === 'create') {
+            return true;
+        }
+
+        if ($operation !== 'edit') {
+            return false;
+        }
+
+        $previousStart = $record?->start_at;
+
+        return $previousStart === null || ! $previousStart->lt(now());
+    }
+
+    public static function scheduleStartFromGet(Get $get): ?Carbon
+    {
+        return static::makeScheduleDateTime(
+            $get('start_date'),
+            $get('start_time'),
+            static::scheduleTimezone($get),
+        );
     }
 
     public static function defaultScheduleStart(): Carbon

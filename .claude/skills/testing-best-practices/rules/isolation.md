@@ -40,6 +40,8 @@ Fake the exact endpoint used by each test. Do not call `Http::fake()` without an
 
 - Freeze the time or move the time in each test that depends on a date, a period, or a timestamp.
 - Use the framework helpers `$this->freezeTime()`, `$this->travelTo()`, `$this->travel()`, and `$this->travelBack()`. Do not call `Carbon::setTestNow()`.
+- Prefer `$this->travelTo(...)` (or `freezeTime`) with **fixed fixture dates** over relative dates like `now()->addWeek()` when the test asserts exact schedule values (especially timezone/UTC strings).
+- Use relative `now()->…` dates only when the exact clock value is unimportant and “past vs future relative to now” is the whole point.
 - Use `Str::createRandomStringsUsing()` to fix a generated string, if the test asserts an identifier or a slug.
 - Use `Sleep::fake()` instead of a real sleep, and assert the sleeps that the code requests.
 - Restore the time and the randomness after each test, if the suite does not restore them for every test.
