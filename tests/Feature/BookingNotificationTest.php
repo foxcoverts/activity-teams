@@ -17,7 +17,7 @@ use App\Mail\BookingConfirmedMail;
 use App\Mail\BookingInviteMail;
 use App\Mail\LeadNeededMail;
 use App\Models\Activity;
-use App\Models\ActivityAudience;
+use App\Models\Audience;
 use App\Models\Booking;
 use App\Models\BookingAttendance;
 use App\Models\User;
@@ -412,11 +412,8 @@ class BookingNotificationTest extends TestCase
     public function test_changing_the_activity_bumps_sequence_and_sends_an_update(): void
     {
         [$booking, $attendee, $actor] = $this->bookingWithAttendee();
-        $kayaking = Activity::factory()->create(['name' => 'Kayaking']);
-        ActivityAudience::factory()->create([
-            'activity_id' => $kayaking->getKey(),
-            'audience_id' => $booking->audience_id,
-        ]);
+        $audience = Audience::query()->findOrFail($booking->audience_id);
+        $kayaking = Activity::factory()->withAudience($audience)->create(['name' => 'Kayaking']);
         $booking->activity_id = $kayaking->id;
         $booking->save();
 

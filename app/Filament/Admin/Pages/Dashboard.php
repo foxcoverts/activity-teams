@@ -2,6 +2,7 @@
 
 namespace App\Filament\Admin\Pages;
 
+use App\Filament\Admin\Widgets\ActivitiesWithoutAudiencesWidget;
 use App\Filament\Admin\Widgets\ActivitiesWithoutTeamsWidget;
 use App\Filament\Admin\Widgets\AdminAllCaughtUpWidget;
 use App\Filament\Admin\Widgets\AdminSnapshotWidget;
@@ -56,6 +57,7 @@ class Dashboard extends BaseDashboard
             PendingSiteInvitesWidget::class,
             TeamsWithoutManagersWidget::class,
             ActivitiesWithoutTeamsWidget::class,
+            ActivitiesWithoutAudiencesWidget::class,
             VenuesWithoutTeamsWidget::class,
             AudiencesWithoutActivitiesWidget::class,
             KeysWithoutLocksWidget::class,
@@ -165,6 +167,7 @@ class Dashboard extends BaseDashboard
             PendingSiteInvitesWidget::class => $attention->pendingSiteInvites()->count(),
             TeamsWithoutManagersWidget::class => $attention->teamsWithoutManagers()->count(),
             ActivitiesWithoutTeamsWidget::class => $attention->activitiesWithoutTeams()->count(),
+            ActivitiesWithoutAudiencesWidget::class => $attention->activitiesWithoutAudiences()->count(),
             VenuesWithoutTeamsWidget::class => $attention->venuesWithoutTeams()->count(),
             AudiencesWithoutActivitiesWidget::class => $attention->audiencesWithoutActivities()->count(),
             KeysWithoutLocksWidget::class => $attention->keysWithoutLocks()->count(),

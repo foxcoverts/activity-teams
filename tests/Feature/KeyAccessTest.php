@@ -25,7 +25,7 @@ use App\Filament\Teams\Resources\Members\Pages\ViewMember;
 use App\Filament\Teams\Resources\Members\RelationManagers\LocksRelationManager;
 use App\Livewire\BookingKeysPanel;
 use App\Models\Activity;
-use App\Models\ActivityAudience;
+use App\Models\Audience;
 use App\Models\Booking;
 use App\Models\BookingAttendance;
 use App\Models\Key;
@@ -385,14 +385,16 @@ class KeyAccessTest extends TestCase
         $lead = User::factory()->teamManager()->create(['name' => 'Lead Instructor', 'phone' => '07000999888']);
         $holder = User::factory()->teamMember()->create(['name' => 'Sam Holder']);
         $member = User::factory()->teamMember()->create(['name' => 'Casey Member']);
-        $activity = Activity::factory()->create();
-        ActivityAudience::factory()->for($activity)->create()->qualificationRequirements()->create([
-            'kind' => 'scout_permit',
-            'criteria' => [
-                'activity' => 'Climbing and Abseiling',
-                'permit_type' => 'leadership',
+        $audience = Audience::factory()->create();
+        $activity = Activity::factory()->withAudience($audience, [
+            [
+                'kind' => 'scout_permit',
+                'criteria' => [
+                    'activity' => 'Climbing and Abseiling',
+                    'permit_type' => 'leadership',
+                ],
             ],
-        ]);
+        ])->create();
         Qualification::factory()->forMember($lead)->scoutPermit()->create([
             'expires_on' => now()->addYear()->toDateString(),
         ]);

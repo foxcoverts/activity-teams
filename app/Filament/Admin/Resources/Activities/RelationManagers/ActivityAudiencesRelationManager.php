@@ -3,6 +3,7 @@
 namespace App\Filament\Admin\Resources\Activities\RelationManagers;
 
 use App\Filament\Admin\Resources\Activities\Schemas\ActivityAudienceForm;
+use App\Filament\Support\RefreshesNavigationChrome;
 use App\Models\Activity;
 use App\Models\ActivityAudience;
 use Filament\Actions\CreateAction;
@@ -15,6 +16,7 @@ use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Livewire\Component;
 
 class ActivityAudiencesRelationManager extends RelationManager
 {
@@ -69,23 +71,38 @@ class ActivityAudiencesRelationManager extends RelationManager
                 CreateAction::make()
                     ->label(__('Add audience'))
                     ->modalHeading(__('Add audience'))
-                    ->modalIcon(Heroicon::OutlinedMegaphone),
+                    ->modalIcon(Heroicon::OutlinedMegaphone)
+                    ->after(function (Component $livewire): void {
+                        RefreshesNavigationChrome::dispatch($livewire);
+                    }),
             ])
             ->recordActions([
                 EditAction::make()
                     ->modalIcon(Heroicon::OutlinedMegaphone),
                 DeleteAction::make()
                     ->before(function (ActivityAudience $record, DeleteAction $action): void {
-                        if (! $record->isUsedByBookings()) {
-                            return;
+                        if ($record->isUsedByBookings()) {
+                            Notification::make()
+                                ->title(__('This audience is used by a booking.'))
+                                ->danger()
+                                ->send();
+
+                            $action->halt();
                         }
 
-                        Notification::make()
-                            ->title(__('This audience is used by a booking.'))
-                            ->danger()
-                            ->send();
+                        $siblings = $record->activity?->activityAudiences()->count() ?? 0;
 
-                        $action->halt();
+                        if ($siblings <= 1) {
+                            Notification::make()
+                                ->title(__('An activity must keep at least one audience.'))
+                                ->danger()
+                                ->send();
+
+                            $action->halt();
+                        }
+                    })
+                    ->after(function (Component $livewire): void {
+                        RefreshesNavigationChrome::dispatch($livewire);
                     }),
             ]);
     }

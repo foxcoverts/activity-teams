@@ -3,7 +3,8 @@
 namespace App\Filament\Admin\Resources\Users\RelationManagers;
 
 use App\Enums\MembershipRole;
-use App\Filament\Admin\Resources\Members\MemberResource;
+use App\Filament\Support\RefreshesNavigationChrome;
+use App\Filament\Teams\Resources\Members\MemberResource;
 use App\Models\Team;
 use App\Models\TeamMembership;
 use App\Models\User;
@@ -17,6 +18,7 @@ use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Validation\ValidationException;
+use Livewire\Component;
 
 class MembershipsRelationManager extends RelationManager
 {
@@ -61,7 +63,7 @@ class MembershipsRelationManager extends RelationManager
                             ->inline()
                             ->required(),
                     ])
-                    ->action(function (array $data): void {
+                    ->action(function (array $data, Component $livewire): void {
                         $owner = $this->getOwnerRecord();
 
                         if (! $owner instanceof User) {
@@ -74,6 +76,8 @@ class MembershipsRelationManager extends RelationManager
                             : MembershipRole::from((string) $data['role']);
 
                         $team->grant($owner, $role);
+
+                        RefreshesNavigationChrome::dispatch($livewire);
                     }),
             ])
             ->recordActions([
@@ -93,7 +97,7 @@ class MembershipsRelationManager extends RelationManager
                             ->inline()
                             ->required(),
                     ])
-                    ->action(function (TeamMembership $record, array $data, Schema $schema): void {
+                    ->action(function (TeamMembership $record, array $data, Schema $schema, Component $livewire): void {
                         $record->loadMissing('team', 'user');
                         $role = $data['role'] instanceof MembershipRole
                             ? $data['role']
@@ -104,6 +108,8 @@ class MembershipsRelationManager extends RelationManager
                         } catch (ValidationException $exception) {
                             MemberResource::reportOnRole($exception, $schema);
                         }
+
+                        RefreshesNavigationChrome::dispatch($livewire);
                     }),
                 Action::make('leave')
                     ->label('Leave team')
@@ -112,14 +118,18 @@ class MembershipsRelationManager extends RelationManager
                     ->visible(fn (TeamMembership $record): bool => $record->left_at === null && ($owner = $this->getOwnerRecord()) instanceof User && ! $owner->trashed())
                     ->disabled(fn (TeamMembership $record): bool => static::cannotStepDown($record))
                     ->tooltip(fn (TeamMembership $record): ?string => static::stepDownHint($record))
-                    ->action(function (TeamMembership $record): void {
+                    ->action(function (TeamMembership $record, Component $livewire): void {
                         $record->loadMissing('team', 'user');
 
                         try {
                             $record->team->recordLeft($record->user);
                         } catch (ValidationException $exception) {
                             MemberResource::reportAsNotification($exception);
+
+                            return;
                         }
+
+                        RefreshesNavigationChrome::dispatch($livewire);
                     }),
             ]);
     }

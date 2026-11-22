@@ -341,8 +341,13 @@ class BookingForm
             return [];
         }
 
-        return $team->{$relation}()
-            ->orderBy('name')
+        $query = $team->{$relation}()->orderBy('name');
+
+        if ($relation === 'activities') {
+            $query->withAudiences();
+        }
+
+        return $query
             ->pluck('name', $relation === 'activities' ? 'activities.id' : 'venues.id')
             ->all();
     }
@@ -361,7 +366,13 @@ class BookingForm
         ) {
             $activity = Activity::query()->find($currentActivityId);
             $name = $activity instanceof Activity ? $activity->name : $currentActivityId;
-            $options[$currentActivityId] = __(':name (removed from team)', ['name' => $name]);
+            $team = Filament::getTenant();
+            $onTeam = $team instanceof Team
+                && $team->activities()->whereKey($currentActivityId)->exists();
+
+            $options[$currentActivityId] = $onTeam
+                ? __(':name (no audiences)', ['name' => $name])
+                : __(':name (removed from team)', ['name' => $name]);
         }
 
         return [
@@ -374,7 +385,7 @@ class BookingForm
     {
         $team = Filament::getTenant();
 
-        return $team instanceof Team && $team->activities()->exists();
+        return $team instanceof Team && $team->activities()->withAudiences()->exists();
     }
 
     public static function venueOptions(): array

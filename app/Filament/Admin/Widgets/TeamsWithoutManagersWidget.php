@@ -3,6 +3,8 @@
 namespace App\Filament\Admin\Widgets;
 
 use App\Filament\Admin\Resources\Teams\TeamResource;
+use App\Filament\Teams\Resources\Members\MemberResource;
+use App\Models\Team;
 use App\Models\User;
 use App\Support\AdminAttention;
 use App\Support\Palette;
@@ -34,7 +36,7 @@ class TeamsWithoutManagersWidget extends AdminSection
             'rows' => $rows->take(AdminAttention::PREVIEW_LIMIT)->values(),
             'total' => $total,
             'rowKeyPrefix' => 'team-no-manager',
-            'recordUrl' => fn ($record): string => TeamResource::getUrl('edit', ['record' => $record]),
+            'recordUrl' => fn (Team $record): string => MemberResource::getUrl('index', panel: 'teams', tenant: $record),
             'seeAllUrl' => TeamResource::getUrl('index'),
             'seeAllLabel' => __('Browse teams'),
             'previewLimit' => AdminAttention::PREVIEW_LIMIT,

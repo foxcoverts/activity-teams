@@ -3,6 +3,7 @@
 namespace App\Filament\Admin\Resources\InboundMails\Tables;
 
 use App\Enums\InboundMailOutcome;
+use App\Filament\Support\RefreshesNavigationChrome;
 use App\Models\InboundMail;
 use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
@@ -80,8 +81,7 @@ class InboundMailsTable
                     ->action(function (InboundMail $record, Component $livewire): void {
                         $record->markReviewed()->save();
 
-                        $livewire->dispatch('refresh-sidebar');
-                        $livewire->dispatch('refresh-topbar');
+                        RefreshesNavigationChrome::dispatch($livewire);
 
                         Notification::make()
                             ->title(__('Marked reviewed'))
@@ -90,16 +90,14 @@ class InboundMailsTable
                     }),
                 DeleteAction::make()
                     ->after(function (Component $livewire): void {
-                        $livewire->dispatch('refresh-sidebar');
-                        $livewire->dispatch('refresh-topbar');
+                        RefreshesNavigationChrome::dispatch($livewire);
                     }),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
                     DeleteBulkAction::make()
                         ->after(function (Component $livewire): void {
-                            $livewire->dispatch('refresh-sidebar');
-                            $livewire->dispatch('refresh-topbar');
+                            RefreshesNavigationChrome::dispatch($livewire);
                         }),
                 ]),
             ]);

@@ -2,6 +2,7 @@
 
 namespace App\Filament\Teams\Resources\Activities;
 
+use App\Filament\Support\RefreshesNavigationChrome;
 use App\Filament\Teams\NavigationGroup;
 use App\Filament\Teams\Resources\Activities\Pages\ListActivities;
 use App\Models\Activity;
@@ -19,6 +20,7 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Livewire\Component;
 
 class ActivityResource extends Resource
 {
@@ -106,13 +108,25 @@ class ActivityResource extends Resource
                     ),
                 TextColumn::make('default_audience')
                     ->label(__('Default audience'))
-                    ->state(fn (Activity $record): string => static::defaultAudience($record)?->name ?? __('Set default audience'))
+                    ->state(function (Activity $record): string {
+                        $default = static::defaultAudience($record);
+
+                        if ($default !== null) {
+                            return $default->name;
+                        }
+
+                        return $record->activityAudiences->isEmpty()
+                            ? __('None')
+                            : __('Set default audience');
+                    })
+                    ->disabledClick(fn (Activity $record): bool => $record->activityAudiences->isEmpty())
                     ->action(
                         Action::make('setDefaultAudience')
                             ->label(__('Default audience'))
                             ->modalHeading(__('Default audience'))
                             ->modalIcon(Heroicon::OutlinedMegaphone)
                             ->authorize(fn (): bool => static::canViewAny())
+                            ->visible(fn (Activity $record): bool => $record->activityAudiences->isNotEmpty())
                             ->fillForm(fn (Activity $record): array => [
                                 'default_audience_id' => static::defaultAudience($record)?->getKey(),
                             ])
@@ -145,8 +159,10 @@ class ActivityResource extends Resource
                     ->label('Remove from team')
                     ->color(Palette::destructive())
                     ->requiresConfirmation()
-                    ->action(function (Activity $record): void {
+                    ->action(function (Activity $record, Component $livewire): void {
                         static::currentTeam()?->removeActivity($record);
+
+                        RefreshesNavigationChrome::dispatch($livewire);
                     }),
             ]);
     }

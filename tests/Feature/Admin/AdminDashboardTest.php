@@ -11,6 +11,7 @@ use App\Filament\Admin\Resources\Audiences\AudienceResource;
 use App\Filament\Admin\Resources\Keys\KeyResource;
 use App\Filament\Admin\Resources\Teams\TeamResource;
 use App\Filament\Admin\Resources\Venues\VenueResource;
+use App\Filament\Admin\Widgets\ActivitiesWithoutAudiencesWidget;
 use App\Filament\Admin\Widgets\ActivitiesWithoutTeamsWidget;
 use App\Filament\Admin\Widgets\AdminAllCaughtUpWidget;
 use App\Filament\Admin\Widgets\AdminSnapshotWidget;
@@ -21,6 +22,7 @@ use App\Filament\Admin\Widgets\PendingSiteInvitesWidget;
 use App\Filament\Admin\Widgets\TeamsWithoutManagersWidget;
 use App\Filament\Admin\Widgets\VenuesWithoutTeamsWidget;
 use App\Filament\Navigation\CrossPanelLinks;
+use App\Filament\Teams\Resources\Members\MemberResource;
 use App\Models\Activity;
 use App\Models\Audience;
 use App\Models\InboundMail;
@@ -63,7 +65,7 @@ class AdminDashboardTest extends TestCase
             'email' => 'pending-invitee@example.test',
         ]);
 
-        Team::factory()->create(['name' => 'Orphan Admin Team']);
+        $orphan = Team::factory()->create(['name' => 'Orphan Admin Team']);
 
         $attention = AdminAttention::for($admin);
         $this->assertTrue($attention->includesInbound());
@@ -84,7 +86,9 @@ class AdminDashboardTest extends TestCase
             ->assertSeeHtml('href="'.KeyResource::getUrl('index').'"');
         Livewire::test(InboundNeedsReviewWidget::class)->assertSee('Review me please');
         Livewire::test(PendingSiteInvitesWidget::class)->assertSee('Pending Invitee');
-        Livewire::test(TeamsWithoutManagersWidget::class)->assertSee('Orphan Admin Team');
+        Livewire::test(TeamsWithoutManagersWidget::class)
+            ->assertSee('Orphan Admin Team')
+            ->assertSeeHtml(MemberResource::getUrl('index', panel: 'teams', tenant: $orphan));
         Livewire::test(AdminAllCaughtUpWidget::class)->assertDontSee(__('Nothing needs admin attention right now.'));
     }
 
@@ -94,8 +98,8 @@ class AdminDashboardTest extends TestCase
         $this->actingAs($admin);
 
         // Activity/Venue factories attach to the latest team when one exists.
-        Activity::factory()->create(['name' => 'Lone Activity']);
-        Venue::factory()->create(['name' => 'Lone Venue']);
+        $activity = Activity::factory()->create(['name' => 'Lone Activity']);
+        $venue = Venue::factory()->create(['name' => 'Lone Venue']);
         Audience::factory()->create(['name' => 'Lone Audience']);
         Key::factory()->create(['name' => 'Bare Key']);
 
@@ -106,10 +110,40 @@ class AdminDashboardTest extends TestCase
         $this->assertSame(4, $attention->catalogOrphanTotal());
         $this->assertSame(4, $attention->summary()['total']);
 
-        Livewire::test(ActivitiesWithoutTeamsWidget::class)->assertSee('Lone Activity');
-        Livewire::test(VenuesWithoutTeamsWidget::class)->assertSee('Lone Venue');
+        Livewire::test(ActivitiesWithoutTeamsWidget::class)
+            ->assertSee('Lone Activity')
+            ->assertSeeHtml(ActivityResource::getUrl('view', [
+                'record' => $activity,
+                'relation' => 'teams',
+            ]));
+        Livewire::test(VenuesWithoutTeamsWidget::class)
+            ->assertSee('Lone Venue')
+            ->assertSeeHtml(VenueResource::getUrl('view', [
+                'record' => $venue,
+                'relation' => 'teams',
+            ]));
         Livewire::test(AudiencesWithoutActivitiesWidget::class)->assertSee('Lone Audience');
         Livewire::test(KeysWithoutLocksWidget::class)->assertSee('Bare Key');
+    }
+
+    public function test_system_admin_sees_activities_without_audiences(): void
+    {
+        $admin = User::factory()->systemAdmin()->create();
+        $this->actingAs($admin);
+
+        $activity = Activity::factory()->withoutAudiences()->create(['name' => 'Broken Climbing']);
+        Team::factory()->create()->grant($admin, MembershipRole::Manager);
+
+        $attention = AdminAttention::for($admin);
+        $this->assertCount(1, $attention->activitiesWithoutAudiences());
+        $this->assertSame(2, $attention->catalogOrphanTotal());
+
+        Livewire::test(ActivitiesWithoutAudiencesWidget::class)
+            ->assertSee('Broken Climbing')
+            ->assertSeeHtml(ActivityResource::getUrl('view', [
+                'record' => $activity,
+                'relation' => 'audiences',
+            ]));
     }
 
     public function test_triage_columns_pack_only_non_empty_widgets(): void

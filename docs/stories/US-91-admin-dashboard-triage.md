@@ -13,7 +13,7 @@ As a system admin (or oversight user), I want the Admin dashboard to surface sit
 ## Acceptance criteria
 
 - The Admin dashboard (`/admin`) shows triage sections in a single column, hide-when-empty, with preview rows and “See all” deep links (Manager dashboard pattern).
-- **System admins** see: inbound mail needing review, pending site-access invitations, teams without managers, and separate catalog sections for activities/venues with no team, audiences with no activity, and keys with no locks, plus a thin snapshot (team, activity, venue, audience, and key counts). Non-empty triage sections are packed into two stacked columns from the `md` breakpoint (each section stays whole; a single occupied column spans full width).
+- **System admins** see: inbound mail needing review, pending site-access invitations, teams without managers, and separate catalog sections for activities/venues with no team, activities with no audiences, audiences with no activity, and keys with no locks, plus a thin snapshot (team, activity, venue, audience, and key counts). Non-empty triage sections are packed into two stacked columns from the `md` breakpoint (each section stays whole; a single occupied column spans full width).
 - **Oversight** see directory-style items only (pending site-access invitations, teams without managers, snapshot)—not inbound mail or catalog triage (those remain system-admin only).
 - Dashboard nav badge reflects the total of buckets the viewer can see; severity is destructive when inbound failures or stale review items exist, otherwise uncertain when any queue is non-empty.
 - Empty queues show an “all caught up” state for the viewer’s visible buckets.
@@ -21,4 +21,4 @@ As a system admin (or oversight user), I want the Admin dashboard to surface sit
 
 ## Progress
 
-Done via `AdminAttention` and Admin dashboard widgets. The cross-panel **Admin** link (Member and Teams sidebars) reuses the same dashboard nav badge and severity colour. Lifts the Admin dashboard deferral noted on [US-69](US-69-member-dashboard.md) for this triage slice only.
+Done via `AdminAttention` and Admin dashboard widgets, including **Activities without audiences** (distinct from audiences not on an activity). The cross-panel **Admin** link (Member and Teams sidebars) reuses the same dashboard nav badge and severity colour. Lifts the Admin dashboard deferral noted on [US-69](US-69-member-dashboard.md) for this triage slice only.

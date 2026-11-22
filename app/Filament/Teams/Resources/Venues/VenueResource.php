@@ -2,6 +2,7 @@
 
 namespace App\Filament\Teams\Resources\Venues;
 
+use App\Filament\Support\RefreshesNavigationChrome;
 use App\Filament\Teams\NavigationGroup;
 use App\Filament\Teams\Resources\Venues\Pages\CreateVenue;
 use App\Filament\Teams\Resources\Venues\Pages\EditVenue;
@@ -25,6 +26,7 @@ use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Livewire\Component;
 
 class VenueResource extends Resource
 {
@@ -164,8 +166,10 @@ class VenueResource extends Resource
                     ->label('Remove from team')
                     ->color(Palette::destructive())
                     ->requiresConfirmation()
-                    ->action(function (Venue $record): void {
+                    ->action(function (Venue $record, Component $livewire): void {
                         static::currentTeam()?->removeVenue($record);
+
+                        RefreshesNavigationChrome::dispatch($livewire);
                     }),
             ]);
     }

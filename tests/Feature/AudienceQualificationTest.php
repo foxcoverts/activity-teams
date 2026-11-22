@@ -27,11 +27,11 @@ class AudienceQualificationTest extends TestCase
     public function test_an_empty_pairing_accepts_any_lead_and_a_missing_pairing_cannot_be_saved(): void
     {
         $lead = User::factory()->teamMember()->create();
-        $activity = Activity::factory()->create();
-        $empty = ActivityAudience::factory()->for($activity)->create();
+        $audience = Audience::factory()->create();
+        $activity = Activity::factory()->withAudience($audience)->create();
         $booking = Booking::factory()->create([
             'activity_id' => $activity->getKey(),
-            'audience_id' => $empty->audience_id,
+            'audience_id' => $audience->getKey(),
             'lead_instructor_id' => $lead->getKey(),
         ]);
 
@@ -50,25 +50,26 @@ class AudienceQualificationTest extends TestCase
 
     public function test_scout_rows_reject_a_mountain_training_only_member(): void
     {
-        $activity = Activity::factory()->create(['name' => 'Climbing']);
         $scouts = Audience::factory()->create(['name' => 'Scouts']);
         $guides = Audience::factory()->create(['name' => 'Guides']);
-        $scoutPairing = ActivityAudience::factory()->for($activity)->for($scouts)->create();
-        $guidePairing = ActivityAudience::factory()->for($activity)->for($guides)->create();
-        $scoutPairing->qualificationRequirements()->create([
-            'kind' => 'scout_permit',
-            'criteria' => [
-                'activity' => 'Climbing and Abseiling',
-                'permit_type' => 'leadership',
-            ],
-        ]);
-        $guidePairing->qualificationRequirements()->create([
-            'kind' => 'girlguiding',
-        ]);
-        $guidePairing->qualificationRequirements()->create([
-            'kind' => 'mountain_training',
-            'criteria' => ['award' => 'Climbing Wall Instructor'],
-        ]);
+        $activity = Activity::factory()
+            ->withAudience($scouts, [
+                [
+                    'kind' => 'scout_permit',
+                    'criteria' => [
+                        'activity' => 'Climbing and Abseiling',
+                        'permit_type' => 'leadership',
+                    ],
+                ],
+            ])
+            ->andAudience($guides, [
+                ['kind' => 'girlguiding'],
+                [
+                    'kind' => 'mountain_training',
+                    'criteria' => ['award' => 'Climbing Wall Instructor'],
+                ],
+            ])
+            ->create(['name' => 'Climbing']);
 
         $instructor = User::factory()->teamMember()->create();
         Qualification::factory()->forMember($instructor)->mountainTraining('Climbing Wall Instructor')->create();
@@ -88,12 +89,13 @@ class AudienceQualificationTest extends TestCase
 
     public function test_two_audiences_at_one_venue_share_the_activity_key(): void
     {
-        $activity = Activity::factory()->create();
         $venue = Venue::factory()->create();
         $scouts = Audience::factory()->create();
         $team = Audience::factory()->create();
-        ActivityAudience::factory()->for($activity)->for($scouts)->create();
-        ActivityAudience::factory()->for($activity)->for($team)->create();
+        $activity = Activity::factory()
+            ->withAudience($scouts)
+            ->andAudience($team)
+            ->create();
         $key = Lock::factory()->create(['name' => 'Wall key']);
         $key->requirements()->create([
             'activity_id' => $activity->getKey(),
@@ -130,22 +132,25 @@ class AudienceQualificationTest extends TestCase
 
     public function test_changing_audience_away_from_the_leads_qualification_is_refused(): void
     {
-        $activity = Activity::factory()->create();
         $scouts = Audience::factory()->create();
         $public = Audience::factory()->create();
-        $scoutPairing = ActivityAudience::factory()->for($activity)->for($scouts)->create();
-        $publicPairing = ActivityAudience::factory()->for($activity)->for($public)->create();
-        $scoutPairing->qualificationRequirements()->create([
-            'kind' => 'scout_permit',
-            'criteria' => [
-                'activity' => 'Climbing and Abseiling',
-                'permit_type' => 'leadership',
-            ],
-        ]);
-        $publicPairing->qualificationRequirements()->create([
-            'kind' => 'mountain_training',
-            'criteria' => ['award' => 'Climbing Wall Instructor'],
-        ]);
+        $activity = Activity::factory()
+            ->withAudience($scouts, [
+                [
+                    'kind' => 'scout_permit',
+                    'criteria' => [
+                        'activity' => 'Climbing and Abseiling',
+                        'permit_type' => 'leadership',
+                    ],
+                ],
+            ])
+            ->andAudience($public, [
+                [
+                    'kind' => 'mountain_training',
+                    'criteria' => ['award' => 'Climbing Wall Instructor'],
+                ],
+            ])
+            ->create();
         $lead = User::factory()->teamMember()->create();
         Qualification::factory()->forMember($lead)->scoutPermit()->create([
             'expires_on' => now()->addYear()->toDateString(),
@@ -166,20 +171,25 @@ class AudienceQualificationTest extends TestCase
         }
 
         $booking->audience_id = $scouts->getKey();
-        $empty = ActivityAudience::factory()->for($activity)->create();
-        $booking->audience_id = $empty->audience_id;
+        $anyone = Audience::factory()->create();
+        ActivityAudience::query()->firstOrCreate([
+            'activity_id' => $activity->getKey(),
+            'audience_id' => $anyone->getKey(),
+        ]);
+        $booking->audience_id = $anyone->getKey();
         $booking->save();
 
-        $this->assertTrue($booking->fresh()->audience->is($empty->audience));
+        $this->assertTrue($booking->fresh()->audience->is($anyone));
     }
 
     public function test_a_pairing_used_by_a_booking_cannot_be_deleted(): void
     {
-        $activity = Activity::factory()->create();
-        $pairing = ActivityAudience::factory()->for($activity)->create();
+        $audience = Audience::factory()->create();
+        $activity = Activity::factory()->withAudience($audience)->create();
+        $pairing = $activity->activityAudiences()->sole();
         Booking::factory()->create([
             'activity_id' => $activity->getKey(),
-            'audience_id' => $pairing->audience_id,
+            'audience_id' => $audience->getKey(),
         ]);
 
         try {
@@ -205,15 +215,17 @@ class AudienceQualificationTest extends TestCase
 
         $manager = User::factory()->teamManager()->create();
         $team = $manager->managedTeams()->firstOrFail();
-        $climbing = Activity::factory()->create(['name' => 'Climbing']);
-        $archery = Activity::factory()->create(['name' => 'Archery']);
         $scouts = Audience::factory()->create(['name' => 'Scouts']);
         $guides = Audience::factory()->create(['name' => 'Guides']);
         $public = Audience::factory()->create(['name' => 'Public']);
-        ActivityAudience::factory()->for($climbing)->for($scouts)->create();
-        ActivityAudience::factory()->for($climbing)->for($guides)->create();
-        ActivityAudience::factory()->for($archery)->for($guides)->create();
-        ActivityAudience::factory()->for($archery)->for($public)->create();
+        $climbing = Activity::factory()
+            ->withAudience($scouts)
+            ->andAudience($guides)
+            ->create(['name' => 'Climbing']);
+        $archery = Activity::factory()
+            ->withAudience($guides)
+            ->andAudience($public)
+            ->create(['name' => 'Archery']);
         $team->setDefaultActivity($climbing);
         $team->setDefaultAudience($climbing, $scouts);
         $team->setDefaultAudience($archery, $public);
@@ -232,8 +244,7 @@ class AudienceQualificationTest extends TestCase
                 'audience_id' => $guides->getKey(),
             ]);
 
-        $maintenance = Activity::factory()->create(['name' => 'Maintenance']);
-        ActivityAudience::factory()->for($maintenance)->for($public)->create();
+        $maintenance = Activity::factory()->withAudience($public)->create(['name' => 'Maintenance']);
         $team->setDefaultAudience($maintenance, $public);
 
         Livewire::test(CreateBooking::class)
@@ -257,9 +268,8 @@ class AudienceQualificationTest extends TestCase
 
     public function test_the_logged_out_summary_does_not_show_the_audience(): void
     {
-        $activity = Activity::factory()->create(['name' => 'Climbing']);
         $audience = Audience::factory()->create(['name' => 'Guides Only Audience']);
-        ActivityAudience::factory()->for($activity)->for($audience)->create();
+        $activity = Activity::factory()->withAudience($audience)->create(['name' => 'Climbing']);
         $booking = Booking::factory()->create([
             'activity_id' => $activity->getKey(),
             'audience_id' => $audience->getKey(),

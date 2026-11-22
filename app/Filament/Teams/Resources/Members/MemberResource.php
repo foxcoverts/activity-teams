@@ -6,6 +6,7 @@ use App\Actions\SendTeamInvitationAction;
 use App\Enums\InvitationStatus;
 use App\Enums\MembershipRole;
 use App\Filament\RelationManagers\QualificationsRelationManager;
+use App\Filament\Support\RefreshesNavigationChrome;
 use App\Filament\Teams\NavigationGroup;
 use App\Filament\Teams\Resources\Members\Pages\EditMember;
 use App\Filament\Teams\Resources\Members\Pages\ListMembers;
@@ -336,6 +337,8 @@ class MemberResource extends Resource
                 }
             })
             ->after(function (LivewireComponent $livewire, User $record): void {
+                RefreshesNavigationChrome::dispatch($livewire);
+
                 if ($livewire instanceof ViewMember) {
                     $livewire->redirect(static::getUrl('view', ['record' => $record]));
                 }
@@ -353,14 +356,18 @@ class MemberResource extends Resource
             ->disabled(fn (User $record): bool => static::cannotStepDown($record))
             ->tooltip(fn (User $record): ?string => static::stepDownHint($record))
             ->requiresConfirmation()
-            ->action(function (User $record): void {
+            ->action(function (User $record, LivewireComponent $livewire): void {
                 static::authorizeManagement();
 
                 try {
                     static::currentTeam()?->recordLeft($record);
                 } catch (ValidationException $exception) {
                     static::reportAsNotification($exception);
+
+                    return;
                 }
+
+                RefreshesNavigationChrome::dispatch($livewire);
             })
             ->successRedirectUrl(static::getUrl('index'));
     }

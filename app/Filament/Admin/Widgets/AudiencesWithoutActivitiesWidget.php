@@ -10,7 +10,7 @@ use Filament\Support\Icons\Heroicon;
 
 class AudiencesWithoutActivitiesWidget extends AdminSection
 {
-    protected static ?int $sort = 8;
+    protected static ?int $sort = 9;
 
     protected string $view = 'filament.admin.widgets.simple-attention-list';
 

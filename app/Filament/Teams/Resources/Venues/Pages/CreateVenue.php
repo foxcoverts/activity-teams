@@ -2,6 +2,7 @@
 
 namespace App\Filament\Teams\Resources\Venues\Pages;
 
+use App\Filament\Support\RefreshesNavigationChrome;
 use App\Filament\Teams\Resources\Venues\VenueResource;
 use App\Filament\Venues\VenueLocationSchema;
 use App\Models\Team;
@@ -56,5 +57,10 @@ class CreateVenue extends CreateRecord
         $team->addVenue($venue);
 
         return $venue;
+    }
+
+    protected function afterCreate(): void
+    {
+        RefreshesNavigationChrome::dispatch($this);
     }
 }

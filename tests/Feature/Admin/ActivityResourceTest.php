@@ -4,7 +4,6 @@ namespace Tests\Feature\Admin;
 
 use App\Filament\Admin\Resources\Activities\Pages\ListActivities;
 use App\Models\Activity;
-use App\Models\ActivityAudience;
 use App\Models\Audience;
 use App\Models\User;
 use Filament\Facades\Filament;
@@ -39,10 +38,13 @@ class ActivityResourceTest extends TestCase
     public function test_the_activity_list_shows_audiences_and_an_empty_placeholder(): void
     {
         $admin = User::factory()->systemAdmin()->create();
-        $climbing = Activity::factory()->create(['name' => 'Climbing']);
-        Activity::factory()->create(['name' => 'Archery']);
-        ActivityAudience::factory()->for($climbing)->for(Audience::factory()->create(['name' => 'Scouts']))->create();
-        ActivityAudience::factory()->for($climbing)->for(Audience::factory()->create(['name' => 'Guides']))->create();
+        $scouts = Audience::factory()->create(['name' => 'Scouts']);
+        $guides = Audience::factory()->create(['name' => 'Guides']);
+        Activity::factory()
+            ->withAudience($scouts)
+            ->andAudience($guides)
+            ->create(['name' => 'Climbing']);
+        Activity::factory()->withoutAudiences()->create(['name' => 'Archery']);
 
         $this->actingAs($admin);
 

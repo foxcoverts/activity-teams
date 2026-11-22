@@ -4,6 +4,7 @@ namespace App\Filament\Admin\Resources\Users;
 
 use App\Actions\SendTeamInvitationAction;
 use App\Enums\InvitationStatus;
+use App\Filament\Support\RefreshesNavigationChrome;
 use App\Models\User;
 use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
@@ -70,8 +71,7 @@ class UserInvitationActions
                     static::reportOnField($exception, $schema, 'email');
                 }
 
-                $livewire->dispatch('refresh-sidebar');
-                $livewire->dispatch('refresh-topbar');
+                RefreshesNavigationChrome::dispatch($livewire);
 
                 Notification::make()->success()->title(__('Invitation sent'))->send();
             });
@@ -94,8 +94,7 @@ class UserInvitationActions
 
                 app(SendTeamInvitationAction::class)->revokeAdmin($actor, $record);
 
-                $livewire->dispatch('refresh-sidebar');
-                $livewire->dispatch('refresh-topbar');
+                RefreshesNavigationChrome::dispatch($livewire);
 
                 Notification::make()->success()->title(__('Invitation revoked'))->send();
             });

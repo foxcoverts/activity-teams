@@ -236,6 +236,12 @@ class Team extends Model implements HasAvatar
 
     public function addActivity(Activity $activity): void
     {
+        if (! $activity->hasAudiences()) {
+            throw ValidationException::withMessages([
+                'activity_id' => __('Choose an activity that has an audience.'),
+            ]);
+        }
+
         $this->addDefaultableRecord($activity, 'activities', 'default_activity_id');
     }
 
