@@ -609,11 +609,18 @@ class ActivityTeamsTest extends TestCase
 
         Filament::setCurrentPanel('admin');
 
+        $managerUrl = MemberResource::personUrlFor($manager, $team);
+        $promotedUrl = MemberResource::personUrlFor($member->fresh(), $team);
+
         Livewire::test(ListTeams::class)
-            ->assertSee('Casey Manager')
+            ->assertSeeHtml('fi-stacked')
             ->assertSee('No managers')
             ->assertSeeHtml('fi-ta-placeholder')
-            ->assertSeeHtml(MemberResource::getUrl('index', panel: 'teams', tenant: $team))
+            ->mountAction(TestAction::make('personStack_managers_name')->table($team))
+            ->assertMountedActionModalSee('Casey Manager')
+            ->assertMountedActionModalSee('Alex Member')
+            ->assertMountedActionModalSeeHtml($managerUrl)
+            ->assertMountedActionModalSeeHtml($promotedUrl)
             ->assertDontSeeHtml(MemberResource::getUrl('index', panel: 'teams', tenant: $empty));
 
         $outsideTeam = Team::factory()->create();

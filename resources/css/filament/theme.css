@@ -8,6 +8,27 @@
 @source '../../../resources/views/vendor/filament-activitylog/**/*.blade.php';
 @source '../../../vendor/saade/filament-fullcalendar/resources/views/**/*.blade.php';
 
+.fi-ta-person-stack {
+    @apply flex w-full items-center;
+
+    &:not(.fi-inline) {
+        @apply px-3 py-4;
+    }
+
+    .fi-ta-table-stacked-on-mobile & {
+        @apply p-0 sm:px-3 sm:py-4;
+    }
+
+    &.fi-align-center {
+        @apply justify-center;
+    }
+
+    &.fi-align-end,
+    &.fi-align-right {
+        @apply justify-end;
+    }
+}
+
 .fi-ta-person {
     @apply flex w-full items-center gap-1.5;
 

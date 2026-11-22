@@ -3,8 +3,10 @@
 namespace Tests\Feature\Admin;
 
 use App\Filament\Admin\Resources\Teams\Pages\ListTeams;
+use App\Filament\Teams\Resources\Members\MemberResource;
 use App\Models\Team;
 use App\Models\User;
+use Filament\Actions\Testing\TestAction;
 use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
@@ -34,6 +36,62 @@ class TeamResourceTest extends TestCase
             ->assertCanSeeTableRecords([$archery, $climbing, $zebra], inOrder: true)
             ->sortTable('name', 'desc')
             ->assertCanSeeTableRecords([$zebra, $climbing, $archery], inOrder: true);
+    }
+
+    public function test_the_managers_column_shows_a_placeholder_when_empty(): void
+    {
+        $admin = User::factory()->systemAdmin()->create();
+        Team::factory()->create(['name' => 'Unstaffed']);
+
+        $this->actingAs($admin);
+
+        Livewire::test(ListTeams::class)
+            ->assertSee('No managers')
+            ->assertSeeHtml('fi-ta-placeholder');
+    }
+
+    public function test_the_managers_column_links_a_single_manager(): void
+    {
+        $admin = User::factory()->systemAdmin()->create();
+        $team = Team::factory()->create(['name' => 'Climbing']);
+        $manager = User::factory()->teamManager($team)->create(['name' => 'Casey Manager']);
+
+        $this->actingAs($admin);
+
+        $managerUrl = MemberResource::personUrlFor($manager, $team);
+        $avatarUrl = (string) $manager->getFilamentAvatarUrl();
+
+        Livewire::test(ListTeams::class)
+            ->assertSee('Casey Manager')
+            ->assertSee('fi-ta-person', false)
+            ->assertSeeHtml($managerUrl)
+            ->assertSee(str_replace('&', '&amp;', $avatarUrl), false);
+    }
+
+    public function test_the_managers_column_stacks_multiple_managers_and_opens_a_list_modal(): void
+    {
+        $admin = User::factory()->systemAdmin()->create();
+        $team = Team::factory()->create(['name' => 'Climbing']);
+        $first = User::factory()->teamManager($team)->create(['name' => 'Alex Manager']);
+        $second = User::factory()->teamManager($team)->create(['name' => 'Blake Manager']);
+        $third = User::factory()->teamManager($team)->create(['name' => 'Casey Manager']);
+        $fourth = User::factory()->teamManager($team)->create(['name' => 'Drew Manager']);
+
+        $this->actingAs($admin);
+
+        $firstUrl = MemberResource::personUrlFor($first, $team);
+        $fourthUrl = MemberResource::personUrlFor($fourth, $team);
+
+        Livewire::test(ListTeams::class)
+            ->assertSeeHtml('fi-stacked')
+            ->assertSeeHtml('+1')
+            ->mountAction(TestAction::make('personStack_managers_name')->table($team))
+            ->assertMountedActionModalSee('Alex Manager')
+            ->assertMountedActionModalSee('Blake Manager')
+            ->assertMountedActionModalSee('Casey Manager')
+            ->assertMountedActionModalSee('Drew Manager')
+            ->assertMountedActionModalSeeHtml($firstUrl)
+            ->assertMountedActionModalSeeHtml($fourthUrl);
     }
 
     public function test_the_manager_filter_lists_only_active_managers(): void
