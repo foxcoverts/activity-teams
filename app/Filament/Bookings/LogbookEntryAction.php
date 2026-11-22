@@ -20,6 +20,7 @@ use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\TimePicker;
 use Filament\Notifications\Notification;
 use Filament\Schemas\Components\Component;
+use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
 use Filament\Support\Enums\Width;
 use Filament\Support\Icons\Heroicon;
@@ -263,22 +264,25 @@ class LogbookEntryAction
             ->columns(1)
             ->columnSpanFull()
             ->schema([
-                DatePicker::make('occurred_on')
-                    ->label(__('Date'))
-                    ->required()
-                    ->native(false)
-                    ->maxDate(now()),
-                TimePicker::make('start_time')
-                    ->label(__('Start time'))
-                    ->seconds(false)
-                    ->native(false),
                 TextInput::make('activity_label')
-                    ->label(__('Activity'))
+                    ->label(__('What'))
                     ->required()
                     ->maxLength(255)
                     ->datalist($logbook->activitySuggestions($user)),
+                Grid::make(2)
+                    ->schema([
+                        DatePicker::make('occurred_on')
+                            ->label(__('When'))
+                            ->required()
+                            ->native(false)
+                            ->maxDate(now()),
+                        TimePicker::make('start_time')
+                            ->label(__('Start time'))
+                            ->seconds(false)
+                            ->native(false),
+                    ]),
                 TextInput::make('venue_name')
-                    ->label(__('Venue'))
+                    ->label(__('Where'))
                     ->required()
                     ->maxLength(255)
                     ->datalist($logbook->venueSuggestions($user)),
@@ -293,18 +297,21 @@ class LogbookEntryAction
             ->columnSpanFull()
             ->schema([
                 self::roleField(),
-                TextInput::make('hours')
-                    ->label(__('Hours'))
-                    ->numeric()
-                    ->step(0.25)
-                    ->minValue(0)
-                    ->maxValue(999)
-                    ->inputMode('decimal'),
-                TextInput::make('participant_count')
-                    ->label(__('Participants'))
-                    ->integer()
-                    ->minValue(0)
-                    ->maxValue(9999),
+                Grid::make(2)
+                    ->schema([
+                        TextInput::make('hours')
+                            ->label(__('Hours'))
+                            ->numeric()
+                            ->step(0.25)
+                            ->minValue(0)
+                            ->maxValue(999)
+                            ->inputMode('decimal'),
+                        TextInput::make('participant_count')
+                            ->label(__('Participants'))
+                            ->integer()
+                            ->minValue(0)
+                            ->maxValue(9999),
+                    ]),
                 TextInput::make('weather')
                     ->label(__('Weather'))
                     ->maxLength(255),

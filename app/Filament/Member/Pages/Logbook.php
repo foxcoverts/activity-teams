@@ -13,6 +13,7 @@ use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
+use Filament\Actions\ViewAction;
 use Filament\Forms\Components\DatePicker;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
@@ -181,37 +182,29 @@ class Logbook extends Page implements HasTable
                     }),
             ])
             ->recordActions([
+                ViewAction::make()
+                    ->label(__('View'))
+                    ->modalHeading(function (?LogbookEntry $record): string {
+                        if ($record instanceof LogbookEntry && filled($record->activityTitle())) {
+                            return $record->activityTitle();
+                        }
+
+                        return __('Logbook entry');
+                    })
+                    ->modalIcon(Heroicon::OutlinedBookOpen)
+                    ->modalWidth(Width::Large)
+                    ->extraModalWindowAttributes(['class' => 'modal-mobile-full'])
+                    ->fillForm(fn (?LogbookEntry $record): array => $record instanceof LogbookEntry
+                        ? LogbookEntryAction::editFormState($record)
+                        : [])
+                    ->schema(fn (?LogbookEntry $record): array => $record instanceof LogbookEntry
+                        ? LogbookEntryAction::schemaForEntry($record, $this->actor())
+                        : [])
+                    ->extraModalFooterActions(fn (): array => [
+                        $this->editEntryAction(),
+                    ]),
                 ActionGroup::make([
-                    EditAction::make()
-                        ->label(__('Edit'))
-                        ->modalHeading(__('Edit logbook entry'))
-                        ->modalWidth(Width::Large)
-                        ->extraModalWindowAttributes(['class' => 'modal-mobile-full'])
-                        ->schema(fn (LogbookEntry $record): array => LogbookEntryAction::schemaForEntry(
-                            $record,
-                            $this->actor(),
-                        ))
-                        ->fillForm(fn (LogbookEntry $record): array => LogbookEntryAction::editFormState($record))
-                        ->extraModalFooterActions(fn (Action $action): array => [
-                            LogbookEntryAction::copyFromDebriefAction($action),
-                        ])
-                        ->action(function (LogbookEntry $record, array $data): void {
-                            try {
-                                app(LogbookSupport::class)->update($this->actor(), $record, $data);
-                            } catch (ValidationException $exception) {
-                                Notification::make()
-                                    ->danger()
-                                    ->title(collect($exception->errors())->flatten()->first() ?: __('Unable to save.'))
-                                    ->send();
-
-                                return;
-                            }
-
-                            Notification::make()
-                                ->success()
-                                ->title(__('Logbook entry saved'))
-                                ->send();
-                        }),
+                    $this->editEntryAction(),
                     DeleteAction::make()
                         ->label(__('Remove'))
                         ->modalHeading(__('Remove logbook entry?'))
@@ -231,9 +224,45 @@ class Logbook extends Page implements HasTable
                         }),
                 ]),
             ])
+            ->recordAction('view')
             ->emptyStateHeading(__('No saved log entries yet'))
             ->emptyStateDescription(__('Add a session, or confirm attendance on a booking so it appears under Outstanding.'))
             ->paginated([10, 25, 50]);
+    }
+
+    private function editEntryAction(): EditAction
+    {
+        return EditAction::make()
+            ->label(__('Edit'))
+            ->modalHeading(__('Edit logbook entry'))
+            ->modalWidth(Width::Large)
+            ->extraModalWindowAttributes(['class' => 'modal-mobile-full'])
+            ->schema(fn (?LogbookEntry $record): array => $record instanceof LogbookEntry
+                ? LogbookEntryAction::schemaForEntry($record, $this->actor())
+                : [])
+            ->fillForm(fn (?LogbookEntry $record): array => $record instanceof LogbookEntry
+                ? LogbookEntryAction::editFormState($record)
+                : [])
+            ->extraModalFooterActions(fn (Action $action): array => [
+                LogbookEntryAction::copyFromDebriefAction($action),
+            ])
+            ->action(function (LogbookEntry $record, array $data): void {
+                try {
+                    app(LogbookSupport::class)->update($this->actor(), $record, $data);
+                } catch (ValidationException $exception) {
+                    Notification::make()
+                        ->danger()
+                        ->title(collect($exception->errors())->flatten()->first() ?: __('Unable to save.'))
+                        ->send();
+
+                    return;
+                }
+
+                Notification::make()
+                    ->success()
+                    ->title(__('Logbook entry saved'))
+                    ->send();
+            });
     }
 
     protected function getHeaderActions(): array
