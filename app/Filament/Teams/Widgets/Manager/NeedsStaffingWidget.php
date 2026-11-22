@@ -2,10 +2,10 @@
 
 namespace App\Filament\Teams\Widgets\Manager;
 
+use App\Enums\AttentionSeverity;
 use App\Enums\TentativeTriage;
 use App\Filament\Teams\Resources\Bookings\BookingResource;
 use App\Support\ManagerAttention;
-use App\Support\Palette;
 use Filament\Support\Icons\Heroicon;
 
 class NeedsStaffingWidget extends ManagerSection
@@ -24,11 +24,12 @@ class NeedsStaffingWidget extends ManagerSection
         $attention = $this->attention();
         $rows = $attention->needsStaffing();
         $total = $rows->count();
+        $hasAtRisk = $attention->atRisk()->isNotEmpty();
 
         return [
             'heading' => __('Tentative — Unstaffed / At risk'),
             'icon' => Heroicon::OutlinedClock,
-            'iconColor' => Palette::uncertain(),
+            'iconColor' => ($hasAtRisk ? AttentionSeverity::Destructive : AttentionSeverity::Uncertain)->color(),
             'rows' => $rows->take(ManagerAttention::PREVIEW_LIMIT)->values(),
             'total' => $total,
             'attention' => $attention,

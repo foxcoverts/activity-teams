@@ -27,11 +27,31 @@ enum ScheduleNudgeTier: string
     }
 
     /**
-     * Widest / highest notification window on the ladder.
+     * Widest / first ladder tier (notification horizon).
      */
-    public static function max(): self
+    public static function first(): self
     {
         return self::ladder()[0];
+    }
+
+    /**
+     * Second-to-last ladder tier (danger / at-risk window start).
+     */
+    public static function penultimate(): self
+    {
+        $ladder = self::ladder();
+
+        return $ladder[count($ladder) - 2];
+    }
+
+    /**
+     * Closest / last ladder tier.
+     */
+    public static function last(): self
+    {
+        $ladder = self::ladder();
+
+        return $ladder[array_key_last($ladder)];
     }
 
     public function days(): int
@@ -69,7 +89,7 @@ enum ScheduleNudgeTier: string
     }
 
     /**
-     * Ladder band for a future start (null when outside the max horizon or already started).
+     * Ladder band for a future start (null when outside the first-tier horizon or already started).
      */
     public static function forStartAt(CarbonInterface $startAt, ?CarbonInterface $now = null): ?self
     {

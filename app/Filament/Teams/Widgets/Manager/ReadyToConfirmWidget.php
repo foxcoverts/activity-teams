@@ -21,7 +21,8 @@ class ReadyToConfirmWidget extends ManagerSection
 
     protected function sectionData(): array
     {
-        $rows = $this->attention()->readyToConfirm();
+        $attention = $this->attention();
+        $rows = $attention->readyToConfirm();
         $total = $rows->count();
 
         return [
@@ -31,6 +32,7 @@ class ReadyToConfirmWidget extends ManagerSection
             'rows' => $rows->take(ManagerAttention::PREVIEW_LIMIT)->values(),
             'total' => $total,
             'triage' => TentativeTriage::ReadyToConfirm,
+            'attention' => $attention,
             'seeAllUrl' => BookingResource::getUrl('index', [
                 'filters' => [
                     'status' => ['value' => 'tentative'],

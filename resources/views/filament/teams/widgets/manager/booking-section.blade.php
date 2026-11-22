@@ -5,6 +5,7 @@
         <x-filament::section :heading="$heading" :icon="$icon" :icon-color="$iconColor">
             @include('filament.teams.widgets.manager.booking-days', [
                 'bookings' => $rows,
+                'attention' => $attention ?? null,
                 'defaultTriage' => $triage ?? null,
             ])
             @if ($total > $previewLimit)

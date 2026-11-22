@@ -19,8 +19,6 @@ final class ManagerAttention
 {
     public const PREVIEW_LIMIT = 5;
 
-    public const AT_RISK_DAYS = 14;
-
     public const CACHE_TTL_SECONDS = 120;
 
     public function __construct(
@@ -87,11 +85,22 @@ final class ManagerAttention
         $contributors = [];
 
         if ($includeBookings) {
+            $needsLead = $this->needsLead()->filter(
+                fn (Booking $booking): bool => $this->isWithinNotificationHorizon($booking),
+            );
+            $nearNeedsLead = $needsLead->filter(
+                fn (Booking $booking): bool => $this->isWithinAtRiskWindow($booking),
+            );
+            $farNeedsLead = $needsLead->reject(
+                fn (Booking $booking): bool => $this->isWithinAtRiskWindow($booking),
+            );
+
             $contributors = [
                 ...$contributors,
                 ['count' => $this->outstandingDebriefs()->count(), 'severity' => AttentionSeverity::Uncertain],
-                ['count' => $this->countWithinNotificationHorizon($this->needsLead()), 'severity' => AttentionSeverity::Uncertain],
-                ['count' => $this->countWithinNotificationHorizon($this->atRisk()), 'severity' => AttentionSeverity::Uncertain],
+                ['count' => $nearNeedsLead->count(), 'severity' => AttentionSeverity::Destructive],
+                ['count' => $farNeedsLead->count(), 'severity' => AttentionSeverity::Uncertain],
+                ['count' => $this->countWithinNotificationHorizon($this->atRisk()), 'severity' => AttentionSeverity::Destructive],
                 ['count' => $this->countWithinNotificationHorizon($this->unstaffed()), 'severity' => AttentionSeverity::Uncertain],
                 ['count' => $this->countWithinNotificationHorizon($this->readyToConfirm()), 'severity' => AttentionSeverity::Positive],
             ];
@@ -237,6 +246,18 @@ final class ManagerAttention
         return TentativeTriage::Unstaffed;
     }
 
+    public function severityFor(Booking $booking): AttentionSeverity
+    {
+        return match ($this->classify($booking)) {
+            TentativeTriage::ReadyToConfirm => AttentionSeverity::Positive,
+            TentativeTriage::AtRisk => AttentionSeverity::Destructive,
+            TentativeTriage::NeedsLead => $this->isWithinAtRiskWindow($booking)
+                ? AttentionSeverity::Destructive
+                : AttentionSeverity::Uncertain,
+            TentativeTriage::Unstaffed => AttentionSeverity::Uncertain,
+        };
+    }
+
     public function canConfirm(Booking $booking): bool
     {
         if ($booking->requires_lead_instructor) {
@@ -270,7 +291,8 @@ final class ManagerAttention
             return false;
         }
 
-        return $start->lessThanOrEqualTo(now()->addDays(self::AT_RISK_DAYS));
+        return $start->greaterThan(now())
+            && $start->lessThanOrEqualTo(now()->addDays(ScheduleNudgeTier::penultimate()->days()));
     }
 
     /**

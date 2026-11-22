@@ -29,14 +29,16 @@ enum TentativeTriage: string implements HasLabel
     {
         return match ($this) {
             self::ReadyToConfirm => Palette::positive(),
-            self::NeedsLead, self::AtRisk, self::Unstaffed => Palette::uncertain(),
+            self::AtRisk => Palette::destructive(),
+            self::NeedsLead, self::Unstaffed => Palette::uncertain(),
         };
     }
 
     public function severity(): AttentionSeverity
     {
         return match ($this) {
-            self::NeedsLead, self::AtRisk, self::Unstaffed => AttentionSeverity::Uncertain,
+            self::AtRisk => AttentionSeverity::Destructive,
+            self::NeedsLead, self::Unstaffed => AttentionSeverity::Uncertain,
             self::ReadyToConfirm => AttentionSeverity::Positive,
         };
     }
