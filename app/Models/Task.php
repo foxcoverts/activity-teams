@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Casts\AsSequence;
+use App\Contracts\Commentable;
 use App\Enums\TaskAttendeeStatus;
 use App\Enums\TaskPriority;
 use App\Enums\TaskStatus;
@@ -24,10 +25,10 @@ use Illuminate\Validation\ValidationException;
 use Spatie\Activitylog\Models\Concerns\LogsActivity;
 use Spatie\Activitylog\Support\LogOptions;
 
-class Task extends Model
+class Task extends Model implements Commentable
 {
     /** @use HasFactory<TaskFactory> */
-    use Concerns\HasSequence, Concerns\HasUid, HasFactory, HasUlids, LogsActivity;
+    use Concerns\HasComments, Concerns\HasSequence, Concerns\HasUid, HasFactory, HasUlids, LogsActivity;
 
     protected $fillable = [
         'team_id',
@@ -174,6 +175,13 @@ class Task extends Model
     public function isAssignedTo(User $user): bool
     {
         return $this->attendance?->user_id === $user->getKey();
+    }
+
+    public function commentTeam(): ?Team
+    {
+        $this->loadMissing('team');
+
+        return $this->team;
     }
 
     public function markCalendarChannel(User $user): void

@@ -4,13 +4,14 @@ namespace App\Actions;
 
 use App\Contracts\Commentable;
 use App\Enums\MailChannel;
-use App\Mail\BookingCommentMail;
+use App\Mail\CommentMail;
 use App\Models\Booking;
 use App\Models\Comment;
 use App\Models\InboxNotification;
+use App\Models\Task;
 use App\Models\Team;
 use App\Models\User;
-use App\Notifications\BookingCommentNotification;
+use App\Notifications\CommentNotification;
 use App\Support\MailPreference;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Mail;
@@ -35,7 +36,12 @@ class PostCommentAction
             'body' => $body,
         ]);
 
-        $comment->setRelation('commentable', $commentable instanceof Booking ? $commentable : $comment->commentable);
+        $comment->setRelation(
+            'commentable',
+            $commentable instanceof Booking || $commentable instanceof Task
+                ? $commentable
+                : $comment->commentable,
+        );
         $comment->setRelation('author', $author);
 
         $this->notify($comment);
@@ -47,21 +53,27 @@ class PostCommentAction
     {
         $commentable = $comment->commentable;
 
-        if (! $commentable instanceof Booking) {
+        if ($commentable instanceof Booking) {
+            $commentable->loadMissing(['activity', 'attendees', 'team']);
+            $channel = MailChannel::BookingsComments;
+            $recipients = $this->bookingRecipients($commentable, $comment->author);
+        } elseif ($commentable instanceof Task) {
+            $commentable->loadMissing(['attendance.user', 'team']);
+            $channel = MailChannel::TasksComments;
+            $recipients = $this->taskRecipients($commentable, $comment->author);
+        } else {
             return;
         }
 
-        $commentable->loadMissing(['activity', 'attendees', 'team']);
-
-        foreach ($this->recipients($commentable, $comment->author) as $recipient) {
+        foreach ($recipients as $recipient) {
             $recipient = $recipient->fresh() ?? $recipient;
-            $recipient->notify(new BookingCommentNotification($comment));
+            $recipient->notify(new CommentNotification($comment));
 
-            if (! $recipient->hasVerifiedEmail() || ! MailPreference::allows($recipient, MailChannel::BookingsComments, $commentable)) {
+            if (! $recipient->hasVerifiedEmail() || ! MailPreference::allows($recipient, $channel, $commentable)) {
                 continue;
             }
 
-            Mail::to($recipient)->send(new BookingCommentMail($comment, $recipient));
+            Mail::to($recipient)->send(new CommentMail($comment, $recipient));
             $this->markInboxRead($recipient, $comment);
         }
     }
@@ -69,7 +81,7 @@ class PostCommentAction
     /**
      * @return Collection<int, User>
      */
-    private function recipients(Booking $booking, ?User $author): Collection
+    private function bookingRecipients(Booking $booking, ?User $author): Collection
     {
         $team = $booking->team;
         $recipients = collect();
@@ -102,6 +114,37 @@ class PostCommentAction
         return $recipients->values();
     }
 
+    /**
+     * @return Collection<int, User>
+     */
+    private function taskRecipients(Task $task, ?User $author): Collection
+    {
+        $team = $task->team;
+        $recipients = collect();
+        $assignee = $task->assignee();
+
+        if ($assignee instanceof User && ! $this->skipRecipient($assignee, $author)) {
+            $declined = $task->attendance?->isDeclined() ?? false;
+            $manages = $team instanceof Team && $assignee->manages($team);
+
+            if (! $declined || $manages) {
+                $recipients->put($assignee->getKey(), $assignee);
+            }
+        }
+
+        if ($team instanceof Team) {
+            foreach ($team->activeManagers()->get() as $manager) {
+                if ($this->skipRecipient($manager, $author)) {
+                    continue;
+                }
+
+                $recipients->put($manager->getKey(), $manager);
+            }
+        }
+
+        return $recipients->values();
+    }
+
     private function skipRecipient(User $recipient, ?User $author): bool
     {
         return $recipient->isSuspended()
@@ -111,7 +154,7 @@ class PostCommentAction
     private function markInboxRead(User $recipient, Comment $comment): void
     {
         $row = $recipient->notifications()
-            ->where('type', BookingCommentNotification::class)
+            ->where('type', CommentNotification::class)
             ->latest()
             ->get()
             ->first(

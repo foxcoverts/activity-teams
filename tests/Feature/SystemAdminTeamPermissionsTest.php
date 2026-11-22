@@ -149,6 +149,7 @@ class SystemAdminTeamPermissionsTest extends TestCase
         $this->assertFalse(TeamsCalendar::canAccess());
         $this->assertFalse($this->admin->can('viewAny', Task::class));
         $this->assertFalse($this->admin->can('view', $task));
+        $this->assertFalse($this->admin->can('complete', $task));
         $this->assertFalse(TeamsTaskResource::canViewAny());
 
         $this->get(BookingResource::getUrl(tenant: $this->team))->assertForbidden();

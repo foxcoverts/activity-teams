@@ -4,6 +4,7 @@ namespace Database\Factories;
 
 use App\Models\Booking;
 use App\Models\Comment;
+use App\Models\Task;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
@@ -28,6 +29,11 @@ class CommentFactory extends Factory
     public function forBooking(Booking $booking): static
     {
         return $this->for($booking, 'commentable');
+    }
+
+    public function forTask(Task $task): static
+    {
+        return $this->for($task, 'commentable');
     }
 
     public function trashed(): static

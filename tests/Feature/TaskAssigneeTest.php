@@ -9,8 +9,10 @@ use App\Enums\CalendarMethod;
 use App\Enums\InboundMailOutcome;
 use App\Enums\MailChannel;
 use App\Enums\MailGroup;
+use App\Enums\MembershipRole;
 use App\Enums\TaskAttendeeStatus;
 use App\Enums\TaskStatus;
+use App\Filament\Admin\Resources\Users\UserResource;
 use App\Filament\Teams\Resources\Members\MemberResource;
 use App\Filament\Teams\Resources\Tasks\Pages\EditTask;
 use App\Filament\Teams\Resources\Tasks\Pages\ListTasks;
@@ -180,6 +182,45 @@ class TaskAssigneeTest extends TestCase
         $this->assertTrue($assignee->can('complete', $task->fresh()));
         $this->assertTrue($manager->can('complete', $task->fresh()));
         $this->assertFalse($other->can('complete', $task->fresh()));
+    }
+
+    public function test_system_admin_without_membership_cannot_complete_a_task(): void
+    {
+        [, , , $task] = $this->taskContext();
+        $admin = User::factory()->systemAdmin()->create();
+
+        $this->assertFalse($admin->can('complete', $task));
+    }
+
+    public function test_system_admin_who_manages_the_team_can_still_complete(): void
+    {
+        [$team, , , $task] = $this->taskContext();
+        $adminManager = User::factory()->systemAdmin()->create();
+        $team->grant($adminManager, MembershipRole::Manager);
+
+        $this->assertTrue($adminManager->can('complete', $task));
+    }
+
+    public function test_person_url_falls_back_to_admin_when_subject_left_the_team(): void
+    {
+        [$team, $manager] = $this->taskContext();
+        $manager->forceFill(['is_system_admin' => true])->save();
+        $former = User::factory()->teamMember($team)->create();
+        $team->members()->detach($former->getKey());
+
+        $this->actingAs($manager);
+        Filament::setCurrentPanel('teams');
+        Filament::setTenant($team);
+
+        $this->assertNull(MemberResource::viewUrlFor($former, $team));
+
+        $url = MemberResource::personUrlFor($former, $team);
+
+        $this->assertNotNull($url);
+        $this->assertSame(
+            UserResource::getUrl('view', ['record' => $former], panel: 'admin'),
+            $url,
+        );
     }
 
     public function test_unassigned_tasks_remain_collaboratively_completable(): void
@@ -415,18 +456,27 @@ class TaskAssigneeTest extends TestCase
 
         $memberUrl = MemberResource::getUrl('view', ['record' => $member], panel: 'teams', tenant: $team);
         $avatarUrl = (string) $member->fresh()->getFilamentAvatarUrl();
+        $statusLabel = TaskAttendeeStatus::NeedsAction->getLabel();
 
         $list = Livewire::test(ListTasks::class)
             ->assertCanSeeTableRecords([$task->fresh()])
             ->assertSee('Casey Assignee')
+            ->assertSee($statusLabel)
             ->assertSee('fi-ta-person', false)
+            ->assertSee('fi-ta-person-description', false)
+            ->assertSee('md:fi-visible', false)
+            ->assertSee('data-size-from="md"', false)
+            ->assertSee('--fi-person-avatar-size: 32px', false)
+            ->assertSee('--fi-person-avatar-size-from: 48px', false)
             ->assertSeeHtml($memberUrl)
             ->assertSee(str_replace('&', '&amp;', $avatarUrl), false);
 
-        $this->assertSame(
-            'md',
-            $list->instance()->getTable()->getColumn('attendance.user.name')->getHeadingVisibleFrom(),
-        );
+        $column = $list->instance()->getTable()->getColumn('attendance.user.name');
+
+        $this->assertSame('md', $column->getHeadingVisibleFrom());
+        $this->assertSame($statusLabel, $column->getPersonDescription());
+        $this->assertTrue($column->usesResponsiveDescribedAvatarSize());
+        $this->assertSame(48, $column->getPersonSize());
     }
 
     private function taskContext(): array

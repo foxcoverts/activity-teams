@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Contracts\Commentable;
 use App\Filament\Teams\Resources\Bookings\BookingResource;
+use App\Filament\Teams\Resources\Tasks\TaskResource;
 use Database\Factories\CommentFactory;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -42,12 +43,17 @@ class Comment extends Model
     {
         $commentable = $this->commentable;
 
-        if (! $commentable instanceof Booking) {
-            return null;
+        if ($commentable instanceof Booking) {
+            return BookingResource::getUrl('view', ['record' => $commentable], panel: 'teams', tenant: $commentable->team)
+                .'?comment='.$this->getKey();
         }
 
-        return BookingResource::getUrl('view', ['record' => $commentable], panel: 'teams', tenant: $commentable->team)
-            .'?comment='.$this->getKey();
+        if ($commentable instanceof Task) {
+            return TaskResource::getUrl('view', ['record' => $commentable], panel: 'teams', tenant: $commentable->team)
+                .'?comment='.$this->getKey();
+        }
+
+        return null;
     }
 
     public function commentTeam(): ?Team

@@ -5,6 +5,7 @@ namespace App\Filament\Teams\Resources\Members;
 use App\Actions\SendTeamInvitationAction;
 use App\Enums\InvitationStatus;
 use App\Enums\MembershipRole;
+use App\Filament\Admin\Resources\Users\UserResource;
 use App\Filament\RelationManagers\QualificationsRelationManager;
 use App\Filament\Support\RefreshesNavigationChrome;
 use App\Filament\Teams\NavigationGroup;
@@ -151,6 +152,34 @@ class MemberResource extends Resource
         }
 
         return static::getUrl('view', ['record' => $member], panel: 'teams', tenant: $team);
+    }
+
+    /**
+     * Teams member view when available, otherwise Admin user view when the viewer can open it.
+     */
+    public static function personUrlFor(?User $member, ?Team $team = null): ?string
+    {
+        if (! $member instanceof User) {
+            return null;
+        }
+
+        if ($memberUrl = static::viewUrlFor($member, $team)) {
+            return $memberUrl;
+        }
+
+        $viewer = auth()->user();
+
+        if (! $viewer instanceof User) {
+            return null;
+        }
+
+        $panel = Filament::getPanel('admin');
+
+        if ($viewer->canAccessPanel($panel) && $viewer->can('view', $member)) {
+            return UserResource::getUrl('view', ['record' => $member], panel: $panel->getId());
+        }
+
+        return null;
     }
 
     /**

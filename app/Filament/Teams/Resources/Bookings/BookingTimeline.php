@@ -58,26 +58,7 @@ class BookingTimeline
             return null;
         }
 
-        $team = static::teamFor($activity);
-
-        if (! $team instanceof Team || ! $causer->teams()->whereKey($team->getKey())->exists()) {
-            return null;
-        }
-
-        $viewer = auth()->user();
-
-        if (! $viewer instanceof User) {
-            return null;
-        }
-
-        $mayLinkMembers = $viewer->manages($team)
-            || ($viewer->isSystemAdmin() && MemberResource::canView($causer));
-
-        if (! $mayLinkMembers || ! MemberResource::canView($causer)) {
-            return null;
-        }
-
-        return MemberResource::getUrl('view', ['record' => $causer], panel: 'teams', tenant: $team);
+        return MemberResource::personUrlFor($causer, static::teamFor($activity));
     }
 
     protected static function teamFor(ActivityLog $activity): ?Team

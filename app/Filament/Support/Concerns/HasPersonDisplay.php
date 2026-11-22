@@ -2,7 +2,6 @@
 
 namespace App\Filament\Support\Concerns;
 
-use App\Filament\Admin\Resources\Users\UserResource;
 use App\Filament\Support\Person;
 use App\Filament\Teams\Resources\Members\MemberResource;
 use App\Models\Team;
@@ -78,20 +77,7 @@ trait HasPersonDisplay
                 return null;
             }
 
-            if ($memberUrl = MemberResource::viewUrlFor($user, $team ?? Filament::getTenant())) {
-                return $memberUrl;
-            }
-
-            // Fall back to admin Users when the viewer can open that record.
-            if (($viewer = auth()->user()) instanceof User) {
-                $panel = Filament::getPanel('admin');
-
-                if ($viewer->canAccessPanel($panel) && $viewer->can('view', $user)) {
-                    return UserResource::getUrl('view', ['record' => $user], panel: $panel->getId());
-                }
-            }
-
-            return null;
+            return MemberResource::personUrlFor($user, $team ?? Filament::getTenant());
         });
     }
 
@@ -115,6 +101,43 @@ trait HasPersonDisplay
         }
 
         return $this->defaultPersonSize;
+    }
+
+    /**
+     * When a description enlarges the avatar and the heading is breakpoint-gated,
+     * keep the compact size below that breakpoint (avatar-only on small screens).
+     */
+    public function usesResponsiveDescribedAvatarSize(): bool
+    {
+        return ! $this->personSizeWasSet
+            && filled($this->getPersonDescription())
+            && filled($this->getHeadingVisibleFrom());
+    }
+
+    /**
+     * @return array{class: string, style: string, expandFrom: ?string}
+     */
+    public function personAvatarAttributes(): array
+    {
+        if ($this->usesResponsiveDescribedAvatarSize()) {
+            return [
+                'class' => 'fi-avatar fi-circular fi-person-avatar',
+                'style' => sprintf(
+                    '--fi-person-avatar-size: %dpx; --fi-person-avatar-size-from: %dpx',
+                    $this->defaultPersonSize,
+                    $this->describedPersonSize,
+                ),
+                'expandFrom' => $this->getHeadingVisibleFrom(),
+            ];
+        }
+
+        $size = $this->getPersonSize();
+
+        return [
+            'class' => 'fi-avatar fi-circular',
+            'style' => sprintf('height: %dpx; width: %dpx', $size, $size),
+            'expandFrom' => null,
+        ];
     }
 
     public function showsHeading(): bool

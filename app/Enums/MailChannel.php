@@ -16,13 +16,14 @@ enum MailChannel: string implements HasLabel
     case NewsMail = 'news.mail';
     case TasksMail = 'tasks.mail';
     case TasksUpdates = 'tasks.updates';
+    case TasksComments = 'tasks.comments';
 
     public function getLabel(): string
     {
         return match ($this) {
             self::BookingsMail, self::KeysMail, self::NewsMail, self::TasksMail => __('All mail'),
             self::BookingsUpdates, self::TasksUpdates => __('Updates'),
-            self::BookingsComments => __('Comments'),
+            self::BookingsComments, self::TasksComments => __('Comments'),
             self::BookingsReminders => __('Reminders'),
             self::BookingsDigest => __('Digest'),
             self::BookingsLogbook => __('Logbook'),
@@ -42,6 +43,7 @@ enum MailChannel: string implements HasLabel
             self::NewsMail => __('Direct email when a team publishes news.'),
             self::TasksMail => __('When you are assigned a task.'),
             self::TasksUpdates => __('Changes and cancellations for tasks assigned to you.'),
+            self::TasksComments => __('Comments on a task.'),
         };
     }
 
@@ -51,7 +53,7 @@ enum MailChannel: string implements HasLabel
             self::BookingsMail, self::BookingsUpdates, self::BookingsComments, self::BookingsReminders, self::BookingsDigest, self::BookingsLogbook => MailGroup::Bookings,
             self::KeysMail => MailGroup::Keys,
             self::NewsMail => MailGroup::News,
-            self::TasksMail, self::TasksUpdates => MailGroup::Tasks,
+            self::TasksMail, self::TasksUpdates, self::TasksComments => MailGroup::Tasks,
         };
     }
 
@@ -59,7 +61,7 @@ enum MailChannel: string implements HasLabel
     {
         return match ($this) {
             self::BookingsUpdates, self::BookingsComments, self::BookingsReminders, self::BookingsDigest, self::BookingsLogbook => self::BookingsMail,
-            self::TasksUpdates => self::TasksMail,
+            self::TasksUpdates, self::TasksComments => self::TasksMail,
             default => null,
         };
     }

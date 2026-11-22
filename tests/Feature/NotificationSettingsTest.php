@@ -156,6 +156,36 @@ class NotificationSettingsTest extends TestCase
         $this->assertFalse(MailPreference::allows($user, MailChannel::BookingsComments));
     }
 
+    public function test_tasks_comments_are_gated_by_tasks_all_mail(): void
+    {
+        $user = User::factory()->teamMember()->create();
+
+        Filament::setCurrentPanel('member');
+        $this->actingAs($user);
+
+        Livewire::test(NotificationSettings::class)
+            ->fillForm([
+                MailChannel::TasksComments->formKey() => '1',
+            ])
+            ->call('save');
+
+        $this->assertTrue($user->fresh()->mail_preferences[MailChannel::TasksComments->value]);
+        $this->assertTrue(MailPreference::allows($user->fresh(), MailChannel::TasksComments));
+
+        Livewire::test(NotificationSettings::class)
+            ->fillForm([
+                MailChannel::TasksMail->formKey() => '0',
+                MailChannel::TasksComments->formKey() => '1',
+            ])
+            ->call('save');
+
+        $user->refresh();
+
+        $this->assertFalse($user->mail_preferences[MailChannel::TasksMail->value]);
+        $this->assertTrue($user->mail_preferences[MailChannel::TasksComments->value]);
+        $this->assertFalse(MailPreference::allows($user, MailChannel::TasksComments));
+    }
+
     public function test_all_mail_off_skips_invite_update_and_attendance_mail_but_still_records_attendance(): void
     {
         [$booking, $attendee, $actor] = $this->bookingWithAttendee();
