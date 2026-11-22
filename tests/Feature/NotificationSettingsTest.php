@@ -497,19 +497,16 @@ class NotificationSettingsTest extends TestCase
         $team->activities()->sync([$activity->getKey()]);
         $team->venues()->sync([$venue->getKey()]);
 
-        $key = Lock::factory()->create(['name' => 'Climbing store']);
-        $key->requirements()->create([
-            'activity_id' => $activity->getKey(),
-            'venue_id' => $venue->getKey(),
-        ]);
+        $key = Lock::factory()
+            ->requiredFor($activity, $venue)
+            ->create(['name' => 'Climbing store']);
 
         return [$team, $key];
     }
 
     private function heldRing(User $holder, Lock $key): Key
     {
-        $ring = Key::factory()->heldBy($holder)->create(['name' => 'Shared climbing']);
-        $ring->locks()->attach($key);
+        $ring = Key::factory()->heldBy($holder)->unlocks($key)->create(['name' => 'Shared climbing']);
 
         return $ring;
     }

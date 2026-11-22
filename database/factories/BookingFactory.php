@@ -5,11 +5,11 @@ namespace Database\Factories;
 use App\Enums\BookingStatus;
 use App\Models\Activity;
 use App\Models\ActivityAudience;
-use App\Models\Audience;
 use App\Models\Booking;
 use App\Models\Team;
 use App\Models\Venue;
 use Illuminate\Database\Eloquent\Factories\Factory;
+use RuntimeException;
 
 /**
  * @extends Factory<Booking>
@@ -75,10 +75,7 @@ class BookingFactory extends Factory
                     ? $booking->audience_id
                     : static::audienceFor($activity);
 
-                ActivityAudience::query()->firstOrCreate([
-                    'activity_id' => $activity->getKey(),
-                    'audience_id' => $booking->audience_id,
-                ]);
+                static::assertActivityOffersAudience($activity, (string) $booking->audience_id);
             }
 
             if (filled($booking->venue_id)) {
@@ -92,18 +89,31 @@ class BookingFactory extends Factory
     {
         $existing = ActivityAudience::query()
             ->where('activity_id', $activity->getKey())
+            ->orderBy('id')
             ->value('audience_id');
 
         if (is_string($existing) && $existing !== '') {
             return $existing;
         }
 
-        $audience = Audience::factory()->create();
-        ActivityAudience::factory()->create([
-            'activity_id' => $activity->getKey(),
-            'audience_id' => $audience->getKey(),
-        ]);
+        throw new RuntimeException(
+            'BookingFactory needs an activity that already offers an audience. Use Activity::factory()->withAudience(...).',
+        );
+    }
 
-        return (string) $audience->getKey();
+    private static function assertActivityOffersAudience(Activity $activity, string $audienceId): void
+    {
+        $offers = ActivityAudience::query()
+            ->where('activity_id', $activity->getKey())
+            ->where('audience_id', $audienceId)
+            ->exists();
+
+        if ($offers) {
+            return;
+        }
+
+        throw new RuntimeException(
+            'BookingFactory needs the activity to already offer audience '.$audienceId.'. Pair it with withAudience() / andAudience() first.',
+        );
     }
 }

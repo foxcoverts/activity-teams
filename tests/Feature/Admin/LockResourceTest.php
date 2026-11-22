@@ -55,7 +55,7 @@ class LockResourceTest extends TestCase
     {
         $admin = User::factory()->systemAdmin()->create();
         $lock = Lock::factory()->create();
-        Key::factory()->create()->locks()->attach($lock);
+        Key::factory()->unlocks($lock)->create();
 
         $this->actingAs($admin);
 
@@ -66,10 +66,11 @@ class LockResourceTest extends TestCase
     public function test_view_defaults_relation_tab_to_covers_when_covers_are_attached(): void
     {
         $admin = User::factory()->systemAdmin()->create();
-        $lock = Lock::factory()->create();
         $covered = Lock::factory()->create();
-        $lock->covers()->attach($covered);
-        Key::factory()->create()->locks()->attach($lock);
+        $lock = Lock::factory()
+            ->covers($covered)
+            ->create();
+        Key::factory()->unlocks($lock)->create();
 
         $this->actingAs($admin);
 

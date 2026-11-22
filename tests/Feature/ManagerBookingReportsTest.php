@@ -91,8 +91,8 @@ class ManagerBookingReportsTest extends TestCase
 
     public function test_summary_prefers_debrief_hours_and_sums_participants(): void
     {
-        $activity = Activity::factory()->create(['name' => 'Climbing']);
         $audience = Audience::factory()->create(['name' => 'Youth']);
+        $activity = Activity::factory()->withAudience($audience)->create(['name' => 'Climbing']);
         $this->team->addActivity($activity);
 
         $withDebrief = Booking::factory()->forTeam($this->team)->confirmed()->create([
@@ -161,8 +161,8 @@ class ManagerBookingReportsTest extends TestCase
     public function test_past_tentative_hygiene_and_breakdowns_are_team_scoped(): void
     {
         $other = Team::factory()->create(['name' => 'Archery']);
-        $activity = Activity::factory()->create(['name' => 'Top rope']);
         $audience = Audience::factory()->create(['name' => 'Youth']);
+        $activity = Activity::factory()->withAudience($audience)->create(['name' => 'Top rope']);
         $venue = Venue::factory()->create(['name' => 'Wall']);
         $this->team->addActivity($activity);
         $this->team->addVenue($venue);

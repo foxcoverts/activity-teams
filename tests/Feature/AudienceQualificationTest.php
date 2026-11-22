@@ -96,11 +96,9 @@ class AudienceQualificationTest extends TestCase
             ->withAudience($scouts)
             ->andAudience($team)
             ->create();
-        $key = Lock::factory()->create(['name' => 'Wall key']);
-        $key->requirements()->create([
-            'activity_id' => $activity->getKey(),
-            'venue_id' => $venue->getKey(),
-        ]);
+        $key = Lock::factory()
+            ->requiredFor($activity, $venue)
+            ->create(['name' => 'Wall key']);
 
         $scoutBooking = Booking::factory()->create([
             'activity_id' => $activity->getKey(),

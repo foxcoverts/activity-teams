@@ -17,6 +17,10 @@ The gitignored file `.agent-accounts.json` lists local logins that are safe for 
 - If you change an account you created, update its entry. If a listed password fails, stop and tell the product owner; do not reset a password you did not just set.
 - Feature tests keep using factories. Do not create users only to fill this file.
 
+## Git branches
+
+`main` is a protected branch. Do not commit to it or push to it. Create or switch to a feature branch for work, and open a pull request into `main`. If commits land on `main` locally by mistake, move them onto a feature branch and reset local `main` to `origin/main`.
+
 ## Filament actions on Livewire components
 
 On Livewire components that use `InteractsWithActions`, Filament resolves mounted actions by method name after each request. `Action::make('assign')` must be returned from `assignAction()` (or a method literally named `assign`). Nested actions in an `ActionGroup` follow the same rule. A mismatch (for example `Action::make('assignTask')` on `assignAction()`) renders the trigger but clicks do nothing. Prefer `BookingTasks` / `TaskAssigneePanel` as the naming pattern, and cover new panel actions with `callAction` / `mountAction` tests.

@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Filament\Teams\Resources\Bookings\Pages\ListBookings;
 use App\Filament\Teams\Resources\Bookings\Pages\ViewBooking;
+use App\Models\Activity;
 use App\Models\Audience;
 use App\Models\Booking;
 use App\Models\User;
@@ -19,7 +20,9 @@ class BookingTitleTest extends TestCase
     public function test_titles_prefer_group_over_audience_and_always_include_activity(): void
     {
         $audience = Audience::factory()->create(['name' => 'Scouts']);
+        $activity = Activity::factory()->withAudience($audience)->create();
         $booking = Booking::factory()->create([
+            'activity_id' => $activity->getKey(),
             'activity_label' => 'Climbing',
             'audience_id' => $audience->getKey(),
             'group_name' => '1st Anytown Scouts',
@@ -35,7 +38,9 @@ class BookingTitleTest extends TestCase
     public function test_titles_use_audience_when_group_is_blank(): void
     {
         $audience = Audience::factory()->create(['name' => 'Scouts']);
+        $activity = Activity::factory()->withAudience($audience)->create();
         $booking = Booking::factory()->create([
+            'activity_id' => $activity->getKey(),
             'activity_label' => 'Climbing',
             'audience_id' => $audience->getKey(),
             'group_name' => null,
@@ -50,7 +55,9 @@ class BookingTitleTest extends TestCase
         $manager = User::factory()->teamManager()->create();
         $team = $manager->managedTeams()->firstOrFail();
         $audience = Audience::factory()->create(['name' => 'Scouts']);
+        $activity = Activity::factory()->withAudience($audience)->create();
         $booking = Booking::factory()->forTeam($team)->create([
+            'activity_id' => $activity->getKey(),
             'activity_label' => 'Climbing',
             'audience_id' => $audience->getKey(),
             'group_name' => '1st Anytown Scouts',
@@ -72,7 +79,9 @@ class BookingTitleTest extends TestCase
         $manager = User::factory()->teamManager()->create();
         $team = $manager->managedTeams()->firstOrFail();
         $audience = Audience::factory()->create(['name' => 'Scouts']);
+        $activity = Activity::factory()->withAudience($audience)->create();
         $booking = Booking::factory()->forTeam($team)->confirmed()->create([
+            'activity_id' => $activity->getKey(),
             'activity_label' => 'Climbing',
             'audience_id' => $audience->getKey(),
             'group_name' => '1st Anytown Scouts',
