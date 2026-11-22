@@ -65,6 +65,25 @@ class ActivityFactory extends Factory
     }
 
     /**
+     * Attach another audience after {@see withAudience()} (Audiences-tab shape).
+     *
+     * @param  list<array{kind: string, criteria?: array<string, mixed>}>  $qualificationRequirements
+     */
+    public function andAudience(Audience $audience, array $qualificationRequirements = []): static
+    {
+        return $this->afterCreating(function (Activity $activity) use ($audience, $qualificationRequirements): void {
+            $pairing = ActivityAudience::query()->firstOrCreate([
+                'activity_id' => $activity->getKey(),
+                'audience_id' => $audience->getKey(),
+            ]);
+
+            foreach ($qualificationRequirements as $requirement) {
+                $pairing->qualificationRequirements()->create($requirement);
+            }
+        });
+    }
+
+    /**
      * Leave the activity with no audience pairings (for broken-catalog fixtures).
      */
     public function withoutAudiences(): static

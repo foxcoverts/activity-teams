@@ -10,7 +10,6 @@ use App\Filament\Admin\Resources\Venues\RelationManagers\TeamsRelationManager as
 use App\Filament\Teams\Resources\Activities\ActivityResource as TeamsActivityResource;
 use App\Filament\Teams\Resources\Venues\VenueResource as TeamsVenueResource;
 use App\Models\Activity;
-use App\Models\ActivityAudience;
 use App\Models\Audience;
 use App\Models\Team;
 use App\Models\User;
@@ -35,9 +34,8 @@ class CatalogTeamsRelationManagerTest extends TestCase
     public function test_admin_can_give_and_remove_an_activity_from_a_team(): void
     {
         $admin = User::factory()->systemAdmin()->create();
-        $activity = Activity::factory()->create(['name' => 'Climbing']);
         $audience = Audience::factory()->create(['name' => 'Scouts']);
-        ActivityAudience::factory()->for($activity)->for($audience)->create();
+        $activity = Activity::factory()->withAudience($audience)->create(['name' => 'Climbing']);
         $team = Team::factory()->create(['name' => 'Fox Coverts']);
 
         $this->actingAs($admin);

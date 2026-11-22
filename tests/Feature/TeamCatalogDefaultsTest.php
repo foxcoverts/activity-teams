@@ -5,7 +5,6 @@ namespace Tests\Feature;
 use App\Filament\Teams\Resources\Activities\Pages\ListActivities;
 use App\Filament\Teams\Resources\Venues\Pages\ListVenues;
 use App\Models\Activity;
-use App\Models\ActivityAudience;
 use App\Models\Audience;
 use App\Models\Team;
 use App\Models\User;
@@ -175,9 +174,8 @@ class TeamCatalogDefaultsTest extends TestCase
 
     public function test_giving_an_activity_can_set_a_default_audience(): void
     {
-        $activity = Activity::factory()->create(['name' => 'Climbing']);
         $audience = Audience::factory()->create(['name' => 'Scouts']);
-        ActivityAudience::factory()->for($activity)->for($audience)->create();
+        $activity = Activity::factory()->withAudience($audience)->create(['name' => 'Climbing']);
         $user = User::factory()->teamManager()->create();
         $team = $user->managedTeams()->firstOrFail();
 

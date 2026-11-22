@@ -992,7 +992,9 @@ class AddBookingTest extends TestCase
 
     private function offerAudience(Activity $activity): string
     {
-        $pairing = ActivityAudience::factory()->for($activity)->create();
+        $pairing = $activity->activityAudiences()->first();
+        $this->assertInstanceOf(ActivityAudience::class, $pairing);
+
         Team::query()->orderByDesc('id')->firstOrFail()->setDefaultAudience($activity, $pairing->audience);
 
         return (string) $pairing->audience_id;

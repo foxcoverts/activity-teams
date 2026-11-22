@@ -4,7 +4,6 @@ namespace Tests\Feature\Admin;
 
 use App\Filament\Admin\Resources\Activities\Pages\ListActivities;
 use App\Models\Activity;
-use App\Models\ActivityAudience;
 use App\Models\Audience;
 use App\Models\User;
 use Filament\Facades\Filament;
@@ -41,8 +40,10 @@ class ActivityResourceTest extends TestCase
         $admin = User::factory()->systemAdmin()->create();
         $scouts = Audience::factory()->create(['name' => 'Scouts']);
         $guides = Audience::factory()->create(['name' => 'Guides']);
-        $climbing = Activity::factory()->withAudience($scouts)->create(['name' => 'Climbing']);
-        ActivityAudience::factory()->for($climbing)->for($guides)->create();
+        Activity::factory()
+            ->withAudience($scouts)
+            ->andAudience($guides)
+            ->create(['name' => 'Climbing']);
         Activity::factory()->withoutAudiences()->create(['name' => 'Archery']);
 
         $this->actingAs($admin);
