@@ -10,7 +10,6 @@ use App\Enums\TaskAttendeeStatus;
 use App\Filament\Teams\Resources\Members\MemberResource;
 use App\Filament\Teams\Resources\Tasks\Schemas\TaskForm;
 use App\Models\Task;
-use App\Models\Team;
 use App\Models\User;
 use App\Support\Palette;
 use Filament\Actions\Action;
@@ -310,20 +309,8 @@ class TaskAssigneePanel extends Component implements HasActions, HasSchemas
     private function memberUrl(Task $task, User $assignee, User $viewer): ?string
     {
         $task->loadMissing('team');
-        $team = $task->team;
 
-        if (! $team instanceof Team || ! $assignee->isCurrentMemberOf($team)) {
-            return null;
-        }
-
-        $mayLink = $viewer->manages($team)
-            || ($viewer->isSystemAdmin() && MemberResource::canView($assignee));
-
-        if (! $mayLink || ! MemberResource::canView($assignee)) {
-            return null;
-        }
-
-        return MemberResource::getUrl('view', ['record' => $assignee], panel: 'teams', tenant: $team);
+        return MemberResource::personUrlFor($assignee, $task->team);
     }
 
     private function refreshRecord(): void

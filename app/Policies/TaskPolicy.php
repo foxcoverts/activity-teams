@@ -70,10 +70,6 @@ class TaskPolicy
             return false;
         }
 
-        if ($user->isSystemAdmin()) {
-            return true;
-        }
-
         if (! $user->isCurrentMemberOf($task->team)) {
             return false;
         }

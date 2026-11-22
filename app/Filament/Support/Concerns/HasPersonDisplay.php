@@ -2,7 +2,6 @@
 
 namespace App\Filament\Support\Concerns;
 
-use App\Filament\Admin\Resources\Users\UserResource;
 use App\Filament\Support\Person;
 use App\Filament\Teams\Resources\Members\MemberResource;
 use App\Models\Team;
@@ -78,20 +77,7 @@ trait HasPersonDisplay
                 return null;
             }
 
-            if ($memberUrl = MemberResource::viewUrlFor($user, $team ?? Filament::getTenant())) {
-                return $memberUrl;
-            }
-
-            // Fall back to admin Users when the viewer can open that record.
-            if (($viewer = auth()->user()) instanceof User) {
-                $panel = Filament::getPanel('admin');
-
-                if ($viewer->canAccessPanel($panel) && $viewer->can('view', $user)) {
-                    return UserResource::getUrl('view', ['record' => $user], panel: $panel->getId());
-                }
-            }
-
-            return null;
+            return MemberResource::personUrlFor($user, $team ?? Filament::getTenant());
         });
     }
 
