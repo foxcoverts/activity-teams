@@ -474,6 +474,40 @@ class LogbookTest extends TestCase
             ->assertSee(__('Saved log'));
     }
 
+    public function test_saved_log_row_opens_a_view_modal_with_edit(): void
+    {
+        $member = User::factory()->teamMember()->create();
+        $booking = $this->pastBooking();
+        $this->attend($booking, $member, BookingAttendeeStatus::Accepted);
+
+        $entry = LogbookEntry::factory()->create([
+            'user_id' => $member->getKey(),
+            'booking_id' => $booking->getKey(),
+            'role' => 'Instructor',
+            'hours' => 2.5,
+            'notes' => 'View me',
+        ]);
+
+        $this->actingAs($member);
+
+        Livewire::test(LogbookPage::class)
+            ->assertTableActionExists('view')
+            ->assertTableActionExists('edit')
+            ->assertTableActionExists(['view', 'edit'])
+            ->mountTableAction('view', $entry)
+            ->assertSchemaStateSet([
+                'role' => 'Instructor',
+                'hours' => 2.5,
+                'notes' => 'View me',
+            ])
+            ->mountAction('edit')
+            ->assertSchemaStateSet([
+                'role' => 'Instructor',
+                'hours' => 2.5,
+                'notes' => 'View me',
+            ]);
+    }
+
     public function test_booking_view_offers_add_or_edit_logbook_for_accepted_member(): void
     {
         $member = User::factory()->teamMember()->create();
