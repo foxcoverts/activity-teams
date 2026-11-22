@@ -12,7 +12,7 @@ use BackedEnum;
 use Filament\Actions\ViewAction;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Resources\Resource;
-use Filament\Schemas\Components\Group;
+use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\TernaryFilter;
@@ -69,38 +69,38 @@ class QualificationResource extends Resource
     public static function infolist(Schema $schema): Schema
     {
         return $schema
-            ->columns(['default' => 1, 'md' => 2])
             ->components([
-                TextEntry::make('type_label')
-                    ->label(__('Type')),
-                TextEntry::make('expires_on')
-                    ->label(__('Expires'))
-                    ->date()
-                    ->placeholder('—')
-                    ->color(fn (Qualification $record): ?array => $record->expiryColor())
-                    ->visible(fn (Qualification $record): bool => $record->expires_on !== null),
-                Group::make()
-                    ->schema(fn (Qualification $record): array => collect($record->detailFields())
-                        ->map(function (array $field) use ($record): TextEntry {
-                            $entry = TextEntry::make('field.'.str($field['label'])->slug())
-                                ->label($field['label'])
-                                ->state($field['value']);
+                Section::make(__('Qualification'))
+                    ->icon(self::ICON)
+                    ->columns(1)
+                    ->columnSpanFull()
+                    ->schema(fn (Qualification $record): array => [
+                        TextEntry::make('type_label')
+                            ->label(__('Type')),
+                        TextEntry::make('expires_on')
+                            ->label(__('Expires'))
+                            ->date()
+                            ->placeholder('-')
+                            ->color(fn (Qualification $qualification): ?array => $qualification->expiryColor())
+                            ->visible(fn (Qualification $qualification): bool => $qualification->expires_on !== null),
+                        ...collect($record->detailFields())
+                            ->map(function (array $field) use ($record): TextEntry {
+                                $value = $field['value'];
+                                $entry = TextEntry::make('field.'.str($field['label'])->slug())
+                                    ->label($field['label'])
+                                    ->state($value === '—' ? null : $value)
+                                    ->placeholder('-');
 
-                            if ($field['label'] === __('Permit type') && filled($record->payload['permit_type'] ?? null)) {
-                                $entry->badge()
-                                    ->color(PermitType::color((string) $record->payload['permit_type']))
-                                    ->icon(PermitType::icon((string) $record->payload['permit_type']));
-                            }
+                                if ($field['label'] === __('Permit type') && filled($record->payload['permit_type'] ?? null)) {
+                                    $entry->badge()
+                                        ->color(PermitType::color((string) $record->payload['permit_type']))
+                                        ->icon(PermitType::icon((string) $record->payload['permit_type']));
+                                }
 
-                            if ($field['label'] === __('Restrictions')) {
-                                $entry->columnSpanFull();
-                            }
-
-                            return $entry;
-                        })
-                        ->all())
-                    ->columns(['default' => 1, 'md' => 2])
-                    ->columnSpanFull(),
+                                return $entry;
+                            })
+                            ->all(),
+                    ]),
             ]);
     }
 
