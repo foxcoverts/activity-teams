@@ -181,7 +181,7 @@ class BookingNotificationTest extends TestCase
         Mail::assertNotSent(BookingChangedMail::class);
     }
 
-    public function test_restoring_a_booking_sends_one_update_instead_of_an_invite(): void
+    public function test_restoring_a_booking_sends_an_update_to_people_already_on_it(): void
     {
         [$booking, $attendee, $actor] = $this->bookingWithAttendee(BookingAttendeeStatus::NeedsAction, [
             'status' => BookingStatus::Tentative,
@@ -190,17 +190,70 @@ class BookingNotificationTest extends TestCase
         Queue::fake();
         Mail::fake();
 
-        event(new BookingInvite($booking, $attendee));
         event(new BookingRestored($booking, $actor));
 
         foreach (Queue::pushed(SendBookingNotification::class) as $job) {
             $job->handle();
         }
 
-        Mail::assertSent(BookingChangedMail::class, function (BookingChangedMail $mail): bool {
-            return $mail->envelope()->subject === BookingMailThread::subject($mail->booking, 'Updated');
+        Mail::assertSent(BookingChangedMail::class, function (BookingChangedMail $mail) use ($attendee): bool {
+            return $mail->hasTo($attendee->email)
+                && $mail->envelope()->subject === BookingMailThread::subject($mail->booking, 'Updated');
         });
         Mail::assertNotSent(BookingInviteMail::class);
+    }
+
+    public function test_an_invite_in_the_same_window_as_an_update_stays_a_plain_invitation(): void
+    {
+        [$booking, $existing, $actor] = $this->bookingWithAttendee();
+        $invitee = User::factory()->teamMember()->create();
+
+        Queue::fake();
+        Mail::fake();
+
+        event(new BookingChanged($booking, $actor, ['start_at' => $booking->start_at]));
+        $booking->attendees()->attach($invitee->id, [
+            'status' => BookingAttendeeStatus::NeedsAction->value,
+            'token' => BookingAttendance::generateToken(),
+        ]);
+        event(new BookingInvite($booking->fresh(['attendees']), $invitee));
+
+        foreach (Queue::pushed(SendBookingNotification::class) as $job) {
+            $job->handle();
+        }
+
+        Mail::assertSent(BookingInviteMail::class, function (BookingInviteMail $mail) use ($invitee): bool {
+            return $mail->hasTo($invitee->email);
+        });
+        Mail::assertNotSent(BookingChangedMail::class, fn (BookingChangedMail $mail): bool => $mail->hasTo($invitee->email));
+        Mail::assertSent(BookingChangedMail::class, function (BookingChangedMail $mail) use ($existing): bool {
+            return $mail->hasTo($existing->email);
+        });
+    }
+
+    public function test_editing_before_anyone_is_invited_still_sends_a_plain_invitation(): void
+    {
+        $actor = User::factory()->teamManager()->create();
+        $invitee = User::factory()->teamMember()->create();
+        $booking = Booking::factory()->create();
+
+        Queue::fake();
+        Mail::fake();
+
+        event(new BookingChanged($booking, $actor, ['start_at' => $booking->start_at]));
+        $booking->attendees()->attach($invitee->id, [
+            'status' => BookingAttendeeStatus::NeedsAction->value,
+            'token' => BookingAttendance::generateToken(),
+        ]);
+        event(new BookingInvite($booking->fresh(['attendees']), $invitee));
+
+        foreach (Queue::pushed(SendBookingNotification::class) as $job) {
+            $job->handle();
+        }
+
+        Mail::assertSent(BookingInviteMail::class, 1);
+        Mail::assertSent(BookingInviteMail::class, fn (BookingInviteMail $mail): bool => $mail->hasTo($invitee->email));
+        Mail::assertNotSent(BookingChangedMail::class);
     }
 
     public function test_cancellation_replaces_a_pending_update(): void
