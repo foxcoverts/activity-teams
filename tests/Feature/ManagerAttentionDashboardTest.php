@@ -8,6 +8,7 @@ use App\Enums\AttentionSeverity;
 use App\Enums\BookingAttendeeStatus;
 use App\Enums\BookingStatus;
 use App\Enums\MembershipRole;
+use App\Enums\ScheduleNudgeTier;
 use App\Enums\TentativeTriage;
 use App\Filament\Teams\Pages\ManagerDashboard;
 use App\Filament\Teams\Widgets\Manager\EmailBouncesWidget;
@@ -15,6 +16,8 @@ use App\Filament\Teams\Widgets\Manager\ManagerAllCaughtUpWidget;
 use App\Filament\Teams\Widgets\Manager\NeedsLeadWidget;
 use App\Filament\Teams\Widgets\Manager\NeedsStaffingWidget;
 use App\Filament\Teams\Widgets\Manager\ReadyToConfirmWidget;
+use App\Models\Activity;
+use App\Models\Audience;
 use App\Models\Booking;
 use App\Models\Team;
 use App\Models\User;
@@ -276,7 +279,7 @@ class ManagerAttentionDashboardTest extends TestCase
 
         $summary = ManagerAttention::for($this->team)->summary();
         $this->assertSame(3, $summary['total']);
-        $this->assertSame(AttentionSeverity::Uncertain, $summary['severity']);
+        $this->assertSame(AttentionSeverity::Destructive, $summary['severity']);
 
         $bounced = User::factory()->create(['email_bounced_at' => now()]);
         $this->team->grant($bounced, MembershipRole::Member);
@@ -290,6 +293,72 @@ class ManagerAttentionDashboardTest extends TestCase
         $this->assertSame(99, ManagerAttention::for($this->team)->summary()['total']);
         ManagerAttention::flush($this->team->getKey());
         $this->assertSame(4, ManagerAttention::for($this->team)->summary()['total']);
+    }
+
+    public function test_nav_badge_summary_excludes_far_distant_tentatives_still_listed_for_triage(): void
+    {
+        $horizonDays = ScheduleNudgeTier::first()->days();
+
+        $farDistant = Booking::factory()->forTeam($this->team)->create([
+            'requires_lead_instructor' => false,
+            'start_at' => now()->addDays($horizonDays + 7),
+            'end_at' => now()->addDays($horizonDays + 7)->addHours(2),
+        ]);
+
+        $inHorizon = Booking::factory()->forTeam($this->team)->create([
+            'requires_lead_instructor' => false,
+            'start_at' => now()->addDays(30),
+            'end_at' => now()->addDays(30)->addHours(2),
+        ]);
+
+        $attention = ManagerAttention::for($this->team);
+
+        $this->assertTrue($attention->unstaffed()->contains(fn (Booking $booking): bool => $booking->is($farDistant)));
+        $this->assertTrue($attention->unstaffed()->contains(fn (Booking $booking): bool => $booking->is($inHorizon)));
+        $this->assertFalse($attention->isWithinNotificationHorizon($farDistant));
+        $this->assertTrue($attention->isWithinNotificationHorizon($inHorizon));
+        $this->assertSame(1, $attention->summary()['total']);
+        $this->assertSame(AttentionSeverity::Uncertain, $attention->summary()['severity']);
+    }
+
+    public function test_near_needs_lead_and_at_risk_use_destructive_badge_severity(): void
+    {
+        $dangerDays = ScheduleNudgeTier::penultimate()->days();
+
+        $nearNeedsLead = Booking::factory()->forTeam($this->team)->create([
+            'requires_lead_instructor' => true,
+            'lead_needed_at' => now(),
+            'start_at' => now()->addDays(max(1, $dangerDays - 2)),
+            'end_at' => now()->addDays(max(1, $dangerDays - 2))->addHours(2),
+        ]);
+        $nearNeedsLead->attendees()->attach($this->member->getKey(), ['status' => BookingAttendeeStatus::Accepted->value]);
+
+        $farNeedsLead = Booking::factory()->forTeam($this->team)->create([
+            'requires_lead_instructor' => true,
+            'lead_needed_at' => now(),
+            'start_at' => now()->addDays($dangerDays + 10),
+            'end_at' => now()->addDays($dangerDays + 10)->addHours(2),
+        ]);
+
+        $atRisk = Booking::factory()->forTeam($this->team)->create([
+            'requires_lead_instructor' => false,
+            'start_at' => now()->addDays(max(1, $dangerDays - 3)),
+            'end_at' => now()->addDays(max(1, $dangerDays - 3))->addHours(2),
+        ]);
+
+        $attention = ManagerAttention::for($this->team);
+
+        $this->assertSame(AttentionSeverity::Destructive, $attention->severityFor($nearNeedsLead));
+        $this->assertSame(AttentionSeverity::Uncertain, $attention->severityFor($farNeedsLead));
+        $this->assertSame(AttentionSeverity::Destructive, $attention->severityFor($atRisk));
+        $this->assertSame(AttentionSeverity::Destructive, $attention->summary()['severity']);
+        $this->assertSame(3, $attention->summary()['total']);
+
+        Livewire::test(NeedsLeadWidget::class)
+            ->assertViewHas('iconColor', AttentionSeverity::Destructive->color());
+
+        Livewire::test(NeedsStaffingWidget::class)
+            ->assertViewHas('iconColor', AttentionSeverity::Destructive->color());
     }
 
     public function test_widgets_show_triage_sections(): void
@@ -318,11 +387,53 @@ class ManagerAttentionDashboardTest extends TestCase
             'end_at' => now()->addDays(2)->addHours(2),
         ]);
 
-        Livewire::test(ReadyToConfirmWidget::class)->assertSee('Ready to confirm climb');
+        Livewire::test(ReadyToConfirmWidget::class)
+            ->assertSee('Ready to confirm climb')
+            ->assertSeeHtml('manager-day-urgent-ready')
+            ->assertSeeHtml('ring-color-600/40');
         Livewire::test(NeedsStaffingWidget::class)
             ->assertSee('Unstaffed climb')
             ->assertSee('At risk');
         Livewire::test(NeedsLeadWidget::class)->assertSee('Needs lead climb');
+    }
+
+    public function test_far_ready_to_confirm_day_groups_do_not_get_urgent_highlight(): void
+    {
+        $farDays = ScheduleNudgeTier::penultimate()->days() + 10;
+
+        $ready = Booking::factory()->forTeam($this->team)->create([
+            'activity_label' => 'Far ready climb',
+            'requires_lead_instructor' => false,
+            'start_at' => now()->addDays($farDays),
+            'end_at' => now()->addDays($farDays)->addHours(2),
+        ]);
+        $ready->attendees()->attach($this->member->getKey(), ['status' => BookingAttendeeStatus::Accepted->value]);
+
+        Livewire::test(ReadyToConfirmWidget::class)
+            ->assertSee('Far ready climb')
+            ->assertDontSeeHtml('manager-day-urgent-ready');
+    }
+
+    public function test_triage_widgets_use_display_name_preferring_group_over_audience(): void
+    {
+        $audience = Audience::factory()->create(['name' => 'Scouts']);
+        $activity = Activity::factory()->withAudience($audience)->create(['name' => 'Climbing']);
+
+        $ready = Booking::factory()->forTeam($this->team)->create([
+            'activity_id' => $activity->getKey(),
+            'activity_label' => null,
+            'audience_id' => $audience->getKey(),
+            'group_name' => '1st Anytown Scouts',
+            'requires_lead_instructor' => false,
+            'start_at' => now()->addDays(10),
+            'end_at' => now()->addDays(10)->addHours(2),
+        ]);
+        $ready->attendees()->attach($this->member->getKey(), ['status' => BookingAttendeeStatus::Accepted->value]);
+
+        Livewire::test(ReadyToConfirmWidget::class)
+            ->assertSee('Climbing')
+            ->assertSeeHtml('· 1st Anytown Scouts')
+            ->assertDontSeeHtml('· Scouts');
     }
 
     public function test_manager_widget_deep_links_use_filters_query_key(): void

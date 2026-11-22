@@ -99,7 +99,7 @@ final class ManagerAttentionCatchUp
             ->whereNull('team_user.left_at')
             ->where('bookings.status', BookingStatus::Tentative->value)
             ->where('bookings.start_at', '>', now())
-            ->where('bookings.start_at', '<=', now()->addDays(ScheduleNudgeTier::TwoMonths->days()))
+            ->where('bookings.start_at', '<=', now()->addDays(ScheduleNudgeTier::first()->days()))
             ->distinct()
             ->pluck('team_user.user_id');
     }
@@ -169,7 +169,7 @@ final class ManagerAttentionCatchUp
         $line = trim(
             $triage->getLabel()
             .' · '
-            .$booking->activityTitle()
+            .$booking->display_name
             .' '
             .$booking->start_at?->timezone(config('app.timezone'))->format('j M Y, H:i')
         );

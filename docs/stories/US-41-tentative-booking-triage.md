@@ -19,8 +19,9 @@ As an Activity Manager, I want tentative bookings to be actively triaged and hig
 
 Done on the Teams **Manager** dashboard (`ManagerDashboard`), manager-only. Shared readiness lives in `App\Support\ManagerAttention` / `TentativeTriage`:
 
-- **Needs lead** — `bookings.lead_needed_at` set when a confirmed booking loses its lead and steps down to tentative; listed even if the roster would otherwise be Ready.
-- **Ready to confirm** — confirm is possible with current lead rules (lead-viable useful attendees, or any useful attendee when lead is not required). Counts on the Manager nav badge with positive (green) severity; amber/red still outrank it.
-- **Unstaffed / At risk** — zero useful attendees; At risk when start is within 14 days.
+- **Needs lead** — `bookings.lead_needed_at` set when a confirmed booking loses its lead and steps down to tentative; listed even if the roster would otherwise be Ready. Within the danger window (`ScheduleNudgeTier::penultimate()`, currently 14 days) it uses destructive (red) badge and section colour; further out stays uncertain (amber).
+- **Ready to confirm** — confirm is possible with current lead rules (lead-viable useful attendees, or any useful attendee when lead is not required). Counts on the Manager nav badge with positive (green) severity; amber/red still outrank it. Day groups with any Ready session inside the danger window get an amber background/border so soon sessions stand out as needing a decision; the Ready chip stays green.
+- **Unstaffed / At risk** — zero useful attendees; At risk when start is within `ScheduleNudgeTier::penultimate()` (same danger window). At risk is destructive on the nav badge, section icon, and row chips; far unstaffed stays uncertain.
+- **Nav badge horizon** — booking triage rows only count toward the Manager nav badge when start is within the widest [US-44](US-44-tentative-booking-manager-nudges.md) `ScheduleNudgeTier` window (`ScheduleNudgeTier::first()`). Far-distant tentatives still appear on the dashboard triage sections.
 
 Scheduled manager mail is delivered by [US-44](US-44-tentative-booking-manager-nudges.md) on the CombinedDigest job. Bounce triage is [US-80](US-80-manager-bounce-triage-dashboard.md) on the same page.

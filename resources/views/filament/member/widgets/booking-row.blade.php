@@ -47,8 +47,8 @@
         <p class="text-base font-semibold">
             <a href="{{ BookingResource::viewUrl($booking) }}"
                 class="hover:underline after:absolute after:inset-0 after:z-0 after:content-['']">{{ $booking->activityTitle() }}</a>
-            @if ($booking->audience)
-                <span class="font-normal text-gray-500 dark:text-gray-400">· {{ $booking->audience->name }}</span>
+            @if (filled($context = $booking->contextLabel()))
+                <span class="font-normal text-gray-500 dark:text-gray-400">· {{ $context }}</span>
             @endif
         </p>
 

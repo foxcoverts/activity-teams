@@ -590,7 +590,10 @@ class Booking extends Model implements Commentable
         ], fn (?string $part): bool => filled($part)));
     }
 
-    private function contextLabel(): ?string
+    /**
+     * Group if set, otherwise audience — the second half of display titles.
+     */
+    public function contextLabel(): ?string
     {
         if (filled($this->group_name)) {
             return (string) $this->group_name;

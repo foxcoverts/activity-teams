@@ -5,6 +5,7 @@ namespace App\Support;
 use App\Enums\AttentionSeverity;
 use App\Enums\BookingAttendeeStatus;
 use App\Enums\BookingStatus;
+use App\Enums\ScheduleNudgeTier;
 use App\Enums\TeamFeature;
 use App\Enums\TentativeTriage;
 use App\Models\Booking;
@@ -17,8 +18,6 @@ use Illuminate\Support\Facades\Cache;
 final class ManagerAttention
 {
     public const PREVIEW_LIMIT = 5;
-
-    public const AT_RISK_DAYS = 14;
 
     public const CACHE_TTL_SECONDS = 120;
 
@@ -86,13 +85,24 @@ final class ManagerAttention
         $contributors = [];
 
         if ($includeBookings) {
+            $needsLead = $this->needsLead()->filter(
+                fn (Booking $booking): bool => $this->isWithinNotificationHorizon($booking),
+            );
+            $nearNeedsLead = $needsLead->filter(
+                fn (Booking $booking): bool => $this->isWithinAtRiskWindow($booking),
+            );
+            $farNeedsLead = $needsLead->reject(
+                fn (Booking $booking): bool => $this->isWithinAtRiskWindow($booking),
+            );
+
             $contributors = [
                 ...$contributors,
                 ['count' => $this->outstandingDebriefs()->count(), 'severity' => AttentionSeverity::Uncertain],
-                ['count' => $this->needsLead()->count(), 'severity' => AttentionSeverity::Uncertain],
-                ['count' => $this->atRisk()->count(), 'severity' => AttentionSeverity::Uncertain],
-                ['count' => $this->unstaffed()->count(), 'severity' => AttentionSeverity::Uncertain],
-                ['count' => $this->readyToConfirm()->count(), 'severity' => AttentionSeverity::Positive],
+                ['count' => $nearNeedsLead->count(), 'severity' => AttentionSeverity::Destructive],
+                ['count' => $farNeedsLead->count(), 'severity' => AttentionSeverity::Uncertain],
+                ['count' => $this->countWithinNotificationHorizon($this->atRisk()), 'severity' => AttentionSeverity::Destructive],
+                ['count' => $this->countWithinNotificationHorizon($this->unstaffed()), 'severity' => AttentionSeverity::Uncertain],
+                ['count' => $this->countWithinNotificationHorizon($this->readyToConfirm()), 'severity' => AttentionSeverity::Positive],
             ];
         }
 
@@ -236,6 +246,18 @@ final class ManagerAttention
         return TentativeTriage::Unstaffed;
     }
 
+    public function severityFor(Booking $booking): AttentionSeverity
+    {
+        return match ($this->classify($booking)) {
+            TentativeTriage::ReadyToConfirm => AttentionSeverity::Positive,
+            TentativeTriage::AtRisk => AttentionSeverity::Destructive,
+            TentativeTriage::NeedsLead => $this->isWithinAtRiskWindow($booking)
+                ? AttentionSeverity::Destructive
+                : AttentionSeverity::Uncertain,
+            TentativeTriage::Unstaffed => AttentionSeverity::Uncertain,
+        };
+    }
+
     public function canConfirm(Booking $booking): bool
     {
         if ($booking->requires_lead_instructor) {
@@ -269,7 +291,32 @@ final class ManagerAttention
             return false;
         }
 
-        return $start->lessThanOrEqualTo(now()->addDays(self::AT_RISK_DAYS));
+        return $start->greaterThan(now())
+            && $start->lessThanOrEqualTo(now()->addDays(ScheduleNudgeTier::penultimate()->days()));
+    }
+
+    /**
+     * Whether the booking start falls inside the widest ScheduleNudgeTier window.
+     */
+    public function isWithinNotificationHorizon(Booking $booking): bool
+    {
+        $start = $booking->start_at;
+
+        if (! $start instanceof CarbonInterface) {
+            return false;
+        }
+
+        return ScheduleNudgeTier::forStartAt($start) !== null;
+    }
+
+    /**
+     * @param  Collection<int, Booking>  $bookings
+     */
+    private function countWithinNotificationHorizon(Collection $bookings): int
+    {
+        return $bookings
+            ->filter(fn (Booking $booking): bool => $this->isWithinNotificationHorizon($booking))
+            ->count();
     }
 
     /**
