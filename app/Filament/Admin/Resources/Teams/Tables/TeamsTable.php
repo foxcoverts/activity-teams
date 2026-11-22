@@ -2,8 +2,8 @@
 
 namespace App\Filament\Admin\Resources\Teams\Tables;
 
+use App\Filament\Support\Tables\PersonStackedColumn;
 use App\Filament\Teams\Pages\Dashboard as TeamsDashboard;
-use App\Filament\Teams\Resources\Members\MemberResource;
 use App\Models\Team;
 use App\Support\Palette;
 use Filament\Actions\Action;
@@ -32,11 +32,10 @@ class TeamsTable
                 TextColumn::make('name')
                     ->sortable()
                     ->searchable(),
-                TextColumn::make('managers.name')
+                PersonStackedColumn::make('managers.name')
                     ->label('Managers')
-                    ->listWithLineBreaks()
                     ->placeholder('No managers')
-                    ->url(fn (Team $record, mixed $state): string => MemberResource::getUrl('index', panel: 'teams', tenant: $record)),
+                    ->memberUrl(),
             ])
             ->filters([
                 SelectFilter::make('managers.id')

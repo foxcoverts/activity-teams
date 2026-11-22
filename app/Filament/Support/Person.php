@@ -6,7 +6,7 @@ use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 
 /**
- * Shared User resolution for person Column / Entry (and a future PersonSelect).
+ * Shared User resolution for person Column / Entry (and PersonStacked / PersonSelect).
  */
 final class Person
 {
