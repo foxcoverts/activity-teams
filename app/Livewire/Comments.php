@@ -15,6 +15,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Livewire\Attributes\Locked;
+use Livewire\Attributes\On;
 use Livewire\Component;
 
 class Comments extends Component
@@ -125,6 +126,16 @@ class Comments extends Component
     public function showOlderComments(): void
     {
         $this->showOlder = true;
+    }
+
+    #[On('task-status-changed')]
+    public function refreshAfterTaskStatusChange(string $taskId): void
+    {
+        if (! $this->record instanceof Task || (string) $this->record->getKey() !== $taskId) {
+            return;
+        }
+
+        $this->record = $this->commentable($taskId);
     }
 
     /**
