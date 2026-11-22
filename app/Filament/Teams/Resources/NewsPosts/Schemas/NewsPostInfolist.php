@@ -7,6 +7,7 @@ use Filament\Infolists\Components\TextEntry;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Text;
 use Filament\Schemas\Schema;
+use Illuminate\Support\HtmlString;
 
 class NewsPostInfolist
 {
@@ -15,10 +16,9 @@ class NewsPostInfolist
         return $schema
             ->components([
                 Section::make()
-                    ->description(fn (NewsPost $record): string => implode(' · ', array_filter([
-                        $record->author?->name ? __('By :author', ['author' => $record->author->name]) : null,
-                        $record->published_at?->format('j M Y, H:i'),
-                    ])))
+                    ->heading(fn (NewsPost $record): HtmlString => new HtmlString(
+                        view('filament.resources.news-posts.byline', ['post' => $record])->render(),
+                    ))
                     ->afterHeader([
                         static::statusBadge(),
                     ])

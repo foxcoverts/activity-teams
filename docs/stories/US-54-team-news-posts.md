@@ -21,7 +21,7 @@ As a team manager, I want to publish news for my team and have members see a com
 
 ## Progress
 
-Done. Combined article feed at `/news` (not a table); team slugs; Atom/RSS at `/feeds/{feed_token}/`; `rel="alternate"` discovery on signed-in panel pages; deferrable inbox + due job + digest; Publish XOR Republish; past dates stamp `notified_at`; scheduled Unpublish to draft.
+Done. Combined article feed at `/news` (not a table); team slugs; Atom/RSS at `/feeds/{feed_token}/`; `rel="alternate"` discovery on signed-in panel pages; deferrable inbox + due job + digest; Publish XOR Republish; past dates stamp `notified_at`; scheduled Unpublish to draft. List and view share a horizontal byline (avatar, by **author**, clock + relative time); list titles use a larger header weight so the byline stays secondary; view puts that byline in the section heading with the body below; managers see the status badge in the header’s after slot.
 
 News is not high urgency. `notify()` writes the inbox (`RecordsInbox`, database channel only). The digest is the email. Off `news.mail` still writes an inbox row; that row is not emailable. A scheduled job notifies posts whose `published_at` is in the past and `notified_at` is null. Saving a past date stamps `notified_at` to that `published_at`. Publish and Republish are never both visible. Unpublish returns a live or scheduled post to draft and does not clear `notified_at`. Edit of a live post updates the feed only. Delivery failures stay on the queue / failed-job path.
 

@@ -42,32 +42,26 @@
         @forelse ($records as $post)
             @php
                 $url = $this->getResource()::getUrl('view', ['record' => $post], panel: 'teams', tenant: $post->team);
-                $publishedAt = $post->published_at?->timezone(auth()->user()?->timezone ?? config('app.timezone'));
             @endphp
 
             <article>
                 <x-filament::section>
                     <x-slot name="heading">
-                        <a href="{{ $url }}" class="hover:underline">{{ $post->title }}</a>
-                    </x-slot>
-                    <x-slot name="description">
-                        {{ __('By :author', ['author' => $post->author->name]) }}
-                        @if ($publishedAt)
-                            · <span class="cursor-help"
-                                x-tooltip="{{ json_encode($publishedAt->format('j M Y, H:i')) }}">
-                                {{ __('Posted :when', ['when' => $publishedAt->diffForHumans()]) }}</span>
-                        @else
-                            · {{ __('Not yet published') }}
-                        @endif
-                    </x-slot>
-                    <x-slot name="afterHeader">
-                        @if (is_null($tenant))
-                            {{ $this->teamBadgeAction()->record($post) }}
-                        @elseif (auth()->user()->can('update', $post))
-                            <x-filament::badge :color="$post->getStatus()->getColor()" :icon="$post->getStatus()->getIcon()">
-                                {{ $post->getStatus()->getLabel() }}
-                            </x-filament::badge>
-                        @endif
+                        <div class="grid gap-y-1 leading-none">
+                            <a href="{{ $url }}" class="text-xl font-semibold leading-snug hover:underline">{{ $post->title }}</a>
+
+                            <div class="flex items-center justify-between gap-3">
+                                @include('filament.resources.news-posts.byline', ['post' => $post])
+
+                                @if (is_null($tenant))
+                                    {{ $this->teamBadgeAction()->record($post) }}
+                                @elseif (auth()->user()->can('update', $post))
+                                    <x-filament::badge :color="$post->getStatus()->getColor()" :icon="$post->getStatus()->getIcon()">
+                                        {{ $post->getStatus()->getLabel() }}
+                                    </x-filament::badge>
+                                @endif
+                            </div>
+                        </div>
                     </x-slot>
 
                     <p>{{ $post->excerpt() }}</p>
