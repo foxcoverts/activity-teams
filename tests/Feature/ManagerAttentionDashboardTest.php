@@ -8,6 +8,7 @@ use App\Enums\AttentionSeverity;
 use App\Enums\BookingAttendeeStatus;
 use App\Enums\BookingStatus;
 use App\Enums\MembershipRole;
+use App\Enums\ScheduleNudgeTier;
 use App\Enums\TentativeTriage;
 use App\Filament\Teams\Pages\ManagerDashboard;
 use App\Filament\Teams\Widgets\Manager\EmailBouncesWidget;
@@ -290,6 +291,32 @@ class ManagerAttentionDashboardTest extends TestCase
         $this->assertSame(99, ManagerAttention::for($this->team)->summary()['total']);
         ManagerAttention::flush($this->team->getKey());
         $this->assertSame(4, ManagerAttention::for($this->team)->summary()['total']);
+    }
+
+    public function test_nav_badge_summary_excludes_far_distant_tentatives_still_listed_for_triage(): void
+    {
+        $horizonDays = ScheduleNudgeTier::max()->days();
+
+        $farDistant = Booking::factory()->forTeam($this->team)->create([
+            'requires_lead_instructor' => false,
+            'start_at' => now()->addDays($horizonDays + 7),
+            'end_at' => now()->addDays($horizonDays + 7)->addHours(2),
+        ]);
+
+        $inHorizon = Booking::factory()->forTeam($this->team)->create([
+            'requires_lead_instructor' => false,
+            'start_at' => now()->addDays(30),
+            'end_at' => now()->addDays(30)->addHours(2),
+        ]);
+
+        $attention = ManagerAttention::for($this->team);
+
+        $this->assertTrue($attention->unstaffed()->contains(fn (Booking $booking): bool => $booking->is($farDistant)));
+        $this->assertTrue($attention->unstaffed()->contains(fn (Booking $booking): bool => $booking->is($inHorizon)));
+        $this->assertFalse($attention->isWithinNotificationHorizon($farDistant));
+        $this->assertTrue($attention->isWithinNotificationHorizon($inHorizon));
+        $this->assertSame(1, $attention->summary()['total']);
+        $this->assertSame(AttentionSeverity::Uncertain, $attention->summary()['severity']);
     }
 
     public function test_widgets_show_triage_sections(): void

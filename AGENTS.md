@@ -202,8 +202,9 @@ This project has domain-specific skills available in `**/skills/**`. You MUST ac
 
 ## Running Tests
 
-- Run the narrowest set of tests that covers the change. Pass a file path or `--filter=testName` to `vendor/bin/sail artisan test --compact`.
+- Run the narrowest set of tests that covers the change while iterating. Pass a file path or `--filter=testName` to `vendor/bin/sail artisan test --compact`.
 - Rerun a test after each change to it.
+- Before sign-off (handing finished work to the product owner, or opening / updating a PR), run the full suite with `vendor/bin/sail artisan test --compact`. Do not rely on PR CI as the first full run.
 - Run `vendor/bin/sail bin phpunit` to call the test runner directly. It accepts the same file path and `--filter=testName` arguments.
 
 ## Queued Mail

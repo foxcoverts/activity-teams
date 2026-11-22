@@ -26,6 +26,14 @@ enum ScheduleNudgeTier: string
         ];
     }
 
+    /**
+     * Widest / highest notification window on the ladder.
+     */
+    public static function max(): self
+    {
+        return self::ladder()[0];
+    }
+
     public function days(): int
     {
         return match ($this) {
@@ -61,7 +69,7 @@ enum ScheduleNudgeTier: string
     }
 
     /**
-     * Ladder band for a future start (null when outside the 56-day horizon or already started).
+     * Ladder band for a future start (null when outside the max horizon or already started).
      */
     public static function forStartAt(CarbonInterface $startAt, ?CarbonInterface $now = null): ?self
     {

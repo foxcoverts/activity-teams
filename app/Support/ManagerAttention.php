@@ -5,6 +5,7 @@ namespace App\Support;
 use App\Enums\AttentionSeverity;
 use App\Enums\BookingAttendeeStatus;
 use App\Enums\BookingStatus;
+use App\Enums\ScheduleNudgeTier;
 use App\Enums\TeamFeature;
 use App\Enums\TentativeTriage;
 use App\Models\Booking;
@@ -89,10 +90,10 @@ final class ManagerAttention
             $contributors = [
                 ...$contributors,
                 ['count' => $this->outstandingDebriefs()->count(), 'severity' => AttentionSeverity::Uncertain],
-                ['count' => $this->needsLead()->count(), 'severity' => AttentionSeverity::Uncertain],
-                ['count' => $this->atRisk()->count(), 'severity' => AttentionSeverity::Uncertain],
-                ['count' => $this->unstaffed()->count(), 'severity' => AttentionSeverity::Uncertain],
-                ['count' => $this->readyToConfirm()->count(), 'severity' => AttentionSeverity::Positive],
+                ['count' => $this->countWithinNotificationHorizon($this->needsLead()), 'severity' => AttentionSeverity::Uncertain],
+                ['count' => $this->countWithinNotificationHorizon($this->atRisk()), 'severity' => AttentionSeverity::Uncertain],
+                ['count' => $this->countWithinNotificationHorizon($this->unstaffed()), 'severity' => AttentionSeverity::Uncertain],
+                ['count' => $this->countWithinNotificationHorizon($this->readyToConfirm()), 'severity' => AttentionSeverity::Positive],
             ];
         }
 
@@ -270,6 +271,30 @@ final class ManagerAttention
         }
 
         return $start->lessThanOrEqualTo(now()->addDays(self::AT_RISK_DAYS));
+    }
+
+    /**
+     * Whether the booking start falls inside the widest ScheduleNudgeTier window.
+     */
+    public function isWithinNotificationHorizon(Booking $booking): bool
+    {
+        $start = $booking->start_at;
+
+        if (! $start instanceof CarbonInterface) {
+            return false;
+        }
+
+        return ScheduleNudgeTier::forStartAt($start) !== null;
+    }
+
+    /**
+     * @param  Collection<int, Booking>  $bookings
+     */
+    private function countWithinNotificationHorizon(Collection $bookings): int
+    {
+        return $bookings
+            ->filter(fn (Booking $booking): bool => $this->isWithinNotificationHorizon($booking))
+            ->count();
     }
 
     /**

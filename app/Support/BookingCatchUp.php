@@ -98,7 +98,7 @@ final class BookingCatchUp
             ))
             ->where('bookings.status', '!=', BookingStatus::Cancelled->value)
             ->where('bookings.start_at', '>', now())
-            ->where('bookings.start_at', '<=', now()->addDays(ScheduleNudgeTier::TwoMonths->days()))
+            ->where('bookings.start_at', '<=', now()->addDays(ScheduleNudgeTier::max()->days()))
             ->pluck('booking_user.user_id');
 
         $reminderUserIds = DB::table('booking_user')
@@ -174,7 +174,7 @@ final class BookingCatchUp
             ->whereHas('booking', function ($query): void {
                 $query->where('status', '!=', BookingStatus::Cancelled->value)
                     ->where('start_at', '>', now())
-                    ->where('start_at', '<=', now()->addDays(ScheduleNudgeTier::TwoMonths->days()));
+                    ->where('start_at', '<=', now()->addDays(ScheduleNudgeTier::max()->days()));
             })
             ->with(['booking.activity', 'booking.venue'])
             ->get();
