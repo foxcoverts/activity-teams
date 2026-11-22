@@ -5,10 +5,13 @@ namespace App\Filament\Teams\Resources\Tasks\Schemas;
 use App\Enums\TaskAttendeeStatus;
 use App\Enums\TaskPriority;
 use App\Enums\TaskStatus;
+use App\Filament\Support\Forms\PersonSelect;
+use App\Filament\Support\Person;
 use App\Filament\Teams\Resources\Bookings\Schemas\BookingForm;
 use App\Filament\Venues\VenueLocationSchema;
 use App\Models\Task;
 use App\Models\Team;
+use App\Models\User;
 use App\Models\Venue;
 use App\Support\Palette;
 use Filament\Actions\Action;
@@ -26,6 +29,7 @@ use Filament\Schemas\Components\Wizard;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Collection;
 use Illuminate\Validation\ValidationException;
 use Livewire\Component as LivewireComponent;
 
@@ -122,12 +126,10 @@ class TaskForm
             DateTimePicker::make('due_at')
                 ->label(__('Due'))
                 ->seconds(false),
-            Select::make('assignee_id')
+            PersonSelect::make('assignee_id')
                 ->label(__('Assignee'))
                 ->options(fn (): array => static::assigneeOptions())
-                ->searchable()
                 ->nullable()
-                ->native(false)
                 ->live()
                 ->afterStateUpdated(function (Set $set, mixed $state, ?Task $record, ?LivewireComponent $livewire): void {
                     if (static::assigneeChanged($state, $record, $livewire)) {
@@ -191,22 +193,29 @@ class TaskForm
     }
 
     /**
-     * @return array<string, string>
+     * @return Collection<int, User>
      */
-    public static function assigneeOptions(): array
+    public static function assigneeUsers(): Collection
     {
         $team = Filament::getTenant();
 
         if (! $team instanceof Team) {
-            return [];
+            return collect();
         }
 
         return $team->members()
             ->where('suspended', false)
             ->whereNotNull('email_verified_at')
             ->ordered()
-            ->pluck('users.name', 'users.id')
-            ->all();
+            ->get();
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public static function assigneeOptions(): array
+    {
+        return Person::optionsFor(static::assigneeUsers());
     }
 
     /**

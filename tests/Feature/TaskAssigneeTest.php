@@ -26,6 +26,7 @@ use App\Models\InboundMail;
 use App\Models\Task;
 use App\Models\Team;
 use App\Models\User;
+use App\Support\Avatars;
 use App\Support\InboundMailAddress;
 use App\Support\MailPreference;
 use App\Support\TaskIcsFactory;
@@ -434,6 +435,36 @@ class TaskAssigneeTest extends TestCase
                 'assignee_id' => $replacement->getKey(),
             ], $schema)
             ->assertFormFieldIsVisible('invite', $schema);
+    }
+
+    public function test_the_assign_modal_shows_person_select_avatars(): void
+    {
+        [$team, $manager, $member, $task] = $this->taskContext();
+        $member->forceFill(['name' => 'Casey Assignee'])->save();
+
+        $this->actingAs($manager);
+        Filament::setCurrentPanel('teams');
+        Filament::setTenant($team);
+
+        $avatarUrl = Avatars::userUrl($member->fresh(), 64);
+
+        $assertPersonOption = function (mixed $select) use ($member, $avatarUrl): bool {
+            $options = $select->getOptions();
+            $label = $options[(string) $member->getKey()]
+                ?? $options[$member->getKey()]
+                ?? null;
+
+            return is_string($label)
+                && str_contains($label, 'Casey Assignee')
+                && str_contains($label, e($avatarUrl));
+        };
+
+        Livewire::test(TaskAssigneePanel::class, ['record' => $task])
+            ->mountAction('assign')
+            ->assertSchemaComponentExists('assignee_id', checkComponentUsing: $assertPersonOption);
+
+        Livewire::test(EditTask::class, ['record' => $task->getRouteKey()])
+            ->assertSchemaComponentExists('assignee_id', checkComponentUsing: $assertPersonOption);
     }
 
     public function test_manager_can_assign_reassign_update_response_and_clear_from_panel(): void

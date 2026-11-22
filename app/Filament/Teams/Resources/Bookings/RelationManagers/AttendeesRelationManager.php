@@ -8,6 +8,8 @@ use App\Actions\ResendBookingIcsAction;
 use App\Enums\BookingAttendeeResponse;
 use App\Enums\BookingAttendeeStatus;
 use App\Filament\Bookings\ConfirmAttendeesAction;
+use App\Filament\Support\Forms\PersonSelect;
+use App\Filament\Support\Person;
 use App\Filament\Support\SubmitsOnModEnter;
 use App\Filament\Teams\Resources\Members\MemberResource;
 use App\Models\Booking;
@@ -21,7 +23,6 @@ use Filament\Actions\ActionGroup;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DetachAction;
 use Filament\Actions\DetachBulkAction;
-use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\ToggleButtons;
 use Filament\Notifications\Notification;
@@ -348,7 +349,7 @@ class AttendeesRelationManager extends RelationManager
     }
 
     /**
-     * @return array<string, string>
+     * @return list<User>
      */
     protected function membersNotOnBooking(): array
     {
@@ -373,24 +374,23 @@ class AttendeesRelationManager extends RelationManager
                 fn (Builder $query) => $query->whereKeyNot($onBookingIds),
             )
             ->ordered()
-            ->pluck('users.name', 'users.id')
+            ->get()
             ->all();
     }
 
-    protected function memberSelect(bool $existing): Select
+    protected function memberSelect(bool $existing): PersonSelect
     {
-        $select = Select::make('user_id')->label(__('Member'));
+        $select = PersonSelect::make('user_id')->label(__('Member'));
 
         if ($existing) {
             return $select
-                ->options(fn (User $record): array => [$record->getKey() => $record->name])
+                ->options(fn (User $record): array => Person::optionsFor([$record]))
                 ->disabled()
                 ->dehydrated(false);
         }
 
         return $select
-            ->options(fn (): array => $this->membersNotOnBooking())
-            ->searchable()
+            ->options(fn (): array => Person::optionsFor($this->membersNotOnBooking()))
             ->required();
     }
 

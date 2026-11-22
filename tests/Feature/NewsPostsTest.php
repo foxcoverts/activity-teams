@@ -9,6 +9,7 @@ use App\Filament\Member\Pages\Feeds;
 use App\Filament\Member\Resources\NewsPosts\NewsPostResource as MemberNewsPostResource;
 use App\Filament\Member\Resources\NewsPosts\Pages\ListNewsPosts as MemberListNewsPosts;
 use App\Filament\Teams\Resources\NewsPosts\NewsPostResource;
+use App\Filament\Teams\Resources\NewsPosts\Pages\EditNewsPost;
 use App\Filament\Teams\Resources\NewsPosts\Pages\ListNewsPosts;
 use App\Filament\Teams\Resources\NewsPosts\Pages\ViewNewsPost;
 use App\Jobs\NotifyDueNewsPosts;
@@ -16,10 +17,12 @@ use App\Mail\NewsPostMail;
 use App\Models\NewsPost;
 use App\Models\Team;
 use App\Models\User;
+use App\Support\Avatars;
 use App\Support\CombinedDigest;
 use App\Support\MailPreference;
 use App\Support\MemberDashboard;
 use Filament\Facades\Filament;
+use Filament\Forms\Components\Select;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
@@ -890,6 +893,28 @@ class NewsPostsTest extends TestCase
             ->assertDontSee('By Ada Manager')
             ->assertSeeHtml('fi-avatar')
             ->assertSee(str_replace('&', '&amp;', $avatarUrl), false);
+    }
+
+    public function test_the_news_author_select_shows_person_avatars(): void
+    {
+        $manager = User::factory()->teamManager()->create(['name' => 'Ada Author']);
+        $team = $manager->managedTeams()->firstOrFail();
+        $post = NewsPost::factory()->forTeam($team)->draft()->create([
+            'author_id' => $manager->getKey(),
+        ]);
+        $avatarUrl = Avatars::userUrl($manager, 64);
+
+        $this->actingAs($manager);
+        Filament::setTenant($team);
+
+        Livewire::test(EditNewsPost::class, ['record' => $post->getRouteKey()])
+            ->assertSchemaComponentExists('author_id', checkComponentUsing: function (Select $select) use ($manager, $avatarUrl): bool {
+                $label = $select->getOptionLabelFromRecord($manager);
+
+                return is_string($label)
+                    && str_contains($label, 'Ada Author')
+                    && str_contains($label, e($avatarUrl));
+            });
     }
 
     /**
