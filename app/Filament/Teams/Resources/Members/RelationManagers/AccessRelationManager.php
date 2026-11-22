@@ -13,11 +13,11 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\Relation;
 
-class LocksRelationManager extends RelationManager
+class AccessRelationManager extends RelationManager
 {
     protected static string $relationship = 'openedLocks';
 
-    protected static ?string $title = 'Locks';
+    protected static ?string $title = 'Access';
 
     protected static ?string $modelLabel = 'lock';
 
@@ -51,17 +51,20 @@ class LocksRelationManager extends RelationManager
             ->query(fn (): Builder => $this->openedLocksQuery())
             ->columns([
                 TextColumn::make('name')
-                    ->label(__('Lock'))
+                    ->label(__('Can open'))
                     ->searchable(),
-                TextColumn::make('required_for')
-                    ->label(__('Required for'))
+                TextColumn::make('opens_for')
+                    ->label(__('Opens for'))
                     ->state(function (Lock $record): array {
                         $team = MemberResource::currentTeam();
 
                         return $team instanceof Team ? $record->requirementSummariesFor($team) : [];
                     })
-                    ->listWithLineBreaks(),
+                    ->listWithLineBreaks()
+                    ->placeholder('-'),
             ])
+            ->emptyStateHeading(__('No team access'))
+            ->emptyStateDescription(__('This person cannot open any locks this team needs.'))
             ->headerActions([])
             ->recordUrl(null)
             ->recordActions([])
