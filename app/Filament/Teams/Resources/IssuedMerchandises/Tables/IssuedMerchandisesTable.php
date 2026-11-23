@@ -57,6 +57,8 @@ class IssuedMerchandisesTable
                             ->pluck('title', 'id')
                             ->all();
                     })
+                    ->searchable()
+                    ->preload()
                     ->query(function (Builder $query, array $data): Builder {
                         $itemId = $data['value'] ?? null;
 
