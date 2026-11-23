@@ -356,6 +356,26 @@ class Team extends Model implements HasAvatar
         return $this->hasMany(Task::class);
     }
 
+    public function merchandiseItems(): HasMany
+    {
+        return $this->hasMany(MerchandiseItem::class);
+    }
+
+    public function issuedMerchandise(): HasMany
+    {
+        return $this->hasMany(IssuedMerchandise::class);
+    }
+
+    public function hasMerchandiseVariants(): bool
+    {
+        return MerchandiseItemVariant::query()
+            ->whereHas(
+                'item',
+                fn (Builder $items): Builder => $items->whereBelongsTo($this),
+            )
+            ->exists();
+    }
+
     public function equipmentSets(): HasMany
     {
         return $this->hasMany(EquipmentSet::class);

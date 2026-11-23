@@ -11,7 +11,7 @@ Anchor stories: [US-36](US-36-merchandise-stash-requests.md) (shop), [US-24](US-
 | **Manufacturer** | A per-team controlled supplier record. Catalogue items associate to a manufacturer so [US-86](US-86-merchandise-manufacturer-orders.md) can group lines when building an outward order. |
 | **Catalogue item** | A sellable product on one team: title, description, image, manufacturer, fulfilment type (stock or made-to-order), availability, optional personalisation fields, and one or more sizes each with a price. |
 | **Availability** | Whether members may order the item now (e.g. available vs mothballed). Mothballing hides it from the shop without deleting it, so past orders and issued history stay intact. |
-| **Size / variant** | A priced option on an item (e.g. S / M / L). Stock quantity, when used, sits on the size. |
+| **Variant** | An issuable / orderable option on an item (SKU). Label is free text (e.g. size, colour, style, or a mash-up). Price and stock, when added, sit on the variant. Schema: `merchandise_item_variants`. |
 | **Personalisation** | Extra fields on an item (name, colour, free text, etc.) the member fills when ordering. |
 | **Order** | A member’s request for one or more line items from that team’s catalogue. |
 | **Approval** | Manager accept or reject (with reason), including discretionary line discounts. |
@@ -84,6 +84,10 @@ Team managers apply that policy at approval as full or partial line discounts. T
 
 - Manufacturers, catalogue, stock, orders, invoices, manufacturer orders, and issued items are **per team**.
 - All current team members may order. No cross-team shopping.
+
+## Navigation (Teams panel)
+
+Feature-gated **Merchandise** group (Shop flag), first among Teams nav groups (then Manage, Setup, Admin): staff **Items** and **Issued** first; later **Shop** (+ nested **Basket**), **Orders** (My vs Team via tabs or nested nav). Member panel later lists the member’s orders across teams and links into the Teams panel for detail — shopping stays on the team tenant.
 
 ## Explicitly not this domain
 

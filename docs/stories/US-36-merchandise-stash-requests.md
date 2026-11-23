@@ -1,7 +1,7 @@
 ---
 id: US-36
 title: "Merchandise & Stash Shop"
-status: not-started
+status: partial
 area: merchandise
 scope: extra
 ---
@@ -30,4 +30,4 @@ As an Activity Manager, I want that shop backed by catalogue, approval, invoicin
 
 ## Progress
 
-Not started. Domain and child stories documented; no application code yet.
+Partial. Per-team Shop feature flag; Teams **Merchandise** nav group (before Manage) with staff **Items** and **Issued**. Member Shop/Orders, basket, approval, invoices, and fulfilment remain later slices.

@@ -1,7 +1,7 @@
 ---
 id: US-82
 title: "Merchandise Catalogue & Stock"
-status: not-started
+status: partial
 area: merchandise
 scope: extra
 ---
@@ -30,4 +30,4 @@ As an Activity Manager, I want to maintain a per-team catalogue of stash items �
 
 ## Progress
 
-Not started.
+Partial. Team Shop feature flag; Merchandise nav **Items** with title, description, availability (available/mothballed), and variants (label only, UI “Variant” with helper e.g. size). Still open: manufacturers, prices, stock, fulfilment type, images, personalisation, store-visibility flags.

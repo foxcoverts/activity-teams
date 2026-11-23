@@ -70,6 +70,10 @@ class TeamForm
                             ->label(TeamFeature::Debrief->getLabel())
                             ->helperText(__('Expect a post-session debrief, chase the lead, and show outstanding debriefs to managers. Turning this on starts chasing from now; older sessions can still be debriefed but are not chased.'))
                             ->default(false),
+                        Toggle::make('features.'.TeamFeature::Shop->value)
+                            ->label(TeamFeature::Shop->getLabel())
+                            ->helperText(__('Show the Merchandise group in the team navigation for catalogue items and issued kit.'))
+                            ->default(false),
                     ]),
                 Section::make(__('Mail'))
                     ->icon(Heroicon::OutlinedEnvelope)
