@@ -7,6 +7,7 @@ Activity Teams replaces [`foxcoverts/climbing-team`](https://github.com/foxcover
 - [Development](development.md) — human-friendly working conventions
 - [User stories](stories/README.md) — backlog, roles, and relaunch scope
 - [Acceptance checklist](stories/acceptance-checklist.md) — live verification
+- [Mobile / PWA notes](mobile-pwa.md) — on-the-day priorities, Phase 0 shell, later offline constraints
 - [Deploy setup](deploy-setup.md) — GitHub Actions, secrets, and production cutover
 - [Legacy import runbook](legacy-import-runbook.md) — optional climbing-team data import
 

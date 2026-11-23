@@ -6,6 +6,14 @@
 <meta name="theme-color" content="#ffffff">
 <script>
     (() => {
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register(@js(asset('sw.js'))).catch(() => {
+                    // Service worker optional; ignore registration failures.
+                });
+            });
+        }
+
         const link = document.querySelector('link.js-site-favicon');
 
         if (! (link instanceof HTMLLinkElement)) {

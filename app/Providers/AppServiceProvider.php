@@ -2,10 +2,14 @@
 
 namespace App\Providers;
 
+use App\Http\Responses\FilamentLoginResponse;
+use App\Http\Responses\FilamentRegistrationResponse;
 use App\Models\User;
 use App\Notifications\Channels\InboxDatabaseChannel;
 use App\Qualifications\CatalogueCompiler;
 use App\Qualifications\QualificationCatalogue;
+use Filament\Auth\Http\Responses\Contracts\LoginResponse as LoginResponseContract;
+use Filament\Auth\Http\Responses\Contracts\RegistrationResponse as RegistrationResponseContract;
 use Filament\Support\Facades\FilamentView;
 use Filament\View\PanelsRenderHook;
 use Illuminate\Contracts\View\View;
@@ -20,6 +24,9 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->app->singleton(CatalogueCompiler::class);
         $this->app->singleton(QualificationCatalogue::class);
+
+        $this->app->bind(LoginResponseContract::class, FilamentLoginResponse::class);
+        $this->app->bind(RegistrationResponseContract::class, FilamentRegistrationResponse::class);
     }
 
     public function boot(): void

@@ -1,7 +1,9 @@
 {
+    "id": "/",
     "name": "Activity Teams",
-    "short_name": "Activity Teams",
-    "start_url": "/",
+    "short_name": "Activities",
+    "start_url": "/dashboard",
+    "scope": "/",
     "display": "standalone",
     "theme_color": "#ffffff",
     "background_color": "#ffffff",
