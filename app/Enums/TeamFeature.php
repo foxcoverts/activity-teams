@@ -8,12 +8,14 @@ enum TeamFeature: string implements HasLabel
 {
     case Tasks = 'tasks';
     case Debrief = 'debrief';
+    case Shop = 'shop';
 
     public function getLabel(): string
     {
         return match ($this) {
             self::Tasks => __('Tasks'),
             self::Debrief => __('Debrief'),
+            self::Shop => __('Shop'),
         };
     }
 }

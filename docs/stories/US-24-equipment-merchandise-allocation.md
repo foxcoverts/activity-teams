@@ -1,7 +1,7 @@
 ---
 id: US-24
 title: "Issued Merchandise Log"
-status: not-started
+status: partial
 area: merchandise
 scope: extra
 ---
@@ -27,4 +27,4 @@ As an Activity Manager, I want a clear record of which merchandise items each me
 
 ## Progress
 
-Not started. Documented as the issued-items anchor for Merchandise & Stash.
+Partial. Managers can record gifts (item/variant, date, note) and review the team Issued list filtered by item or member when the Shop feature is on. Handover → issued from shop orders remains [US-87](US-87-merchandise-picking-and-handover.md).

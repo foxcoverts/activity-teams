@@ -57,4 +57,11 @@ class TeamFactory extends Factory
             ],
         ]);
     }
+
+    public function withShop(): static
+    {
+        return $this->state(fn (): array => [
+            'features' => [TeamFeature::Shop->value => true],
+        ]);
+    }
 }
