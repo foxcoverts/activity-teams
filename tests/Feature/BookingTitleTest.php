@@ -33,6 +33,11 @@ class BookingTitleTest extends TestCase
         $this->assertSame('Climbing — 1st Anytown Scouts', $booking->icsSummary());
         $this->assertStringContainsString('Climbing · 1st Anytown Scouts', $booking->relatedLabel());
         $this->assertStringNotContainsString('Scouts', str_replace('1st Anytown Scouts', '', $booking->relatedLabel()));
+
+        $start = $booking->start_at->copy()
+            ->timezone($booking->timezone)
+            ->format('j M Y, H:i');
+        $this->assertSame('Climbing · 1st Anytown Scouts · '.$start, $booking->scheduleLabel());
     }
 
     public function test_titles_use_audience_when_group_is_blank(): void
@@ -48,6 +53,11 @@ class BookingTitleTest extends TestCase
 
         $this->assertSame('Climbing · Scouts', $booking->display_name);
         $this->assertSame('Climbing — Scouts', $booking->icsSummary());
+
+        $start = $booking->start_at->copy()
+            ->timezone($booking->timezone)
+            ->format('j M Y, H:i');
+        $this->assertSame('Climbing · Scouts · '.$start, $booking->scheduleLabel());
     }
 
     public function test_view_booking_heading_is_the_display_name_without_view_prefix(): void

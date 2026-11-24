@@ -35,7 +35,7 @@ final class LogbookCatchUp
                 return [
                     'booking' => $booking,
                     'attendance' => $attendance,
-                    'label' => $booking->activityTitle(),
+                    'label' => $booking->display_name,
                 ];
             })
             ->filter()
@@ -54,7 +54,7 @@ final class LogbookCatchUp
         return $this->logbook->outstanding($user)
             ->map(fn (Booking $booking): array => [
                 'booking' => $booking,
-                'label' => $booking->activityTitle(),
+                'label' => $booking->display_name,
             ])
             ->values();
     }
@@ -94,6 +94,8 @@ final class LogbookCatchUp
                     ->whereNull('booking_user.logbook_nudged_at'),
             )
             ->with([
+                'activity',
+                'audience',
                 'attendees' => fn ($attendees) => $attendees->where('users.id', $user->getKey()),
             ])
             ->get()

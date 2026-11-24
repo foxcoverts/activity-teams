@@ -472,8 +472,8 @@ class BookingDebriefTest extends TestCase
         Mail::assertQueued(CombinedDigestMail::class, function (CombinedDigestMail $mail) use ($booking, $other): bool {
             return is_array($mail->debriefsDue)
                 && count($mail->debriefsDue) === 2
-                && in_array($booking->activityTitle(), $mail->debriefsDue, true)
-                && in_array($other->activityTitle(), $mail->debriefsDue, true);
+                && in_array($booking->display_name, $mail->debriefsDue, true)
+                && in_array($other->display_name, $mail->debriefsDue, true);
         });
         Mail::assertNotQueued(BookingDebriefNudgeMail::class);
     }

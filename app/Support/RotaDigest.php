@@ -107,12 +107,12 @@ final class RotaDigest
                 $query->whereKey($user->getKey())
                     ->where('booking_user.status', BookingAttendeeStatus::Accepted->value);
             })
-            ->with('activity')
+            ->with(['activity', 'audience'])
             ->orderBy('start_at')
             ->get()
             ->mapWithKeys(fn (Booking $booking): array => [
                 (string) $booking->getKey() => [
-                    'label' => trim($booking->activityTitle().' '.$booking->start_at?->timezone(config('app.timezone'))->format('j M Y, H:i')),
+                    'label' => $booking->scheduleLabel(),
                     'team_id' => filled($booking->team_id) ? (string) $booking->team_id : null,
                 ],
             ])

@@ -156,7 +156,9 @@ class InboxDigestTest extends TestCase
                 && $mail->team?->is($added->team)
                 && $mail->envelope()->from->address === $added->team->mailFromAddress()
                 && str_contains($mail->envelope()->subject, 'Your rota')
-                && str_contains($mail->render(), $added->activity->name)
+                && is_array($mail->rota)
+                && in_array($added->scheduleLabel(), $mail->rota['additions'], true)
+                && str_contains($mail->render(), $added->scheduleLabel())
                 && ! str_contains($mail->render(), 'new notification');
         });
     }

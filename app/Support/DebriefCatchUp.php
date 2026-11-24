@@ -31,7 +31,7 @@ final class DebriefCatchUp
                 if ($weekDue && $booking->debrief_week_nudged_at === null) {
                     return [
                         'booking' => $booking,
-                        'label' => $booking->activityTitle(),
+                        'label' => $booking->display_name,
                         'week' => true,
                     ];
                 }
@@ -39,7 +39,7 @@ final class DebriefCatchUp
                 if ($initialDue && $booking->debrief_nudged_at === null) {
                     return [
                         'booking' => $booking,
-                        'label' => $booking->activityTitle(),
+                        'label' => $booking->display_name,
                         'week' => false,
                     ];
                 }
@@ -61,7 +61,7 @@ final class DebriefCatchUp
             ->filter(fn (Booking $booking): bool => $booking->end_at?->copy()->addHour()->isPast() ?? false)
             ->map(fn (Booking $booking): array => [
                 'booking' => $booking,
-                'label' => $booking->activityTitle(),
+                'label' => $booking->display_name,
             ])
             ->values();
     }
