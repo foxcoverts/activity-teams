@@ -12,6 +12,7 @@ use App\Filament\Teams\Resources\MerchandiseItems\Schemas\MerchandiseItemInfolis
 use App\Filament\Teams\Resources\MerchandiseItems\Tables\MerchandiseItemsTable;
 use App\Models\MerchandiseItem;
 use App\Models\Team;
+use App\Models\User;
 use BackedEnum;
 use Filament\Facades\Filament;
 use Filament\Resources\Resource;
@@ -40,6 +41,17 @@ class MerchandiseItemResource extends Resource
 
     protected static ?string $recordTitleAttribute = 'title';
 
+    public static function canViewAny(): bool
+    {
+        if (! parent::canViewAny()) {
+            return false;
+        }
+
+        $user = auth()->user();
+
+        return $user instanceof User && $user->can('create', MerchandiseItem::class);
+    }
+
     public static function form(Schema $schema): Schema
     {
         return MerchandiseItemForm::configure($schema);
@@ -58,7 +70,7 @@ class MerchandiseItemResource extends Resource
     public static function getEloquentQuery(): Builder
     {
         $query = parent::getEloquentQuery()
-            ->with(['variants']);
+            ->with(['variants', 'images']);
 
         $tenant = Filament::getTenant();
         if ($tenant instanceof Team) {

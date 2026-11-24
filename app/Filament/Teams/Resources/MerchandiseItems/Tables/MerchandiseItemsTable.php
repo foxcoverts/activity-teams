@@ -3,8 +3,10 @@
 namespace App\Filament\Teams\Resources\MerchandiseItems\Tables;
 
 use App\Enums\MerchandiseAvailability;
+use App\Models\MerchandiseItem;
 use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
+use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
@@ -16,9 +18,15 @@ class MerchandiseItemsTable
         return $table
             ->defaultSort('title')
             ->columns([
+                ImageColumn::make('thumbnail')
+                    ->label(__('Image'))
+                    ->disk('public')
+                    ->visibility('public')
+                    ->square()
+                    ->getStateUsing(fn (MerchandiseItem $record): ?string => $record->thumbnailImage()?->path),
                 TextColumn::make('title')
                     ->label(__('Title'))
-                    ->description(fn ($record): ?string => $record->description)
+                    ->description(fn (MerchandiseItem $record): ?string => $record->description)
                     ->searchable()
                     ->sortable(),
                 TextColumn::make('availability')

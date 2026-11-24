@@ -30,4 +30,4 @@ As an Activity Manager, I want that shop backed by catalogue, approval, invoicin
 
 ## Progress
 
-Partial. Per-team Shop feature flag; Teams **Merchandise** nav group (before Manage) with staff **Items** and **Issued**. Member Shop/Orders, basket, approval, invoices, and fulfilment remain later slices.
+Partial. Per-team Shop feature flag; Teams **Merchandise** nav group (before Manage) with **Issued**, **Items**, and member **Shop** browse (available catalogue). Basket/orders, approval, invoices, and fulfilment remain later slices.

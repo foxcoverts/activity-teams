@@ -2,6 +2,7 @@
 
 namespace App\Policies;
 
+use App\Enums\MerchandiseAvailability;
 use App\Enums\TeamFeature;
 use App\Models\MerchandiseItem;
 use App\Models\Team;
@@ -20,7 +21,7 @@ class MerchandiseItemPolicy
 
         return $team instanceof Team
             && $team->featureEnabled(TeamFeature::Shop)
-            && ($user->isSystemAdmin() || $user->manages($team));
+            && ($user->isCurrentMemberOf($team) || $this->canManageShopCatalogue($user, $team));
     }
 
     public function view(User $user, MerchandiseItem $merchandiseItem): bool
@@ -31,21 +32,35 @@ class MerchandiseItemPolicy
 
         $merchandiseItem->loadMissing('team');
 
-        if (! $merchandiseItem->team instanceof Team || ! $merchandiseItem->team->featureEnabled(TeamFeature::Shop)) {
+        $team = $merchandiseItem->team;
+
+        if (! $team instanceof Team || ! $team->featureEnabled(TeamFeature::Shop)) {
             return false;
         }
 
-        return $user->isSystemAdmin() || $user->manages($merchandiseItem->team);
+        if ($this->canManageShopCatalogue($user, $team)) {
+            return true;
+        }
+
+        return $merchandiseItem->availability === MerchandiseAvailability::Available
+            && $user->isCurrentMemberOf($team);
     }
 
     public function create(User $user): bool
     {
-        return $this->canManageShopCatalogue($user);
+        return $this->canManageShopCatalogue($user, $this->currentTeam());
     }
 
     public function update(User $user, MerchandiseItem $merchandiseItem): bool
     {
-        return $this->view($user, $merchandiseItem);
+        if ($user->isSuspended()) {
+            return false;
+        }
+
+        $merchandiseItem->loadMissing('team');
+
+        return $merchandiseItem->team instanceof Team
+            && $this->canManageShopCatalogue($user, $merchandiseItem->team);
     }
 
     public function delete(User $user, MerchandiseItem $merchandiseItem): bool
@@ -53,16 +68,13 @@ class MerchandiseItemPolicy
         return $this->update($user, $merchandiseItem);
     }
 
-    private function canManageShopCatalogue(User $user): bool
+    private function canManageShopCatalogue(User $user, ?Team $team): bool
     {
-        if ($user->isSuspended()) {
+        if ($user->isSuspended() || ! $team instanceof Team) {
             return false;
         }
 
-        $team = $this->currentTeam();
-
-        return $team instanceof Team
-            && $team->featureEnabled(TeamFeature::Shop)
+        return $team->featureEnabled(TeamFeature::Shop)
             && ($user->isSystemAdmin() || $user->manages($team));
     }
 

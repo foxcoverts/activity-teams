@@ -10,13 +10,21 @@ use App\Filament\Teams\Resources\IssuedMerchandises\Pages\CreateIssuedMerchandis
 use App\Filament\Teams\Resources\IssuedMerchandises\Pages\ListIssuedMerchandises;
 use App\Filament\Teams\Resources\MerchandiseItems\MerchandiseItemResource;
 use App\Filament\Teams\Resources\MerchandiseItems\Pages\CreateMerchandiseItem;
+use App\Filament\Teams\Resources\MerchandiseItems\Pages\EditMerchandiseItem;
 use App\Filament\Teams\Resources\MerchandiseItems\Pages\ListMerchandiseItems;
+use App\Filament\Teams\Resources\MerchandiseShops\MerchandiseShopResource;
+use App\Filament\Teams\Resources\MerchandiseShops\Pages\ListMerchandiseShops;
+use App\Filament\Teams\Resources\MerchandiseShops\Pages\ViewMerchandiseShop;
 use App\Models\IssuedMerchandise;
 use App\Models\MerchandiseItem;
+use App\Models\MerchandiseItemImage;
+use App\Models\MerchandiseItemVariant;
 use App\Models\Team;
 use App\Models\User;
 use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\ValidationException;
 use Livewire\Livewire;
 use Tests\TestCase;
 
@@ -113,9 +121,13 @@ class MerchandiseShopTest extends TestCase
             ->fillForm([
                 'title' => 'Necker',
                 'description' => 'Team necker',
-                'availability' => MerchandiseAvailability::Available->value,
+                'availability' => MerchandiseAvailability::Draft->value,
                 'variants' => [
-                    ['label' => 'One size'],
+                    [
+                        'label' => 'One size',
+                        'price' => '0.00',
+                        'availability' => MerchandiseAvailability::Draft->value,
+                    ],
                 ],
             ])
             ->call('create')
@@ -124,9 +136,11 @@ class MerchandiseShopTest extends TestCase
         $item = MerchandiseItem::query()->where('title', 'Necker')->first();
         $this->assertNotNull($item);
         $this->assertSame($team->getKey(), $item->team_id);
-        $this->assertSame(MerchandiseAvailability::Available, $item->availability);
+        $this->assertSame(MerchandiseAvailability::Draft, $item->availability);
         $this->assertCount(1, $item->variants);
         $this->assertSame('One size', $item->variants->first()->label);
+        $this->assertSame('0.00', $item->variants->first()->price);
+        $this->assertSame(MerchandiseAvailability::Draft, $item->variants->first()->availability);
     }
 
     public function test_mothballed_items_remain_visible_to_staff(): void
@@ -300,10 +314,222 @@ class MerchandiseShopTest extends TestCase
         Livewire::test(CreateMerchandiseItem::class)
             ->fillForm([
                 'title' => 'Necker',
-                'availability' => MerchandiseAvailability::Available->value,
+                'availability' => MerchandiseAvailability::Draft->value,
                 'variants' => [],
             ])
             ->call('create')
             ->assertHasFormErrors(['variants' => 'You must have at least one variant.']);
+    }
+
+    public function test_available_item_requires_an_available_variant_and_image(): void
+    {
+        Storage::fake('public');
+
+        $team = Team::factory()->withShop()->create();
+        $manager = User::factory()->teamManager($team)->create();
+        $item = MerchandiseItem::factory()->for($team)->draft()->create([
+            'title' => 'Polo',
+        ]);
+        $variant = $item->variants()->firstOrFail();
+
+        $this->actingAs($manager);
+        Filament::setCurrentPanel('teams');
+        Filament::setTenant($team);
+
+        Livewire::test(EditMerchandiseItem::class, ['record' => $item->getKey()])
+            ->fillForm([
+                'availability' => MerchandiseAvailability::Available->value,
+                'variants' => [
+                    [
+                        'id' => $variant->getKey(),
+                        'label' => 'M',
+                        'price' => '15.00',
+                        'availability' => MerchandiseAvailability::Draft->value,
+                    ],
+                ],
+            ])
+            ->call('save')
+            ->assertHasFormErrors(['availability']);
+
+        Livewire::test(EditMerchandiseItem::class, ['record' => $item->getKey()])
+            ->fillForm([
+                'availability' => MerchandiseAvailability::Available->value,
+                'variants' => [
+                    [
+                        'id' => $variant->getKey(),
+                        'label' => 'M',
+                        'price' => '15.00',
+                        'availability' => MerchandiseAvailability::Available->value,
+                    ],
+                ],
+            ])
+            ->call('save')
+            ->assertHasFormErrors(['availability' => 'Available items need at least one image.']);
+
+        $path = 'merchandise/'.$team->getKey().'/polo.jpg';
+        Storage::disk('public')->put($path, 'fake-image');
+        MerchandiseItemImage::factory()->for($item, 'item')->create([
+            'path' => $path,
+            'sort' => 0,
+        ]);
+
+        Livewire::test(EditMerchandiseItem::class, ['record' => $item->getKey()])
+            ->fillForm([
+                'availability' => MerchandiseAvailability::Available->value,
+                'variants' => [
+                    [
+                        'id' => $variant->getKey(),
+                        'label' => 'M',
+                        'price' => '15.00',
+                        'availability' => MerchandiseAvailability::Available->value,
+                    ],
+                ],
+            ])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $item->refresh();
+        $this->assertSame(MerchandiseAvailability::Available, $item->availability);
+        $this->assertCount(1, $item->images);
+        $this->assertSame('15.00', $item->variants->first()->price);
+        $this->assertSame(MerchandiseAvailability::Available, $item->variants->first()->availability);
+    }
+
+    public function test_mothballed_item_cannot_have_only_draft_variants(): void
+    {
+        $team = Team::factory()->withShop()->create();
+        $manager = User::factory()->teamManager($team)->create();
+
+        $this->actingAs($manager);
+        Filament::setCurrentPanel('teams');
+        Filament::setTenant($team);
+
+        Livewire::test(CreateMerchandiseItem::class)
+            ->fillForm([
+                'title' => 'Old kit',
+                'availability' => MerchandiseAvailability::Mothballed->value,
+                'variants' => [
+                    [
+                        'label' => 'M',
+                        'price' => '10.00',
+                        'availability' => MerchandiseAvailability::Draft->value,
+                    ],
+                ],
+            ])
+            ->call('create')
+            ->assertHasFormErrors(['availability']);
+    }
+
+    public function test_variant_with_issued_rows_cannot_be_deleted(): void
+    {
+        $team = Team::factory()->withShop()->create();
+        $item = MerchandiseItem::factory()->for($team)->create();
+        $variant = $item->variants()->firstOrFail();
+        IssuedMerchandise::factory()->forTeam($team)->forVariant($variant)->create();
+
+        $this->expectException(ValidationException::class);
+
+        $variant->delete();
+    }
+
+    public function test_members_can_browse_available_shop_products_only(): void
+    {
+        $team = Team::factory()->withShop()->create();
+        $member = User::factory()->teamMember($team)->create();
+
+        $available = MerchandiseItem::factory()->for($team)->withImage()->create([
+            'title' => 'Shop polo',
+            'availability' => MerchandiseAvailability::Available,
+        ]);
+        $available->variants()->firstOrFail()->update([
+            'price' => '12.50',
+            'availability' => MerchandiseAvailability::Available,
+        ]);
+
+        MerchandiseItem::factory()->for($team)->draft()->create(['title' => 'Draft hoodie']);
+        MerchandiseItem::factory()->for($team)->mothballed()->create(['title' => 'Old necker']);
+
+        $this->actingAs($member);
+        Filament::setCurrentPanel('teams');
+        Filament::setTenant($team);
+
+        $this->assertTrue(MerchandiseShopResource::canAccess());
+        $this->assertFalse(MerchandiseItemResource::canAccess());
+
+        Livewire::test(ListMerchandiseShops::class)
+            ->assertSuccessful()
+            ->assertSee('Shop polo')
+            ->assertSee('£12.50')
+            ->assertDontSee('Draft hoodie')
+            ->assertDontSee('Old necker');
+
+        Livewire::test(ViewMerchandiseShop::class, ['record' => $available->getKey()])
+            ->assertSuccessful()
+            ->assertSee('Shop polo')
+            ->assertSee('One size');
+    }
+
+    public function test_shop_hides_draft_and_mothballed_variants_on_product_detail(): void
+    {
+        $team = Team::factory()->withShop()->create();
+        $member = User::factory()->teamMember($team)->create();
+        $item = MerchandiseItem::factory()->for($team)->withImage()->create([
+            'title' => 'Hoody',
+            'availability' => MerchandiseAvailability::Available,
+        ]);
+        $item->variants()->delete();
+        MerchandiseItemVariant::factory()->for($item, 'item')->create([
+            'label' => 'M',
+            'price' => '20.00',
+            'availability' => MerchandiseAvailability::Available,
+            'sort' => 0,
+        ]);
+        MerchandiseItemVariant::factory()->for($item, 'item')->draft()->create([
+            'label' => 'XL draft',
+            'price' => '20.00',
+            'sort' => 1,
+        ]);
+        MerchandiseItemVariant::factory()->for($item, 'item')->mothballed()->create([
+            'label' => 'S mothballed',
+            'price' => '20.00',
+            'sort' => 2,
+        ]);
+
+        $this->actingAs($member);
+        Filament::setCurrentPanel('teams');
+        Filament::setTenant($team);
+
+        Livewire::test(ViewMerchandiseShop::class, ['record' => $item->getKey()])
+            ->assertSuccessful()
+            ->assertSee('M')
+            ->assertDontSee('XL draft')
+            ->assertDontSee('S mothballed');
+    }
+
+    public function test_non_member_system_admin_cannot_access_shop(): void
+    {
+        $team = Team::factory()->withShop()->create();
+        $admin = User::factory()->systemAdmin()->create();
+
+        $this->actingAs($admin);
+        Filament::setCurrentPanel('teams');
+        Filament::setTenant($team);
+
+        $this->assertTrue(MerchandiseItemResource::canAccess());
+        $this->assertFalse(MerchandiseShopResource::canAccess());
+        $this->get(MerchandiseShopResource::getUrl('index', tenant: $team))->assertForbidden();
+    }
+
+    public function test_shop_is_forbidden_when_feature_is_off(): void
+    {
+        $team = Team::factory()->create();
+        $member = User::factory()->teamMember($team)->create();
+
+        $this->actingAs($member);
+        Filament::setCurrentPanel('teams');
+        Filament::setTenant($team);
+
+        $this->assertFalse(MerchandiseShopResource::canAccess());
+        $this->get(MerchandiseShopResource::getUrl('index', tenant: $team))->assertForbidden();
     }
 }

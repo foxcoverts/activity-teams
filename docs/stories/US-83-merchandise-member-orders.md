@@ -1,7 +1,7 @@
 ---
 id: US-83
 title: "Merchandise Member Orders"
-status: not-started
+status: partial
 area: merchandise
 scope: extra
 ---
@@ -27,4 +27,4 @@ As a team member, I want to place and, when still allowed, amend or cancel an or
 
 ## Progress
 
-Not started.
+Partial. Teams Merchandise **Shop** browse for current members: available items only, card grid with thumbnail and price, product detail with gallery and available variants/prices. Still open: basket, submit/amend/cancel, personalisation on order, order status list, notifications.

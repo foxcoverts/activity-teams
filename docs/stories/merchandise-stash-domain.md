@@ -10,8 +10,8 @@ Anchor stories: [US-36](US-36-merchandise-stash-requests.md) (shop), [US-24](US-
 | --- | --- |
 | **Manufacturer** | A per-team controlled supplier record. Catalogue items associate to a manufacturer so [US-86](US-86-merchandise-manufacturer-orders.md) can group lines when building an outward order. |
 | **Catalogue item** | A sellable product on one team: title, description, image, manufacturer, fulfilment type (stock or made-to-order), availability, optional personalisation fields, and one or more sizes each with a price. |
-| **Availability** | Whether members may order the item now (e.g. available vs mothballed). Mothballing hides it from the shop without deleting it, so past orders and issued history stay intact. |
-| **Variant** | An issuable / orderable option on an item (SKU). Label is free text (e.g. size, colour, style, or a mash-up). Price and stock, when added, sit on the variant. Schema: `merchandise_item_variants`. |
+| **Availability** | Lifecycle on items and variants: **draft** (being prepared) → **available** (on sale) → **mothballed** (soft-retired). Draft and mothballed are hidden from the shop; mothballing keeps past orders and issued history intact. |
+| **Variant** | An issuable / orderable option on an item (SKU). Label is free text (e.g. size, colour, style, or a mash-up). Price and availability sit on the variant; stock later. Schema: `merchandise_item_variants`. |
 | **Personalisation** | Extra fields on an item (name, colour, free text, etc.) the member fills when ordering. |
 | **Order** | A member’s request for one or more line items from that team’s catalogue. |
 | **Approval** | Manager accept or reject (with reason), including discretionary line discounts. |
@@ -77,8 +77,9 @@ Team managers apply that policy at approval as full or partial line discounts. T
 
 ## Catalogue availability
 
-- Items are soft-retired by availability (mothballed), not deleted, so order history, invoices, and issued records keep a stable reference.
-- Members only browse and order **available** items. Managers still see mothballed items for history, edits, and re-activating.
+- Items and variants use draft → available → mothballed. Soft-retire with mothball (not hard delete when history exists) so order history, invoices, and issued records keep a stable reference. Unused variants may still be deleted.
+- An available item needs at least one available variant (and at least one image). A mothballed item needs at least one available or mothballed variant.
+- Members only browse and order **available** items and variants. Managers still see draft and mothballed catalogue rows for prep, history, and re-activating.
 
 ## Team boundary
 
@@ -87,7 +88,7 @@ Team managers apply that policy at approval as full or partial line discounts. T
 
 ## Navigation (Teams panel)
 
-Feature-gated **Merchandise** group (Shop flag), first among Teams nav groups (then Manage, Setup, Admin): staff **Items** and **Issued** first; later **Shop** (+ nested **Basket**), **Orders** (My vs Team via tabs or nested nav). Member panel later lists the member’s orders across teams and links into the Teams panel for detail — shopping stays on the team tenant.
+Feature-gated **Merchandise** group (Shop flag), first among Teams nav groups (then Manage, Setup, Admin): **Issued**, **Items**, **Shop** (browse); later nested **Basket**, **Orders** (My vs Team via tabs or nested nav). Member panel later lists the member’s orders across teams and links into the Teams panel for detail — shopping stays on the team tenant.
 
 ## Explicitly not this domain
 

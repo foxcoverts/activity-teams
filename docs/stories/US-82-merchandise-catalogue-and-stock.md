@@ -30,4 +30,4 @@ As an Activity Manager, I want to maintain a per-team catalogue of stash items �
 
 ## Progress
 
-Partial. Team Shop feature flag; Merchandise nav **Items** with title, description, availability (available/mothballed), and variants (label only, UI “Variant” with helper e.g. size). Still open: manufacturers, prices, stock, fulfilment type, images, personalisation, store-visibility flags.
+Partial. Team Shop feature flag; Merchandise nav **Items** with title, description, availability (**draft / available / mothballed**), variants (label, price, same availability lifecycle), and an ordered item image gallery (required when available). Item↔variant rules: available needs ≥1 available variant; mothballed needs ≥1 available or mothballed variant. Still open: manufacturers, stock, fulfilment type, personalisation, per-variant images, store-visibility flags.

@@ -8,12 +8,14 @@ use Filament\Support\Contracts\HasLabel;
 
 enum MerchandiseAvailability: string implements HasColor, HasLabel
 {
+    case Draft = 'draft';
     case Available = 'available';
     case Mothballed = 'mothballed';
 
     public function getLabel(): string
     {
         return match ($this) {
+            self::Draft => __('Draft'),
             self::Available => __('Available'),
             self::Mothballed => __('Mothballed'),
         };
@@ -25,6 +27,7 @@ enum MerchandiseAvailability: string implements HasColor, HasLabel
     public function getColor(): array
     {
         return match ($this) {
+            self::Draft => Palette::draft(),
             self::Available => Palette::positive(),
             self::Mothballed => Palette::neutral(),
         };
