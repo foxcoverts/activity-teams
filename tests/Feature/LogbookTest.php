@@ -445,8 +445,8 @@ class LogbookTest extends TestCase
         Mail::assertQueued(CombinedDigestMail::class, function (CombinedDigestMail $mail) use ($first, $second): bool {
             return is_array($mail->logbookDue)
                 && count($mail->logbookDue) === 2
-                && in_array($first->activityTitle(), $mail->logbookDue, true)
-                && in_array($second->activityTitle(), $mail->logbookDue, true);
+                && in_array($first->display_name, $mail->logbookDue, true)
+                && in_array($second->display_name, $mail->logbookDue, true);
         });
         Mail::assertNotQueued(BookingLogbookNudgeMail::class);
     }

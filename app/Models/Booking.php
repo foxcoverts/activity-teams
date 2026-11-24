@@ -568,6 +568,23 @@ class Booking extends Model implements Commentable
         ])->implode(' · ');
     }
 
+    /**
+     * Display name then start, for digest and catch-up lists.
+     */
+    public function scheduleLabel(): string
+    {
+        $parts = $this->titleParts();
+
+        if ($this->start_at !== null) {
+            $parts[] = $this->start_at->copy()
+                ->timezone($this->timezone)
+                ->locale(config('app.locale'))
+                ->format('j M Y, H:i');
+        }
+
+        return collect($parts)->implode(' · ');
+    }
+
     public function icsSummary(): string
     {
         return collect($this->titleParts())->implode(' — ');

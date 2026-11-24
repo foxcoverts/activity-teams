@@ -164,15 +164,9 @@ final class ManagerAttentionCatchUp
 
     private function label(Booking $booking, TentativeTriage $triage, Team $team, bool $multiTeam): string
     {
-        $booking->loadMissing('activity');
+        $booking->loadMissing(['activity', 'audience']);
 
-        $line = trim(
-            $triage->getLabel()
-            .' · '
-            .$booking->display_name
-            .' '
-            .$booking->start_at?->timezone(config('app.timezone'))->format('j M Y, H:i')
-        );
+        $line = $triage->getLabel().' · '.$booking->scheduleLabel();
 
         if ($multiTeam) {
             $line .= ' ('.$team->name.')';

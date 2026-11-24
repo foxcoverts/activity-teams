@@ -41,7 +41,7 @@ final class BookingCatchUp
                     'attendance' => $attendance,
                     'booking' => $booking,
                     'tier' => $tier,
-                    'label' => $this->label($booking),
+                    'label' => $booking->scheduleLabel(),
                 ];
             })
             ->filter()
@@ -62,7 +62,7 @@ final class BookingCatchUp
                     ->where('start_at', '>', now())
                     ->where('start_at', '<=', now()->addDays(7));
             })
-            ->with(['booking.activity', 'booking.venue'])
+            ->with(['booking.activity', 'booking.audience', 'booking.venue'])
             ->get()
             ->map(function (BookingAttendance $attendance) use ($user): ?array {
                 $booking = $attendance->booking;
@@ -78,7 +78,7 @@ final class BookingCatchUp
                 return [
                     'attendance' => $attendance,
                     'booking' => $booking,
-                    'label' => $this->label($booking),
+                    'label' => $booking->scheduleLabel(),
                 ];
             })
             ->filter()
@@ -176,14 +176,7 @@ final class BookingCatchUp
                     ->where('start_at', '>', now())
                     ->where('start_at', '<=', now()->addDays(ScheduleNudgeTier::first()->days()));
             })
-            ->with(['booking.activity', 'booking.venue'])
+            ->with(['booking.activity', 'booking.audience', 'booking.venue'])
             ->get();
-    }
-
-    private function label(Booking $booking): string
-    {
-        $booking->loadMissing('activity');
-
-        return trim($booking->activityTitle().' '.$booking->start_at?->timezone(config('app.timezone'))->format('j M Y, H:i'));
     }
 }
