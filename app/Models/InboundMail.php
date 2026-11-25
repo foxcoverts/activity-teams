@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
+use Illuminate\Support\Str;
 use InvalidArgumentException;
 
 /**
@@ -134,6 +135,76 @@ class InboundMail extends Model
         return $this;
     }
 
+    public function messageText(): ?string
+    {
+        $text = $this->payload->text ?? null;
+
+        if (! is_string($text)) {
+            return null;
+        }
+
+        $text = trim($text);
+
+        return $text === '' ? null : $text;
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function attachmentLabels(): array
+    {
+        $labels = [];
+
+        foreach ($this->payload->attachments ?? [] as $attachment) {
+            if (! is_object($attachment)) {
+                continue;
+            }
+
+            $filename = is_string($attachment->filename ?? null) && filled($attachment->filename)
+                ? (string) $attachment->filename
+                : null;
+            $type = is_string($attachment->contentType ?? null) && filled($attachment->contentType)
+                ? (string) $attachment->contentType
+                : null;
+
+            $labels[] = match (true) {
+                $filename !== null && $type !== null => $filename.' ('.$type.')',
+                $filename !== null => $filename,
+                $type !== null => $type,
+                default => __('Attachment'),
+            };
+        }
+
+        return $labels;
+    }
+
+    public function diagnosticJson(): string
+    {
+        $payload = json_decode($this->attributes['body'] ?? '{}', true);
+
+        if (! is_array($payload)) {
+            return (string) ($this->attributes['body'] ?? '');
+        }
+
+        unset($payload['raw'], $payload['headerLines'], $payload['html']);
+
+        if (isset($payload['attachments']) && is_array($payload['attachments'])) {
+            $payload['attachments'] = array_map(
+                fn (mixed $attachment): mixed => is_array($attachment)
+                    ? $this->summariseAttachmentForDiagnostic($attachment)
+                    : $attachment,
+                $payload['attachments'],
+            );
+        }
+
+        $this->scrubDiagnosticSecrets($payload);
+
+        return json_encode(
+            $payload,
+            JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE,
+        ) ?: '';
+    }
+
     public function scopeNeedsReview(Builder $query): void
     {
         $query->whereNull('reviewed_at')
@@ -164,5 +235,44 @@ class InboundMail extends Model
             'to_address' => self::extractAddress($payload->to ?? null),
             'subject' => is_string($payload->subject ?? null) ? $payload->subject : null,
         ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $attachment
+     * @return array<string, mixed>
+     */
+    private function summariseAttachmentForDiagnostic(array $attachment): array
+    {
+        $content = $attachment['content'] ?? null;
+
+        if (is_array($content) && ($content['type'] ?? null) === 'Buffer' && is_array($content['data'] ?? null)) {
+            $attachment['content'] = sprintf('[binary, %d bytes]', count($content['data']));
+
+            return $attachment;
+        }
+
+        if (is_string($content) && strlen($content) > 2000) {
+            $attachment['content'] = Str::limit($content, 500);
+        }
+
+        return $attachment;
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     */
+    private function scrubDiagnosticSecrets(array &$payload): void
+    {
+        foreach ($payload as $key => &$value) {
+            if (is_array($value)) {
+                if (in_array($key, ['publicKey', 'canonicalizedHeader', 'rr'], true)) {
+                    $value = '[redacted]';
+
+                    continue;
+                }
+
+                $this->scrubDiagnosticSecrets($value);
+            }
+        }
     }
 }

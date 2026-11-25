@@ -20,6 +20,8 @@ class InboundMailFactory extends Factory
         $to = 'booking+'.(string) Str::ulid().'@climbfoxcoverts.co.uk';
         $subject = fake()->sentence(4);
 
+        $text = fake()->paragraph();
+
         $payload = [
             'subject' => $subject,
             'date' => now()->toIso8601String(),
@@ -32,7 +34,9 @@ class InboundMailFactory extends Factory
                 'value' => [['address' => $to, 'name' => null]],
             ],
             'attachments' => [],
-            'html' => '<p>'.fake()->sentence().'</p>',
+            'text' => $text,
+            'html' => '<p>'.$text.'</p>',
+            'raw' => "Subject: {$subject}\r\n\r\n{$text}",
         ];
 
         return [

@@ -154,4 +154,28 @@ class InboundMailResourceTest extends TestCase
             ->assertSeeText('Task · Restock chalk')
             ->assertSeeHtml('href="'.$url.'"');
     }
+
+    public function test_the_view_shows_the_message_body_and_a_trimmed_payload(): void
+    {
+        $admin = User::factory()->systemAdmin()->create();
+        $bodyText = "Hello.\n\nSorry I can't attend, I will be in Verona.";
+        $mail = InboundMail::factory()->create();
+        $payload = json_decode($mail->body, true, 512, JSON_THROW_ON_ERROR);
+        $payload['text'] = $bodyText;
+        $payload['html'] = '<p>'.$bodyText.'</p>';
+        $payload['raw'] = "Subject: {$mail->subject}\r\n\r\n{$bodyText}";
+        $payload['headerLines'] = [['key' => 'from', 'line' => 'From: someone@example.test']];
+        $mail->forceFill(['body' => json_encode($payload, JSON_THROW_ON_ERROR)])->save();
+
+        $this->actingAs($admin);
+
+        Livewire::test(ViewInboundMail::class, ['record' => $mail->getKey()])
+            ->assertSuccessful()
+            ->assertSeeText('Sorry I can\'t attend, I will be in Verona.')
+            ->assertSeeHtml('Hello.<br />')
+            ->assertSeeText('"text": "Hello.')
+            ->assertDontSeeText('"raw":')
+            ->assertDontSeeText('"headerLines":')
+            ->assertDontSeeText('<p>Sorry I can\'t attend');
+    }
 }

@@ -8,6 +8,7 @@ use App\Support\InboundMailResourceLink;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
+use Filament\Support\Enums\FontFamily;
 use Filament\Support\Icons\Heroicon;
 
 class InboundMailInfolist
@@ -59,16 +60,49 @@ class InboundMailInfolist
                             ->color(fn (InboundMail $record): ?string => static::resourceUrl($record) === null ? null : 'primary')
                             ->placeholder('-'),
                     ]),
+                Section::make(__('Body'))
+                    ->icon(Heroicon::OutlinedChatBubbleBottomCenterText)
+                    ->columns(1)
+                    ->columnSpanFull()
+                    ->visible(fn (InboundMail $record): bool => filled($record->messageText()))
+                    ->schema([
+                        TextEntry::make('message_text')
+                            ->hiddenLabel()
+                            ->state(fn (InboundMail $record): ?string => $record->messageText())
+                            ->formatStateUsing(fn (?string $state): string => nl2br(e($state ?? ''), false))
+                            ->html()
+                            ->limit(null)
+                            ->copyable()
+                            ->copyableState(fn (InboundMail $record): ?string => $record->messageText())
+                            ->columnSpanFull(),
+                    ]),
                 Section::make(__('Diagnostic'))
                     ->icon(Heroicon::OutlinedDocumentText)
                     ->columns(1)
                     ->columnSpanFull()
                     ->collapsed()
                     ->schema([
-                        TextEntry::make('body')
-                            ->label(__('Raw payload'))
-                            ->formatStateUsing(fn (?string $state): string => $state ?? '')
-                            ->prose()
+                        TextEntry::make('attachments')
+                            ->label(__('Attachments'))
+                            ->state(fn (InboundMail $record): array => $record->attachmentLabels())
+                            ->badge()
+                            ->placeholder(__('None'))
+                            ->visible(fn (InboundMail $record): bool => $record->attachmentLabels() !== []),
+                        TextEntry::make('calendar')
+                            ->label(__('Calendar'))
+                            ->state(fn (InboundMail $record): ?string => $record->rawCalendar)
+                            ->limit(null)
+                            ->wrap()
+                            ->fontFamily(FontFamily::Mono)
+                            ->copyable()
+                            ->visible(fn (InboundMail $record): bool => filled($record->rawCalendar))
+                            ->columnSpanFull(),
+                        TextEntry::make('diagnostic_json')
+                            ->label(__('Payload'))
+                            ->state(fn (InboundMail $record): string => $record->diagnosticJson())
+                            ->limit(null)
+                            ->wrap()
+                            ->fontFamily(FontFamily::Mono)
                             ->copyable()
                             ->columnSpanFull(),
                     ]),
