@@ -466,7 +466,9 @@ class MerchandiseShopTest extends TestCase
         Livewire::test(ViewMerchandiseShop::class, ['record' => $available->getKey()])
             ->assertSuccessful()
             ->assertSee('Shop polo')
-            ->assertSee('One size');
+            ->assertSee('One size')
+            ->assertSee('£12.50')
+            ->assertDontSee('Gallery');
     }
 
     public function test_shop_hides_draft_and_mothballed_variants_on_product_detail(): void
@@ -475,6 +477,7 @@ class MerchandiseShopTest extends TestCase
         $member = User::factory()->teamMember($team)->create();
         $item = MerchandiseItem::factory()->for($team)->withImage()->create([
             'title' => 'Hoody',
+            'description' => 'Warm team hoody',
             'availability' => MerchandiseAvailability::Available,
         ]);
         $item->variants()->delete();
@@ -484,15 +487,21 @@ class MerchandiseShopTest extends TestCase
             'availability' => MerchandiseAvailability::Available,
             'sort' => 0,
         ]);
+        MerchandiseItemVariant::factory()->for($item, 'item')->create([
+            'label' => 'L',
+            'price' => '22.00',
+            'availability' => MerchandiseAvailability::Available,
+            'sort' => 1,
+        ]);
         MerchandiseItemVariant::factory()->for($item, 'item')->draft()->create([
             'label' => 'XL draft',
             'price' => '20.00',
-            'sort' => 1,
+            'sort' => 2,
         ]);
         MerchandiseItemVariant::factory()->for($item, 'item')->mothballed()->create([
             'label' => 'S mothballed',
             'price' => '20.00',
-            'sort' => 2,
+            'sort' => 3,
         ]);
 
         $this->actingAs($member);
@@ -501,9 +510,12 @@ class MerchandiseShopTest extends TestCase
 
         Livewire::test(ViewMerchandiseShop::class, ['record' => $item->getKey()])
             ->assertSuccessful()
-            ->assertSee('M')
+            ->assertSee('Warm team hoody')
+            ->assertSee('M - £20.00')
+            ->assertSee('L - £22.00')
             ->assertDontSee('XL draft')
-            ->assertDontSee('S mothballed');
+            ->assertDontSee('S mothballed')
+            ->assertDontSee('Gallery');
     }
 
     public function test_non_member_system_admin_cannot_access_shop(): void

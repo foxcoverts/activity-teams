@@ -5,7 +5,6 @@ namespace App\Filament\Teams\Resources\MerchandiseShops;
 use App\Filament\Teams\NavigationGroup;
 use App\Filament\Teams\Resources\MerchandiseShops\Pages\ListMerchandiseShops;
 use App\Filament\Teams\Resources\MerchandiseShops\Pages\ViewMerchandiseShop;
-use App\Filament\Teams\Resources\MerchandiseShops\Schemas\MerchandiseShopInfolist;
 use App\Filament\Teams\Resources\MerchandiseShops\Tables\MerchandiseShopsTable;
 use App\Models\MerchandiseItem;
 use App\Models\Team;
@@ -13,7 +12,6 @@ use App\Models\User;
 use BackedEnum;
 use Filament\Facades\Filament;
 use Filament\Resources\Resource;
-use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
@@ -66,11 +64,6 @@ class MerchandiseShopResource extends Resource
     public static function canDelete(Model $record): bool
     {
         return false;
-    }
-
-    public static function infolist(Schema $schema): Schema
-    {
-        return MerchandiseShopInfolist::configure($schema);
     }
 
     public static function table(Table $table): Table
