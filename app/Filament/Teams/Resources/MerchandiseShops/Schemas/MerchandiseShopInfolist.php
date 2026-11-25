@@ -26,9 +26,8 @@ class MerchandiseShopInfolist
                             ->schema([
                                 ImageEntry::make('path')
                                     ->hiddenLabel()
-                                    ->disk('public')
-                                    ->visibility('public')
-                                    ->imageHeight(240),
+                                    ->imageHeight(240)
+                                    ->getStateUsing(fn ($record): ?string => $record->url()),
                             ])
                             ->placeholder('-'),
                         TextEntry::make('description')

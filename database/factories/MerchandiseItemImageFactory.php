@@ -18,6 +18,7 @@ class MerchandiseItemImageFactory extends Factory
         return [
             'merchandise_item_id' => MerchandiseItem::factory(),
             'path' => 'merchandise/testing/'.fake()->uuid().'.jpg',
+            'thumb_path' => null,
             'sort' => 0,
         ];
     }

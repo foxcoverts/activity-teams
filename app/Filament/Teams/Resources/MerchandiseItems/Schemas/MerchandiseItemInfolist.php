@@ -34,10 +34,9 @@ class MerchandiseItemInfolist
                             ->schema([
                                 ImageEntry::make('path')
                                     ->label(__('Image'))
-                                    ->disk('public')
-                                    ->visibility('public')
                                     ->square()
-                                    ->imageHeight(120),
+                                    ->imageHeight(120)
+                                    ->getStateUsing(fn ($record): ?string => $record->url()),
                             ])
                             ->placeholder('-'),
                         RepeatableEntry::make('variants')

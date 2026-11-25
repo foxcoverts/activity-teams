@@ -20,10 +20,8 @@ class MerchandiseItemsTable
             ->columns([
                 ImageColumn::make('thumbnail')
                     ->label(__('Image'))
-                    ->disk('public')
-                    ->visibility('public')
                     ->square()
-                    ->getStateUsing(fn (MerchandiseItem $record): ?string => $record->thumbnailImage()?->path),
+                    ->getStateUsing(fn (MerchandiseItem $record): ?string => $record->thumbnailImage()?->thumbnailUrl()),
                 TextColumn::make('title')
                     ->label(__('Title'))
                     ->description(fn (MerchandiseItem $record): ?string => $record->description)

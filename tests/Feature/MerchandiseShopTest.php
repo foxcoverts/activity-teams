@@ -367,7 +367,7 @@ class MerchandiseShopTest extends TestCase
             ->assertHasFormErrors(['availability' => 'Available items need at least one image.']);
 
         $path = 'merchandise/'.$team->getKey().'/polo.jpg';
-        Storage::disk('public')->put($path, 'fake-image');
+        Storage::disk('public')->put($path, $this->jpegBinary(800, 600));
         MerchandiseItemImage::factory()->for($item, 'item')->create([
             'path' => $path,
             'sort' => 0,
@@ -531,5 +531,20 @@ class MerchandiseShopTest extends TestCase
 
         $this->assertFalse(MerchandiseShopResource::canAccess());
         $this->get(MerchandiseShopResource::getUrl('index', tenant: $team))->assertForbidden();
+    }
+
+    private function jpegBinary(int $width, int $height): string
+    {
+        $canvas = imagecreatetruecolor($width, $height);
+        $this->assertNotFalse($canvas);
+        $colour = imagecolorallocate($canvas, 40, 120, 200);
+        imagefilledrectangle($canvas, 0, 0, $width, $height, $colour);
+
+        ob_start();
+        imagejpeg($canvas, null, 90);
+        $binary = (string) ob_get_clean();
+        imagedestroy($canvas);
+
+        return $binary;
     }
 }

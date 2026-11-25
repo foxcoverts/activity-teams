@@ -13,7 +13,7 @@
                 @php
                     /** @var MerchandiseItem $item */
                     $url = $this->getResource()::getUrl('view', ['record' => $item]);
-                    $thumbnail = $item->thumbnailImage()?->url();
+                    $thumbnail = $item->thumbnailImage()?->thumbnailUrl();
                     $fromPrice = $item->lowestAvailablePrice();
                 @endphp
                 <a

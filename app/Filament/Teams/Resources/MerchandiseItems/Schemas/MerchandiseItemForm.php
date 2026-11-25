@@ -2,6 +2,7 @@
 
 namespace App\Filament\Teams\Resources\MerchandiseItems\Schemas;
 
+use App\Actions\NormalizeMerchandiseImageAction;
 use App\Enums\MerchandiseAvailability;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\FileUpload;
@@ -54,6 +55,12 @@ class MerchandiseItemForm
                                     ->disk('public')
                                     ->directory(fn (): string => 'merchandise/'.(Filament::getTenant()?->getKey() ?? 'unassigned'))
                                     ->visibility('public')
+                                    ->automaticallyResizeImagesMode('contain')
+                                    ->automaticallyResizeImagesToWidth((string) NormalizeMerchandiseImageAction::MaxLongEdge)
+                                    ->automaticallyResizeImagesToHeight((string) NormalizeMerchandiseImageAction::MaxLongEdge)
+                                    ->automaticallyUpscaleImagesWhenResizing(false)
+                                    ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp', 'image/gif'])
+                                    ->maxSize(10240)
                                     ->required()
                                     ->columnSpanFull(),
                             ])
@@ -61,7 +68,9 @@ class MerchandiseItemForm
                             ->defaultItems(0)
                             ->addActionLabel(__('Add image'))
                             ->reorderable()
-                            ->helperText(__('First image is used as the shop thumbnail. At least one image is required when the item is available.'))
+                            ->helperText(__('Images are resized for the shop (max :edge px). The first image’s square crop is the card thumbnail. At least one image is required when the item is available.', [
+                                'edge' => NormalizeMerchandiseImageAction::MaxLongEdge,
+                            ]))
                             ->columnSpanFull(),
                         Repeater::make('variants')
                             ->label(__('Variants'))
