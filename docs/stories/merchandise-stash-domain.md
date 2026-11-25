@@ -88,7 +88,7 @@ Team managers apply that policy at approval as full or partial line discounts. T
 
 ## Navigation (Teams panel)
 
-Feature-gated **Merchandise** group (Shop flag), first among Teams nav groups (then Manage, Setup, Admin): **Issued**, **Items**, **Shop** (browse); later nested **Basket**, **Orders** (My vs Team via tabs or nested nav). Member panel later lists the member’s orders across teams and links into the Teams panel for detail — shopping stays on the team tenant.
+Feature-gated **Merchandise** group (Shop flag), first among Teams nav groups (then Manage, Setup, Admin), alphabetical: **Issued**, **Items**, **Orders**, **Shop** (with nested **Basket**). Managers see all team orders; members see their own. Member panel later may list orders across teams and link into the Teams panel for detail — shopping stays on the team tenant.
 
 ## Explicitly not this domain
 

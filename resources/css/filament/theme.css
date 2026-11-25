@@ -663,6 +663,31 @@ a.fi-in-person-heading {
     @apply flex justify-end gap-2;
 }
 
+/* Basket qty: override TextInputColumn min-w-48; grow with digit count. */
+.fi-ta-text-input.basket-qty-input {
+    @apply w-auto min-w-0 max-w-none;
+
+    .fi-input-wrp,
+    .fi-input-wrp-content-ctn {
+        width: fit-content;
+        max-width: 100%;
+    }
+
+    .fi-input {
+        field-sizing: content;
+        min-inline-size: 2.75ch;
+        max-inline-size: 4.5ch;
+        @apply px-1.5 text-center;
+        -moz-appearance: textfield;
+    }
+
+    .fi-input::-webkit-outer-spin-button,
+    .fi-input::-webkit-inner-spin-button {
+        appearance: none;
+        margin: 0;
+    }
+}
+
 /* Give the complete-control column breathing room from the card edge on phones. */
 @media (max-width: 639px) {
     .fi-ta-cell.task-complete-col,

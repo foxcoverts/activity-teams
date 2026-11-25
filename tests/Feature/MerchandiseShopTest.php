@@ -8,22 +8,32 @@ use App\Enums\TeamFeature;
 use App\Filament\Teams\Resources\IssuedMerchandises\IssuedMerchandiseResource;
 use App\Filament\Teams\Resources\IssuedMerchandises\Pages\CreateIssuedMerchandise;
 use App\Filament\Teams\Resources\IssuedMerchandises\Pages\ListIssuedMerchandises;
+use App\Filament\Teams\Resources\MerchandiseBasketLines\MerchandiseBasketLineResource;
+use App\Filament\Teams\Resources\MerchandiseBasketLines\Pages\ListMerchandiseBasketLines;
 use App\Filament\Teams\Resources\MerchandiseItems\MerchandiseItemResource;
 use App\Filament\Teams\Resources\MerchandiseItems\Pages\CreateMerchandiseItem;
 use App\Filament\Teams\Resources\MerchandiseItems\Pages\EditMerchandiseItem;
 use App\Filament\Teams\Resources\MerchandiseItems\Pages\ListMerchandiseItems;
+use App\Filament\Teams\Resources\MerchandiseOrders\MerchandiseOrderResource;
+use App\Filament\Teams\Resources\MerchandiseOrders\Pages\ListMerchandiseOrders;
+use App\Filament\Teams\Resources\MerchandiseOrders\Pages\ViewMerchandiseOrder;
 use App\Filament\Teams\Resources\MerchandiseShops\MerchandiseShopResource;
 use App\Filament\Teams\Resources\MerchandiseShops\Pages\ListMerchandiseShops;
 use App\Filament\Teams\Resources\MerchandiseShops\Pages\ViewMerchandiseShop;
 use App\Models\IssuedMerchandise;
+use App\Models\MerchandiseBasketLine;
 use App\Models\MerchandiseItem;
 use App\Models\MerchandiseItemImage;
 use App\Models\MerchandiseItemVariant;
+use App\Models\MerchandiseOrder;
 use App\Models\Team;
 use App\Models\User;
+use App\Notifications\MerchandiseOrderSubmittedNotification;
 use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Livewire\Livewire;
 use Tests\TestCase;
@@ -544,6 +554,166 @@ class MerchandiseShopTest extends TestCase
 
         $this->assertFalse(MerchandiseShopResource::canAccess());
         $this->get(MerchandiseShopResource::getUrl('index', tenant: $team))->assertForbidden();
+    }
+
+    public function test_manager_can_define_personalisation_fields_on_an_item(): void
+    {
+        $team = Team::factory()->withShop()->create();
+        $manager = User::factory()->teamManager($team)->create();
+        $item = MerchandiseItem::factory()->for($team)->draft()->create(['title' => 'Polo']);
+
+        $this->actingAs($manager);
+        Filament::setCurrentPanel('teams');
+        Filament::setTenant($team);
+
+        Livewire::test(EditMerchandiseItem::class, ['record' => $item->getKey()])
+            ->fillForm([
+                'availability' => MerchandiseAvailability::Draft->value,
+                'personalisation_fields' => [
+                    [
+                        'key' => (string) Str::ulid(),
+                        'label' => 'Name on shirt',
+                        'required' => true,
+                    ],
+                ],
+            ])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $item->refresh();
+        $this->assertCount(1, $item->personalisationFieldDefinitions());
+        $this->assertSame('Name on shirt', $item->personalisationFieldDefinitions()[0]['label']);
+        $this->assertTrue($item->personalisationFieldDefinitions()[0]['required']);
+    }
+
+    public function test_member_can_add_to_basket_submit_and_cancel_an_order(): void
+    {
+        Notification::fake();
+
+        $team = Team::factory()->withShop()->create();
+        $manager = User::factory()->teamManager($team)->create();
+        $member = User::factory()->teamMember($team)->create();
+        $fieldKey = (string) Str::ulid();
+        $item = MerchandiseItem::factory()->for($team)->withImage()->create([
+            'title' => 'Named polo',
+            'personalisation_fields' => [
+                ['key' => $fieldKey, 'label' => 'Name', 'required' => true],
+            ],
+        ]);
+        $variant = $item->variants()->firstOrFail();
+        $variant->update(['price' => '15.00', 'label' => 'M']);
+
+        $this->actingAs($member);
+        Filament::setCurrentPanel('teams');
+        Filament::setTenant($team);
+
+        Livewire::test(ViewMerchandiseShop::class, ['record' => $item->getKey()])
+            ->set('selectedVariantId', $variant->getKey())
+            ->set('quantity', 2)
+            ->set('personalisation', [$fieldKey => 'Alex'])
+            ->call('addToBasket')
+            ->assertHasNoErrors()
+            ->assertDispatched('refresh-sidebar')
+            ->assertDispatched('refresh-topbar');
+
+        $line = MerchandiseBasketLine::query()->forTeamUser($team, $member)->first();
+        $this->assertNotNull($line);
+        $this->assertSame(2, $line->quantity);
+        $this->assertSame('Alex', $line->personalisationSnapshot()[0]['value']);
+        $this->assertSame(2, MerchandiseBasketLineResource::quantityInBasket($team, $member));
+        $this->assertSame('2', MerchandiseBasketLineResource::getNavigationBadge());
+
+        $productUrl = MerchandiseShopResource::getUrl('view', ['record' => $item]);
+
+        Livewire::test(ListMerchandiseBasketLines::class)
+            ->assertSuccessful()
+            ->assertSee('£30.00')
+            ->assertSeeHtml($productUrl)
+            ->assertTableColumnSummarySet('line_total', 'total', 30)
+            ->assertActionExists('continueShopping')
+            ->assertActionExists('removeAllItems')
+            ->assertCanSeeTableRecords([$line])
+            ->callAction('submitOrder')
+            ->assertRedirect();
+
+        $order = MerchandiseOrder::query()->where('user_id', $member->getKey())->first();
+        $this->assertNotNull($order);
+        $this->assertSame(0, MerchandiseBasketLine::query()->forTeamUser($team, $member)->count());
+        $this->assertCount(1, $order->lines);
+        $this->assertSame('15.00', $order->lines->first()->unit_price);
+        $this->assertSame('Alex', $order->lines->first()->personalisationSnapshot()[0]['value']);
+
+        Notification::assertSentTo($manager, MerchandiseOrderSubmittedNotification::class);
+        Notification::assertNotSentTo($member, MerchandiseOrderSubmittedNotification::class);
+
+        $this->assertTrue(MerchandiseOrderResource::canAccess());
+        $this->assertTrue(MerchandiseBasketLineResource::canAccess());
+
+        Livewire::test(ListMerchandiseOrders::class)
+            ->assertSuccessful()
+            ->assertCanSeeTableRecords([$order]);
+
+        Livewire::test(ViewMerchandiseOrder::class, ['record' => $order->getKey()])
+            ->assertSuccessful()
+            ->callAction('cancel')
+            ->assertHasNoErrors();
+
+        $this->assertTrue($order->fresh()->status->value === 'cancelled');
+    }
+
+    public function test_required_personalisation_blocks_add_to_basket(): void
+    {
+        $team = Team::factory()->withShop()->create();
+        $member = User::factory()->teamMember($team)->create();
+        $fieldKey = (string) Str::ulid();
+        $item = MerchandiseItem::factory()->for($team)->withImage()->create([
+            'personalisation_fields' => [
+                ['key' => $fieldKey, 'label' => 'Name', 'required' => true],
+            ],
+        ]);
+
+        $this->actingAs($member);
+        Filament::setCurrentPanel('teams');
+        Filament::setTenant($team);
+
+        Livewire::test(ViewMerchandiseShop::class, ['record' => $item->getKey()])
+            ->set('personalisation', [$fieldKey => ''])
+            ->call('addToBasket');
+
+        $this->assertSame(0, MerchandiseBasketLine::query()->forTeamUser($team, $member)->count());
+    }
+
+    public function test_basket_quantity_zero_and_remove_all_clear_lines(): void
+    {
+        $team = Team::factory()->withShop()->create();
+        $member = User::factory()->teamMember($team)->create();
+        $item = MerchandiseItem::factory()->for($team)->withImage()->create();
+        $line = MerchandiseBasketLine::factory()->forTeamUser($team, $member, $item)->create([
+            'quantity' => 2,
+        ]);
+        $other = MerchandiseBasketLine::factory()->forTeamUser($team, $member)->create([
+            'quantity' => 1,
+        ]);
+
+        $this->actingAs($member);
+        Filament::setCurrentPanel('teams');
+        Filament::setTenant($team);
+
+        Livewire::test(ListMerchandiseBasketLines::class)
+            ->assertSuccessful()
+            ->call('updateTableColumnState', 'quantity', $line->getKey(), 0)
+            ->assertDispatched('refresh-sidebar')
+            ->assertDispatched('refresh-topbar');
+
+        $this->assertDatabaseMissing('merchandise_basket_lines', ['id' => $line->getKey()]);
+
+        Livewire::test(ListMerchandiseBasketLines::class)
+            ->callAction('removeAllItems')
+            ->assertDispatched('refresh-sidebar')
+            ->assertDispatched('refresh-topbar');
+
+        $this->assertDatabaseMissing('merchandise_basket_lines', ['id' => $other->getKey()]);
+        $this->assertSame(0, MerchandiseBasketLine::query()->forTeamUser($team, $member)->count());
     }
 
     private function jpegBinary(int $width, int $height): string

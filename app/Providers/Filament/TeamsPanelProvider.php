@@ -10,6 +10,7 @@ use App\Filament\Navigation\CrossPanelLinks;
 use App\Filament\Pages\ChangePassword;
 use App\Filament\Teams\NavigationGroup;
 use App\Filament\Teams\Pages\Dashboard;
+use App\Filament\Teams\Resources\MerchandiseBasketLines\Pages\ListMerchandiseBasketLines;
 use App\Http\Middleware\RememberTenantTeam;
 use App\Http\Middleware\RequireProfileConfirmation;
 use App\Http\Middleware\ShowPublicBookingSummary;
@@ -21,7 +22,9 @@ use Filament\Http\Middleware\DispatchServingFilamentEvent;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
+use Filament\View\PanelsRenderHook;
 use Filament\Widgets\AccountWidget;
+use Illuminate\Contracts\View\View;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
@@ -69,6 +72,15 @@ class TeamsPanelProvider extends PanelProvider
             ->widgets([
                 AccountWidget::class,
             ])
+            ->renderHook(
+                PanelsRenderHook::GLOBAL_SEARCH_AFTER,
+                fn (): View => view('filament.hooks.shop-basket-trigger'),
+            )
+            ->renderHook(
+                PanelsRenderHook::SCRIPTS_AFTER,
+                fn (): View => view('filament.resources.merchandise-basket-lines.qty-focus'),
+                scopes: ListMerchandiseBasketLines::class,
+            )
             ->middleware([
                 EncryptCookies::class,
                 AddQueuedCookiesToResponse::class,

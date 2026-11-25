@@ -27,4 +27,4 @@ As a team member, I want to place and, when still allowed, amend or cancel an or
 
 ## Progress
 
-Partial. Teams Merchandise **Shop** browse for current members: available items only, card grid with thumbnail and price, product detail with gallery and available variants/prices. Still open: basket, submit/amend/cancel, personalisation on order, order status list, notifications.
+Partial. Teams Merchandise **Shop** browse; **Basket** (add from product view with variant, qty, personalisation; edit qty / remove; submit); **Orders** list/view with cancel while submitted; managers get an in-app notice on submit. Still open: amend after submit, richer statuses (approved / invoiced / handover), optional mail channel for shop notices.

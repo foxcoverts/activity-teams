@@ -25,13 +25,13 @@ class MerchandiseShopResource extends Resource
 
     protected static string|\UnitEnum|null $navigationGroup = NavigationGroup::Merchandise;
 
-    protected static ?int $navigationSort = 3;
+    protected static ?int $navigationSort = 4;
 
     protected static ?string $navigationLabel = 'Shop';
 
-    protected static ?string $modelLabel = 'product';
+    protected static ?string $modelLabel = 'shop item';
 
-    protected static ?string $pluralModelLabel = 'products';
+    protected static ?string $pluralModelLabel = 'shop';
 
     protected static ?string $slug = 'shop';
 

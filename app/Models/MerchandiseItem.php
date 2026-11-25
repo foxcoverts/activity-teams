@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\MerchandiseAvailability;
+use App\Support\MerchandisePersonalisation;
 use Database\Factories\MerchandiseItemFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
@@ -21,6 +22,7 @@ class MerchandiseItem extends Model
         'team_id',
         'title',
         'description',
+        'personalisation_fields',
         'availability',
     ];
 
@@ -37,6 +39,16 @@ class MerchandiseItem extends Model
     public function images(): HasMany
     {
         return $this->hasMany(MerchandiseItemImage::class)->orderBy('sort');
+    }
+
+    /**
+     * @return list<array{key: string, label: string, required: bool}>
+     */
+    public function personalisationFieldDefinitions(): array
+    {
+        return MerchandisePersonalisation::normalizeFields(
+            is_array($this->personalisation_fields) ? $this->personalisation_fields : [],
+        );
     }
 
     public function scopeForTeam(Builder $query, Team $team): void
@@ -87,6 +99,16 @@ class MerchandiseItem extends Model
     {
         return [
             'availability' => MerchandiseAvailability::class,
+            'personalisation_fields' => 'array',
         ];
+    }
+
+    protected static function booted(): void
+    {
+        static::saving(function (MerchandiseItem $item): void {
+            $item->personalisation_fields = MerchandisePersonalisation::normalizeFields(
+                is_array($item->personalisation_fields) ? $item->personalisation_fields : [],
+            );
+        });
     }
 }

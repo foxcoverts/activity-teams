@@ -51,6 +51,16 @@ class MerchandiseItemInfolist
                                     ->label(__('Availability'))
                                     ->badge(),
                             ]),
+                        RepeatableEntry::make('personalisation_fields')
+                            ->label(__('Personalisation'))
+                            ->schema([
+                                TextEntry::make('label')
+                                    ->label(__('Field')),
+                                TextEntry::make('required')
+                                    ->label(__('Required'))
+                                    ->formatStateUsing(fn (mixed $state): string => $state ? __('Yes') : __('No')),
+                            ])
+                            ->placeholder('-'),
                     ]),
             ]);
     }

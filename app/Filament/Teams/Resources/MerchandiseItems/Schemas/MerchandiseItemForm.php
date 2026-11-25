@@ -6,14 +6,17 @@ use App\Actions\NormalizeMerchandiseImageAction;
 use App\Enums\MerchandiseAvailability;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
+use Illuminate\Support\Str;
 
 class MerchandiseItemForm
 {
@@ -78,7 +81,7 @@ class MerchandiseItemForm
                             ->schema([
                                 TextInput::make('label')
                                     ->label(__('Label'))
-                                    ->helperText(__('e.g. size'))
+                                    ->placeholder(__('e.g. size'))
                                     ->required()
                                     ->maxLength(255),
                                 TextInput::make('price')
@@ -103,6 +106,24 @@ class MerchandiseItemForm
                             ])
                             ->addActionLabel(__('Add variant'))
                             ->live()
+                            ->columnSpanFull(),
+                        Repeater::make('personalisation_fields')
+                            ->label(__('Personalisation'))
+                            ->schema([
+                                Hidden::make('key')
+                                    ->default(fn (): string => (string) Str::ulid()),
+                                TextInput::make('label')
+                                    ->label(__('Field label'))
+                                    ->placeholder(__('e.g. Name on shirt'))
+                                    ->required()
+                                    ->maxLength(255),
+                                Toggle::make('required')
+                                    ->label(__('Required'))
+                                    ->default(true),
+                            ])
+                            ->defaultItems(0)
+                            ->addActionLabel(__('Add personalisation field'))
+                            ->reorderable(false)
                             ->columnSpanFull(),
                     ]),
             ]);

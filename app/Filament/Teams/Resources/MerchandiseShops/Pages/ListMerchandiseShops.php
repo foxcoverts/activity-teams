@@ -11,6 +11,11 @@ class ListMerchandiseShops extends ListRecords
 
     protected string $view = 'filament.resources.merchandise-shops.list-merchandise-shops';
 
+    public function getTitle(): string
+    {
+        return __('Shop');
+    }
+
     protected function getHeaderActions(): array
     {
         return [];
