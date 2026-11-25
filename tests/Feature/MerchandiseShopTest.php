@@ -468,6 +468,7 @@ class MerchandiseShopTest extends TestCase
             ->assertSee('Shop polo')
             ->assertSee('One size')
             ->assertSee('£12.50')
+            ->assertSee(__('View larger image'))
             ->assertDontSee('Gallery');
     }
 
