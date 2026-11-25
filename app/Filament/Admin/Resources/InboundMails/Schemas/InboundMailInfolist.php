@@ -2,6 +2,9 @@
 
 namespace App\Filament\Admin\Resources\InboundMails\Schemas;
 
+use App\Models\InboundMail;
+use App\Models\User;
+use App\Support\InboundMailResourceLink;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
@@ -49,15 +52,11 @@ class InboundMailInfolist
                             ->label(__('Reviewed'))
                             ->dateTime()
                             ->placeholder('-'),
-                        TextEntry::make('resource_type')
+                        TextEntry::make('resource')
                             ->label(__('Resource'))
-                            ->formatStateUsing(function ($state, $record): string {
-                                if ($record->resource === null) {
-                                    return '-';
-                                }
-
-                                return class_basename($record->resource_type).' · '.$record->resource_id;
-                            })
+                            ->state(fn (InboundMail $record): ?string => InboundMailResourceLink::label($record->resource))
+                            ->url(fn (InboundMail $record): ?string => static::resourceUrl($record))
+                            ->color(fn (InboundMail $record): ?string => static::resourceUrl($record) === null ? null : 'primary')
                             ->placeholder('-'),
                     ]),
                 Section::make(__('Diagnostic'))
@@ -74,5 +73,15 @@ class InboundMailInfolist
                             ->columnSpanFull(),
                     ]),
             ]);
+    }
+
+    private static function resourceUrl(InboundMail $record): ?string
+    {
+        $viewer = auth()->user();
+
+        return InboundMailResourceLink::url(
+            $record->resource,
+            $viewer instanceof User ? $viewer : null,
+        );
     }
 }
