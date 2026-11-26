@@ -20,6 +20,8 @@ use App\Support\BookingWhen;
 use App\Support\CombinedDigest;
 use App\Support\Logbook;
 use App\Support\MailPreference;
+use Filament\Actions\Action;
+use Filament\Actions\ActionGroup;
 use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
@@ -472,6 +474,25 @@ class LogbookTest extends TestCase
             ->assertSee($saved->activityTitle())
             ->assertSee(__('Outstanding'))
             ->assertSee(__('Saved log'));
+    }
+
+    public function test_export_choices_live_in_an_export_action_group(): void
+    {
+        $member = User::factory()->teamMember()->create();
+
+        $this->actingAs($member);
+
+        $export = collect(Livewire::test(LogbookPage::class)->instance()->getCachedHeaderActions())
+            ->first(fn (mixed $action): bool => $action instanceof ActionGroup
+                && $action->getLabel() === __('Export'));
+
+        $this->assertNotNull($export);
+        $this->assertSame(
+            [__('CSV'), __('PDF')],
+            collect($export->getActions())
+                ->map(fn (Action|ActionGroup $action): string => (string) $action->getLabel())
+                ->all(),
+        );
     }
 
     public function test_saved_log_row_opens_a_view_modal_with_edit(): void
