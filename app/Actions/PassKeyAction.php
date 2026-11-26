@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Notifications\KeyPassedFromNotification;
 use App\Notifications\KeyPassedToNotification;
 use App\Notifications\KeyReturnedToCupboardNotification;
+use App\Support\ResolveKeyHolderLeavingInbox;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Support\Facades\Gate;
@@ -42,6 +43,10 @@ class PassKeyAction
 
         $ring->forceFill(['holder_id' => $nextId])->save();
         $ring->unsetRelation('holder');
+
+        if ($previous instanceof User) {
+            app(ResolveKeyHolderLeavingInbox::class)($previous);
+        }
 
         $this->notify($actor, $ring, $previous instanceof User ? $previous : null, $next);
     }

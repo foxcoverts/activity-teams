@@ -6,10 +6,11 @@ use App\Enums\MailChannel;
 use App\Filament\Teams\Resources\Tasks\TaskResource;
 use App\Models\Task;
 use App\Notifications\Concerns\RecordsInbox;
+use App\Notifications\Contracts\ClearsWhenSubjectViewed;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Notification;
 
-class TaskHeldNotification extends Notification
+class TaskHeldNotification extends Notification implements ClearsWhenSubjectViewed
 {
     use Queueable;
     use RecordsInbox;

@@ -6,10 +6,11 @@ use App\Enums\MailChannel;
 use App\Filament\Teams\Resources\Bookings\BookingResource;
 use App\Models\Booking;
 use App\Notifications\Concerns\RecordsInbox;
+use App\Notifications\Contracts\ClearsWhenSubjectViewed;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Notification;
 
-class BookingHeldNotification extends Notification
+class BookingHeldNotification extends Notification implements ClearsWhenSubjectViewed
 {
     use Queueable;
     use RecordsInbox;

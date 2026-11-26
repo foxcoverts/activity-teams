@@ -10,12 +10,13 @@ use App\Models\Task;
 use App\Models\Team;
 use App\Models\User;
 use App\Notifications\Concerns\RecordsInbox;
+use App\Notifications\Contracts\ClearsWhenSubjectViewed;
 use Illuminate\Bus\Queueable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Mail\Mailable;
 use Illuminate\Notifications\Notification;
 
-class CommentNotification extends Notification
+class CommentNotification extends Notification implements ClearsWhenSubjectViewed
 {
     use Queueable;
     use RecordsInbox;

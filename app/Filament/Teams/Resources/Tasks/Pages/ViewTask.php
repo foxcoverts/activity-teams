@@ -13,6 +13,7 @@ use App\Livewire\TaskAssigneePanel;
 use App\Livewire\TaskRelatedBookings;
 use App\Models\Task;
 use App\Models\User;
+use App\Support\MarkSubjectInboxRead;
 use Filament\Resources\Pages\ViewRecord;
 use Filament\Schemas\Components\EmbeddedSchema;
 use Filament\Schemas\Components\Grid;
@@ -27,6 +28,18 @@ class ViewTask extends ViewRecord
     use TogglesTimelineAudience;
 
     protected static string $resource = TaskResource::class;
+
+    public function mount(int|string $record): void
+    {
+        parent::mount($record);
+
+        $user = auth()->user();
+        $task = $this->getRecord();
+
+        if ($user instanceof User && $task instanceof Task) {
+            app(MarkSubjectInboxRead::class)($user, $task);
+        }
+    }
 
     public function getTitle(): string|Htmlable
     {

@@ -6,6 +6,7 @@ use App\Enums\BrandColor;
 use App\Enums\MembershipRole;
 use App\Enums\TeamFeature;
 use App\Support\Avatars;
+use App\Support\ResolveLastManagerLeavingInbox;
 use Carbon\CarbonInterface;
 use Database\Factories\TeamFactory;
 use Filament\Models\Contracts\HasAvatar;
@@ -472,6 +473,10 @@ class Team extends Model implements HasAvatar
         $membership->role = $role;
         $membership->left_at = null;
         $membership->save();
+
+        if ($role === MembershipRole::Manager) {
+            app(ResolveLastManagerLeavingInbox::class)($this);
+        }
 
         return $membership;
     }
