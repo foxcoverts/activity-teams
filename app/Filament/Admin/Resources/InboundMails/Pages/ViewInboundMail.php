@@ -5,6 +5,7 @@ namespace App\Filament\Admin\Resources\InboundMails\Pages;
 use App\Filament\Admin\Resources\InboundMails\InboundMailResource;
 use App\Filament\Support\RefreshesNavigationChrome;
 use App\Models\InboundMail;
+use App\Support\ResolveInboundReviewInbox;
 use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
 use Filament\Notifications\Notification;
@@ -22,10 +23,11 @@ class ViewInboundMail extends ViewRecord
                 ->label(__('Mark reviewed'))
                 ->icon(Heroicon::OutlinedCheck)
                 ->visible(fn (): bool => $this->getRecord()->reviewed_at === null)
-                ->action(function (): void {
+                ->action(function (ResolveInboundReviewInbox $resolveInbox): void {
                     /** @var InboundMail $record */
                     $record = $this->getRecord();
                     $record->markReviewed()->save();
+                    $resolveInbox();
 
                     RefreshesNavigationChrome::dispatch($this);
 

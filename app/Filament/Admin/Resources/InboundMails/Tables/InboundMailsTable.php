@@ -5,6 +5,7 @@ namespace App\Filament\Admin\Resources\InboundMails\Tables;
 use App\Enums\InboundMailOutcome;
 use App\Filament\Support\RefreshesNavigationChrome;
 use App\Models\InboundMail;
+use App\Support\ResolveInboundReviewInbox;
 use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
@@ -78,8 +79,9 @@ class InboundMailsTable
                     ->label(__('Mark reviewed'))
                     ->icon(Heroicon::OutlinedCheck)
                     ->visible(fn (InboundMail $record): bool => $record->reviewed_at === null)
-                    ->action(function (InboundMail $record, Component $livewire): void {
+                    ->action(function (InboundMail $record, Component $livewire, ResolveInboundReviewInbox $resolveInbox): void {
                         $record->markReviewed()->save();
+                        $resolveInbox();
 
                         RefreshesNavigationChrome::dispatch($livewire);
 
