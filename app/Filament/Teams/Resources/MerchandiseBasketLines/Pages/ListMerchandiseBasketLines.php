@@ -15,8 +15,9 @@ use Filament\Facades\Filament;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ListRecords;
 use Filament\Support\Icons\Heroicon;
+use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Contracts\View\View;
-use Illuminate\Support\Number;
+use Illuminate\Support\HtmlString;
 use Illuminate\Validation\ValidationException;
 
 class ListMerchandiseBasketLines extends ListRecords
@@ -60,9 +61,7 @@ class ListMerchandiseBasketLines extends ListRecords
             ->color('primary')
             ->requiresConfirmation()
             ->modalHeading(__('Submit order'))
-            ->modalDescription(fn (): string => __('Submit :total for this team’s managers to review?', [
-                'total' => Number::currency($this->basketTotal(), 'GBP', 'en_GB'),
-            ]))
+            ->modalDescription(fn (): Htmlable => $this->submitOrderConfirmationDescription())
             ->disabled(fn (): bool => ! $this->hasBasketLines())
             ->action(function (): void {
                 $team = Filament::getTenant();
@@ -141,19 +140,26 @@ class ListMerchandiseBasketLines extends ListRecords
             ->exists();
     }
 
-    private function basketTotal(): float
+    /**
+     * Soft next-step copy for submit confirm. Revisit as US-83/84 mature (amend after
+     * submit, approval/invoice/handover status, and any member-facing outcome notice).
+     */
+    private function submitOrderConfirmationDescription(): Htmlable
     {
         $team = Filament::getTenant();
-        $user = auth()->user();
+        $managerCount = $team instanceof Team ? $team->activeManagers()->count() : 0;
 
-        if (! $team instanceof Team || ! $user instanceof User) {
-            return 0.0;
-        }
+        $review = $managerCount === 1
+            ? __('Your team’s manager will review this order.')
+            : __('Your team’s managers will review this order.');
 
-        return (float) MerchandiseBasketLine::query()
-            ->forTeamUser($team, $user)
-            ->with('variant')
-            ->get()
-            ->sum(fn (MerchandiseBasketLine $line): float => $line->lineTotal());
+        $cancel = __('After you submit, you can cancel the order from Orders while it is waiting for review.');
+
+        return new HtmlString(
+            '<div class="space-y-2">'
+            .'<p>'.e($review).'</p>'
+            .'<p>'.e($cancel).'</p>'
+            .'</div>'
+        );
     }
 }

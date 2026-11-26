@@ -27,4 +27,4 @@ As a team member, I want to place and, when still allowed, amend or cancel an or
 
 ## Progress
 
-Partial. Teams Merchandise **Shop** browse; **Basket** (add from product view with variant, qty, personalisation; edit qty / remove; submit); **Orders** list/view with cancel while submitted; managers get an in-app notice on submit. Still open: amend after submit, richer statuses (approved / invoiced / handover), optional mail channel for shop notices.
+Partial. Teams Merchandise **Shop** browse; **Basket** (add from product view with variant, qty, personalisation; edit qty / remove; submit); **Orders** list/view with cancel while submitted; managers get an in-app notice on submit. Basket submit confirm is soft next-step copy (manager review + cancel-while-waiting) — revisit when amend-after-submit and richer statuses land. Still open: amend after submit, richer statuses (approved / invoiced / handover), optional mail channel for shop notices.
