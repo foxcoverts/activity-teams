@@ -2,7 +2,6 @@
 
 namespace App\Support;
 
-use App\Enums\InboundMailOutcome;
 use App\Models\InboundMail;
 use App\Models\InboxNotification;
 use App\Models\User;
@@ -13,8 +12,7 @@ final class InboundReviewNudge
 {
     public function record(): void
     {
-        $unreviewed = InboundMail::query()
-            ->whereIn('outcome', [InboundMailOutcome::Queued, InboundMailOutcome::Failed]);
+        $unreviewed = InboundMail::query()->needsReview();
 
         $count = (clone $unreviewed)->count();
 

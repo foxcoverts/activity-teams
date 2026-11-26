@@ -4,8 +4,11 @@ namespace Tests\Feature;
 
 use App\Enums\InboundMailOutcome;
 use App\Filament\Admin\Resources\InboundMails\Pages\ListInboundMails;
+use App\Filament\Admin\Resources\InboundMails\Pages\ViewInboundMail;
 use App\Models\InboundMail;
 use App\Models\User;
+use App\Notifications\InboundReviewNotification;
+use App\Support\InboundReviewNudge;
 use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
@@ -75,6 +78,37 @@ class InboundMailWebhookTest extends TestCase
             ->assertDispatched('refresh-topbar');
 
         $this->assertNotNull($mail->fresh()->reviewed_at);
+    }
+
+    public function test_marking_inbound_mail_reviewed_marks_review_inbox_rows_read(): void
+    {
+        $admin = User::factory()->systemAdmin()->create();
+        $mail = InboundMail::factory()->create();
+
+        app(InboundReviewNudge::class)->record();
+
+        $this->assertSame(1, $admin->unreadNotifications()->where('type', InboundReviewNotification::class)->count());
+
+        Filament::setCurrentPanel('admin');
+
+        Livewire::actingAs($admin)
+            ->test(ViewInboundMail::class, ['record' => $mail->getKey()])
+            ->callAction('markReviewed');
+
+        $this->assertNotNull($mail->fresh()->reviewed_at);
+        $this->assertSame(0, $admin->unreadNotifications()->where('type', InboundReviewNotification::class)->count());
+        $this->assertNotNull($admin->notifications()->where('type', InboundReviewNotification::class)->first()?->read_at);
+    }
+
+    public function test_inbound_review_nudge_ignores_reviewed_mail(): void
+    {
+        $admin = User::factory()->systemAdmin()->create();
+        $mail = InboundMail::factory()->create();
+        $mail->markReviewed()->save();
+
+        app(InboundReviewNudge::class)->record();
+
+        $this->assertSame(0, $admin->notifications()->where('type', InboundReviewNotification::class)->count());
     }
 
     /**
