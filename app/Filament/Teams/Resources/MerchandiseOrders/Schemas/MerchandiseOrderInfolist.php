@@ -2,9 +2,9 @@
 
 namespace App\Filament\Teams\Resources\MerchandiseOrders\Schemas;
 
+use App\Enums\MerchandiseOrderStatus;
+use App\Filament\Support\Infolists\PersonEntry;
 use App\Models\MerchandiseOrder;
-use App\Models\MerchandiseOrderLine;
-use Filament\Infolists\Components\RepeatableEntry;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
@@ -24,41 +24,22 @@ class MerchandiseOrderInfolist
                     ->schema([
                         TextEntry::make('status')
                             ->label(__('Status'))
-                            ->badge(),
+                            ->badge()
+                            ->helperText(fn (MerchandiseOrder $record): ?string => match ($record->status) {
+                                MerchandiseOrderStatus::Submitted => __('Waiting for a team manager to review this order.'),
+                                MerchandiseOrderStatus::Cancelled => __('This order was cancelled and will not be fulfilled.'),
+                                default => null,
+                            }),
                         TextEntry::make('submitted_at')
                             ->label(__('Submitted'))
                             ->dateTime('j M Y H:i')
                             ->placeholder('-'),
-                        TextEntry::make('user.name')
-                            ->label(__('Member')),
+                        PersonEntry::make('user.name')
+                            ->label(__('Member'))
+                            ->memberUrl(),
                         TextEntry::make('total')
                             ->label(__('Total'))
                             ->state(fn (MerchandiseOrder $record): string => Number::currency($record->total(), 'GBP', 'en_GB')),
-                        RepeatableEntry::make('lines')
-                            ->label(__('Lines'))
-                            ->schema([
-                                TextEntry::make('item_title')
-                                    ->label(__('Item'))
-                                    ->formatStateUsing(function (mixed $state, MerchandiseOrderLine $record): string {
-                                        $title = (string) $state;
-                                        $parts = collect($record->personalisationSnapshot())
-                                            ->map(fn (array $row): string => $row['label'].': '.$row['value']);
-
-                                        return $parts->isEmpty()
-                                            ? $title
-                                            : $title.' ('.$parts->implode(' · ').')';
-                                    }),
-                                TextEntry::make('variant_label')
-                                    ->label(__('Variant')),
-                                TextEntry::make('unit_price')
-                                    ->label(__('Price'))
-                                    ->money('GBP'),
-                                TextEntry::make('quantity')
-                                    ->label(__('Qty')),
-                                TextEntry::make('line_total')
-                                    ->label(__('Line total'))
-                                    ->state(fn (MerchandiseOrderLine $record): string => Number::currency($record->lineTotal(), 'GBP', 'en_GB')),
-                            ]),
                     ]),
             ]);
     }

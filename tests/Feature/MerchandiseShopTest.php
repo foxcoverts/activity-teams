@@ -17,6 +17,7 @@ use App\Filament\Teams\Resources\MerchandiseItems\Pages\ListMerchandiseItems;
 use App\Filament\Teams\Resources\MerchandiseOrders\MerchandiseOrderResource;
 use App\Filament\Teams\Resources\MerchandiseOrders\Pages\ListMerchandiseOrders;
 use App\Filament\Teams\Resources\MerchandiseOrders\Pages\ViewMerchandiseOrder;
+use App\Filament\Teams\Resources\MerchandiseOrders\RelationManagers\ItemsRelationManager;
 use App\Filament\Teams\Resources\MerchandiseShops\MerchandiseShopResource;
 use App\Filament\Teams\Resources\MerchandiseShops\Pages\ListMerchandiseShops;
 use App\Filament\Teams\Resources\MerchandiseShops\Pages\ViewMerchandiseShop;
@@ -658,10 +659,58 @@ class MerchandiseShopTest extends TestCase
 
         Livewire::test(ViewMerchandiseOrder::class, ['record' => $order->getKey()])
             ->assertSuccessful()
+            ->assertSee('Pending approval')
+            ->assertSee('Waiting for a team manager to review this order.')
+            ->assertSee('Items')
+            ->assertSee('Named polo')
+            ->assertSee('Alex')
+            ->assertSeeLivewire(ItemsRelationManager::class)
             ->callAction('cancel')
             ->assertHasNoErrors();
 
+        Livewire::test(ViewMerchandiseOrder::class, ['record' => $order->getKey()])
+            ->assertSuccessful()
+            ->assertSee('Cancelled')
+            ->assertSee('This order was cancelled and will not be fulfilled.');
+
         $this->assertTrue($order->fresh()->status->value === 'cancelled');
+    }
+
+    public function test_manager_orders_list_defaults_member_filter_to_me(): void
+    {
+        $team = Team::factory()->withShop()->create();
+        $manager = User::factory()->teamManager($team)->create();
+        $member = User::factory()->teamMember($team)->create();
+
+        $mine = MerchandiseOrder::factory()->for($team)->for($manager)->withLine()->create([
+            'submitted_at' => now()->subHour(),
+        ]);
+        $theirs = MerchandiseOrder::factory()->for($team)->for($member)->withLine()->create([
+            'submitted_at' => now()->subMinutes(30),
+        ]);
+        $cancelled = MerchandiseOrder::factory()->for($team)->for($member)->cancelled()->withLine()->create([
+            'submitted_at' => now()->subMinutes(15),
+        ]);
+
+        $this->actingAs($manager);
+        Filament::setCurrentPanel('teams');
+        Filament::setTenant($team);
+
+        Livewire::test(ListMerchandiseOrders::class)
+            ->assertSuccessful()
+            ->assertTableFilterExists('status')
+            ->assertTableFilterExists('user_id')
+            ->assertCanSeeTableRecords([$mine])
+            ->assertCanNotSeeTableRecords([$theirs, $cancelled])
+            ->assertTableColumnExists('user.name')
+            ->filterTable('user_id')
+            ->assertCanSeeTableRecords([$mine, $theirs, $cancelled])
+            ->filterTable('user_id', $member->getKey())
+            ->assertCanSeeTableRecords([$theirs, $cancelled])
+            ->assertCanNotSeeTableRecords([$mine])
+            ->filterTable('status', 'cancelled')
+            ->assertCanSeeTableRecords([$cancelled])
+            ->assertCanNotSeeTableRecords([$mine, $theirs]);
     }
 
     public function test_required_personalisation_blocks_add_to_basket(): void

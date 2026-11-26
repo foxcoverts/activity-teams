@@ -5,6 +5,7 @@ namespace App\Filament\Teams\Resources\MerchandiseOrders;
 use App\Filament\Teams\NavigationGroup;
 use App\Filament\Teams\Resources\MerchandiseOrders\Pages\ListMerchandiseOrders;
 use App\Filament\Teams\Resources\MerchandiseOrders\Pages\ViewMerchandiseOrder;
+use App\Filament\Teams\Resources\MerchandiseOrders\RelationManagers\ItemsRelationManager;
 use App\Filament\Teams\Resources\MerchandiseOrders\Schemas\MerchandiseOrderInfolist;
 use App\Filament\Teams\Resources\MerchandiseOrders\Tables\MerchandiseOrdersTable;
 use App\Models\MerchandiseOrder;
@@ -88,7 +89,7 @@ class MerchandiseOrderResource extends Resource
     public static function getEloquentQuery(): Builder
     {
         $query = parent::getEloquentQuery()
-            ->with(['user', 'lines'])
+            ->with(['user', 'lines.item.images'])
             ->latest('submitted_at');
 
         $tenant = Filament::getTenant();
@@ -103,6 +104,13 @@ class MerchandiseOrderResource extends Resource
         }
 
         return $query;
+    }
+
+    public static function getRelations(): array
+    {
+        return [
+            ItemsRelationManager::class,
+        ];
     }
 
     public static function getPages(): array

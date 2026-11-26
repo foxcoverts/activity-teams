@@ -16,7 +16,8 @@ enum MerchandiseOrderStatus: string implements HasColor, HasIcon, HasLabel
     public function getLabel(): string
     {
         return match ($this) {
-            self::Submitted => __('Submitted'),
+            // Member-facing: “submitted” is a system event; they care that approval is pending.
+            self::Submitted => __('Pending approval'),
             self::Cancelled => __('Cancelled'),
         };
     }
@@ -35,7 +36,7 @@ enum MerchandiseOrderStatus: string implements HasColor, HasIcon, HasLabel
     public function getIcon(): Heroicon
     {
         return match ($this) {
-            self::Submitted => Heroicon::OutlinedPaperAirplane,
+            self::Submitted => Heroicon::OutlinedClock,
             self::Cancelled => Heroicon::OutlinedXCircle,
         };
     }
