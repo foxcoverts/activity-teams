@@ -7,11 +7,12 @@ use App\Mail\NewsPostMail;
 use App\Models\NewsPost;
 use App\Models\User;
 use App\Notifications\Concerns\RecordsInbox;
+use App\Notifications\Contracts\ClearsWhenSubjectViewed;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Notifications\Notification;
 
-class NewsPublishedNotification extends Notification
+class NewsPublishedNotification extends Notification implements ClearsWhenSubjectViewed
 {
     use Queueable;
     use RecordsInbox;

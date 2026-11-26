@@ -8,11 +8,12 @@ use App\Mail\AttendanceRecordedMail;
 use App\Models\Booking;
 use App\Models\User;
 use App\Notifications\Concerns\RecordsInbox;
+use App\Notifications\Contracts\ClearsWhenSubjectViewed;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Notifications\Notification;
 
-class AttendanceRecordedNotification extends Notification
+class AttendanceRecordedNotification extends Notification implements ClearsWhenSubjectViewed
 {
     use Queueable;
     use RecordsInbox;

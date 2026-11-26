@@ -7,9 +7,9 @@ use App\Filament\Teams\Resources\NewsPosts\Actions\RepublishAction;
 use App\Filament\Teams\Resources\NewsPosts\Actions\ScheduleAction;
 use App\Filament\Teams\Resources\NewsPosts\Actions\UnpublishAction;
 use App\Filament\Teams\Resources\NewsPosts\NewsPostResource;
-use App\Models\InboxNotification;
 use App\Models\NewsPost;
 use App\Models\User;
+use App\Support\MarkSubjectInboxRead;
 use Filament\Actions\EditAction;
 use Filament\Resources\Pages\ViewRecord;
 
@@ -22,13 +22,10 @@ class ViewNewsPost extends ViewRecord
         parent::mount($record);
 
         $user = auth()->user();
+        $post = $this->getRecord();
 
-        if ($user instanceof User) {
-            $user->unreadNotifications()
-                ->where('data->subject_type', NewsPost::class)
-                ->where('data->subject_id', $this->getRecord()->getKey())
-                ->get()
-                ->each(fn (InboxNotification $notification) => $notification->markReadForDelivery());
+        if ($user instanceof User && $post instanceof NewsPost) {
+            app(MarkSubjectInboxRead::class)($user, $post);
         }
     }
 

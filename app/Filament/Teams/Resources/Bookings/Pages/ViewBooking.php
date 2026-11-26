@@ -17,6 +17,7 @@ use App\Livewire\Comments;
 use App\Livewire\RelatedBookings;
 use App\Models\Booking;
 use App\Models\User;
+use App\Support\MarkSubjectInboxRead;
 use Filament\Resources\Pages\ViewRecord;
 use Filament\Schemas\Components\EmbeddedSchema;
 use Filament\Schemas\Components\Grid;
@@ -31,6 +32,18 @@ class ViewBooking extends ViewRecord
     use TogglesTimelineAudience;
 
     protected static string $resource = BookingResource::class;
+
+    public function mount(int|string $record): void
+    {
+        parent::mount($record);
+
+        $user = auth()->user();
+        $booking = $this->getRecord();
+
+        if ($user instanceof User && $booking instanceof Booking) {
+            app(MarkSubjectInboxRead::class)($user, $booking);
+        }
+    }
 
     public function getTitle(): string|Htmlable
     {
