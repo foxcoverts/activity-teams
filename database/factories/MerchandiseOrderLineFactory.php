@@ -22,6 +22,7 @@ class MerchandiseOrderLineFactory extends Factory
             'item_title' => fake()->words(3, true),
             'variant_label' => 'One size',
             'unit_price' => fake()->randomFloat(2, 5, 40),
+            'approved_unit_price' => fn (array $attributes): string => number_format((float) $attributes['unit_price'], 2, '.', ''),
             'quantity' => 1,
             'personalisation' => null,
             'sort' => 0,

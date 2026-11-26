@@ -20,6 +20,7 @@ class MerchandiseOrderLine extends Model
         'item_title',
         'variant_label',
         'unit_price',
+        'approved_unit_price',
         'quantity',
         'personalisation',
         'sort',
@@ -50,9 +51,36 @@ class MerchandiseOrderLine extends Model
         return is_array($value) ? array_values($value) : [];
     }
 
+    public function listUnitPrice(): float
+    {
+        return (float) $this->unit_price;
+    }
+
+    public function approvedUnitPrice(): float
+    {
+        return $this->approved_unit_price !== null
+            ? (float) $this->approved_unit_price
+            : $this->listUnitPrice();
+    }
+
+    public function hasUnitDiscount(): bool
+    {
+        return round($this->approvedUnitPrice(), 2) < round($this->listUnitPrice(), 2);
+    }
+
+    public function unitDiscountAmount(): float
+    {
+        return max(0, round($this->listUnitPrice() - $this->approvedUnitPrice(), 2));
+    }
+
+    public function listLineTotal(): float
+    {
+        return round($this->listUnitPrice() * $this->quantity, 2);
+    }
+
     public function lineTotal(): float
     {
-        return (float) $this->unit_price * $this->quantity;
+        return round($this->approvedUnitPrice() * $this->quantity, 2);
     }
 
     /**
@@ -62,6 +90,7 @@ class MerchandiseOrderLine extends Model
     {
         return [
             'unit_price' => 'decimal:2',
+            'approved_unit_price' => 'decimal:2',
             'quantity' => 'integer',
             'personalisation' => 'array',
             'sort' => 'integer',

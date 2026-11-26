@@ -22,8 +22,13 @@ class MerchandiseOrderFactory extends Factory
             'team_id' => Team::factory()->withShop(),
             'user_id' => User::factory(),
             'status' => MerchandiseOrderStatus::Submitted,
+            'order_discount' => '0.00',
+            'rejection_reason' => null,
+            'approval_note' => null,
             'submitted_at' => now(),
             'cancelled_at' => null,
+            'approved_at' => null,
+            'rejected_at' => null,
         ];
     }
 
@@ -32,6 +37,23 @@ class MerchandiseOrderFactory extends Factory
         return $this->state(fn (): array => [
             'status' => MerchandiseOrderStatus::Cancelled,
             'cancelled_at' => now(),
+        ]);
+    }
+
+    public function approved(): static
+    {
+        return $this->state(fn (): array => [
+            'status' => MerchandiseOrderStatus::Approved,
+            'approved_at' => now(),
+        ]);
+    }
+
+    public function rejected(?string $reason = null): static
+    {
+        return $this->state(fn (): array => [
+            'status' => MerchandiseOrderStatus::Rejected,
+            'rejected_at' => now(),
+            'rejection_reason' => $reason ?? 'Not available.',
         ]);
     }
 

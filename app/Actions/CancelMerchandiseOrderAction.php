@@ -5,6 +5,7 @@ namespace App\Actions;
 use App\Enums\MerchandiseOrderStatus;
 use App\Models\MerchandiseOrder;
 use App\Models\User;
+use App\Support\ResolveMerchandiseOrderSubmittedInbox;
 use Illuminate\Validation\ValidationException;
 
 class CancelMerchandiseOrderAction
@@ -28,6 +29,10 @@ class CancelMerchandiseOrderAction
             'cancelled_at' => now(),
         ]);
 
-        return $order->refresh();
+        $order = $order->refresh();
+
+        app(ResolveMerchandiseOrderSubmittedInbox::class)($order);
+
+        return $order;
     }
 }

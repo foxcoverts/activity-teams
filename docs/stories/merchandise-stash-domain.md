@@ -15,7 +15,7 @@ Anchor stories: [US-36](US-36-merchandise-stash-requests.md) (shop), [US-24](US-
 | **Option axis** | An optional dimension on a catalogue item (e.g. Size, Colour) with a closed list of values. Variants bind to one value per axis; the composed label (e.g. `M · Orange`) is derived for display. Zero axes keeps today’s free-text variant labels. Schemas: `merchandise_item_option_axes`, `merchandise_item_option_values`, `merchandise_item_variant_options`. |
 | **Personalisation** | Extra free-text fields on an item (e.g. name on shirt) the member fills when ordering. Closed-list personalisation is separate from SKU axes and not modelled yet. |
 | **Order** | A member’s request for one or more line items from that team’s catalogue. |
-| **Approval** | Manager accept or reject (with reason), including discretionary line discounts. |
+| **Approval** | Manager accept or reject (with reason), including discretionary line discounts and an optional order-level value discount. |
 | **Invoice** | Amount the member owes after approval. Payment is offline (cash, cheque, bank transfer); the site only tracks unpaid / paid. |
 | **Manufacturer order** | Manager-built list of made-to-order (and optionally restock) lines for **one** manufacturer from the team’s manufacturer list, to send outside the app. |
 | **Picking list** | Lines to fulfil from on-hand stock. |
@@ -55,10 +55,12 @@ No separate campaign entity is required for the first build. Availability (mothb
 
 ## Money and treasurer
 
-- Approving an order creates (or updates) the member invoice for that order.
+- Approval stores approved unit prices, an optional order-level discount, and total due on the order ([US-84](US-84-merchandise-order-approval.md)).
+- [US-85](US-85-merchandise-invoices.md) creates the member invoice from that approved total due.
 - Managers see outstanding invoices and mark them paid.
 - A copy is passed to the treasurer by email; there is no treasurer role in the app and no card payments.
 - Partial payment, credit notes, and price disputes after pay are handled by the treasurer outside the site. The app may later hold a short note on an invoice; it is not a full accounts ledger.
+- Example without an in-app credit ledger: member paid, manufacturer shortfall, new order for different items — manager applies an order-level £ discount on approval to balance the prior credit.
 
 ## Stock
 
@@ -74,7 +76,7 @@ What the team covers is a **policy decision outside the app** (trustee board and
 - A polo (or similar) provided to members.
 - The equivalent cost of a provided item taken off another (e.g. hoody priced down by the polo allowance).
 
-Team managers apply that policy at approval as full or partial line discounts. They need the issued-items log to see what someone has already had (and what was gifted outside the shop) before deciding. The app does **not** encode entitlement rules, allowance balances, or “spend the polo credit on a hoody” automation. Fixed subsidy rules and discount codes are deferred.
+Team managers apply that policy at approval as full or partial **line** discounts and/or an **order-level** value discount when the credit does not attach to one line. They need the issued-items log to see what someone has already had (and what was gifted outside the shop) before deciding. The app does **not** encode entitlement rules, allowance balances, or “spend the polo credit on a hoody” automation. Fixed subsidy rules and discount codes are deferred.
 
 ## Catalogue availability
 
@@ -91,6 +93,10 @@ Team managers apply that policy at approval as full or partial line discounts. T
 ## Navigation (Teams panel)
 
 Feature-gated **Merchandise** group (Shop flag), first among Teams nav groups (then Manage, Setup, Admin), alphabetical: **Issued**, **Items**, **Orders**, **Shop** (with nested **Basket**). Managers see all team orders; members see their own. Member panel later may list orders across teams and link into the Teams panel for detail — shopping stays on the team tenant.
+
+## Manager triage widgets (open)
+
+Managers will need dashboard-style triage for merchandise work in flight — at least pending approval ([US-84](US-84-merchandise-order-approval.md)), and later outstanding invoices ([US-85](US-85-merchandise-invoices.md)) and fulfilment queues ([US-86](US-86-merchandise-manufacturer-orders.md) / [US-87](US-87-merchandise-picking-and-handover.md)). **Placement is undecided:** extend the existing Manager dashboard, or add a Merchandise dashboard (or similar). Do not invent widgets until that home is chosen.
 
 ## Explicitly not this domain
 

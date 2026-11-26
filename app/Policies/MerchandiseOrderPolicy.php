@@ -66,6 +66,38 @@ class MerchandiseOrderPolicy
             && $merchandiseOrder->canBeCancelled();
     }
 
+    public function discount(User $user, MerchandiseOrder $merchandiseOrder): bool
+    {
+        return $this->managesOrderTeam($user, $merchandiseOrder)
+            && $merchandiseOrder->canBeReviewed();
+    }
+
+    public function approve(User $user, MerchandiseOrder $merchandiseOrder): bool
+    {
+        return $this->managesOrderTeam($user, $merchandiseOrder)
+            && $merchandiseOrder->canBeReviewed();
+    }
+
+    public function reject(User $user, MerchandiseOrder $merchandiseOrder): bool
+    {
+        return $this->managesOrderTeam($user, $merchandiseOrder)
+            && $merchandiseOrder->canBeReviewed();
+    }
+
+    private function managesOrderTeam(User $user, MerchandiseOrder $merchandiseOrder): bool
+    {
+        if ($user->isSuspended()) {
+            return false;
+        }
+
+        $merchandiseOrder->loadMissing('team');
+        $team = $merchandiseOrder->team;
+
+        return $team instanceof Team
+            && $team->featureEnabled(TeamFeature::Shop)
+            && $user->manages($team);
+    }
+
     private function currentTeam(): ?Team
     {
         $tenant = Filament::getTenant();

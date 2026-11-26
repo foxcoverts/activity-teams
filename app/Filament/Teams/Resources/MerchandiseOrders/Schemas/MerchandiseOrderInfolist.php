@@ -9,7 +9,6 @@ use Filament\Infolists\Components\TextEntry;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
-use Illuminate\Support\Number;
 
 class MerchandiseOrderInfolist
 {
@@ -27,19 +26,35 @@ class MerchandiseOrderInfolist
                             ->badge()
                             ->helperText(fn (MerchandiseOrder $record): ?string => match ($record->status) {
                                 MerchandiseOrderStatus::Submitted => __('Waiting for a team manager to review this order.'),
+                                MerchandiseOrderStatus::Approved => __('This order is approved. An invoice will follow.'),
+                                MerchandiseOrderStatus::Rejected => __('This order was rejected. The member can reopen it into their basket, fix it, and submit again.'),
                                 MerchandiseOrderStatus::Cancelled => __('This order was cancelled and will not be fulfilled.'),
-                                default => null,
                             }),
                         TextEntry::make('submitted_at')
                             ->label(__('Submitted'))
                             ->dateTime('j M Y H:i')
                             ->placeholder('-'),
+                        TextEntry::make('approved_at')
+                            ->label(__('Approved'))
+                            ->dateTime('j M Y H:i')
+                            ->placeholder('-')
+                            ->visible(fn (MerchandiseOrder $record): bool => $record->status === MerchandiseOrderStatus::Approved),
+                        TextEntry::make('rejected_at')
+                            ->label(__('Rejected'))
+                            ->dateTime('j M Y H:i')
+                            ->placeholder('-')
+                            ->visible(fn (MerchandiseOrder $record): bool => $record->status === MerchandiseOrderStatus::Rejected),
+                        TextEntry::make('rejection_reason')
+                            ->label(__('Rejection reason'))
+                            ->placeholder('-')
+                            ->visible(fn (MerchandiseOrder $record): bool => $record->status === MerchandiseOrderStatus::Rejected),
+                        TextEntry::make('approval_note')
+                            ->label(__('Approval note'))
+                            ->placeholder('-')
+                            ->visible(fn (MerchandiseOrder $record): bool => filled($record->approval_note)),
                         PersonEntry::make('user.name')
                             ->label(__('Member'))
                             ->memberUrl(),
-                        TextEntry::make('total')
-                            ->label(__('Total'))
-                            ->state(fn (MerchandiseOrder $record): string => Number::currency($record->total(), 'GBP', 'en_GB')),
                     ]),
             ]);
     }

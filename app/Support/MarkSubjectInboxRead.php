@@ -8,6 +8,8 @@ use App\Notifications\AttendanceRecordedNotification;
 use App\Notifications\BookingHeldNotification;
 use App\Notifications\CommentNotification;
 use App\Notifications\Contracts\ClearsWhenSubjectViewed;
+use App\Notifications\MerchandiseOrderApprovedNotification;
+use App\Notifications\MerchandiseOrderRejectedNotification;
 use App\Notifications\NewsPublishedNotification;
 use App\Notifications\TaskHeldNotification;
 use Illuminate\Database\Eloquent\Model;
@@ -24,6 +26,8 @@ final class MarkSubjectInboxRead
         AttendanceRecordedNotification::class,
         BookingHeldNotification::class,
         CommentNotification::class,
+        MerchandiseOrderApprovedNotification::class,
+        MerchandiseOrderRejectedNotification::class,
         NewsPublishedNotification::class,
         TaskHeldNotification::class,
     ];

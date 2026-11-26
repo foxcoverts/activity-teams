@@ -2,8 +2,13 @@
 
 namespace Tests\Feature;
 
+use App\Actions\ApproveMerchandiseOrderAction;
+use App\Actions\RejectMerchandiseOrderAction;
+use App\Actions\SetMerchandiseOrderDiscountAction;
+use App\Actions\SetMerchandiseOrderLinePriceAction;
 use App\Enums\IssuedMerchandiseSource;
 use App\Enums\MerchandiseAvailability;
+use App\Enums\MerchandiseOrderStatus;
 use App\Enums\TeamFeature;
 use App\Filament\Teams\Resources\IssuedMerchandises\IssuedMerchandiseResource;
 use App\Filament\Teams\Resources\IssuedMerchandises\Pages\CreateIssuedMerchandise;
@@ -31,6 +36,8 @@ use App\Models\MerchandiseItemVariant;
 use App\Models\MerchandiseOrder;
 use App\Models\Team;
 use App\Models\User;
+use App\Notifications\MerchandiseOrderApprovedNotification;
+use App\Notifications\MerchandiseOrderRejectedNotification;
 use App\Notifications\MerchandiseOrderSubmittedNotification;
 use App\Support\MerchandiseVariantOptions;
 use Filament\Facades\Filament;
@@ -674,6 +681,127 @@ class MerchandiseShopTest extends TestCase
             ->assertSee('This order was cancelled and will not be fulfilled.');
 
         $this->assertTrue($order->fresh()->status->value === 'cancelled');
+    }
+
+    public function test_manager_can_discount_approve_and_reject_orders(): void
+    {
+        Notification::fake();
+
+        $team = Team::factory()->withShop()->create();
+        $manager = User::factory()->teamManager($team)->create();
+        $member = User::factory()->teamMember($team)->create();
+        $outsider = User::factory()->teamMember($team)->create();
+
+        $order = MerchandiseOrder::factory()->for($team)->for($member)->create();
+        $line = $order->lines()->create([
+            'item_title' => 'Polo',
+            'variant_label' => 'M',
+            'unit_price' => '20.00',
+            'approved_unit_price' => '20.00',
+            'quantity' => 2,
+            'sort' => 0,
+        ]);
+
+        $this->assertSame(40.0, $order->fresh()->load('lines')->total());
+
+        $this->actingAs($outsider);
+        $this->assertFalse($outsider->can('approve', $order));
+        $this->assertFalse($outsider->can('discount', $order));
+
+        $this->actingAs($manager);
+        Filament::setCurrentPanel('teams');
+        Filament::setTenant($team);
+
+        app(SetMerchandiseOrderLinePriceAction::class)($line, $manager, '15.00');
+        $this->assertSame('15.00', $line->fresh()->approved_unit_price);
+        $this->assertSame(30.0, $order->fresh()->load('lines')->itemsSubtotal());
+
+        app(SetMerchandiseOrderDiscountAction::class)($order->fresh()->load('lines'), $manager, '5.00');
+        $this->assertSame(25.0, $order->fresh()->load('lines')->total());
+
+        Livewire::test(ItemsRelationManager::class, [
+            'ownerRecord' => $order->fresh(),
+            'pageClass' => ViewMerchandiseOrder::class,
+        ])
+            ->callTableAction('discountLine', $line->fresh(), [
+                'approved_unit_price' => '10.00',
+                'discount' => '10.00',
+            ])
+            ->assertHasNoErrors()
+            ->assertDispatched('merchandise-order-totals-updated');
+
+        $this->assertSame(15.0, $order->fresh()->load('lines')->total());
+
+        $issuedUrl = IssuedMerchandiseResource::getUrl('index', [
+            'filters' => [
+                'user_id' => [
+                    'value' => $member->getKey(),
+                ],
+            ],
+        ]);
+
+        Livewire::test(ViewMerchandiseOrder::class, ['record' => $order->getKey()])
+            ->assertSuccessful()
+            ->assertActionExists('viewIssued')
+            ->assertActionHasUrl('viewIssued', $issuedUrl)
+            ->assertActionDoesNotExist('approve')
+            ->assertActionDoesNotExist('reject');
+
+        Livewire::test(ItemsRelationManager::class, [
+            'ownerRecord' => $order->fresh(),
+            'pageClass' => ViewMerchandiseOrder::class,
+        ])
+            ->assertActionExists('approve')
+            ->assertActionExists('reject')
+            ->callAction('approve', ['approval_note' => 'Polo allowance applied'])
+            ->assertHasNoErrors();
+
+        $order->refresh();
+        $this->assertSame(MerchandiseOrderStatus::Approved, $order->status);
+        $this->assertNotNull($order->approved_at);
+        $this->assertSame('Polo allowance applied', $order->approval_note);
+        $this->assertFalse($manager->can('approve', $order));
+        Notification::assertSentTo($member, MerchandiseOrderApprovedNotification::class);
+
+        $rejectable = MerchandiseOrder::factory()->for($team)->for($member)->withLine([
+            'unit_price' => '10.00',
+            'approved_unit_price' => '10.00',
+            'quantity' => 1,
+        ])->create();
+
+        Livewire::test(ItemsRelationManager::class, [
+            'ownerRecord' => $rejectable,
+            'pageClass' => ViewMerchandiseOrder::class,
+        ])
+            ->callAction('reject', ['rejection_reason' => 'Please fix the name spelling'])
+            ->assertHasNoErrors();
+
+        $rejectable->refresh();
+        $this->assertSame(MerchandiseOrderStatus::Rejected, $rejectable->status);
+        $this->assertSame('Please fix the name spelling', $rejectable->rejection_reason);
+        $this->assertNotSame(MerchandiseOrderStatus::Cancelled, $rejectable->status);
+        Notification::assertSentTo($member, MerchandiseOrderRejectedNotification::class);
+
+        $ownOrder = MerchandiseOrder::factory()->for($team)->for($manager)->withLine([
+            'unit_price' => '8.00',
+            'approved_unit_price' => '8.00',
+            'quantity' => 1,
+        ])->create();
+
+        app(ApproveMerchandiseOrderAction::class)($ownOrder, $manager);
+        Notification::assertNotSentTo($manager, MerchandiseOrderApprovedNotification::class);
+
+        $ownRejectable = MerchandiseOrder::factory()->for($team)->for($manager)->withLine([
+            'unit_price' => '8.00',
+            'approved_unit_price' => '8.00',
+            'quantity' => 1,
+        ])->create();
+
+        app(RejectMerchandiseOrderAction::class)($ownRejectable, $manager, 'Changing my mind');
+        Notification::assertNotSentTo($manager, MerchandiseOrderRejectedNotification::class);
+
+        $this->expectException(ValidationException::class);
+        app(SetMerchandiseOrderLinePriceAction::class)($line->fresh(), $manager, '10.00');
     }
 
     public function test_manager_orders_list_defaults_member_filter_to_me(): void

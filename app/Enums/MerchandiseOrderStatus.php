@@ -11,6 +11,8 @@ use Filament\Support\Icons\Heroicon;
 enum MerchandiseOrderStatus: string implements HasColor, HasIcon, HasLabel
 {
     case Submitted = 'submitted';
+    case Approved = 'approved';
+    case Rejected = 'rejected';
     case Cancelled = 'cancelled';
 
     public function getLabel(): string
@@ -18,6 +20,8 @@ enum MerchandiseOrderStatus: string implements HasColor, HasIcon, HasLabel
         return match ($this) {
             // Member-facing: “submitted” is a system event; they care that approval is pending.
             self::Submitted => __('Pending approval'),
+            self::Approved => __('Approved'),
+            self::Rejected => __('Rejected'),
             self::Cancelled => __('Cancelled'),
         };
     }
@@ -29,7 +33,8 @@ enum MerchandiseOrderStatus: string implements HasColor, HasIcon, HasLabel
     {
         return match ($this) {
             self::Submitted => Palette::uncertain(),
-            self::Cancelled => Palette::destructive(),
+            self::Approved => Palette::positive(),
+            self::Rejected, self::Cancelled => Palette::destructive(),
         };
     }
 
@@ -37,6 +42,8 @@ enum MerchandiseOrderStatus: string implements HasColor, HasIcon, HasLabel
     {
         return match ($this) {
             self::Submitted => Heroicon::OutlinedClock,
+            self::Approved => Heroicon::OutlinedCheckCircle,
+            self::Rejected => Heroicon::OutlinedNoSymbol,
             self::Cancelled => Heroicon::OutlinedXCircle,
         };
     }

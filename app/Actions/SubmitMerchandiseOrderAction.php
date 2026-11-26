@@ -68,6 +68,7 @@ class SubmitMerchandiseOrderAction
                     'item_title' => $line->item->title,
                     'variant_label' => $line->variant->label,
                     'unit_price' => $line->variant->price,
+                    'approved_unit_price' => $line->variant->price,
                     'quantity' => $line->quantity,
                     'personalisation' => $line->personalisation,
                     'sort' => $index,
@@ -100,8 +101,10 @@ class SubmitMerchandiseOrderAction
             ->whereNotNull('users.email_verified_at')
             ->get();
 
+        $member = $order->user;
+
         foreach ($managers as $manager) {
-            if ((string) $manager->getKey() === (string) $order->user_id) {
+            if ($member instanceof User && $manager->is($member)) {
                 continue;
             }
 

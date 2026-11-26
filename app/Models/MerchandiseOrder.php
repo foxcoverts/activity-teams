@@ -20,8 +20,13 @@ class MerchandiseOrder extends Model
         'team_id',
         'user_id',
         'status',
+        'order_discount',
+        'rejection_reason',
+        'approval_note',
         'submitted_at',
         'cancelled_at',
+        'approved_at',
+        'rejected_at',
     ];
 
     public function team(): BelongsTo
@@ -54,11 +59,21 @@ class MerchandiseOrder extends Model
         return $this->status === MerchandiseOrderStatus::Submitted;
     }
 
+    public function canBeReviewed(): bool
+    {
+        return $this->status === MerchandiseOrderStatus::Submitted;
+    }
+
+    public function itemsSubtotal(): float
+    {
+        return round((float) $this->lines->sum(
+            fn (MerchandiseOrderLine $line): float => $line->lineTotal(),
+        ), 2);
+    }
+
     public function total(): float
     {
-        return (float) $this->lines->sum(
-            fn (MerchandiseOrderLine $line): float => $line->lineTotal(),
-        );
+        return max(0, round($this->itemsSubtotal() - (float) $this->order_discount, 2));
     }
 
     /**
@@ -68,8 +83,11 @@ class MerchandiseOrder extends Model
     {
         return [
             'status' => MerchandiseOrderStatus::class,
+            'order_discount' => 'decimal:2',
             'submitted_at' => 'datetime',
             'cancelled_at' => 'datetime',
+            'approved_at' => 'datetime',
+            'rejected_at' => 'datetime',
         ];
     }
 }
