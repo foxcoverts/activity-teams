@@ -15,7 +15,7 @@ class MerchandiseItemInfolist
     {
         return $schema
             ->components([
-                Section::make(__('Item'))
+                Section::make(__('Details'))
                     ->icon(Heroicon::OutlinedShoppingBag)
                     ->columns(1)
                     ->columnSpanFull()
@@ -39,8 +39,27 @@ class MerchandiseItemInfolist
                                     ->getStateUsing(fn ($record): ?string => $record->url()),
                             ])
                             ->placeholder('-'),
+                    ]),
+                Section::make(__('Variants'))
+                    ->icon(Heroicon::OutlinedRectangleStack)
+                    ->columns(1)
+                    ->columnSpanFull()
+                    ->schema([
+                        RepeatableEntry::make('optionAxes')
+                            ->label(__('Options'))
+                            ->schema([
+                                TextEntry::make('name')
+                                    ->label(__('Axis')),
+                                TextEntry::make('values_summary')
+                                    ->label(__('Values'))
+                                    ->state(fn ($record): string => $record->values
+                                        ->pluck('label')
+                                        ->filter()
+                                        ->implode(', ')),
+                            ])
+                            ->placeholder('-'),
                         RepeatableEntry::make('variants')
-                            ->label(__('Variants'))
+                            ->label(__('SKUs'))
                             ->schema([
                                 TextEntry::make('label')
                                     ->label(__('Label')),
@@ -51,8 +70,14 @@ class MerchandiseItemInfolist
                                     ->label(__('Availability'))
                                     ->badge(),
                             ]),
+                    ]),
+                Section::make(__('Personalisation'))
+                    ->icon(Heroicon::OutlinedPencilSquare)
+                    ->columns(1)
+                    ->columnSpanFull()
+                    ->schema([
                         RepeatableEntry::make('personalisation_fields')
-                            ->label(__('Personalisation'))
+                            ->label(__('Fields'))
                             ->schema([
                                 TextEntry::make('label')
                                     ->label(__('Field')),

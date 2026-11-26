@@ -11,8 +11,9 @@ Anchor stories: [US-36](US-36-merchandise-stash-requests.md) (shop), [US-24](US-
 | **Manufacturer** | A per-team controlled supplier record. Catalogue items associate to a manufacturer so [US-86](US-86-merchandise-manufacturer-orders.md) can group lines when building an outward order. |
 | **Catalogue item** | A sellable product on one team: title, description, image, manufacturer, fulfilment type (stock or made-to-order), availability, optional personalisation fields, and one or more sizes each with a price. |
 | **Availability** | Lifecycle on items and variants: **draft** (being prepared) → **available** (on sale) → **mothballed** (soft-retired). Draft and mothballed are hidden from the shop; mothballing keeps past orders and issued history intact. |
-| **Variant** | An issuable / orderable option on an item (SKU). Label is free text (e.g. size, colour, style, or a mash-up). Price and availability sit on the variant; stock later. Schema: `merchandise_item_variants`. |
-| **Personalisation** | Extra fields on an item (name, colour, free text, etc.) the member fills when ordering. |
+| **Variant** | An issuable / orderable SKU on an item. Price, availability, and later stock sit on the variant. Basket and order lines reference a variant and snapshot its label. Schema: `merchandise_item_variants`. |
+| **Option axis** | An optional dimension on a catalogue item (e.g. Size, Colour) with a closed list of values. Variants bind to one value per axis; the composed label (e.g. `M · Orange`) is derived for display. Zero axes keeps today’s free-text variant labels. Schemas: `merchandise_item_option_axes`, `merchandise_item_option_values`, `merchandise_item_variant_options`. |
+| **Personalisation** | Extra free-text fields on an item (e.g. name on shirt) the member fills when ordering. Closed-list personalisation is separate from SKU axes and not modelled yet. |
 | **Order** | A member’s request for one or more line items from that team’s catalogue. |
 | **Approval** | Manager accept or reject (with reason), including discretionary line discounts. |
 | **Invoice** | Amount the member owes after approval. Payment is offline (cash, cheque, bank transfer); the site only tracks unpaid / paid. |
@@ -80,6 +81,7 @@ Team managers apply that policy at approval as full or partial line discounts. T
 - Items and variants use draft → available → mothballed. Soft-retire with mothball (not hard delete when history exists) so order history, invoices, and issued records keep a stable reference. Unused variants may still be deleted.
 - An available item needs at least one available variant (and at least one image). A mothballed item needs at least one available or mothballed variant.
 - Members only browse and order **available** items and variants. Managers still see draft and mothballed catalogue rows for prep, history, and re-activating.
+- Shop list stays one card per catalogue item. When an item has option axes, the product view uses one select per axis (cascading from available SKUs); a complete selection resolves to a single variant. Sparse matrices are allowed (not every Size×Colour need exist). Zero-axis items keep a flat variant select when there is more than one SKU.
 
 ## Team boundary
 

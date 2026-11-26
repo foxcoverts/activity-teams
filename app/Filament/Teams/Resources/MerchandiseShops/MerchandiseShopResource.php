@@ -77,7 +77,12 @@ class MerchandiseShopResource extends Resource
             ->available()
             ->with([
                 'images',
-                'variants' => fn ($variants) => $variants->available()->orderBy('sort')->orderBy('label'),
+                'optionAxes.values',
+                'variants' => fn ($variants) => $variants
+                    ->available()
+                    ->with('optionValues')
+                    ->orderBy('sort')
+                    ->orderBy('label'),
             ]);
 
         $tenant = Filament::getTenant();

@@ -280,9 +280,9 @@
                     <h1 class="text-2xl font-semibold tracking-tight text-gray-950 dark:text-white">
                         {{ $item->title }}
                     </h1>
-                    @if ($this->selectedVariant)
+                    @if (filled($this->variantSubtitle()))
                         <p class="text-sm text-gray-600 dark:text-gray-400">
-                            {{ $this->selectedVariant->label }}
+                            {{ $this->variantSubtitle() }}
                         </p>
                     @endif
                 </div>
@@ -300,10 +300,52 @@
                 @endif
 
                 <form wire:submit="addToBasket" class="max-w-sm space-y-4">
-                    @if ($variants->count() > 1)
+                    @if ($this->usesOptionAxes())
+                        @foreach ($this->optionAxes() as $axis)
+                            @php
+                                $axisId = (string) $axis->getKey();
+                                $axisValues = $this->availableValuesForAxis($axis);
+                                $selectId = 'shop-option-'.$axisId;
+                            @endphp
+                            <div class="space-y-1.5">
+                                <label for="{{ $selectId }}" class="block text-sm font-medium text-gray-950 dark:text-white">
+                                    {{ $axis->name }}
+                                    <span class="text-danger-600">*</span>
+                                </label>
+                                <div class="relative">
+                                    <select
+                                        id="{{ $selectId }}"
+                                        wire:model.live="selectedOptionValueIds.{{ $axisId }}"
+                                        class="block w-full appearance-none rounded-lg border-none bg-white py-2 pl-3 pr-10 text-sm text-gray-950 shadow-sm ring-1 ring-gray-950/10 focus:ring-2 focus:ring-primary-500 dark:bg-white/5 dark:text-white dark:ring-white/10 dark:focus:ring-primary-400"
+                                        @required(true)
+                                    >
+                                        <option value="">{{ __('Choose :axis', ['axis' => $axis->name]) }}</option>
+                                        @foreach ($axisValues as $value)
+                                            <option value="{{ $value->getKey() }}">
+                                                {{ $value->label }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                    <svg
+                                        class="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-gray-500 dark:text-gray-400"
+                                        viewBox="0 0 20 20"
+                                        fill="currentColor"
+                                        aria-hidden="true"
+                                    >
+                                        <path
+                                            fill-rule="evenodd"
+                                            d="M5.22 8.22a.75.75 0 0 1 1.06 0L10 11.94l3.72-3.72a.75.75 0 1 1 1.06 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0L5.22 9.28a.75.75 0 0 1 0-1.06Z"
+                                            clip-rule="evenodd"
+                                        />
+                                    </svg>
+                                </div>
+                            </div>
+                        @endforeach
+                    @elseif ($variants->count() > 1)
                         <div class="space-y-1.5">
                             <label for="shop-variant" class="block text-sm font-medium text-gray-950 dark:text-white">
                                 {{ __('Variant') }}
+                                <span class="text-danger-600">*</span>
                             </label>
                             <div class="relative">
                                 <select

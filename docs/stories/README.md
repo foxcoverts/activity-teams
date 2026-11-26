@@ -164,7 +164,7 @@ Per-team shop for branded and personalised clothing and stash. Domain glossary a
 
 - [US-36 Merchandise & Stash Shop](US-36-merchandise-stash-requests.md) — `partial` (umbrella; browse + basket + submit orders)
 - [US-24 Issued Merchandise Log](US-24-equipment-merchandise-allocation.md) — `partial` (gifts + filters; handover write deferred)
-- [US-82 Merchandise Catalogue & Stock](US-82-merchandise-catalogue-and-stock.md) — `partial` (prices, availability, gallery, personalisation fields; no stock/manufacturers yet)
+- [US-82 Merchandise Catalogue & Stock](US-82-merchandise-catalogue-and-stock.md) — `partial` (prices, availability, gallery, option axes + cascading shop selects, personalisation fields; no stock/manufacturers yet)
 - [US-83 Merchandise Member Orders](US-83-merchandise-member-orders.md) — `partial` (basket + submit + cancel submitted; amend/richer statuses later)
 - [US-84 Merchandise Order Approval & Discounts](US-84-merchandise-order-approval.md) — `not-started`
 - [US-85 Merchandise Invoices & Treasurer Handoff](US-85-merchandise-invoices.md) — `not-started`

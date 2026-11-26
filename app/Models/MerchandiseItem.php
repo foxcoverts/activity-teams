@@ -36,9 +36,23 @@ class MerchandiseItem extends Model
         return $this->hasMany(MerchandiseItemVariant::class)->orderBy('sort')->orderBy('label');
     }
 
+    public function optionAxes(): HasMany
+    {
+        return $this->hasMany(MerchandiseItemOptionAxis::class)->orderBy('sort')->orderBy('name');
+    }
+
     public function images(): HasMany
     {
         return $this->hasMany(MerchandiseItemImage::class)->orderBy('sort');
+    }
+
+    public function hasOptionAxes(): bool
+    {
+        if ($this->relationLoaded('optionAxes')) {
+            return $this->optionAxes->isNotEmpty();
+        }
+
+        return $this->optionAxes()->exists();
     }
 
     /**

@@ -24,11 +24,14 @@ use App\Models\IssuedMerchandise;
 use App\Models\MerchandiseBasketLine;
 use App\Models\MerchandiseItem;
 use App\Models\MerchandiseItemImage;
+use App\Models\MerchandiseItemOptionAxis;
+use App\Models\MerchandiseItemOptionValue;
 use App\Models\MerchandiseItemVariant;
 use App\Models\MerchandiseOrder;
 use App\Models\Team;
 use App\Models\User;
 use App\Notifications\MerchandiseOrderSubmittedNotification;
+use App\Support\MerchandiseVariantOptions;
 use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
@@ -714,6 +717,378 @@ class MerchandiseShopTest extends TestCase
 
         $this->assertDatabaseMissing('merchandise_basket_lines', ['id' => $other->getKey()]);
         $this->assertSame(0, MerchandiseBasketLine::query()->forTeamUser($team, $member)->count());
+    }
+
+    public function test_manager_can_save_item_with_two_option_axes_and_composed_labels(): void
+    {
+        $team = Team::factory()->withShop()->create();
+        $manager = User::factory()->teamManager($team)->create();
+        $item = MerchandiseItem::factory()->for($team)->draft()->create(['title' => 'Hoody']);
+        $existing = $item->variants()->firstOrFail();
+
+        $size = MerchandiseItemOptionAxis::factory()->for($item, 'item')->create([
+            'name' => 'Size',
+            'sort' => 0,
+        ]);
+        $sizeM = MerchandiseItemOptionValue::factory()->for($size, 'axis')->create([
+            'label' => 'M',
+            'sort' => 0,
+        ]);
+        $sizeL = MerchandiseItemOptionValue::factory()->for($size, 'axis')->create([
+            'label' => 'L',
+            'sort' => 1,
+        ]);
+        $colour = MerchandiseItemOptionAxis::factory()->for($item, 'item')->create([
+            'name' => 'Colour',
+            'sort' => 1,
+        ]);
+        $black = MerchandiseItemOptionValue::factory()->for($colour, 'axis')->create([
+            'label' => 'Black',
+            'sort' => 0,
+        ]);
+        $orange = MerchandiseItemOptionValue::factory()->for($colour, 'axis')->create([
+            'label' => 'Orange',
+            'sort' => 1,
+        ]);
+
+        $this->actingAs($manager);
+        Filament::setCurrentPanel('teams');
+        Filament::setTenant($team);
+
+        $component = Livewire::test(EditMerchandiseItem::class, ['record' => $item->getKey()])
+            ->fillForm([
+                'title' => 'Hoody',
+                'availability' => MerchandiseAvailability::Draft->value,
+                'optionAxes' => [
+                    [
+                        'id' => $size->getKey(),
+                        'name' => 'Size',
+                        'values' => [
+                            ['id' => $sizeM->getKey(), 'label' => 'M'],
+                            ['id' => $sizeL->getKey(), 'label' => 'L'],
+                        ],
+                    ],
+                    [
+                        'id' => $colour->getKey(),
+                        'name' => 'Colour',
+                        'values' => [
+                            ['id' => $black->getKey(), 'label' => 'Black'],
+                            ['id' => $orange->getKey(), 'label' => 'Orange'],
+                        ],
+                    ],
+                ],
+                'variants' => [
+                    [
+                        'id' => $existing->getKey(),
+                        'price' => '20.00',
+                        'availability' => MerchandiseAvailability::Draft->value,
+                        'option_value_ids' => [
+                            $size->getKey() => $sizeM->getKey(),
+                            $colour->getKey() => $black->getKey(),
+                        ],
+                    ],
+                    [
+                        'price' => '22.00',
+                        'availability' => MerchandiseAvailability::Draft->value,
+                        'option_value_ids' => [
+                            $size->getKey() => $sizeL->getKey(),
+                            $colour->getKey() => $orange->getKey(),
+                        ],
+                    ],
+                ],
+            ]);
+
+        $variantState = collect($component->get('data.variants'))->values();
+        $this->assertSame(
+            [$sizeM->getKey(), $black->getKey()],
+            [
+                data_get($variantState->get(0), 'option_value_ids.'.$size->getKey()),
+                data_get($variantState->get(0), 'option_value_ids.'.$colour->getKey()),
+            ],
+            'Form state missing option selections before save: '.json_encode($variantState->get(0)),
+        );
+
+        $component
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $item->refresh()->load(['optionAxes.values', 'variants.optionValues']);
+
+        $this->assertTrue($item->hasOptionAxes());
+        $this->assertCount(2, $item->optionAxes);
+        $this->assertCount(2, $item->variants);
+
+        $mBlack = $item->variants->firstWhere('label', 'M · Black');
+        $this->assertNotNull($mBlack);
+        $this->assertEqualsCanonicalizing(
+            ['M', 'Black'],
+            $mBlack->optionValues->pluck('label')->all(),
+        );
+
+        $lOrange = $item->variants->firstWhere('label', 'L · Orange');
+        $this->assertNotNull($lOrange);
+        $this->assertEqualsCanonicalizing(
+            ['L', 'Orange'],
+            $lOrange->optionValues->pluck('label')->all(),
+        );
+    }
+
+    public function test_duplicate_option_combinations_are_rejected(): void
+    {
+        $team = Team::factory()->withShop()->create();
+        $manager = User::factory()->teamManager($team)->create();
+        $item = MerchandiseItem::factory()->for($team)->draft()->create(['title' => 'Hoody']);
+        $existing = $item->variants()->firstOrFail();
+
+        $size = MerchandiseItemOptionAxis::factory()->for($item, 'item')->create([
+            'name' => 'Size',
+            'sort' => 0,
+        ]);
+        $sizeS = MerchandiseItemOptionValue::factory()->for($size, 'axis')->create([
+            'label' => 'S',
+            'sort' => 0,
+        ]);
+        $sizeM = MerchandiseItemOptionValue::factory()->for($size, 'axis')->create([
+            'label' => 'M',
+            'sort' => 1,
+        ]);
+        $colour = MerchandiseItemOptionAxis::factory()->for($item, 'item')->create([
+            'name' => 'Colour',
+            'sort' => 1,
+        ]);
+        $black = MerchandiseItemOptionValue::factory()->for($colour, 'axis')->create([
+            'label' => 'Black',
+            'sort' => 0,
+        ]);
+
+        $this->actingAs($manager);
+        Filament::setCurrentPanel('teams');
+        Filament::setTenant($team);
+
+        Livewire::test(EditMerchandiseItem::class, ['record' => $item->getKey()])
+            ->fillForm([
+                'title' => 'Hoody',
+                'availability' => MerchandiseAvailability::Draft->value,
+                'optionAxes' => [
+                    [
+                        'id' => $size->getKey(),
+                        'name' => 'Size',
+                        'values' => [
+                            ['id' => $sizeS->getKey(), 'label' => 'S'],
+                            ['id' => $sizeM->getKey(), 'label' => 'M'],
+                        ],
+                    ],
+                    [
+                        'id' => $colour->getKey(),
+                        'name' => 'Colour',
+                        'values' => [
+                            ['id' => $black->getKey(), 'label' => 'Black'],
+                        ],
+                    ],
+                ],
+                'variants' => [
+                    [
+                        'id' => $existing->getKey(),
+                        'price' => '20.00',
+                        'availability' => MerchandiseAvailability::Draft->value,
+                        'option_value_ids' => [
+                            $size->getKey() => $sizeS->getKey(),
+                            $colour->getKey() => $black->getKey(),
+                        ],
+                    ],
+                    [
+                        'price' => '20.00',
+                        'availability' => MerchandiseAvailability::Draft->value,
+                        'option_value_ids' => [
+                            $size->getKey() => $sizeS->getKey(),
+                            $colour->getKey() => $black->getKey(),
+                        ],
+                    ],
+                ],
+            ])
+            ->call('save')
+            ->assertHasFormErrors(['variants' => 'Each variant must use a unique combination of options.']);
+    }
+
+    public function test_shop_cascading_options_resolve_sparse_variants_and_add_to_basket(): void
+    {
+        $team = Team::factory()->withShop()->create();
+        $member = User::factory()->teamMember($team)->create();
+        $item = MerchandiseItem::factory()->for($team)->withImage()->create(['title' => 'Hoody']);
+        $item->variants()->delete();
+
+        $size = MerchandiseItemOptionAxis::factory()->for($item, 'item')->create([
+            'name' => 'Size',
+            'sort' => 0,
+        ]);
+        $sizeM = MerchandiseItemOptionValue::factory()->for($size, 'axis')->create(['label' => 'M', 'sort' => 0]);
+        $sizeL = MerchandiseItemOptionValue::factory()->for($size, 'axis')->create(['label' => 'L', 'sort' => 1]);
+        $colour = MerchandiseItemOptionAxis::factory()->for($item, 'item')->create([
+            'name' => 'Colour',
+            'sort' => 1,
+        ]);
+        $black = MerchandiseItemOptionValue::factory()->for($colour, 'axis')->create(['label' => 'Black', 'sort' => 0]);
+        $orange = MerchandiseItemOptionValue::factory()->for($colour, 'axis')->create(['label' => 'Orange', 'sort' => 1]);
+
+        $mBlack = MerchandiseItemVariant::factory()->for($item, 'item')->create([
+            'label' => 'M · Black',
+            'price' => '20.00',
+            'availability' => MerchandiseAvailability::Available,
+            'sort' => 0,
+        ]);
+        $mBlack->optionValues()->sync([$sizeM->getKey(), $black->getKey()]);
+
+        $mOrange = MerchandiseItemVariant::factory()->for($item, 'item')->create([
+            'label' => 'M · Orange',
+            'price' => '21.00',
+            'availability' => MerchandiseAvailability::Available,
+            'sort' => 1,
+        ]);
+        $mOrange->optionValues()->sync([$sizeM->getKey(), $orange->getKey()]);
+
+        $lBlack = MerchandiseItemVariant::factory()->for($item, 'item')->create([
+            'label' => 'L · Black',
+            'price' => '22.00',
+            'availability' => MerchandiseAvailability::Available,
+            'sort' => 2,
+        ]);
+        $lBlack->optionValues()->sync([$sizeL->getKey(), $black->getKey()]);
+
+        $item->refresh()->load(['optionAxes.values', 'variants.optionValues']);
+
+        $this->actingAs($member);
+        Filament::setCurrentPanel('teams');
+        Filament::setTenant($team);
+
+        $sizeKey = (string) $size->getKey();
+        $colourKey = (string) $colour->getKey();
+
+        $component = Livewire::test(ViewMerchandiseShop::class, ['record' => $item->getKey()])
+            ->assertSuccessful()
+            ->assertSee('Size')
+            ->assertSee('Colour')
+            ->assertDontSeeHtml('id="shop-variant"')
+            ->assertSet('selectedVariantId', '');
+
+        $this->assertEqualsCanonicalizing(
+            [$sizeM->getKey(), $sizeL->getKey()],
+            $component->instance()->availableValuesForAxis($size)->pluck('id')->all(),
+        );
+
+        $component
+            ->set('selectedOptionValueIds.'.$sizeKey, $sizeM->getKey())
+            ->assertSet('selectedVariantId', '');
+
+        $this->assertEqualsCanonicalizing(
+            [$black->getKey(), $orange->getKey()],
+            $component->instance()->availableValuesForAxis($colour)->pluck('id')->all(),
+        );
+
+        $component
+            ->set('selectedOptionValueIds.'.$colourKey, $orange->getKey())
+            ->assertSet('selectedVariantId', $mOrange->getKey())
+            ->assertSee('£21.00');
+
+        $component
+            ->set('selectedOptionValueIds.'.$sizeKey, $sizeL->getKey())
+            ->assertSet('selectedOptionValueIds.'.$colourKey, $black->getKey())
+            ->assertSet('selectedVariantId', $lBlack->getKey())
+            ->set('quantity', 1)
+            ->call('addToBasket')
+            ->assertHasNoErrors();
+
+        $line = MerchandiseBasketLine::query()->forTeamUser($team, $member)->first();
+        $this->assertNotNull($line);
+        $this->assertSame($lBlack->getKey(), $line->merchandise_item_variant_id);
+    }
+
+    public function test_shop_auto_selects_sole_option_values(): void
+    {
+        $team = Team::factory()->withShop()->create();
+        $member = User::factory()->teamMember($team)->create();
+        $item = MerchandiseItem::factory()->for($team)->withImage()->create(['title' => 'Hoody']);
+        $item->variants()->delete();
+
+        $size = MerchandiseItemOptionAxis::factory()->for($item, 'item')->create([
+            'name' => 'Size',
+            'sort' => 0,
+        ]);
+        $sizeM = MerchandiseItemOptionValue::factory()->for($size, 'axis')->create(['label' => 'M', 'sort' => 0]);
+        $sizeL = MerchandiseItemOptionValue::factory()->for($size, 'axis')->create(['label' => 'L', 'sort' => 1]);
+        $colour = MerchandiseItemOptionAxis::factory()->for($item, 'item')->create([
+            'name' => 'Colour',
+            'sort' => 1,
+        ]);
+        $black = MerchandiseItemOptionValue::factory()->for($colour, 'axis')->create(['label' => 'Black', 'sort' => 0]);
+
+        $mBlack = MerchandiseItemVariant::factory()->for($item, 'item')->create([
+            'label' => 'M · Black',
+            'price' => '20.00',
+            'availability' => MerchandiseAvailability::Available,
+            'sort' => 0,
+        ]);
+        $mBlack->optionValues()->sync([$sizeM->getKey(), $black->getKey()]);
+
+        $lBlack = MerchandiseItemVariant::factory()->for($item, 'item')->create([
+            'label' => 'L · Black',
+            'price' => '22.00',
+            'availability' => MerchandiseAvailability::Available,
+            'sort' => 1,
+        ]);
+        $lBlack->optionValues()->sync([$sizeL->getKey(), $black->getKey()]);
+
+        $item->refresh()->load(['optionAxes.values', 'variants.optionValues']);
+
+        $this->actingAs($member);
+        Filament::setCurrentPanel('teams');
+        Filament::setTenant($team);
+
+        $sizeKey = (string) $size->getKey();
+        $colourKey = (string) $colour->getKey();
+
+        Livewire::test(ViewMerchandiseShop::class, ['record' => $item->getKey()])
+            ->assertSuccessful()
+            ->assertSet('selectedOptionValueIds.'.$colourKey, $black->getKey())
+            ->assertSet('selectedVariantId', '')
+            ->assertSee('From')
+            ->assertSee('£20.00')
+            ->assertDontSee('M · Black')
+            ->set('selectedOptionValueIds.'.$sizeKey, $sizeM->getKey())
+            ->assertSet('selectedOptionValueIds.'.$colourKey, $black->getKey())
+            ->assertSet('selectedVariantId', $mBlack->getKey())
+            ->assertSee('M · Black')
+            ->assertDontSee('From');
+    }
+
+    public function test_zero_axis_items_still_use_flat_variant_select(): void
+    {
+        $team = Team::factory()->withShop()->create();
+        $member = User::factory()->teamMember($team)->create();
+        $item = MerchandiseItem::factory()->for($team)->withImage()->create(['title' => 'Necker']);
+        $item->variants()->firstOrFail()->update([
+            'label' => 'One size',
+            'price' => '5.00',
+            'availability' => MerchandiseAvailability::Available,
+        ]);
+        MerchandiseItemVariant::factory()->for($item, 'item')->create([
+            'label' => 'Youth',
+            'price' => '4.00',
+            'availability' => MerchandiseAvailability::Available,
+            'sort' => 1,
+        ]);
+
+        $this->actingAs($member);
+        Filament::setCurrentPanel('teams');
+        Filament::setTenant($team);
+
+        Livewire::test(ViewMerchandiseShop::class, ['record' => $item->getKey()])
+            ->assertSuccessful()
+            ->assertSeeHtml('id="shop-variant"')
+            ->assertSee('One size - £5.00')
+            ->assertSee('Youth - £4.00');
+
+        $this->assertFalse($item->fresh()->hasOptionAxes());
+        $this->assertSame([], MerchandiseVariantOptions::combinationValueIdSets(collect()));
     }
 
     private function jpegBinary(int $width, int $height): string
