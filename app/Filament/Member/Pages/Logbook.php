@@ -295,15 +295,20 @@ class Logbook extends Page implements HasTable
                         ->title(__('Added to logbook'))
                         ->send();
                 }),
-            Action::make('exportCsv')
-                ->label(__('Export CSV'))
+            ActionGroup::make([
+                Action::make('exportCsv')
+                    ->label(__('CSV'))
+                    ->icon(Heroicon::OutlinedArrowDownTray)
+                    ->action(fn () => $this->exportCsv()),
+                Action::make('exportPdf')
+                    ->label(__('PDF'))
+                    ->icon(Heroicon::OutlinedPrinter)
+                    ->url(fn (): string => route('member.logbook.export', $this->exportFilterQuery()))
+                    ->openUrlInNewTab(),
+            ])
+                ->label(__('Export'))
                 ->icon(Heroicon::OutlinedArrowDownTray)
-                ->action(fn () => $this->exportCsv()),
-            Action::make('exportPdf')
-                ->label(__('Export PDF'))
-                ->icon(Heroicon::OutlinedPrinter)
-                ->url(fn (): string => route('member.logbook.export', $this->exportFilterQuery()))
-                ->openUrlInNewTab(),
+                ->button(),
         ];
     }
 
