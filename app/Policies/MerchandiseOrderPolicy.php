@@ -84,6 +84,18 @@ class MerchandiseOrderPolicy
             && $merchandiseOrder->canBeReviewed();
     }
 
+    public function markPaid(User $user, MerchandiseOrder $merchandiseOrder): bool
+    {
+        return $this->managesOrderTeam($user, $merchandiseOrder)
+            && $merchandiseOrder->isUnpaid();
+    }
+
+    public function requestTreasurerInvoice(User $user, MerchandiseOrder $merchandiseOrder): bool
+    {
+        return $this->managesOrderTeam($user, $merchandiseOrder)
+            && $merchandiseOrder->isUnpaid();
+    }
+
     private function managesOrderTeam(User $user, MerchandiseOrder $merchandiseOrder): bool
     {
         if ($user->isSuspended()) {

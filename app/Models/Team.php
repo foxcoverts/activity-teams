@@ -42,6 +42,7 @@ class Team extends Model implements HasAvatar
         'features',
         'mail_from_name',
         'mail_from_local',
+        'treasurer_email',
     ];
 
     protected function casts(): array

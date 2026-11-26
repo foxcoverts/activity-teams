@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\MerchandiseOrderPaymentStatus;
 use App\Enums\MerchandiseOrderStatus;
 use Database\Factories\MerchandiseOrderFactory;
 use Illuminate\Database\Eloquent\Builder;
@@ -21,11 +22,13 @@ class MerchandiseOrder extends Model
         'user_id',
         'status',
         'order_discount',
+        'amount_due',
         'rejection_reason',
         'approval_note',
         'submitted_at',
         'cancelled_at',
         'approved_at',
+        'paid_at',
         'rejected_at',
     ];
 
@@ -54,6 +57,13 @@ class MerchandiseOrder extends Model
         $query->whereBelongsTo($user);
     }
 
+    public function scopeUnpaid(Builder $query): void
+    {
+        $query->where('status', MerchandiseOrderStatus::Approved)
+            ->where('amount_due', '>', 0)
+            ->whereNull('paid_at');
+    }
+
     public function canBeCancelled(): bool
     {
         return $this->status === MerchandiseOrderStatus::Submitted;
@@ -62,6 +72,32 @@ class MerchandiseOrder extends Model
     public function canBeReviewed(): bool
     {
         return $this->status === MerchandiseOrderStatus::Submitted;
+    }
+
+    public function paymentStatus(): MerchandiseOrderPaymentStatus
+    {
+        if ($this->paid_at !== null) {
+            return MerchandiseOrderPaymentStatus::Paid;
+        }
+
+        if (
+            $this->status === MerchandiseOrderStatus::Approved
+            && (float) $this->amount_due > 0
+        ) {
+            return MerchandiseOrderPaymentStatus::Unpaid;
+        }
+
+        return MerchandiseOrderPaymentStatus::None;
+    }
+
+    public function isPaid(): bool
+    {
+        return $this->paymentStatus() === MerchandiseOrderPaymentStatus::Paid;
+    }
+
+    public function isUnpaid(): bool
+    {
+        return $this->paymentStatus() === MerchandiseOrderPaymentStatus::Unpaid;
     }
 
     public function itemsSubtotal(): float
@@ -84,9 +120,11 @@ class MerchandiseOrder extends Model
         return [
             'status' => MerchandiseOrderStatus::class,
             'order_discount' => 'decimal:2',
+            'amount_due' => 'decimal:2',
             'submitted_at' => 'datetime',
             'cancelled_at' => 'datetime',
             'approved_at' => 'datetime',
+            'paid_at' => 'datetime',
             'rejected_at' => 'datetime',
         ];
     }

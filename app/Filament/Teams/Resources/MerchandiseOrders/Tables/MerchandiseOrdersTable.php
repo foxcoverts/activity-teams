@@ -2,6 +2,7 @@
 
 namespace App\Filament\Teams\Resources\MerchandiseOrders\Tables;
 
+use App\Enums\MerchandiseOrderPaymentStatus;
 use App\Enums\MerchandiseOrderStatus;
 use App\Filament\Support\Tables\PersonColumn;
 use App\Models\MerchandiseOrder;
@@ -11,6 +12,7 @@ use Filament\Actions\ViewAction;
 use Filament\Facades\Filament;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Number;
@@ -33,13 +35,39 @@ class MerchandiseOrdersTable
                 TextColumn::make('status')
                     ->label(__('Status'))
                     ->badge(),
+                TextColumn::make('payment_status')
+                    ->label(__('Payment'))
+                    ->badge()
+                    ->state(fn (MerchandiseOrder $record): MerchandiseOrderPaymentStatus => $record->paymentStatus())
+                    ->visible(fn (): bool => self::viewerManagesTenant()),
                 TextColumn::make('total')
                     ->label(__('Total'))
-                    ->state(fn (MerchandiseOrder $record): string => Number::currency($record->total(), 'GBP', 'en_GB')),
+                    ->state(fn (MerchandiseOrder $record): string => Number::currency(
+                        $record->status === MerchandiseOrderStatus::Approved
+                            ? (float) $record->amount_due
+                            : $record->total(),
+                        'GBP',
+                        'en_GB',
+                    )),
             ])
             ->filters([
                 SelectFilter::make('status')
                     ->options(MerchandiseOrderStatus::class)
+                    ->visible(fn (): bool => self::viewerManagesTenant()),
+                TernaryFilter::make('unpaid')
+                    ->label(__('Unpaid'))
+                    ->placeholder(__('All'))
+                    ->trueLabel(__('Unpaid only'))
+                    ->falseLabel(__('Not unpaid'))
+                    ->queries(
+                        true: fn (Builder $query): Builder => $query->unpaid(),
+                        false: fn (Builder $query): Builder => $query->where(function (Builder $nested): void {
+                            $nested->where('status', '!=', MerchandiseOrderStatus::Approved)
+                                ->orWhere('amount_due', '<=', 0)
+                                ->orWhereNotNull('paid_at');
+                        }),
+                        blank: fn (Builder $query): Builder => $query,
+                    )
                     ->visible(fn (): bool => self::viewerManagesTenant()),
                 SelectFilter::make('user_id')
                     ->label(__('Member'))

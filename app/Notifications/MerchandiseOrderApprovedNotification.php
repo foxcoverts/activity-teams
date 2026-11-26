@@ -24,6 +24,10 @@ class MerchandiseOrderApprovedNotification extends Notification implements Clear
 
     public function inboxBody(object $notifiable): string
     {
+        if ((float) $this->order->amount_due <= 0) {
+            return __('Your shop order was approved. There is nothing to pay.');
+        }
+
         return __('Your shop order was approved.');
     }
 

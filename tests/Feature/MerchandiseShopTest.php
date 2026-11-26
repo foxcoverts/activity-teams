@@ -8,6 +8,7 @@ use App\Actions\SetMerchandiseOrderDiscountAction;
 use App\Actions\SetMerchandiseOrderLinePriceAction;
 use App\Enums\IssuedMerchandiseSource;
 use App\Enums\MerchandiseAvailability;
+use App\Enums\MerchandiseOrderPaymentStatus;
 use App\Enums\MerchandiseOrderStatus;
 use App\Enums\TeamFeature;
 use App\Filament\Teams\Resources\IssuedMerchandises\IssuedMerchandiseResource;
@@ -26,6 +27,7 @@ use App\Filament\Teams\Resources\MerchandiseOrders\RelationManagers\ItemsRelatio
 use App\Filament\Teams\Resources\MerchandiseShops\MerchandiseShopResource;
 use App\Filament\Teams\Resources\MerchandiseShops\Pages\ListMerchandiseShops;
 use App\Filament\Teams\Resources\MerchandiseShops\Pages\ViewMerchandiseShop;
+use App\Mail\MerchandiseOrderTreasurerRequestMail;
 use App\Models\IssuedMerchandise;
 use App\Models\MerchandiseBasketLine;
 use App\Models\MerchandiseItem;
@@ -42,6 +44,7 @@ use App\Notifications\MerchandiseOrderSubmittedNotification;
 use App\Support\MerchandiseVariantOptions;
 use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -686,8 +689,11 @@ class MerchandiseShopTest extends TestCase
     public function test_manager_can_discount_approve_and_reject_orders(): void
     {
         Notification::fake();
+        Mail::fake();
 
-        $team = Team::factory()->withShop()->create();
+        $team = Team::factory()->withShop()->create([
+            'treasurer_email' => 'treasurer@example.test',
+        ]);
         $manager = User::factory()->teamManager($team)->create();
         $member = User::factory()->teamMember($team)->create();
         $outsider = User::factory()->teamMember($team)->create();
@@ -703,6 +709,7 @@ class MerchandiseShopTest extends TestCase
         ]);
 
         $this->assertSame(40.0, $order->fresh()->load('lines')->total());
+        $this->assertSame(MerchandiseOrderPaymentStatus::None, $order->paymentStatus());
 
         $this->actingAs($outsider);
         $this->assertFalse($outsider->can('approve', $order));
@@ -753,15 +760,34 @@ class MerchandiseShopTest extends TestCase
         ])
             ->assertActionExists('approve')
             ->assertActionExists('reject')
-            ->callAction('approve', ['approval_note' => 'Polo allowance applied'])
+            ->callAction('approve', [
+                'approval_note' => 'Polo allowance applied',
+                'treasurer_email' => 'treasurer@example.test',
+            ])
             ->assertHasNoErrors();
 
         $order->refresh();
         $this->assertSame(MerchandiseOrderStatus::Approved, $order->status);
         $this->assertNotNull($order->approved_at);
         $this->assertSame('Polo allowance applied', $order->approval_note);
+        $this->assertSame('15.00', $order->amount_due);
+        $this->assertNull($order->paid_at);
+        $this->assertTrue($order->isUnpaid());
         $this->assertFalse($manager->can('approve', $order));
-        Notification::assertSentTo($member, MerchandiseOrderApprovedNotification::class);
+        Notification::assertNotSentTo($member, MerchandiseOrderApprovedNotification::class);
+        Mail::assertQueued(MerchandiseOrderTreasurerRequestMail::class, function (MerchandiseOrderTreasurerRequestMail $mail) use ($order): bool {
+            return $mail->order->is($order);
+        });
+
+        Livewire::test(ViewMerchandiseOrder::class, ['record' => $order->getKey()])
+            ->assertActionExists('markPaid')
+            ->assertActionExists('requestTreasurerInvoice')
+            ->callAction('markPaid')
+            ->assertHasNoErrors();
+
+        $order->refresh();
+        $this->assertTrue($order->isPaid());
+        $this->assertFalse($manager->can('markPaid', $order));
 
         $rejectable = MerchandiseOrder::factory()->for($team)->for($member)->withLine([
             'unit_price' => '10.00',
@@ -788,7 +814,7 @@ class MerchandiseShopTest extends TestCase
             'quantity' => 1,
         ])->create();
 
-        app(ApproveMerchandiseOrderAction::class)($ownOrder, $manager);
+        app(ApproveMerchandiseOrderAction::class)($ownOrder, $manager, null, 'treasurer@example.test');
         Notification::assertNotSentTo($manager, MerchandiseOrderApprovedNotification::class);
 
         $ownRejectable = MerchandiseOrder::factory()->for($team)->for($manager)->withLine([
@@ -802,6 +828,32 @@ class MerchandiseShopTest extends TestCase
 
         $this->expectException(ValidationException::class);
         app(SetMerchandiseOrderLinePriceAction::class)($line->fresh(), $manager, '10.00');
+    }
+
+    public function test_approving_a_zero_due_order_marks_paid_and_notifies_without_treasurer_mail(): void
+    {
+        Notification::fake();
+        Mail::fake();
+
+        $team = Team::factory()->withShop()->create();
+        $manager = User::factory()->teamManager($team)->create();
+        $member = User::factory()->teamMember($team)->create();
+
+        $order = MerchandiseOrder::factory()->for($team)->for($member)->withLine([
+            'unit_price' => '10.00',
+            'approved_unit_price' => '10.00',
+            'quantity' => 1,
+        ])->create();
+
+        app(SetMerchandiseOrderLinePriceAction::class)($order->lines->first(), $manager, '0.00');
+        app(ApproveMerchandiseOrderAction::class)($order->fresh()->load('lines'), $manager);
+
+        $order->refresh();
+        $this->assertSame('0.00', $order->amount_due);
+        $this->assertNotNull($order->paid_at);
+        $this->assertTrue($order->isPaid());
+        Notification::assertSentTo($member, MerchandiseOrderApprovedNotification::class);
+        Mail::assertNothingQueued();
     }
 
     public function test_manager_orders_list_defaults_member_filter_to_me(): void

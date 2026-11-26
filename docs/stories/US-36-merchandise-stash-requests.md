@@ -30,4 +30,4 @@ As an Activity Manager, I want that shop backed by catalogue, approval, invoicin
 
 ## Progress
 
-Partial. Per-team Shop feature flag; Teams **Merchandise** nav (Issued, Items, Orders, Shop with nested Basket). Members can browse, personalise, basket, submit, and cancel submitted orders. Approval, invoices, and fulfilment remain later slices. Manager merchandise triage widgets are noted but placement (Manager dashboard vs a Merchandise dashboard) is still open — see [domain note](merchandise-stash-domain.md#manager-triage-widgets-open).
+Partial. Per-team Shop feature flag; Teams **Merchandise** nav (Issued, Items, Orders, Shop with nested Basket). Members can browse, personalise, basket, submit, and cancel submitted orders. Approval and treasurer payment tracking are in ([US-84](US-84-merchandise-order-approval.md), [US-85](US-85-merchandise-invoices.md)); fulfilment remains later. Manager merchandise triage widgets are noted but placement is still open — see [domain note](merchandise-stash-domain.md#manager-triage-widgets-open).

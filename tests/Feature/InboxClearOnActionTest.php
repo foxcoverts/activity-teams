@@ -35,6 +35,7 @@ use App\Notifications\NewsPublishedNotification;
 use App\Notifications\TaskHeldNotification;
 use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Mail;
 use Livewire\Livewire;
 use Tests\TestCase;
 
@@ -139,6 +140,8 @@ class InboxClearOnActionTest extends TestCase
 
     public function test_approving_a_merchandise_order_marks_submitted_notices_read(): void
     {
+        Mail::fake();
+
         $team = Team::factory()->withShop()->create();
         $manager = User::factory()->teamManager($team)->create();
         $member = User::factory()->teamMember($team)->create();
@@ -146,7 +149,7 @@ class InboxClearOnActionTest extends TestCase
 
         $manager->notify(new MerchandiseOrderSubmittedNotification($order));
 
-        app(ApproveMerchandiseOrderAction::class)($order, $manager);
+        app(ApproveMerchandiseOrderAction::class)($order, $manager, null, 'treasurer@example.test');
 
         $this->assertNotNull($manager->notifications()->where('type', MerchandiseOrderSubmittedNotification::class)->first()?->read_at);
     }

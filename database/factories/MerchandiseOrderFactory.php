@@ -23,11 +23,13 @@ class MerchandiseOrderFactory extends Factory
             'user_id' => User::factory(),
             'status' => MerchandiseOrderStatus::Submitted,
             'order_discount' => '0.00',
+            'amount_due' => '0.00',
             'rejection_reason' => null,
             'approval_note' => null,
             'submitted_at' => now(),
             'cancelled_at' => null,
             'approved_at' => null,
+            'paid_at' => null,
             'rejected_at' => null,
         ];
     }
@@ -40,11 +42,32 @@ class MerchandiseOrderFactory extends Factory
         ]);
     }
 
-    public function approved(): static
+    public function approved(?string $amountDue = null): static
+    {
+        return $this->state(function () use ($amountDue): array {
+            $due = $amountDue ?? '0.00';
+
+            return [
+                'status' => MerchandiseOrderStatus::Approved,
+                'approved_at' => now(),
+                'amount_due' => $due,
+                'paid_at' => (float) $due > 0 ? null : now(),
+            ];
+        });
+    }
+
+    public function unpaid(string $amountDue = '10.00'): static
+    {
+        return $this->approved($amountDue);
+    }
+
+    public function paid(string $amountDue = '10.00'): static
     {
         return $this->state(fn (): array => [
             'status' => MerchandiseOrderStatus::Approved,
             'approved_at' => now(),
+            'amount_due' => $amountDue,
+            'paid_at' => now(),
         ]);
     }
 

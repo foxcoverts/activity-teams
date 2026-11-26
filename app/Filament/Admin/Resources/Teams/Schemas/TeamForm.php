@@ -73,7 +73,8 @@ class TeamForm
                         Toggle::make('features.'.TeamFeature::Shop->value)
                             ->label(TeamFeature::Shop->getLabel())
                             ->helperText(__('Show the Merchandise group in the team navigation for catalogue items and issued kit.'))
-                            ->default(false),
+                            ->default(false)
+                            ->live(),
                     ]),
                 Section::make(__('Mail'))
                     ->icon(Heroicon::OutlinedEnvelope)
@@ -97,6 +98,12 @@ class TeamForm
                             ->validationMessages([
                                 'regex' => __('Enter a valid email local part.'),
                             ]),
+                        TextInput::make('treasurer_email')
+                            ->label(__('Treasurer email'))
+                            ->email()
+                            ->maxLength(255)
+                            ->helperText(__('Optional. Prefills the request when approving a shop order that needs payment.'))
+                            ->visible(fn (Get $get): bool => (bool) $get('features.'.TeamFeature::Shop->value)),
                     ]),
             ]);
     }

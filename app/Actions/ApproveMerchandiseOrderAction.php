@@ -8,12 +8,17 @@ use App\Models\User;
 use App\Notifications\MerchandiseOrderApprovedNotification;
 use App\Support\ResolveMerchandiseOrderSubmittedInbox;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
 
 class ApproveMerchandiseOrderAction
 {
-    public function __invoke(MerchandiseOrder $order, User $user, ?string $approvalNote = null): MerchandiseOrder
-    {
+    public function __invoke(
+        MerchandiseOrder $order,
+        User $user,
+        ?string $approvalNote = null,
+        ?string $treasurerEmail = null,
+    ): MerchandiseOrder {
         $order->loadMissing(['team', 'user', 'lines']);
 
         if (! $user->can('approve', $order)) {
@@ -36,7 +41,16 @@ class ApproveMerchandiseOrderAction
             ]);
         }
 
-        $order = DB::transaction(function () use ($order, $approvalNote): MerchandiseOrder {
+        $amountDue = $order->total();
+
+        if ($amountDue > 0) {
+            Validator::make(
+                ['treasurer_email' => $treasurerEmail],
+                ['treasurer_email' => ['required', 'email', 'max:255']],
+            )->validate();
+        }
+
+        $order = DB::transaction(function () use ($order, $approvalNote, $amountDue): MerchandiseOrder {
             foreach ($order->lines as $line) {
                 if ($line->approved_unit_price === null) {
                     $line->update([
@@ -51,6 +65,8 @@ class ApproveMerchandiseOrderAction
                 'rejected_at' => null,
                 'rejection_reason' => null,
                 'approval_note' => filled($approvalNote) ? trim($approvalNote) : null,
+                'amount_due' => number_format($amountDue, 2, '.', ''),
+                'paid_at' => $amountDue > 0 ? null : now(),
             ]);
 
             return $order->refresh()->load(['lines', 'user', 'team']);
@@ -58,10 +74,18 @@ class ApproveMerchandiseOrderAction
 
         app(ResolveMerchandiseOrderSubmittedInbox::class)($order);
 
-        $member = $order->user;
+        if ($amountDue > 0) {
+            app(RequestMerchandiseOrderTreasurerInvoiceAction::class)(
+                $order,
+                $user,
+                (string) $treasurerEmail,
+            );
+        } else {
+            $member = $order->user;
 
-        if ($member instanceof User && ! $member->is($user)) {
-            $member->notify(new MerchandiseOrderApprovedNotification($order));
+            if ($member instanceof User && ! $member->is($user)) {
+                $member->notify(new MerchandiseOrderApprovedNotification($order));
+            }
         }
 
         return $order;

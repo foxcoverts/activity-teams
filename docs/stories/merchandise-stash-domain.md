@@ -55,11 +55,11 @@ No separate campaign entity is required for the first build. Availability (mothb
 
 ## Money and treasurer
 
-- Approval stores approved unit prices, an optional order-level discount, and total due on the order ([US-84](US-84-merchandise-order-approval.md)).
-- [US-85](US-85-merchandise-invoices.md) creates the member invoice from that approved total due.
-- Managers see outstanding invoices and mark them paid.
-- A copy is passed to the treasurer by email; there is no treasurer role in the app and no card payments.
-- Partial payment, credit notes, and price disputes after pay are handled by the treasurer outside the site. The app may later hold a short note on an invoice; it is not a full accounts ledger.
+- Approval stores approved unit prices, an optional order-level discount, and locks **`amount_due`** on the order ([US-84](US-84-merchandise-order-approval.md), [US-85](US-85-merchandise-invoices.md)).
+- [US-85](US-85-merchandise-invoices.md) tracks unpaid/paid via `paid_at` on the order (no separate invoice table). £0 due is marked paid on approve.
+- When due > 0, approve emails the treasurer asking them to invoice the member (Cc member and manager). Optional team `treasurer_email` prefills that send. There is no in-app treasurer role and no card payments.
+- Managers filter unpaid orders and mark paid when money has arrived. The treasurer confirms receipt with the member outside the app.
+- Partial payment, credit notes, and price disputes after pay are handled by the treasurer outside the site.
 - Example without an in-app credit ledger: member paid, manufacturer shortfall, new order for different items — manager applies an order-level £ discount on approval to balance the prior credit.
 
 ## Stock
@@ -96,7 +96,7 @@ Feature-gated **Merchandise** group (Shop flag), first among Teams nav groups (t
 
 ## Manager triage widgets (open)
 
-Managers will need dashboard-style triage for merchandise work in flight — at least pending approval ([US-84](US-84-merchandise-order-approval.md)), and later outstanding invoices ([US-85](US-85-merchandise-invoices.md)) and fulfilment queues ([US-86](US-86-merchandise-manufacturer-orders.md) / [US-87](US-87-merchandise-picking-and-handover.md)). **Placement is undecided:** extend the existing Manager dashboard, or add a Merchandise dashboard (or similar). Do not invent widgets until that home is chosen.
+Managers will need dashboard-style triage for merchandise work in flight — at least pending approval ([US-84](US-84-merchandise-order-approval.md)), unpaid orders ([US-85](US-85-merchandise-invoices.md)), and fulfilment queues ([US-86](US-86-merchandise-manufacturer-orders.md) / [US-87](US-87-merchandise-picking-and-handover.md)). **Placement is undecided:** extend the existing Manager dashboard, or add a Merchandise dashboard (or similar). Do not invent widgets until that home is chosen. Unpaid can already be filtered on Orders.
 
 ## Explicitly not this domain
 

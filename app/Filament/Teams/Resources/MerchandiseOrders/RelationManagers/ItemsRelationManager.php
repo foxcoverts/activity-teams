@@ -299,20 +299,51 @@ class ItemsRelationManager extends RelationManager
                     return null;
                 }
 
-                $order->loadMissing('lines');
+                $order->loadMissing(['lines', 'team']);
 
                 return __('Total due :amount. Discounts already set on the items stay as they are.', [
                     'amount' => Number::currency($order->total(), 'GBP', 'en_GB'),
                 ]);
             })
-            ->schema([
-                Textarea::make('approval_note')
+            ->fillForm(function (): array {
+                $order = $this->getOwnerRecord();
+
+                if (! $order instanceof MerchandiseOrder) {
+                    return [];
+                }
+
+                $order->loadMissing('team');
+
+                return [
+                    'treasurer_email' => $order->team?->treasurer_email,
+                ];
+            })
+            ->schema(function (): array {
+                $order = $this->getOwnerRecord();
+                $due = $order instanceof MerchandiseOrder
+                    ? $order->loadMissing('lines')->total()
+                    : 0.0;
+
+                $fields = [];
+
+                if ($due > 0) {
+                    $fields[] = TextInput::make('treasurer_email')
+                        ->label(__('Treasurer email'))
+                        ->email()
+                        ->required()
+                        ->maxLength(255)
+                        ->helperText(__('Asks the treasurer to invoice the member. The member and you are copied.'));
+                }
+
+                $fields[] = Textarea::make('approval_note')
                     ->label(__('Note'))
                     ->rows(3)
                     ->maxLength(2000)
                     ->helperText(__('Optional. Visible to managers on this order.'))
-                    ->extraAlpineAttributes(SubmitsOnModEnter::attributes()),
-            ])
+                    ->extraAlpineAttributes(SubmitsOnModEnter::attributes());
+
+                return $fields;
+            })
             ->visible(function (): bool {
                 $order = $this->getOwnerRecord();
                 $user = auth()->user();
@@ -334,6 +365,7 @@ class ItemsRelationManager extends RelationManager
                         $order,
                         $user,
                         $data['approval_note'] ?? null,
+                        $data['treasurer_email'] ?? null,
                     );
                 } catch (ValidationException $exception) {
                     Notification::make()

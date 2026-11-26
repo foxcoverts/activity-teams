@@ -34,4 +34,4 @@ As an Activity Manager, I want to approve or reject member merchandise orders an
 
 ## Progress
 
-Partial. Managers can set per-line prices/discounts and an order-level discount on the Items table while pending, approve (optional note) or reject (required reason), open Issued history for the member, and the member gets an inbox notice. `Rejected` is distinct from `Cancelled`. Approved totals live on the order; invoice create is US-85. Still open: reopen cancelled/rejected into basket; any later manager line-detail edit; merchandise triage widgets (placement TBD).
+Partial. Managers can set per-line prices/discounts and an order-level discount on the Items table while pending, approve (optional note) or reject (required reason), open Issued history for the member, and the member gets an inbox notice on reject (and on £0 approve). `Rejected` is distinct from `Cancelled`. Amount due is locked on approve ([US-85](US-85-merchandise-invoices.md)). Still open: reopen cancelled/rejected into basket; any later manager line-detail edit; merchandise triage widgets (placement TBD).
