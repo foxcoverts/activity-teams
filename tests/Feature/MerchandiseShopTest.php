@@ -3,9 +3,12 @@
 namespace Tests\Feature;
 
 use App\Actions\ApproveMerchandiseOrderAction;
+use App\Actions\EnsureMerchandiseSupplierOrderDraftAction;
 use App\Actions\RejectMerchandiseOrderAction;
+use App\Actions\SendMerchandiseSupplierOrderAction;
 use App\Actions\SetMerchandiseOrderDiscountAction;
 use App\Actions\SetMerchandiseOrderLinePriceAction;
+use App\Actions\SyncMerchandiseSupplierOrderDraftLinesAction;
 use App\Enums\IssuedMerchandiseSource;
 use App\Enums\MerchandiseAvailability;
 use App\Enums\MerchandiseOrderPaymentStatus;
@@ -27,6 +30,9 @@ use App\Filament\Teams\Resources\MerchandiseOrders\RelationManagers\ItemsRelatio
 use App\Filament\Teams\Resources\MerchandiseShops\MerchandiseShopResource;
 use App\Filament\Teams\Resources\MerchandiseShops\Pages\ListMerchandiseShops;
 use App\Filament\Teams\Resources\MerchandiseShops\Pages\ViewMerchandiseShop;
+use App\Filament\Teams\Resources\MerchandiseSupplierOrders\MerchandiseSupplierOrderResource;
+use App\Filament\Teams\Resources\MerchandiseSupplierOrders\Pages\ManageMerchandiseSupplierOrders;
+use App\Filament\Teams\Resources\MerchandiseSupplierOrders\Pages\ViewMerchandiseSupplierOrder;
 use App\Filament\Teams\Resources\MerchandiseSuppliers\MerchandiseSupplierResource;
 use App\Filament\Teams\Resources\MerchandiseSuppliers\Pages\CreateMerchandiseSupplier;
 use App\Filament\Teams\Resources\MerchandiseSuppliers\Pages\EditMerchandiseSupplier;
@@ -40,14 +46,18 @@ use App\Models\MerchandiseItemOptionAxis;
 use App\Models\MerchandiseItemOptionValue;
 use App\Models\MerchandiseItemVariant;
 use App\Models\MerchandiseOrder;
+use App\Models\MerchandiseOrderLine;
 use App\Models\MerchandiseSupplier;
+use App\Models\MerchandiseSupplierOrder;
 use App\Models\Team;
 use App\Models\User;
 use App\Notifications\MerchandiseOrderApprovedNotification;
 use App\Notifications\MerchandiseOrderRejectedNotification;
 use App\Notifications\MerchandiseOrderSubmittedNotification;
+use App\Support\MerchandiseSupplierOrderExporter;
 use App\Support\MerchandiseVariantOptions;
 use Filament\Facades\Filament;
+use Filament\Forms\Components\Select;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Notification;
@@ -85,9 +95,11 @@ class MerchandiseShopTest extends TestCase
         $this->get(MerchandiseItemResource::getUrl('index', tenant: $team))->assertForbidden();
         $this->get(IssuedMerchandiseResource::getUrl('index', tenant: $team))->assertForbidden();
         $this->get(MerchandiseSupplierResource::getUrl('index', tenant: $team))->assertForbidden();
+        $this->get(MerchandiseSupplierOrderResource::getUrl('index', tenant: $team))->assertForbidden();
         $this->assertFalse(MerchandiseItemResource::canAccess());
         $this->assertFalse(IssuedMerchandiseResource::canAccess());
         $this->assertFalse(MerchandiseSupplierResource::canAccess());
+        $this->assertFalse(MerchandiseSupplierOrderResource::canAccess());
     }
 
     public function test_managers_can_access_items_and_issued_when_shop_is_on(): void
@@ -1441,6 +1453,255 @@ class MerchandiseShopTest extends TestCase
 
         $this->assertFalse($item->fresh()->hasOptionAxes());
         $this->assertSame([], MerchandiseVariantOptions::combinationValueIdSets(collect()));
+    }
+
+    public function test_managers_can_open_supplier_order_board_when_shop_is_on(): void
+    {
+        $team = Team::factory()->withShop()->create();
+        $manager = User::factory()->teamManager($team)->create();
+        $member = User::factory()->teamMember($team)->create();
+
+        $this->actingAs($manager);
+        Filament::setCurrentPanel('teams');
+        Filament::setTenant($team);
+
+        $this->get(MerchandiseSupplierOrderResource::getUrl('index', tenant: $team))->assertOk();
+        $this->assertTrue(MerchandiseSupplierOrderResource::canAccess());
+
+        $this->actingAs($member);
+        Filament::setTenant($team);
+        $this->assertFalse($member->can('viewAny', MerchandiseSupplierOrder::class));
+    }
+
+    public function test_supplier_order_picker_hides_suppliers_with_nothing_to_order(): void
+    {
+        $team = Team::factory()->withShop()->create();
+        $manager = User::factory()->teamManager($team)->create();
+        $member = User::factory()->teamMember($team)->create();
+        $idle = MerchandiseSupplier::factory()->for($team)->create(['name' => 'Idle Co']);
+        $active = MerchandiseSupplier::factory()->for($team)->create(['name' => 'Active Co']);
+        $item = MerchandiseItem::factory()->for($team)->create([
+            'title' => 'Polo',
+            'merchandise_supplier_id' => $active->getKey(),
+        ]);
+        $order = MerchandiseOrder::factory()->for($team)->for($member)->approved()->create();
+        MerchandiseOrderLine::factory()->for($order, 'order')->create([
+            'merchandise_item_id' => $item->getKey(),
+            'merchandise_item_variant_id' => $item->variants()->firstOrFail()->getKey(),
+            'item_title' => 'Polo',
+            'variant_label' => 'One size',
+            'quantity' => 1,
+        ]);
+
+        $this->actingAs($manager);
+        Filament::setCurrentPanel('teams');
+        Filament::setTenant($team);
+
+        Livewire::test(ManageMerchandiseSupplierOrders::class)
+            ->assertSuccessful()
+            ->assertFormFieldExists('supplier_id', function (Select $select) use ($active, $idle): bool {
+                $options = $select->getOptions();
+
+                return isset($options[$active->getKey()])
+                    && ! isset($options[$idle->getKey()]);
+            });
+    }
+
+    public function test_supplier_order_draft_sync_send_and_board_candidates(): void
+    {
+        $team = Team::factory()->withShop()->create();
+        $manager = User::factory()->teamManager($team)->create();
+        $member = User::factory()->teamMember($team)->create();
+        $supplier = MerchandiseSupplier::factory()->for($team)->create(['name' => 'Fox kit']);
+        $item = MerchandiseItem::factory()->for($team)->create([
+            'title' => 'Polo',
+            'merchandise_supplier_id' => $supplier->getKey(),
+        ]);
+        $variant = $item->variants()->firstOrFail();
+        $variant->update(['stock_quantity' => 0, 'label' => 'M · Black']);
+
+        $order = MerchandiseOrder::factory()->for($team)->for($member)->approved()->create();
+        $line = MerchandiseOrderLine::factory()->for($order, 'order')->create([
+            'merchandise_item_id' => $item->getKey(),
+            'merchandise_item_variant_id' => $variant->getKey(),
+            'item_title' => 'Polo',
+            'variant_label' => 'M · Black',
+            'quantity' => 1,
+            'personalisation' => [
+                ['key' => 'name', 'label' => 'Name', 'value' => 'Alex'],
+            ],
+        ]);
+
+        $stockedItem = MerchandiseItem::factory()->for($team)->create([
+            'title' => 'Necker',
+            'merchandise_supplier_id' => $supplier->getKey(),
+        ]);
+        $stockedVariant = $stockedItem->variants()->firstOrFail();
+        $stockedVariant->update(['stock_quantity' => 5, 'label' => 'One size']);
+        $stockedOrder = MerchandiseOrder::factory()->for($team)->for($member)->approved()->create();
+        $stockedLine = MerchandiseOrderLine::factory()->for($stockedOrder, 'order')->create([
+            'merchandise_item_id' => $stockedItem->getKey(),
+            'merchandise_item_variant_id' => $stockedVariant->getKey(),
+            'item_title' => 'Necker',
+            'variant_label' => 'One size',
+            'quantity' => 1,
+        ]);
+
+        $this->actingAs($manager);
+        Filament::setCurrentPanel('teams');
+        Filament::setTenant($team);
+
+        $candidates = MerchandiseOrderLine::query()
+            ->boardCandidatesForSupplier($team, $supplier)
+            ->pluck('id');
+        $this->assertTrue($candidates->contains($line->getKey()));
+        $this->assertTrue($candidates->contains($stockedLine->getKey()));
+
+        $this->assertNull(MerchandiseSupplierOrder::draftFor($team, $supplier));
+
+        $draft = app(SyncMerchandiseSupplierOrderDraftLinesAction::class)
+            ->syncForSupplier($team, $supplier, $manager, [$line->getKey()]);
+
+        $this->assertInstanceOf(MerchandiseSupplierOrder::class, $draft);
+        $this->assertTrue($draft->isDraft());
+        $this->assertSame($draft->getKey(), $line->fresh()->merchandise_supplier_order_id);
+        $this->assertNull($stockedLine->fresh()->merchandise_supplier_order_id);
+        $this->assertTrue($line->fresh()->canBeAmended());
+
+        $same = app(EnsureMerchandiseSupplierOrderDraftAction::class)($team, $supplier, $manager);
+        $this->assertTrue($same->is($draft));
+
+        $sent = app(SendMerchandiseSupplierOrderAction::class)($draft, $manager);
+        $this->assertTrue($sent->isSent());
+        $this->assertNull($sent->open_draft_key);
+        $this->assertFalse($line->fresh()->canBeAmended());
+        $this->assertTrue($line->fresh()->isOnSentSupplierOrder());
+
+        $candidatesAfterSend = MerchandiseOrderLine::query()
+            ->boardCandidatesForSupplier($team, $supplier)
+            ->pluck('id');
+        $this->assertFalse($candidatesAfterSend->contains($line->getKey()));
+        $this->assertTrue($candidatesAfterSend->contains($stockedLine->getKey()));
+
+        Livewire::test(ManageMerchandiseSupplierOrders::class, [
+            'supplierId' => $supplier->getKey(),
+            'orderKey' => 'draft',
+        ])
+            ->assertSuccessful()
+            ->assertSee('Necker')
+            ->assertSee('Current draft');
+
+        Livewire::test(ManageMerchandiseSupplierOrders::class, [
+            'supplierId' => $supplier->getKey(),
+            'orderKey' => $sent->getKey(),
+        ])
+            ->assertSuccessful()
+            ->assertSee('Polo')
+            ->assertSee('Alex')
+            ->assertDontSee('Necker')
+            ->assertSee('Download CSV');
+
+        Livewire::test(ViewMerchandiseSupplierOrder::class, ['record' => $sent->getKey()])
+            ->assertSuccessful()
+            ->assertSee('Polo')
+            ->assertActionExists('downloadCsv');
+    }
+
+    public function test_supplier_order_exporter_unions_axis_and_personalisation_labels(): void
+    {
+        $team = Team::factory()->withShop()->create();
+        $member = User::factory()->teamMember($team)->create(['name' => 'Sam Member']);
+        $supplier = MerchandiseSupplier::factory()->for($team)->create();
+        $polo = MerchandiseItem::factory()->for($team)->create([
+            'title' => 'Polo',
+            'merchandise_supplier_id' => $supplier->getKey(),
+        ]);
+        $axis = MerchandiseItemOptionAxis::factory()->for($polo, 'item')->create([
+            'name' => 'Size',
+            'sort' => 0,
+        ]);
+        $sizeM = MerchandiseItemOptionValue::factory()->for($axis, 'axis')->create([
+            'label' => 'M',
+            'sort' => 0,
+        ]);
+        $variant = $polo->variants()->firstOrFail();
+        $variant->optionValues()->sync([$sizeM->getKey()]);
+        $variant->update(['label' => 'M']);
+
+        $necker = MerchandiseItem::factory()->for($team)->create([
+            'title' => 'Necker',
+            'merchandise_supplier_id' => $supplier->getKey(),
+        ]);
+
+        $order = MerchandiseOrder::factory()->for($team)->for($member)->approved()->create();
+        $poloLine = MerchandiseOrderLine::factory()->for($order, 'order')->create([
+            'merchandise_item_id' => $polo->getKey(),
+            'merchandise_item_variant_id' => $variant->getKey(),
+            'item_title' => 'Polo',
+            'variant_label' => 'M',
+            'quantity' => 1,
+            'personalisation' => null,
+        ]);
+        $neckerLine = MerchandiseOrderLine::factory()->for($order, 'order')->create([
+            'merchandise_item_id' => $necker->getKey(),
+            'merchandise_item_variant_id' => $necker->variants()->firstOrFail()->getKey(),
+            'item_title' => 'Necker',
+            'variant_label' => 'One size',
+            'quantity' => 1,
+            'personalisation' => [
+                ['key' => 'name', 'label' => 'Name', 'value' => 'Alex'],
+            ],
+            'sort' => 1,
+        ]);
+
+        $supplierOrder = MerchandiseSupplierOrder::factory()->forSupplier($supplier)->sent()->create();
+        $poloLine->update(['merchandise_supplier_order_id' => $supplierOrder->getKey()]);
+        $neckerLine->update(['merchandise_supplier_order_id' => $supplierOrder->getKey()]);
+
+        $table = app(MerchandiseSupplierOrderExporter::class)->table($supplierOrder->fresh());
+
+        $this->assertSame(['Member', 'Item', 'Qty', 'Size', 'Name'], $table['headers']);
+        $this->assertContains(['Sam Member', 'Polo', '1', 'M', ''], $table['rows']);
+        $this->assertContains(['Sam Member', 'Necker', '1', '', 'Alex'], $table['rows']);
+
+        $csv = app(MerchandiseSupplierOrderExporter::class)->toCsv($supplierOrder->fresh());
+        $this->assertStringContainsString('Size,Name', $csv);
+        $this->assertStringContainsString('Alex', $csv);
+    }
+
+    public function test_empty_draft_is_removed_when_all_lines_unchecked(): void
+    {
+        $team = Team::factory()->withShop()->create();
+        $manager = User::factory()->teamManager($team)->create();
+        $member = User::factory()->teamMember($team)->create();
+        $supplier = MerchandiseSupplier::factory()->for($team)->create();
+        $item = MerchandiseItem::factory()->for($team)->create([
+            'merchandise_supplier_id' => $supplier->getKey(),
+        ]);
+        $order = MerchandiseOrder::factory()->for($team)->for($member)->approved()->create();
+        $line = MerchandiseOrderLine::factory()->for($order, 'order')->create([
+            'merchandise_item_id' => $item->getKey(),
+            'merchandise_item_variant_id' => $item->variants()->firstOrFail()->getKey(),
+            'item_title' => $item->title,
+            'variant_label' => 'One size',
+        ]);
+
+        $this->actingAs($manager);
+        Filament::setCurrentPanel('teams');
+        Filament::setTenant($team);
+
+        $draft = app(SyncMerchandiseSupplierOrderDraftLinesAction::class)
+            ->syncForSupplier($team, $supplier, $manager, [$line->getKey()]);
+        $this->assertNotNull($draft);
+
+        $cleared = app(SyncMerchandiseSupplierOrderDraftLinesAction::class)
+            ->syncForSupplier($team, $supplier, $manager, []);
+
+        $this->assertNull($cleared);
+        $this->assertDatabaseMissing('merchandise_supplier_orders', [
+            'id' => $draft->getKey(),
+        ]);
+        $this->assertNull($line->fresh()->merchandise_supplier_order_id);
     }
 
     private function jpegBinary(int $width, int $height): string

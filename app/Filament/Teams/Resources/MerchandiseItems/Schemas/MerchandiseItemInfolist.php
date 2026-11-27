@@ -63,7 +63,7 @@ class MerchandiseItemInfolist
                     ->columns(1)
                     ->columnSpanFull()
                     ->extraAttributes([
-                        'class' => 'merchandise-item-table-panel',
+                        'class' => 'flush-table-panel',
                     ])
                     ->headerActions([
                         Action::make('viewOptions')
@@ -115,7 +115,7 @@ class MerchandiseItemInfolist
                     ->columns(1)
                     ->columnSpanFull()
                     ->extraAttributes([
-                        'class' => 'merchandise-item-table-panel',
+                        'class' => 'flush-table-panel',
                     ])
                     ->visible(fn (MerchandiseItem $record): bool => $record->personalisationFieldDefinitions() !== [])
                     ->schema([

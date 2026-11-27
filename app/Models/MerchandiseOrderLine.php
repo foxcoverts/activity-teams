@@ -2,7 +2,9 @@
 
 namespace App\Models;
 
+use App\Enums\MerchandiseOrderStatus;
 use Database\Factories\MerchandiseOrderLineFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -17,6 +19,7 @@ class MerchandiseOrderLine extends Model
         'merchandise_order_id',
         'merchandise_item_id',
         'merchandise_item_variant_id',
+        'merchandise_supplier_order_id',
         'item_title',
         'variant_label',
         'unit_price',
@@ -39,6 +42,79 @@ class MerchandiseOrderLine extends Model
     public function variant(): BelongsTo
     {
         return $this->belongsTo(MerchandiseItemVariant::class, 'merchandise_item_variant_id');
+    }
+
+    public function supplierOrder(): BelongsTo
+    {
+        return $this->belongsTo(MerchandiseSupplierOrder::class, 'merchandise_supplier_order_id');
+    }
+
+    /**
+     * Candidate lines for a supplier draft board (checkbox in/out).
+     *
+     * Includes lines on this supplier's current draft and lines not yet on any
+     * supplier order. Excludes lines on sent supplier orders. US-87 will also
+     * exclude stock-fulfilled lines via {@see scopeNotFulfilledFromStock()}.
+     */
+    public function scopeBoardCandidatesForSupplier(Builder $query, Team $team, MerchandiseSupplier $supplier): void
+    {
+        $draftId = MerchandiseSupplierOrder::draftFor($team, $supplier)?->getKey();
+
+        $query
+            ->whereHas(
+                'order',
+                fn (Builder $orders): Builder => $orders
+                    ->whereBelongsTo($team)
+                    ->where('status', MerchandiseOrderStatus::Approved),
+            )
+            ->whereHas(
+                'item',
+                fn (Builder $items): Builder => $items
+                    ->whereBelongsTo($team)
+                    ->where('merchandise_supplier_id', $supplier->getKey()),
+            )
+            ->notFulfilledFromStock()
+            ->where(function (Builder $lines) use ($draftId): void {
+                $lines->whereNull('merchandise_supplier_order_id');
+
+                if (filled($draftId)) {
+                    $lines->orWhere('merchandise_supplier_order_id', $draftId);
+                }
+            });
+    }
+
+    /**
+     * Extension point for US-87: exclude lines already picked / handed over from stock.
+     * No-op until fulfilment columns exist.
+     */
+    public function scopeNotFulfilledFromStock(Builder $query): void
+    {
+        //
+    }
+
+    /**
+     * Whether this line still belongs on the supplier-order board for ordering.
+     * US-87 will return false once the line is fulfilled from stock.
+     */
+    public function needsSupplierOrdering(): bool
+    {
+        return true;
+    }
+
+    public function isOnSentSupplierOrder(): bool
+    {
+        $this->loadMissing('supplierOrder');
+
+        return $this->supplierOrder instanceof MerchandiseSupplierOrder
+            && $this->supplierOrder->isSent();
+    }
+
+    /**
+     * Future amend cutoff: lines on a sent supplier order cannot be amended.
+     */
+    public function canBeAmended(): bool
+    {
+        return ! $this->isOnSentSupplierOrder();
     }
 
     /**

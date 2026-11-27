@@ -28,7 +28,7 @@ class MerchandiseSupplierResource extends Resource
 
     protected static string|\UnitEnum|null $navigationGroup = NavigationGroup::Merchandise;
 
-    protected static ?int $navigationSort = 5;
+    protected static ?int $navigationSort = 6;
 
     protected static ?string $navigationLabel = 'Suppliers';
 

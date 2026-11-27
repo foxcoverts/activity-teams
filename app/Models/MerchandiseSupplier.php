@@ -43,6 +43,11 @@ class MerchandiseSupplier extends Model
         return $this->hasMany(MerchandiseItem::class);
     }
 
+    public function supplierOrders(): HasMany
+    {
+        return $this->hasMany(MerchandiseSupplierOrder::class);
+    }
+
     public function scopeForTeam(Builder $query, Team $team): void
     {
         $query->whereBelongsTo($team);

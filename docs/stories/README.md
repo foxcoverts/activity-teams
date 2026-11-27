@@ -168,7 +168,7 @@ Per-team shop for branded and personalised clothing and stash. Domain glossary a
 - [US-83 Merchandise Member Orders](US-83-merchandise-member-orders.md) — `partial` (basket + submit + cancel submitted; amend/richer statuses later)
 - [US-84 Merchandise Order Approval & Discounts](US-84-merchandise-order-approval.md) — `partial` (approve/reject, line + order discounts; amount due locked with US-85)
 - [US-85 Merchandise Invoices & Treasurer Handoff](US-85-merchandise-invoices.md) — `done` (amount due / paid on order; treasurer request on approve; mark paid)
-- [US-86 Supplier Orders & Goods In](US-86-merchandise-manufacturer-orders.md) — `not-started`
+- [US-86 Supplier Orders & Goods In](US-86-merchandise-manufacturer-orders.md) — `partial` (draft board + send + CSV; goods in open)
 - [US-87 Merchandise Picking & Member Handover](US-87-merchandise-picking-and-handover.md) — `not-started`
 
 ## Relaunch scope decisions

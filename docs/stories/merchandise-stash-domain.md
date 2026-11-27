@@ -17,9 +17,9 @@ Anchor stories: [US-36](US-36-merchandise-stash-requests.md) (shop), [US-24](US-
 | **Order** | A member’s request for one or more line items from that team’s catalogue. |
 | **Approval** | Manager accept or reject (with reason), including discretionary line discounts and an optional order-level value discount. |
 | **Invoice** | Amount the member owes after approval. Payment is offline (cash, cheque, bank transfer); the site only tracks unpaid / paid. |
-| **Supplier order** | Manager-built buy list for **one** supplier (member-demand shortage and/or cupboard restock), to send outside the app. Story file still named manufacturer orders ([US-86](US-86-merchandise-manufacturer-orders.md)). |
+| **Supplier order** | Manager-built buy list for **one** supplier from approved member lines (one open draft per supplier), exported as CSV / on-screen table to send outside the app. Cupboard extras are ordered outside the app. Story file still named manufacturer orders ([US-86](US-86-merchandise-manufacturer-orders.md)). |
 | **Picking list** | Approved lines covered by on-hand stock (or already checked off from goods in). |
-| **Goods in** | Recording arrivals against a supplier order. Member-demand qty checks off as ready to pick (no stock bump); restock qty increases on-hand. |
+| **Goods in** | Recording arrivals against a supplier order. Member-demand lines check off as ready to pick (no stock bump); cupboard extras are a manual Stock edit. |
 | **Handover** | Marking that an ordered line (or gift) has been given to the member. Collection vs post is informal. |
 | **Issued item** | Record that a member has received a catalogue item (from handover or a gift recorded without a shop order). Used for manager judgment, not auto free-item rules. |
 
@@ -37,9 +37,7 @@ flowchart LR
   Shortage --> SupplierOrder[Supplier order]
   SupplierOrder --> GoodsIn{Goods in}
   GoodsIn -->|Member demand| Ready[Ready to pick]
-  GoodsIn -->|Restock| StockUp[Increase stock]
   Ready --> Pick
-  StockUp --> Pick
   Pick --> Hand[Handover]
   Hand --> Issued[Issued log]
 ```
@@ -97,7 +95,7 @@ Team managers apply that policy at approval as full or partial **line** discount
 
 ## Navigation (Teams panel)
 
-Feature-gated **Merchandise** group (Shop flag), first among Teams nav groups (then Manage, Setup, Admin), alphabetical: **Issued**, **Items**, **Orders**, **Shop** (with nested **Basket**), **Suppliers**. Managers (and system admins for catalogue/suppliers) see staff resources; members see their own orders and the shop. Member panel later may list orders across teams and link into the Teams panel for detail — shopping stays on the team tenant.
+Feature-gated **Merchandise** group (Shop flag), first among Teams nav groups (then Manage, Setup, Admin), alphabetical: **Issued**, **Items**, **Orders**, **Shop** (with nested **Basket**), **Supplier orders**, **Suppliers**. Managers (and system admins for catalogue/suppliers) see staff resources; members see their own orders and the shop. Nav IA may be revisited under [US-36](US-36-merchandise-stash-requests.md) once picking and goods-in land. Member panel later may list orders across teams and link into the Teams panel for detail — shopping stays on the team tenant.
 
 ## Manager triage widgets (open)
 
