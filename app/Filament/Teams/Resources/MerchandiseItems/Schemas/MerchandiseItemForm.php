@@ -6,6 +6,8 @@ use App\Actions\NormalizeMerchandiseImageAction;
 use App\Actions\SyncMerchandiseVariantOptionSelectionsAction;
 use App\Enums\MerchandiseAvailability;
 use App\Models\MerchandiseItemVariant;
+use App\Models\MerchandiseSupplier;
+use App\Models\Team;
 use App\Support\MerchandiseVariantOptions;
 use Filament\Actions\Action;
 use Filament\Facades\Filament;
@@ -53,6 +55,24 @@ class MerchandiseItemForm
                                         Textarea::make('description')
                                             ->label(__('Description'))
                                             ->rows(3),
+                                        Select::make('merchandise_supplier_id')
+                                            ->label(__('Supplier'))
+                                            ->options(function (): array {
+                                                $team = Filament::getTenant();
+
+                                                if (! $team instanceof Team) {
+                                                    return [];
+                                                }
+
+                                                return MerchandiseSupplier::query()
+                                                    ->forTeam($team)
+                                                    ->orderBy('name')
+                                                    ->pluck('name', 'id')
+                                                    ->all();
+                                            })
+                                            ->searchable()
+                                            ->nullable()
+                                            ->placeholder(__('None')),
                                         Select::make('availability')
                                             ->label(__('Availability'))
                                             ->options(MerchandiseAvailability::class)
@@ -216,6 +236,44 @@ class MerchandiseItemForm
                                             ->mutateRelationshipDataBeforeCreateUsing(fn (array $data): array => static::stripOptionValueIds($data))
                                             ->mutateRelationshipDataBeforeSaveUsing(fn (array $data): array => static::stripOptionValueIds($data))
                                             ->live()
+                                            ->columnSpanFull(),
+                                    ]),
+                            ]),
+                        Tab::make(__('Stock'))
+                            ->icon(Heroicon::OutlinedCube)
+                            ->visible(fn (string $operation): bool => $operation === 'edit')
+                            ->schema([
+                                Section::make(__('On hand'))
+                                    ->icon(Heroicon::OutlinedCube)
+                                    ->columns(1)
+                                    ->columnSpanFull()
+                                    ->description(__('Cupboard counts per variant. New variants start at 0. Adjust here when stock changes outside picking and goods in.'))
+                                    ->schema([
+                                        Repeater::make('stock_levels')
+                                            ->label(__('Variants'))
+                                            ->schema([
+                                                Hidden::make('id'),
+                                                Placeholder::make('label_display')
+                                                    ->label(__('Variant'))
+                                                    ->content(fn (Get $get): string => filled($get('label')) ? (string) $get('label') : '—'),
+                                                Placeholder::make('availability_display')
+                                                    ->label(__('Availability'))
+                                                    ->content(function (Get $get): string {
+                                                        $availability = MerchandiseAvailability::tryFrom((string) ($get('availability') ?? ''));
+
+                                                        return $availability?->getLabel() ?? '—';
+                                                    }),
+                                                TextInput::make('stock_quantity')
+                                                    ->label(__('On hand'))
+                                                    ->numeric()
+                                                    ->integer()
+                                                    ->minValue(0)
+                                                    ->required()
+                                                    ->default(0),
+                                            ])
+                                            ->addable(false)
+                                            ->deletable(false)
+                                            ->reorderable(false)
                                             ->columnSpanFull(),
                                     ]),
                             ]),

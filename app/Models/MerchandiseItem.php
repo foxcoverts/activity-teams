@@ -20,6 +20,7 @@ class MerchandiseItem extends Model
 
     protected $fillable = [
         'team_id',
+        'merchandise_supplier_id',
         'title',
         'description',
         'personalisation_fields',
@@ -29,6 +30,11 @@ class MerchandiseItem extends Model
     public function team(): BelongsTo
     {
         return $this->belongsTo(Team::class);
+    }
+
+    public function supplier(): BelongsTo
+    {
+        return $this->belongsTo(MerchandiseSupplier::class, 'merchandise_supplier_id');
     }
 
     public function variants(): HasMany

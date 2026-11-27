@@ -23,8 +23,16 @@ class MerchandiseItemVariant extends Model
         'merchandise_item_id',
         'label',
         'price',
+        'stock_quantity',
         'availability',
         'sort',
+    ];
+
+    /**
+     * @var array<string, mixed>
+     */
+    protected $attributes = [
+        'stock_quantity' => 0,
     ];
 
     protected static function booted(): void
@@ -125,6 +133,7 @@ class MerchandiseItemVariant extends Model
     {
         return [
             'price' => 'decimal:2',
+            'stock_quantity' => 'integer',
             'availability' => MerchandiseAvailability::class,
             'sort' => 'integer',
         ];

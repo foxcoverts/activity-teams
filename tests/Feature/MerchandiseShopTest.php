@@ -27,6 +27,10 @@ use App\Filament\Teams\Resources\MerchandiseOrders\RelationManagers\ItemsRelatio
 use App\Filament\Teams\Resources\MerchandiseShops\MerchandiseShopResource;
 use App\Filament\Teams\Resources\MerchandiseShops\Pages\ListMerchandiseShops;
 use App\Filament\Teams\Resources\MerchandiseShops\Pages\ViewMerchandiseShop;
+use App\Filament\Teams\Resources\MerchandiseSuppliers\MerchandiseSupplierResource;
+use App\Filament\Teams\Resources\MerchandiseSuppliers\Pages\CreateMerchandiseSupplier;
+use App\Filament\Teams\Resources\MerchandiseSuppliers\Pages\EditMerchandiseSupplier;
+use App\Filament\Teams\Resources\MerchandiseSuppliers\Pages\ListMerchandiseSuppliers;
 use App\Mail\MerchandiseOrderTreasurerRequestMail;
 use App\Models\IssuedMerchandise;
 use App\Models\MerchandiseBasketLine;
@@ -36,6 +40,7 @@ use App\Models\MerchandiseItemOptionAxis;
 use App\Models\MerchandiseItemOptionValue;
 use App\Models\MerchandiseItemVariant;
 use App\Models\MerchandiseOrder;
+use App\Models\MerchandiseSupplier;
 use App\Models\Team;
 use App\Models\User;
 use App\Notifications\MerchandiseOrderApprovedNotification;
@@ -79,8 +84,10 @@ class MerchandiseShopTest extends TestCase
 
         $this->get(MerchandiseItemResource::getUrl('index', tenant: $team))->assertForbidden();
         $this->get(IssuedMerchandiseResource::getUrl('index', tenant: $team))->assertForbidden();
+        $this->get(MerchandiseSupplierResource::getUrl('index', tenant: $team))->assertForbidden();
         $this->assertFalse(MerchandiseItemResource::canAccess());
         $this->assertFalse(IssuedMerchandiseResource::canAccess());
+        $this->assertFalse(MerchandiseSupplierResource::canAccess());
     }
 
     public function test_managers_can_access_items_and_issued_when_shop_is_on(): void
@@ -94,9 +101,11 @@ class MerchandiseShopTest extends TestCase
 
         $this->assertTrue(MerchandiseItemResource::canAccess());
         $this->assertTrue(IssuedMerchandiseResource::canAccess());
+        $this->assertTrue(MerchandiseSupplierResource::canAccess());
 
         Livewire::test(ListMerchandiseItems::class)->assertSuccessful();
         Livewire::test(ListIssuedMerchandises::class)->assertSuccessful();
+        Livewire::test(ListMerchandiseSuppliers::class)->assertSuccessful();
     }
 
     public function test_non_manager_members_cannot_access_merchandise_staff_resources(): void
@@ -110,8 +119,10 @@ class MerchandiseShopTest extends TestCase
 
         $this->assertFalse(MerchandiseItemResource::canAccess());
         $this->assertFalse(IssuedMerchandiseResource::canAccess());
+        $this->assertFalse(MerchandiseSupplierResource::canAccess());
         $this->get(MerchandiseItemResource::getUrl('index', tenant: $team))->assertForbidden();
         $this->get(IssuedMerchandiseResource::getUrl('index', tenant: $team))->assertForbidden();
+        $this->get(MerchandiseSupplierResource::getUrl('index', tenant: $team))->assertForbidden();
     }
 
     public function test_system_admin_can_manage_items_but_not_issued_without_managing_the_team(): void
@@ -126,10 +137,121 @@ class MerchandiseShopTest extends TestCase
         Filament::setTenant($team);
 
         $this->assertTrue(MerchandiseItemResource::canAccess());
+        $this->assertTrue(MerchandiseSupplierResource::canAccess());
         $this->assertFalse(IssuedMerchandiseResource::canAccess());
 
         Livewire::test(ListMerchandiseItems::class)->assertSuccessful();
+        Livewire::test(ListMerchandiseSuppliers::class)->assertSuccessful();
         $this->get(IssuedMerchandiseResource::getUrl('index', tenant: $team))->assertForbidden();
+    }
+
+    public function test_manager_can_create_supplier_link_item_and_edit_stock(): void
+    {
+        $team = Team::factory()->withShop()->create();
+        $manager = User::factory()->teamManager($team)->create();
+
+        $this->actingAs($manager);
+        Filament::setCurrentPanel('teams');
+        Filament::setTenant($team);
+
+        Livewire::test(CreateMerchandiseSupplier::class)
+            ->fillForm([
+                'name' => 'Scout Store',
+                'notes' => 'Order via the B2B portal.',
+            ])
+            ->call('create')
+            ->assertHasNoFormErrors();
+
+        $supplier = MerchandiseSupplier::query()->where('name', 'Scout Store')->first();
+        $this->assertNotNull($supplier);
+        $this->assertSame($team->getKey(), $supplier->team_id);
+        $this->assertSame('Order via the B2B portal.', $supplier->notes);
+
+        $item = MerchandiseItem::factory()->for($team)->draft()->create([
+            'title' => 'Polo',
+            'merchandise_supplier_id' => $supplier->getKey(),
+        ]);
+        $variant = $item->variants()->first();
+        $this->assertNotNull($variant);
+        $this->assertSame(0, $variant->stock_quantity);
+
+        $edit = Livewire::test(EditMerchandiseItem::class, ['record' => $item->getKey()])
+            ->assertFormSet([
+                'merchandise_supplier_id' => $supplier->getKey(),
+            ]);
+
+        $stockLevels = $edit->get('data.stock_levels');
+        $this->assertIsArray($stockLevels);
+        $this->assertCount(1, $stockLevels);
+        $stockKey = array_key_first($stockLevels);
+        $this->assertSame($variant->getKey(), $stockLevels[$stockKey]['id']);
+        $this->assertSame(0, (int) $stockLevels[$stockKey]['stock_quantity']);
+
+        $stockLevels[$stockKey]['stock_quantity'] = 12;
+
+        $edit->fillForm([
+            'stock_levels' => $stockLevels,
+        ])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $this->assertSame(12, $variant->fresh()->stock_quantity);
+
+        Livewire::test(ListMerchandiseItems::class)
+            ->filterTable('supplier', ['value' => $supplier->getKey()])
+            ->assertCanSeeTableRecords([$item])
+            ->filterTable('supplier', ['value' => '__none'])
+            ->assertCanNotSeeTableRecords([$item]);
+
+        $unlinked = MerchandiseItem::factory()->for($team)->create([
+            'title' => 'No supplier item',
+            'merchandise_supplier_id' => null,
+        ]);
+
+        Livewire::test(ListMerchandiseItems::class)
+            ->filterTable('supplier', ['value' => '__none'])
+            ->assertCanSeeTableRecords([$unlinked])
+            ->assertCanNotSeeTableRecords([$item]);
+    }
+
+    public function test_supplier_cannot_be_deleted_while_linked_to_items(): void
+    {
+        $team = Team::factory()->withShop()->create();
+        $manager = User::factory()->teamManager($team)->create();
+        $supplier = MerchandiseSupplier::factory()->for($team)->create();
+        MerchandiseItem::factory()->for($team)->create([
+            'merchandise_supplier_id' => $supplier->getKey(),
+        ]);
+
+        $this->actingAs($manager);
+        Filament::setCurrentPanel('teams');
+        Filament::setTenant($team);
+
+        $this->assertFalse($manager->can('delete', $supplier));
+
+        $this->expectException(ValidationException::class);
+        $supplier->delete();
+    }
+
+    public function test_unused_supplier_can_be_deleted(): void
+    {
+        $team = Team::factory()->withShop()->create();
+        $manager = User::factory()->teamManager($team)->create();
+        $supplier = MerchandiseSupplier::factory()->for($team)->create();
+
+        $this->actingAs($manager);
+        Filament::setCurrentPanel('teams');
+        Filament::setTenant($team);
+
+        $this->assertTrue($manager->can('delete', $supplier));
+
+        Livewire::test(EditMerchandiseSupplier::class, ['record' => $supplier->getKey()])
+            ->callAction('delete')
+            ->assertHasNoActionErrors();
+
+        $this->assertDatabaseMissing('merchandise_suppliers', [
+            'id' => $supplier->getKey(),
+        ]);
     }
 
     public function test_manager_can_create_a_catalogue_item_with_variants(): void
@@ -164,6 +286,7 @@ class MerchandiseShopTest extends TestCase
         $this->assertCount(1, $item->variants);
         $this->assertSame('One size', $item->variants->first()->label);
         $this->assertSame('0.00', $item->variants->first()->price);
+        $this->assertSame(0, $item->variants->first()->stock_quantity);
         $this->assertSame(MerchandiseAvailability::Draft, $item->variants->first()->availability);
     }
 

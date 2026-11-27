@@ -70,7 +70,7 @@ class MerchandiseItemResource extends Resource
     public static function getEloquentQuery(): Builder
     {
         $query = parent::getEloquentQuery()
-            ->with(['variants.optionValues', 'optionAxes.values', 'images']);
+            ->with(['variants.optionValues', 'optionAxes.values', 'images', 'supplier']);
 
         $tenant = Filament::getTenant();
         if ($tenant instanceof Team) {

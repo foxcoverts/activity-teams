@@ -20,6 +20,7 @@ class MerchandiseItemVariantFactory extends Factory
             'merchandise_item_id' => MerchandiseItem::factory(),
             'label' => fake()->randomElement(['XS', 'S', 'M', 'L', 'XL', 'One size']),
             'price' => fake()->randomElement([0, 5, 10, 15, 20, 25]),
+            'stock_quantity' => 0,
             'availability' => MerchandiseAvailability::Available,
             'sort' => 0,
         ];

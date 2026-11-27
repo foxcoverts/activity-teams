@@ -952,3 +952,39 @@ button.task-complete-control:disabled {
     flex-shrink: 0;
     opacity: 0.75;
 }
+
+/* Merchandise item view: table-only sections sit flush under the header. */
+.merchandise-item-table-panel.fi-sc-section .fi-section:not(.fi-section-not-contained) {
+    @apply overflow-hidden;
+}
+
+.merchandise-item-table-panel.fi-sc-section
+    .fi-section:not(.fi-section-not-contained):not(.fi-divided)
+    > .fi-section-content-ctn
+    > .fi-section-content {
+    @apply p-0;
+}
+
+.merchandise-item-table-panel .fi-in-table-repeatable {
+    @apply gap-0;
+}
+
+.merchandise-item-table-panel .fi-in-table-repeatable > table {
+    @apply rounded-none shadow-none ring-0;
+}
+
+.merchandise-item-table-panel .fi-in-table-repeatable > table > thead > tr > th:first-of-type,
+.merchandise-item-table-panel .fi-in-table-repeatable > table > thead > tr > th:last-of-type {
+    @apply rounded-none;
+}
+
+/* Catalogue images: pack thumbs to their pixel size, not stretched 1fr tracks. */
+.merchandise-item-images.fi-in-repeatable {
+    @apply grid gap-3;
+    grid-template-columns: repeat(auto-fill, 7.5rem);
+}
+
+/* Catalogue images: light frame so product shots read on the card. */
+.merchandise-item-image img {
+    @apply rounded-lg bg-white ring-1 ring-gray-950/10 dark:bg-white/5 dark:ring-white/20;
+}

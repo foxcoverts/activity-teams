@@ -17,7 +17,7 @@ As an Activity Manager, I want that shop backed by catalogue, approval, invoicin
 - Members of a team can browse that team’s merchandise catalogue and submit orders ([US-82](US-82-merchandise-catalogue-and-stock.md), [US-83](US-83-merchandise-member-orders.md)).
 - Managers are notified when a new order is submitted, and can approve or reject it with discretionary discounts ([US-84](US-84-merchandise-order-approval.md)).
 - Approved orders produce invoices that managers can track and mark paid, and can email onward to the treasurer ([US-85](US-85-merchandise-invoices.md)).
-- Managers can raise manufacturer orders and picking lists, record goods in, and hand items to members, including partial fulfilment ([US-86](US-86-merchandise-manufacturer-orders.md), [US-87](US-87-merchandise-picking-and-handover.md)).
+- Managers can raise supplier orders and picking lists, record goods in, and hand items to members, including partial fulfilment ([US-86](US-86-merchandise-manufacturer-orders.md), [US-87](US-87-merchandise-picking-and-handover.md)).
 - Handed-over and gifted items appear on the issued-items log ([US-24](US-24-equipment-merchandise-allocation.md)).
 - Domain terms and deferred behaviour are defined in the [Merchandise & Stash domain note](merchandise-stash-domain.md).
 
@@ -30,4 +30,4 @@ As an Activity Manager, I want that shop backed by catalogue, approval, invoicin
 
 ## Progress
 
-Partial. Per-team Shop feature flag; Teams **Merchandise** nav (Issued, Items, Orders, Shop with nested Basket). Members can browse, personalise, basket, submit, and cancel submitted orders. Approval and treasurer payment tracking are in ([US-84](US-84-merchandise-order-approval.md), [US-85](US-85-merchandise-invoices.md)); fulfilment remains later. Manager merchandise triage widgets are noted but placement is still open — see [domain note](merchandise-stash-domain.md#manager-triage-widgets-open).
+Partial. Per-team Shop feature flag; Teams **Merchandise** nav (Issued, Items, Orders, Shop with nested Basket, Suppliers). Members can browse, personalise, basket, submit, and cancel submitted orders. Approval and treasurer payment tracking are in ([US-84](US-84-merchandise-order-approval.md), [US-85](US-85-merchandise-invoices.md)); catalogue suppliers + stock qty are in ([US-82](US-82-merchandise-catalogue-and-stock.md)); fulfilment (supplier orders / picking / handover) remains later. Manager merchandise triage widgets are noted but placement is still open — see [domain note](merchandise-stash-domain.md#manager-triage-widgets-open).
