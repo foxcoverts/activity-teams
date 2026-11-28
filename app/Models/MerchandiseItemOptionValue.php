@@ -17,6 +17,7 @@ class MerchandiseItemOptionValue extends Model
     protected $fillable = [
         'merchandise_item_option_axis_id',
         'label',
+        'note',
         'sort',
     ];
 
@@ -31,6 +32,26 @@ class MerchandiseItemOptionValue extends Model
             MerchandiseItemVariant::class,
             'merchandise_item_variant_options',
         )->using(MerchandiseItemVariantOption::class)->withTimestamps();
+    }
+
+    /**
+     * Label for select options, with optional note in parentheses.
+     */
+    public static function formatSelectOptionText(string $label, ?string $note = null): string
+    {
+        if (blank($note)) {
+            return $label;
+        }
+
+        return $label.' ('.$note.')';
+    }
+
+    /**
+     * Label for select options, with optional note in parentheses.
+     */
+    public function selectOptionText(): string
+    {
+        return static::formatSelectOptionText((string) $this->label, $this->note);
     }
 
     /**

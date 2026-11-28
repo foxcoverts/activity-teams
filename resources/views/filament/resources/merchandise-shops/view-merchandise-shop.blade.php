@@ -322,7 +322,7 @@
                                         <option value="">{{ __('Choose :axis', ['axis' => $axis->name]) }}</option>
                                         @foreach ($axisValues as $value)
                                             <option value="{{ $value->getKey() }}">
-                                                {{ $value->label }}
+                                                {{ $value->selectOptionText() }}
                                             </option>
                                         @endforeach
                                     </select>

@@ -84,8 +84,17 @@ class MerchandiseItemInfolist
                                             ->label(__('Axis')),
                                         TextEntry::make('values_summary')
                                             ->label(__('Values'))
+                                            ->html()
                                             ->state(fn ($record): string => $record->values
-                                                ->pluck('label')
+                                                ->map(function ($value): string {
+                                                    $label = e((string) $value->label);
+
+                                                    if (blank($value->note)) {
+                                                        return $label;
+                                                    }
+
+                                                    return $label.' <span class="text-gray-500 dark:text-gray-400">('.e((string) $value->note).')</span>';
+                                                })
                                                 ->filter()
                                                 ->implode(', ')),
                                     ]),

@@ -1206,6 +1206,138 @@ class MerchandiseShopTest extends TestCase
         );
     }
 
+    public function test_manager_can_save_option_value_notes_without_changing_composed_labels(): void
+    {
+        $team = Team::factory()->withShop()->create();
+        $manager = User::factory()->teamManager($team)->create();
+        $item = MerchandiseItem::factory()->for($team)->draft()->create(['title' => 'Hoody']);
+        $existing = $item->variants()->firstOrFail();
+
+        $size = MerchandiseItemOptionAxis::factory()->for($item, 'item')->create([
+            'name' => 'Size',
+            'sort' => 0,
+        ]);
+        $sizeS = MerchandiseItemOptionValue::factory()->for($size, 'axis')->create([
+            'label' => 'S',
+            'sort' => 0,
+        ]);
+        $sizeM = MerchandiseItemOptionValue::factory()->for($size, 'axis')->create([
+            'label' => 'M',
+            'sort' => 1,
+        ]);
+
+        $this->actingAs($manager);
+        Filament::setCurrentPanel('teams');
+        Filament::setTenant($team);
+
+        Livewire::test(EditMerchandiseItem::class, ['record' => $item->getKey()])
+            ->fillForm([
+                'title' => 'Hoody',
+                'availability' => MerchandiseAvailability::Draft->value,
+                'optionAxes' => [
+                    [
+                        'id' => $size->getKey(),
+                        'name' => 'Size',
+                        'values' => [
+                            [
+                                'id' => $sizeS->getKey(),
+                                'label' => 'S',
+                                'note' => '36-38"',
+                            ],
+                            [
+                                'id' => $sizeM->getKey(),
+                                'label' => 'M',
+                                'note' => null,
+                            ],
+                        ],
+                    ],
+                ],
+                'variants' => [
+                    [
+                        'id' => $existing->getKey(),
+                        'price' => '20.00',
+                        'availability' => MerchandiseAvailability::Draft->value,
+                        'option_value_ids' => [
+                            $size->getKey() => $sizeS->getKey(),
+                        ],
+                    ],
+                    [
+                        'price' => '22.00',
+                        'availability' => MerchandiseAvailability::Draft->value,
+                        'option_value_ids' => [
+                            $size->getKey() => $sizeM->getKey(),
+                        ],
+                    ],
+                ],
+            ])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $item->refresh()->load(['optionAxes.values', 'variants']);
+
+        $savedS = $item->optionAxes->first()->values->firstWhere('label', 'S');
+        $savedM = $item->optionAxes->first()->values->firstWhere('label', 'M');
+
+        $this->assertNotNull($savedS);
+        $this->assertNotNull($savedM);
+        $this->assertSame('36-38"', $savedS->note);
+        $this->assertNull($savedM->note);
+        $this->assertSame('S (36-38")', $savedS->selectOptionText());
+        $this->assertSame('M', $savedM->selectOptionText());
+
+        $this->assertNotNull($item->variants->firstWhere('label', 'S'));
+        $this->assertNotNull($item->variants->firstWhere('label', 'M'));
+        $this->assertNull($item->variants->firstWhere('label', 'S (36-38")'));
+    }
+
+    public function test_shop_option_selects_show_value_notes_when_present(): void
+    {
+        $team = Team::factory()->withShop()->create();
+        $member = User::factory()->teamMember($team)->create();
+        $item = MerchandiseItem::factory()->for($team)->withImage()->create(['title' => 'Hoody']);
+        $item->variants()->delete();
+
+        $size = MerchandiseItemOptionAxis::factory()->for($item, 'item')->create([
+            'name' => 'Size',
+            'sort' => 0,
+        ]);
+        $sizeS = MerchandiseItemOptionValue::factory()->for($size, 'axis')->create([
+            'label' => 'S',
+            'note' => '36-38"',
+            'sort' => 0,
+        ]);
+        $sizeM = MerchandiseItemOptionValue::factory()->for($size, 'axis')->create([
+            'label' => 'M',
+            'sort' => 1,
+        ]);
+
+        $sVariant = MerchandiseItemVariant::factory()->for($item, 'item')->create([
+            'label' => 'S',
+            'price' => '20.00',
+            'availability' => MerchandiseAvailability::Available,
+            'sort' => 0,
+        ]);
+        $sVariant->optionValues()->sync([$sizeS->getKey()]);
+
+        $mVariant = MerchandiseItemVariant::factory()->for($item, 'item')->create([
+            'label' => 'M',
+            'price' => '22.00',
+            'availability' => MerchandiseAvailability::Available,
+            'sort' => 1,
+        ]);
+        $mVariant->optionValues()->sync([$sizeM->getKey()]);
+
+        $this->actingAs($member);
+        Filament::setCurrentPanel('teams');
+        Filament::setTenant($team);
+
+        Livewire::test(ViewMerchandiseShop::class, ['record' => $item->getKey()])
+            ->assertSuccessful()
+            ->assertSee('S (36-38")')
+            ->assertSee('M')
+            ->assertDontSee('M (');
+    }
+
     public function test_duplicate_option_combinations_are_rejected(): void
     {
         $team = Team::factory()->withShop()->create();

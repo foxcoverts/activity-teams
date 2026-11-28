@@ -5,6 +5,7 @@ namespace App\Filament\Teams\Resources\MerchandiseItems\Schemas;
 use App\Actions\NormalizeMerchandiseImageAction;
 use App\Actions\SyncMerchandiseVariantOptionSelectionsAction;
 use App\Enums\MerchandiseAvailability;
+use App\Models\MerchandiseItemOptionValue;
 use App\Models\MerchandiseItemVariant;
 use App\Models\MerchandiseSupplier;
 use App\Models\Team;
@@ -147,7 +148,13 @@ class MerchandiseItemForm
                                                             ->placeholder(__('e.g. M'))
                                                             ->required()
                                                             ->maxLength(255),
+                                                        TextInput::make('note')
+                                                            ->label(__('Note'))
+                                                            ->placeholder(__('e.g. 36-38"'))
+                                                            ->maxLength(100)
+                                                            ->helperText(__('Shown in shop and SKU dropdowns when set.')),
                                                     ])
+                                                    ->columns(2)
                                                     ->orderColumn('sort')
                                                     ->minItems(1)
                                                     ->defaultItems(1)
@@ -344,8 +351,14 @@ class MerchandiseItemForm
                     ->filter(fn (mixed $value): bool => is_array($value) && filled($value['label'] ?? null))
                     ->mapWithKeys(function (array $value, string|int $valueKey): array {
                         $id = $value['id'] ?? $valueKey;
+                        $note = isset($value['note']) && is_string($value['note'])
+                            ? $value['note']
+                            : null;
 
-                        return [(string) $id => (string) $value['label']];
+                        return [(string) $id => MerchandiseItemOptionValue::formatSelectOptionText(
+                            (string) $value['label'],
+                            $note,
+                        )];
                     })
                     ->all();
 
