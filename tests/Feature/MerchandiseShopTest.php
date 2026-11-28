@@ -1206,6 +1206,136 @@ class MerchandiseShopTest extends TestCase
         );
     }
 
+    public function test_manager_can_set_sku_prices_filtered_by_axis_value(): void
+    {
+        $team = Team::factory()->withShop()->create();
+        $manager = User::factory()->teamManager($team)->create();
+        $item = MerchandiseItem::factory()->for($team)->draft()->create(['title' => 'Hoody']);
+        $item->variants()->delete();
+
+        $size = MerchandiseItemOptionAxis::factory()->for($item, 'item')->create([
+            'name' => 'Size',
+            'sort' => 0,
+        ]);
+        $sizeM = MerchandiseItemOptionValue::factory()->for($size, 'axis')->create([
+            'label' => 'M',
+            'sort' => 0,
+        ]);
+        $sizeL = MerchandiseItemOptionValue::factory()->for($size, 'axis')->create([
+            'label' => 'L',
+            'sort' => 1,
+        ]);
+        $colour = MerchandiseItemOptionAxis::factory()->for($item, 'item')->create([
+            'name' => 'Colour',
+            'sort' => 1,
+        ]);
+        $black = MerchandiseItemOptionValue::factory()->for($colour, 'axis')->create([
+            'label' => 'Black',
+            'sort' => 0,
+        ]);
+        $orange = MerchandiseItemOptionValue::factory()->for($colour, 'axis')->create([
+            'label' => 'Orange',
+            'sort' => 1,
+        ]);
+
+        $mBlack = MerchandiseItemVariant::factory()->for($item, 'item')->create([
+            'label' => 'M · Black',
+            'price' => '10.00',
+            'sort' => 0,
+        ]);
+        $mBlack->optionValues()->sync([$sizeM->getKey(), $black->getKey()]);
+
+        $lBlack = MerchandiseItemVariant::factory()->for($item, 'item')->create([
+            'label' => 'L · Black',
+            'price' => '11.00',
+            'sort' => 1,
+        ]);
+        $lBlack->optionValues()->sync([$sizeL->getKey(), $black->getKey()]);
+
+        $mOrange = MerchandiseItemVariant::factory()->for($item, 'item')->create([
+            'label' => 'M · Orange',
+            'price' => '12.00',
+            'sort' => 2,
+        ]);
+        $mOrange->optionValues()->sync([$sizeM->getKey(), $orange->getKey()]);
+
+        $lOrange = MerchandiseItemVariant::factory()->for($item, 'item')->create([
+            'label' => 'L · Orange',
+            'price' => '13.00',
+            'sort' => 3,
+        ]);
+        $lOrange->optionValues()->sync([$sizeL->getKey(), $orange->getKey()]);
+
+        $this->actingAs($manager);
+        Filament::setCurrentPanel('teams');
+        Filament::setTenant($team);
+
+        $component = Livewire::test(EditMerchandiseItem::class, ['record' => $item->getKey()])
+            ->callFormComponentAction('skus', 'setPrice', [
+                'filters' => [
+                    $colour->getKey() => $black->getKey(),
+                ],
+                'price' => '25.50',
+            ]);
+
+        $pricesByLabel = collect($component->get('data.variants'))
+            ->mapWithKeys(fn (array $variant): array => [
+                (string) ($variant['label'] ?? '') => (string) ($variant['price'] ?? ''),
+            ])
+            ->all();
+
+        $this->assertSame('25.50', $pricesByLabel['M · Black']);
+        $this->assertSame('25.50', $pricesByLabel['L · Black']);
+        $this->assertEqualsWithDelta(12.0, (float) $pricesByLabel['M · Orange'], 0.001);
+        $this->assertEqualsWithDelta(13.0, (float) $pricesByLabel['L · Orange'], 0.001);
+
+        $component
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $this->assertSame('25.50', $mBlack->fresh()->price);
+        $this->assertSame('25.50', $lBlack->fresh()->price);
+        $this->assertSame('12.00', $mOrange->fresh()->price);
+        $this->assertSame('13.00', $lOrange->fresh()->price);
+    }
+
+    public function test_manager_can_set_all_sku_prices_when_filters_are_any_value(): void
+    {
+        $team = Team::factory()->withShop()->create();
+        $manager = User::factory()->teamManager($team)->create();
+        $item = MerchandiseItem::factory()->for($team)->draft()->create(['title' => 'Necker']);
+        $first = $item->variants()->firstOrFail();
+        $first->update(['label' => 'Adult', 'price' => '8.00']);
+        $second = MerchandiseItemVariant::factory()->for($item, 'item')->create([
+            'label' => 'Youth',
+            'price' => '6.00',
+            'sort' => 1,
+        ]);
+
+        $this->actingAs($manager);
+        Filament::setCurrentPanel('teams');
+        Filament::setTenant($team);
+
+        $component = Livewire::test(EditMerchandiseItem::class, ['record' => $item->getKey()])
+            ->callFormComponentAction('skus', 'setPrice', [
+                'price' => '9.00',
+            ]);
+
+        $prices = collect($component->get('data.variants'))
+            ->pluck('price')
+            ->map(fn (mixed $price): string => (string) $price)
+            ->all();
+
+        $this->assertSame(['9.00', '9.00'], $prices);
+
+        $component
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $this->assertSame('9.00', $first->fresh()->price);
+        $this->assertSame('9.00', $second->fresh()->price);
+    }
+
     public function test_manager_can_save_option_value_notes_without_changing_composed_labels(): void
     {
         $team = Team::factory()->withShop()->create();

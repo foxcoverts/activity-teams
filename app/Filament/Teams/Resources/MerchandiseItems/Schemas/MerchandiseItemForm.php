@@ -172,12 +172,13 @@ class MerchandiseItemForm
                                             ->columnSpanFull(),
                                     ]),
                                 Section::make(__('SKUs'))
+                                    ->key('skus')
                                     ->icon(Heroicon::OutlinedRectangleStack)
                                     ->columns(1)
                                     ->columnSpanFull()
                                     ->headerActions([
                                         Action::make('generateCombinations')
-                                            ->label(__('Generate missing combinations'))
+                                            ->label(__('Add missing'))
                                             ->icon(Heroicon::OutlinedSparkles)
                                             ->visible(fn (LivewireComponent $livewire): bool => static::axesHaveValues(static::optionAxesFromLivewire($livewire)))
                                             ->action(function (LivewireComponent $livewire): void {
@@ -197,6 +198,34 @@ class MerchandiseItemForm
                                                     ->title($added > 0
                                                         ? trans_choice(':count combination added|:count combinations added', $added, ['count' => $added])
                                                         : __('All combinations are already listed'))
+                                                    ->success()
+                                                    ->send();
+                                            }),
+                                        Action::make('setPrice')
+                                            ->label(__('Set price'))
+                                            ->icon(Heroicon::OutlinedBanknotes)
+                                            ->modalHeading(__('Set price'))
+                                            ->modalIcon(Heroicon::OutlinedBanknotes)
+                                            ->schema(fn (LivewireComponent $livewire): array => static::setPriceSchema(
+                                                static::optionAxesFromLivewire($livewire),
+                                            ))
+                                            ->action(function (LivewireComponent $livewire, array $data): void {
+                                                $variants = is_array(data_get($livewire, 'data.variants'))
+                                                    ? data_get($livewire, 'data.variants')
+                                                    : [];
+                                                $filters = is_array($data['filters'] ?? null)
+                                                    ? $data['filters']
+                                                    : [];
+                                                $price = static::formatPriceState($data['price'] ?? null) ?? '0.00';
+                                                $result = static::applyPriceToMatchingVariantState($variants, $filters, $price);
+                                                data_set($livewire, 'data.variants', $result['variants']);
+
+                                                Notification::make()
+                                                    ->title($result['updated'] > 0
+                                                        ? trans_choice(':count price updated|:count prices updated', $result['updated'], [
+                                                            'count' => $result['updated'],
+                                                        ])
+                                                        : __('No matching SKUs'))
                                                     ->success()
                                                     ->send();
                                             }),
@@ -320,6 +349,99 @@ class MerchandiseItemForm
                             ]),
                     ]),
             ]);
+    }
+
+    /**
+     * @param  array<string, mixed>  $optionAxes
+     * @return list<Component>
+     */
+    private static function setPriceSchema(array $optionAxes): array
+    {
+        $fields = [];
+
+        foreach ($optionAxes as $axisKey => $axis) {
+            if (! is_array($axis) || blank($axis['name'] ?? null)) {
+                continue;
+            }
+
+            $options = collect($axis['values'] ?? [])
+                ->filter(fn (mixed $value): bool => is_array($value) && filled($value['label'] ?? null))
+                ->mapWithKeys(function (array $value, string|int $valueKey): array {
+                    $id = $value['id'] ?? $valueKey;
+
+                    return [(string) $id => (string) $value['label']];
+                })
+                ->all();
+
+            if ($options === []) {
+                continue;
+            }
+
+            $fields[] = Select::make('filters.'.(string) ($axis['id'] ?? $axisKey))
+                ->label((string) $axis['name'])
+                ->options($options)
+                ->placeholder(__('Any value'))
+                ->nullable();
+        }
+
+        $fields[] = TextInput::make('price')
+            ->label(__('Price'))
+            ->prefix('£')
+            ->numeric()
+            ->inputMode('decimal')
+            ->minValue(0)
+            ->step(0.01)
+            ->required()
+            ->formatStateUsing(fn (mixed $state): ?string => static::formatPriceState($state))
+            ->dehydrateStateUsing(fn (mixed $state): ?string => static::formatPriceState($state))
+            ->live(onBlur: true)
+            ->afterStateUpdated(function (TextInput $component, mixed $state): void {
+                $formatted = static::formatPriceState($state);
+
+                if ($formatted !== null && (string) $state !== $formatted) {
+                    $component->state($formatted);
+                }
+            });
+
+        return $fields;
+    }
+
+    /**
+     * @param  array<string, mixed>  $variants
+     * @param  array<string, mixed>  $filters
+     * @return array{variants: array<string, mixed>, updated: int}
+     */
+    public static function applyPriceToMatchingVariantState(array $variants, array $filters, string $price): array
+    {
+        $constraints = collect($filters)
+            ->filter(fn (mixed $value): bool => filled($value))
+            ->map(fn (mixed $value): string => (string) $value);
+
+        $updated = 0;
+
+        foreach ($variants as $key => $variant) {
+            if (! is_array($variant)) {
+                continue;
+            }
+
+            $matches = $constraints->every(function (string $valueId, mixed $axisKey) use ($variant): bool {
+                $selected = data_get($variant, 'option_value_ids.'.(string) $axisKey);
+
+                return filled($selected) && (string) $selected === $valueId;
+            });
+
+            if (! $matches) {
+                continue;
+            }
+
+            $variants[$key]['price'] = $price;
+            $updated++;
+        }
+
+        return [
+            'variants' => $variants,
+            'updated' => $updated,
+        ];
     }
 
     /**
