@@ -32,4 +32,4 @@ As an Activity Manager, I want to generate a supplier order per supplier from ap
 
 ## Progress
 
-Partial. Draft board (supplier picker, draft vs past orders, checkbox in/out, select all with no on-hand, qty/on-hand hint), send, on-screen export table + CSV download with label-union axis/personalisation columns. Goods in still open. File name still says manufacturer for link stability; product language is **supplier**.
+Partial. Draft board (supplier picker, draft vs past orders, checkbox in/out, select all with no on-hand, qty/on-hand hint), send, on-screen export table + CSV download with label-union axis/personalisation columns plus supplier code when any included item has one. Goods in still open. File name still says manufacturer for link stability; product language is **supplier**.

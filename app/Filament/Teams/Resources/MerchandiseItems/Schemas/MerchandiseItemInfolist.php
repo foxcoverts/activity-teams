@@ -37,6 +37,9 @@ class MerchandiseItemInfolist
                                 ? MerchandiseSupplierResource::getUrl('view', ['record' => $record->supplier])
                                 : null)
                             ->color('primary'),
+                        TextEntry::make('supplier_code')
+                            ->label(__('Supplier code'))
+                            ->visible(fn (MerchandiseItem $record): bool => filled($record->supplier_code)),
                         TextEntry::make('availability')
                             ->label(__('Availability'))
                             ->badge(),

@@ -73,6 +73,11 @@ class MerchandiseItemForm
                                             ->searchable()
                                             ->nullable()
                                             ->placeholder(__('None')),
+                                        TextInput::make('supplier_code')
+                                            ->label(__('Supplier code'))
+                                            ->maxLength(255)
+                                            ->nullable()
+                                            ->helperText(__('Product or catalogue reference used by the supplier.')),
                                         Select::make('availability')
                                             ->label(__('Availability'))
                                             ->options(MerchandiseAvailability::class)

@@ -21,6 +21,7 @@ class MerchandiseItem extends Model
     protected $fillable = [
         'team_id',
         'merchandise_supplier_id',
+        'supplier_code',
         'title',
         'description',
         'personalisation_fields',

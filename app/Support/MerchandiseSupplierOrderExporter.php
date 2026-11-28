@@ -92,14 +92,17 @@ class MerchandiseSupplierOrderExporter
     ): array {
         $lines = $this->sortedLines($lines)->values();
         $selected = collect($selectedLineIds)->map(fn (mixed $id): string => (string) $id)->all();
+        $includeSupplierCode = $this->anyLineHasSupplierCode($lines);
         $dynamicHeaders = $this->dynamicHeaders($lines);
         $headers = array_merge(
-            [__('Member'), __('Item'), __('Qty')],
+            [__('Member'), __('Item')],
+            $includeSupplierCode ? [__('Supplier code')] : [],
+            [__('Qty')],
             $dynamicHeaders,
         );
 
         $rows = $lines
-            ->map(function (MerchandiseOrderLine $line) use ($dynamicHeaders, $selected, $showOnHandHint): array {
+            ->map(function (MerchandiseOrderLine $line) use ($dynamicHeaders, $selected, $showOnHandHint, $includeSupplierCode): array {
                 $axisValues = $this->axisValuesByLabel($line);
                 $personalisationValues = $this->personalisationValuesByLabel($line);
                 $onHand = (int) ($line->variant?->stock_quantity ?? 0);
@@ -117,8 +120,13 @@ class MerchandiseSupplierOrderExporter
                 $cells = [
                     $line->order?->user?->name ?? '',
                     $line->item_title,
-                    $qtyCell,
                 ];
+
+                if ($includeSupplierCode) {
+                    $cells[] = (string) ($line->item?->supplier_code ?? '');
+                }
+
+                $cells[] = $qtyCell;
 
                 foreach ($dynamicHeaders as $label) {
                     $cells[] = $axisValues[$label] ?? $personalisationValues[$label] ?? '';
@@ -163,6 +171,16 @@ class MerchandiseSupplierOrderExporter
                 fn (MerchandiseOrderLine $line): string => $line->order?->user?->name ?? '',
             ])
             ->values();
+    }
+
+    /**
+     * @param  Collection<int, MerchandiseOrderLine>  $lines
+     */
+    private function anyLineHasSupplierCode(Collection $lines): bool
+    {
+        return $lines->contains(
+            fn (MerchandiseOrderLine $line): bool => filled($line->item?->supplier_code),
+        );
     }
 
     /**

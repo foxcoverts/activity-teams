@@ -23,6 +23,7 @@ use App\Filament\Teams\Resources\MerchandiseItems\MerchandiseItemResource;
 use App\Filament\Teams\Resources\MerchandiseItems\Pages\CreateMerchandiseItem;
 use App\Filament\Teams\Resources\MerchandiseItems\Pages\EditMerchandiseItem;
 use App\Filament\Teams\Resources\MerchandiseItems\Pages\ListMerchandiseItems;
+use App\Filament\Teams\Resources\MerchandiseItems\Pages\ViewMerchandiseItem;
 use App\Filament\Teams\Resources\MerchandiseOrders\MerchandiseOrderResource;
 use App\Filament\Teams\Resources\MerchandiseOrders\Pages\ListMerchandiseOrders;
 use App\Filament\Teams\Resources\MerchandiseOrders\Pages\ViewMerchandiseOrder;
@@ -190,7 +191,8 @@ class MerchandiseShopTest extends TestCase
         $edit = Livewire::test(EditMerchandiseItem::class, ['record' => $item->getKey()])
             ->assertFormSet([
                 'merchandise_supplier_id' => $supplier->getKey(),
-            ]);
+            ])
+            ->assertFormFieldExists('supplier_code');
 
         $stockLevels = $edit->get('data.stock_levels');
         $this->assertIsArray($stockLevels);
@@ -202,12 +204,18 @@ class MerchandiseShopTest extends TestCase
         $stockLevels[$stockKey]['stock_quantity'] = 12;
 
         $edit->fillForm([
+            'supplier_code' => 'POLO-42',
             'stock_levels' => $stockLevels,
         ])
             ->call('save')
             ->assertHasNoFormErrors();
 
         $this->assertSame(12, $variant->fresh()->stock_quantity);
+        $this->assertSame('POLO-42', $item->fresh()->supplier_code);
+
+        Livewire::test(ViewMerchandiseItem::class, ['record' => $item->getKey()])
+            ->assertSuccessful()
+            ->assertSeeText('POLO-42');
 
         Livewire::test(ListMerchandiseItems::class)
             ->filterTable('supplier', ['value' => $supplier->getKey()])
@@ -1667,6 +1675,54 @@ class MerchandiseShopTest extends TestCase
         $csv = app(MerchandiseSupplierOrderExporter::class)->toCsv($supplierOrder->fresh());
         $this->assertStringContainsString('Size,Name', $csv);
         $this->assertStringContainsString('Alex', $csv);
+    }
+
+    public function test_supplier_order_exporter_includes_supplier_code_when_any_item_has_one(): void
+    {
+        $team = Team::factory()->withShop()->create();
+        $member = User::factory()->teamMember($team)->create(['name' => 'Sam Member']);
+        $supplier = MerchandiseSupplier::factory()->for($team)->create();
+        $polo = MerchandiseItem::factory()->for($team)->create([
+            'title' => 'Polo',
+            'merchandise_supplier_id' => $supplier->getKey(),
+            'supplier_code' => 'POLO-42',
+        ]);
+        $necker = MerchandiseItem::factory()->for($team)->create([
+            'title' => 'Necker',
+            'merchandise_supplier_id' => $supplier->getKey(),
+            'supplier_code' => null,
+        ]);
+
+        $order = MerchandiseOrder::factory()->for($team)->for($member)->approved()->create();
+        $poloLine = MerchandiseOrderLine::factory()->for($order, 'order')->create([
+            'merchandise_item_id' => $polo->getKey(),
+            'merchandise_item_variant_id' => $polo->variants()->firstOrFail()->getKey(),
+            'item_title' => 'Polo',
+            'variant_label' => 'One size',
+            'quantity' => 2,
+        ]);
+        $neckerLine = MerchandiseOrderLine::factory()->for($order, 'order')->create([
+            'merchandise_item_id' => $necker->getKey(),
+            'merchandise_item_variant_id' => $necker->variants()->firstOrFail()->getKey(),
+            'item_title' => 'Necker',
+            'variant_label' => 'One size',
+            'quantity' => 1,
+            'sort' => 1,
+        ]);
+
+        $supplierOrder = MerchandiseSupplierOrder::factory()->forSupplier($supplier)->sent()->create();
+        $poloLine->update(['merchandise_supplier_order_id' => $supplierOrder->getKey()]);
+        $neckerLine->update(['merchandise_supplier_order_id' => $supplierOrder->getKey()]);
+
+        $table = app(MerchandiseSupplierOrderExporter::class)->table($supplierOrder->fresh());
+
+        $this->assertSame(['Member', 'Item', 'Supplier code', 'Qty'], $table['headers']);
+        $this->assertContains(['Sam Member', 'Polo', 'POLO-42', '2'], $table['rows']);
+        $this->assertContains(['Sam Member', 'Necker', '', '1'], $table['rows']);
+
+        $csv = app(MerchandiseSupplierOrderExporter::class)->toCsv($supplierOrder->fresh());
+        $this->assertStringContainsString('"Supplier code",Qty', $csv);
+        $this->assertStringContainsString('POLO-42', $csv);
     }
 
     public function test_empty_draft_is_removed_when_all_lines_unchecked(): void
