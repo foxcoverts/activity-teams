@@ -2,7 +2,12 @@
 
 namespace App\Filament\Teams\Resources\MerchandiseItems\Schemas;
 
+use App\Filament\Teams\Resources\MerchandiseSuppliers\MerchandiseSupplierResource;
+use App\Models\MerchandiseItem;
+use Filament\Actions\Action;
+use Filament\Infolists\Components\ImageEntry;
 use Filament\Infolists\Components\RepeatableEntry;
+use Filament\Infolists\Components\RepeatableEntry\TableColumn;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
@@ -14,7 +19,7 @@ class MerchandiseItemInfolist
     {
         return $schema
             ->components([
-                Section::make(__('Item'))
+                Section::make(__('Details'))
                     ->icon(Heroicon::OutlinedShoppingBag)
                     ->columns(1)
                     ->columnSpanFull()
@@ -25,15 +30,121 @@ class MerchandiseItemInfolist
                             ->label(__('Description'))
                             ->placeholder('-')
                             ->prose(),
+                        TextEntry::make('supplier.name')
+                            ->label(__('Supplier'))
+                            ->placeholder('-')
+                            ->url(fn (MerchandiseItem $record): ?string => $record->supplier
+                                ? MerchandiseSupplierResource::getUrl('view', ['record' => $record->supplier])
+                                : null)
+                            ->color('primary'),
+                        TextEntry::make('supplier_code')
+                            ->label(__('Supplier code'))
+                            ->visible(fn (MerchandiseItem $record): bool => filled($record->supplier_code)),
                         TextEntry::make('availability')
                             ->label(__('Availability'))
                             ->badge(),
+                        RepeatableEntry::make('images')
+                            ->label(__('Images'))
+                            ->contained(false)
+                            ->extraAttributes([
+                                'class' => 'merchandise-item-images',
+                            ])
+                            ->schema([
+                                ImageEntry::make('path')
+                                    ->hiddenLabel()
+                                    ->square()
+                                    ->imageHeight(120)
+                                    ->extraAttributes([
+                                        'class' => 'merchandise-item-image',
+                                    ])
+                                    ->getStateUsing(fn ($record): ?string => $record->url()),
+                            ])
+                            ->placeholder('-'),
+                    ]),
+                Section::make(__('Variants'))
+                    ->icon(Heroicon::OutlinedRectangleStack)
+                    ->columns(1)
+                    ->columnSpanFull()
+                    ->extraAttributes([
+                        'class' => 'flush-table-panel',
+                    ])
+                    ->headerActions([
+                        Action::make('viewOptions')
+                            ->label(__('Options'))
+                            ->icon(Heroicon::OutlinedAdjustmentsHorizontal)
+                            ->visible(fn (MerchandiseItem $record): bool => $record->optionAxes->isNotEmpty())
+                            ->modalHeading(__('Options'))
+                            ->modalSubmitAction(false)
+                            ->modalCancelActionLabel(__('Close'))
+                            ->schema([
+                                RepeatableEntry::make('optionAxes')
+                                    ->hiddenLabel()
+                                    ->schema([
+                                        TextEntry::make('name')
+                                            ->label(__('Axis')),
+                                        TextEntry::make('values_summary')
+                                            ->label(__('Values'))
+                                            ->html()
+                                            ->state(fn ($record): string => $record->values
+                                                ->map(function ($value): string {
+                                                    $label = e((string) $value->label);
+
+                                                    if (blank($value->note)) {
+                                                        return $label;
+                                                    }
+
+                                                    return $label.' <span class="text-gray-500 dark:text-gray-400">('.e((string) $value->note).')</span>';
+                                                })
+                                                ->filter()
+                                                ->implode(', ')),
+                                    ]),
+                            ]),
+                    ])
+                    ->schema([
                         RepeatableEntry::make('variants')
-                            ->label(__('Variants'))
+                            ->hiddenLabel()
+                            ->table([
+                                TableColumn::make(__('Label')),
+                                TableColumn::make(__('Price')),
+                                TableColumn::make(__('On hand')),
+                                TableColumn::make(__('Availability')),
+                            ])
                             ->schema([
                                 TextEntry::make('label')
-                                    ->label(__('Label')),
+                                    ->hiddenLabel(),
+                                TextEntry::make('price')
+                                    ->hiddenLabel()
+                                    ->money('GBP'),
+                                TextEntry::make('stock_quantity')
+                                    ->label(__('On hand')),
+                                TextEntry::make('availability')
+                                    ->hiddenLabel()
+                                    ->badge(),
                             ]),
+                    ]),
+                Section::make(__('Personalisation'))
+                    ->icon(Heroicon::OutlinedPencilSquare)
+                    ->columns(1)
+                    ->columnSpanFull()
+                    ->extraAttributes([
+                        'class' => 'flush-table-panel',
+                    ])
+                    ->visible(fn (MerchandiseItem $record): bool => $record->personalisationFieldDefinitions() !== [])
+                    ->schema([
+                        RepeatableEntry::make('personalisation_fields')
+                            ->hiddenLabel()
+                            ->table([
+                                TableColumn::make(__('Field')),
+                                TableColumn::make(__('Required')),
+                            ])
+                            ->schema([
+                                TextEntry::make('label')
+                                    ->hiddenLabel(),
+                                TextEntry::make('required')
+                                    ->label(__('Required'))
+                                    ->formatStateUsing(fn (mixed $state): string => $state ? __('Yes') : __('No')),
+                            ])
+                            ->placeholder('-'),
                     ]),
             ]);
     }

@@ -2,10 +2,12 @@
 
 namespace Tests\Feature;
 
+use App\Actions\ApproveMerchandiseOrderAction;
 use App\Actions\DeleteUserAction;
 use App\Actions\PassKeyAction;
 use App\Enums\MembershipRole;
 use App\Filament\Teams\Resources\Bookings\Pages\ViewBooking;
+use App\Filament\Teams\Resources\MerchandiseOrders\Pages\ViewMerchandiseOrder;
 use App\Filament\Teams\Resources\NewsPosts\Pages\ViewNewsPost;
 use App\Filament\Teams\Resources\Tasks\Pages\ViewTask;
 use App\Models\Activity;
@@ -13,6 +15,7 @@ use App\Models\Booking;
 use App\Models\Comment;
 use App\Models\Key;
 use App\Models\Lock;
+use App\Models\MerchandiseOrder;
 use App\Models\NewsPost;
 use App\Models\Task;
 use App\Models\Team;
@@ -25,10 +28,14 @@ use App\Notifications\EmailBouncedNotification;
 use App\Notifications\KeyHolderLeavingNotification;
 use App\Notifications\LastManagerLeavingNotification;
 use App\Notifications\LeadNeededNotification;
+use App\Notifications\MerchandiseOrderApprovedNotification;
+use App\Notifications\MerchandiseOrderRejectedNotification;
+use App\Notifications\MerchandiseOrderSubmittedNotification;
 use App\Notifications\NewsPublishedNotification;
 use App\Notifications\TaskHeldNotification;
 use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Mail;
 use Livewire\Livewire;
 use Tests\TestCase;
 
@@ -96,6 +103,55 @@ class InboxClearOnActionTest extends TestCase
         Livewire::test(ViewNewsPost::class, ['record' => $post->slug]);
 
         $this->assertNotNull($member->notifications()->where('type', NewsPublishedNotification::class)->first()?->read_at);
+    }
+
+    public function test_viewing_a_merchandise_order_marks_outcome_notices_read_but_not_submitted(): void
+    {
+        $team = Team::factory()->withShop()->create();
+        $manager = User::factory()->teamManager($team)->create();
+        $member = User::factory()->teamMember($team)->create();
+        $order = MerchandiseOrder::factory()->for($team)->for($member)->withLine()->create();
+        $approved = MerchandiseOrder::factory()->for($team)->for($member)->approved()->withLine()->create();
+        $rejected = MerchandiseOrder::factory()->for($team)->for($member)->rejected()->withLine()->create();
+
+        $manager->notify(new MerchandiseOrderSubmittedNotification($order));
+        $member->notify(new MerchandiseOrderApprovedNotification($approved));
+        $member->notify(new MerchandiseOrderRejectedNotification($rejected));
+
+        $this->actingAs($manager);
+        Filament::setCurrentPanel('teams');
+        Filament::setTenant($team);
+
+        Livewire::test(ViewMerchandiseOrder::class, ['record' => $order->getKey()])
+            ->assertSuccessful();
+
+        $this->assertNull($manager->notifications()->where('type', MerchandiseOrderSubmittedNotification::class)->first()?->read_at);
+
+        $this->actingAs($member);
+
+        Livewire::test(ViewMerchandiseOrder::class, ['record' => $approved->getKey()])
+            ->assertSuccessful();
+        Livewire::test(ViewMerchandiseOrder::class, ['record' => $rejected->getKey()])
+            ->assertSuccessful();
+
+        $this->assertNotNull($member->notifications()->where('type', MerchandiseOrderApprovedNotification::class)->first()?->read_at);
+        $this->assertNotNull($member->notifications()->where('type', MerchandiseOrderRejectedNotification::class)->first()?->read_at);
+    }
+
+    public function test_approving_a_merchandise_order_marks_submitted_notices_read(): void
+    {
+        Mail::fake();
+
+        $team = Team::factory()->withShop()->create();
+        $manager = User::factory()->teamManager($team)->create();
+        $member = User::factory()->teamMember($team)->create();
+        $order = MerchandiseOrder::factory()->for($team)->for($member)->withLine()->create();
+
+        $manager->notify(new MerchandiseOrderSubmittedNotification($order));
+
+        app(ApproveMerchandiseOrderAction::class)($order, $manager, null, 'treasurer@example.test');
+
+        $this->assertNotNull($manager->notifications()->where('type', MerchandiseOrderSubmittedNotification::class)->first()?->read_at);
     }
 
     public function test_updating_a_bounced_members_email_marks_bounce_inbox_rows_read(): void

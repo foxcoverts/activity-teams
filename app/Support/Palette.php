@@ -57,6 +57,16 @@ final class Palette
     }
 
     /**
+     * Present but not live / being prepared. Alias of {@see self::neutral()}.
+     *
+     * @return array<int, string>
+     */
+    public static function draft(): array
+    {
+        return self::neutral();
+    }
+
+    /**
      * The person running a team. Same sky as the Teams panel primary.
      *
      * @return array<int, string>

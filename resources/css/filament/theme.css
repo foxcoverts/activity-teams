@@ -663,6 +663,31 @@ a.fi-in-person-heading {
     @apply flex justify-end gap-2;
 }
 
+/* Basket qty: override TextInputColumn min-w-48; grow with digit count. */
+.fi-ta-text-input.basket-qty-input {
+    @apply w-auto min-w-0 max-w-none;
+
+    .fi-input-wrp,
+    .fi-input-wrp-content-ctn {
+        width: fit-content;
+        max-width: 100%;
+    }
+
+    .fi-input {
+        field-sizing: content;
+        min-inline-size: 2.75ch;
+        max-inline-size: 4.5ch;
+        @apply px-1.5 text-center;
+        -moz-appearance: textfield;
+    }
+
+    .fi-input::-webkit-outer-spin-button,
+    .fi-input::-webkit-inner-spin-button {
+        appearance: none;
+        margin: 0;
+    }
+}
+
 /* Give the complete-control column breathing room from the card edge on phones. */
 @media (max-width: 639px) {
     .fi-ta-cell.task-complete-col,
@@ -926,4 +951,49 @@ button.task-complete-control:disabled {
     height: 0.875rem;
     flex-shrink: 0;
     opacity: 0.75;
+}
+
+/*
+ * Flush table panel: put `flush-table-panel` on a Filament Section whose only
+ * content is a table (RepeatableEntry table, or a custom `.flush-table-panel__table`).
+ * Optional empty copy uses `.flush-table-panel__empty`.
+ */
+.flush-table-panel.fi-sc-section .fi-section:not(.fi-section-not-contained) {
+    @apply overflow-hidden;
+}
+
+.flush-table-panel.fi-sc-section
+    .fi-section:not(.fi-section-not-contained):not(.fi-divided)
+    > .fi-section-content-ctn
+    > .fi-section-content {
+    @apply p-0;
+}
+
+.flush-table-panel .fi-in-table-repeatable {
+    @apply gap-0;
+}
+
+.flush-table-panel .fi-in-table-repeatable > table,
+.flush-table-panel .flush-table-panel__table {
+    @apply rounded-none shadow-none ring-0;
+}
+
+.flush-table-panel .fi-in-table-repeatable > table > thead > tr > th:first-of-type,
+.flush-table-panel .fi-in-table-repeatable > table > thead > tr > th:last-of-type {
+    @apply rounded-none;
+}
+
+.flush-table-panel .flush-table-panel__empty {
+    @apply px-6 py-4;
+}
+
+/* Catalogue images: pack thumbs to their pixel size, not stretched 1fr tracks. */
+.merchandise-item-images.fi-in-repeatable {
+    @apply grid gap-3;
+    grid-template-columns: repeat(auto-fill, 7.5rem);
+}
+
+/* Catalogue images: light frame so product shots read on the card. */
+.merchandise-item-image img {
+    @apply rounded-lg bg-white ring-1 ring-gray-950/10 dark:bg-white/5 dark:ring-white/20;
 }

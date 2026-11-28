@@ -38,7 +38,7 @@ enum NewsPostStatus: string implements HasColor, HasIcon, HasLabel
     public function getColor(): array
     {
         return match ($this) {
-            self::Draft => Palette::neutral(),
+            self::Draft => Palette::draft(),
             self::Scheduled => Palette::uncertain(),
             self::Published => Palette::positive(),
             self::Deleted => Palette::destructive(),
