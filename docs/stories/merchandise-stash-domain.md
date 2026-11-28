@@ -18,8 +18,8 @@ Anchor stories: [US-36](US-36-merchandise-stash-requests.md) (shop), [US-24](US-
 | **Approval** | Manager accept or reject (with reason), including discretionary line discounts and an optional order-level value discount. |
 | **Invoice** | Amount the member owes after approval. Payment is offline (cash, cheque, bank transfer); the site only tracks unpaid / paid. |
 | **Supplier order** | Manager-built buy list for **one** supplier from approved member lines (one open draft per supplier), exported as CSV / on-screen table to send outside the app. Cupboard extras are ordered outside the app. Story file still named manufacturer orders ([US-86](US-86-merchandise-manufacturer-orders.md)). |
-| **Picking list** | Approved lines covered by on-hand stock (or already checked off from goods in). |
-| **Goods in** | Recording arrivals against a supplier order. Member-demand lines check off as ready to pick (no stock bump); cupboard extras are a manual Stock edit. |
+| **Picking list** | Approved lines covered by on-hand stock, or supplier-order lines with `arrived_at` set ([US-87](US-87-merchandise-picking-and-handover.md)). |
+| **Goods in** | Recording arrivals against a supplier order. Member-demand lines set `arrived_at` (whole-line) as ready to pick (no stock bump); cupboard extras are a manual Stock edit. |
 | **Handover** | Marking that an ordered line (or gift) has been given to the member. Collection vs post is informal. |
 | **Issued item** | Record that a member has received a catalogue item (from handover or a gift recorded without a shop order). Used for manager judgment, not auto free-item rules. |
 

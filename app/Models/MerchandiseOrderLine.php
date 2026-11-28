@@ -20,6 +20,7 @@ class MerchandiseOrderLine extends Model
         'merchandise_item_id',
         'merchandise_item_variant_id',
         'merchandise_supplier_order_id',
+        'arrived_at',
         'item_title',
         'variant_label',
         'unit_price',
@@ -109,6 +110,21 @@ class MerchandiseOrderLine extends Model
             && $this->supplierOrder->isSent();
     }
 
+    public function isArrived(): bool
+    {
+        return $this->arrived_at !== null;
+    }
+
+    public function scopeArrived(Builder $query): void
+    {
+        $query->whereNotNull('arrived_at');
+    }
+
+    public function scopeNotArrived(Builder $query): void
+    {
+        $query->whereNull('arrived_at');
+    }
+
     /**
      * Future amend cutoff: lines on a sent supplier order cannot be amended.
      */
@@ -165,6 +181,7 @@ class MerchandiseOrderLine extends Model
     protected function casts(): array
     {
         return [
+            'arrived_at' => 'datetime',
             'unit_price' => 'decimal:2',
             'approved_unit_price' => 'decimal:2',
             'quantity' => 'integer',

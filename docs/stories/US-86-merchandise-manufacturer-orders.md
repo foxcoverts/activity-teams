@@ -1,7 +1,7 @@
 ---
 id: US-86
 title: "Supplier Orders & Goods In"
-status: partial
+status: done
 area: merchandise
 scope: extra
 ---
@@ -28,8 +28,9 @@ As an Activity Manager, I want to generate a supplier order per supplier from ap
 - **Line link:** each member order line has at most one `merchandise_supplier_order_id` (whole-line attachment). One open draft per team+supplier.
 - **No cupboard reorder engine:** managers may buy more than demand when emailing the supplier; the app only tracks which member lines are on the order.
 - **Unified pipeline:** no catalogue fulfilment type. Pick what on-hand covers ([US-87](US-87-merchandise-picking-and-handover.md)); supplier-order the rest.
-- **Nav:** Merchandise **Supplier orders** is good enough for this slice; expect a US-36 IA revisit once picking and goods-in sit together.
+- **Goods in:** whole-line `arrived_at` check-off on sent orders (undo allowed until handover consumes ready-to-pick). No partial qty within a line in this story.
+- **Nav:** Merchandise **Supplier orders** is good enough for this slice; expect a US-36 IA revisit once picking sits with goods-in.
 
 ## Progress
 
-Partial. Draft board (supplier picker, draft vs past orders, checkbox in/out, select all with no on-hand, qty/on-hand hint), send, on-screen export table + CSV download with label-union axis/personalisation columns plus supplier code when any included item has one. Goods in still open. File name still says manufacturer for link stability; product language is **supplier**.
+Done. Draft board (supplier picker, draft vs past orders, checkbox in/out, select all with no on-hand, qty/on-hand hint), send, on-screen export table + CSV (`order-{supplier}-{sent_at}.csv`, label-union columns), whole-line goods in on the sent board (picker shows `arrived/total` or `complete`). File name still says manufacturer for link stability; product language is **supplier**.

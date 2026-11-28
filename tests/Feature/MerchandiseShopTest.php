@@ -9,6 +9,7 @@ use App\Actions\SendMerchandiseSupplierOrderAction;
 use App\Actions\SetMerchandiseOrderDiscountAction;
 use App\Actions\SetMerchandiseOrderLinePriceAction;
 use App\Actions\SyncMerchandiseSupplierOrderDraftLinesAction;
+use App\Actions\ToggleMerchandiseOrderLineArrivedAction;
 use App\Enums\IssuedMerchandiseSource;
 use App\Enums\MerchandiseAvailability;
 use App\Enums\MerchandiseOrderPaymentStatus;
@@ -1613,6 +1614,64 @@ class MerchandiseShopTest extends TestCase
             ->assertSuccessful()
             ->assertSee('Polo')
             ->assertActionExists('downloadCsv');
+    }
+
+    public function test_manager_can_record_whole_line_goods_in_without_stock_bump(): void
+    {
+        $team = Team::factory()->withShop()->create();
+        $manager = User::factory()->teamManager($team)->create();
+        $member = User::factory()->teamMember($team)->create();
+        $supplier = MerchandiseSupplier::factory()->for($team)->create(['name' => 'Fox kit']);
+        $item = MerchandiseItem::factory()->for($team)->create([
+            'title' => 'Polo',
+            'merchandise_supplier_id' => $supplier->getKey(),
+        ]);
+        $variant = $item->variants()->firstOrFail();
+        $variant->update(['stock_quantity' => 3]);
+
+        $order = MerchandiseOrder::factory()->for($team)->for($member)->approved()->create();
+        $line = MerchandiseOrderLine::factory()->for($order, 'order')->create([
+            'merchandise_item_id' => $item->getKey(),
+            'merchandise_item_variant_id' => $variant->getKey(),
+            'item_title' => 'Polo',
+            'variant_label' => 'One size',
+            'quantity' => 1,
+        ]);
+
+        $this->actingAs($manager);
+        Filament::setCurrentPanel('teams');
+        Filament::setTenant($team);
+
+        $draft = app(SyncMerchandiseSupplierOrderDraftLinesAction::class)
+            ->syncForSupplier($team, $supplier, $manager, [$line->getKey()]);
+        $sent = app(SendMerchandiseSupplierOrderAction::class)($draft, $manager);
+
+        Livewire::test(ManageMerchandiseSupplierOrders::class, [
+            'supplierId' => $supplier->getKey(),
+            'orderKey' => $sent->getKey(),
+        ])
+            ->assertSuccessful()
+            ->assertSee('(0/1)')
+            ->call('toggleArrived', (string) $line->getKey())
+            ->assertSuccessful()
+            ->assertSee('(complete)');
+
+        $this->assertNotNull($line->fresh()->arrived_at);
+        $this->assertSame(3, $variant->fresh()->stock_quantity);
+
+        Livewire::test(ManageMerchandiseSupplierOrders::class, [
+            'supplierId' => $supplier->getKey(),
+            'orderKey' => $sent->getKey(),
+        ])
+            ->call('toggleArrived', (string) $line->getKey())
+            ->assertSuccessful()
+            ->assertSee('(0/1)');
+
+        $this->assertNull($line->fresh()->arrived_at);
+        $this->assertSame(3, $variant->fresh()->stock_quantity);
+
+        $this->expectException(ValidationException::class);
+        app(ToggleMerchandiseOrderLineArrivedAction::class)($line->fresh(), $member);
     }
 
     public function test_supplier_order_exporter_unions_axis_and_personalisation_labels(): void

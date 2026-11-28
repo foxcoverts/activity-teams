@@ -49,6 +49,12 @@ class MerchandiseSupplierOrderPolicy
             && $merchandiseSupplierOrder->lines()->exists();
     }
 
+    public function recordGoodsIn(User $user, MerchandiseSupplierOrder $merchandiseSupplierOrder): bool
+    {
+        return $this->view($user, $merchandiseSupplierOrder)
+            && $merchandiseSupplierOrder->isSent();
+    }
+
     private function canManageSupplierOrders(User $user, ?Team $team): bool
     {
         if ($user->isSuspended() || ! $team instanceof Team) {

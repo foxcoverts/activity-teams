@@ -4,6 +4,7 @@ namespace App\Filament\Teams\Resources\MerchandiseSupplierOrders\Pages;
 
 use App\Actions\SendMerchandiseSupplierOrderAction;
 use App\Actions\SyncMerchandiseSupplierOrderDraftLinesAction;
+use App\Actions\ToggleMerchandiseOrderLineArrivedAction;
 use App\Enums\MerchandiseOrderStatus;
 use App\Filament\Teams\Resources\MerchandiseSupplierOrders\MerchandiseSupplierOrderResource;
 use App\Models\MerchandiseOrderLine;
@@ -126,7 +127,7 @@ class ManageMerchandiseSupplierOrders extends Page
                 ])
                 ->visible(fn (Get $get): bool => filled($get('supplier_id')))
                 ->description(fn (): ?string => $this->isViewingSentOrder()
-                    ? __('This order is locked. Copy from the table or download CSV.')
+                    ? __('This order is locked for ordering. Tick lines as they arrive (ready to pick). Download CSV anytime.')
                     : __('Tick lines to include. A draft is created when you include the first line.'))
                 ->headerActions([
                     Action::make('send')
@@ -207,6 +208,66 @@ class ManageMerchandiseSupplierOrders extends Page
         $this->saveSelection($allIds->all());
     }
 
+    public function toggleArrived(string $lineId): void
+    {
+        if (! $this->isViewingSentOrder()) {
+            return;
+        }
+
+        $order = $this->viewedSentOrder();
+
+        if (! $order instanceof MerchandiseSupplierOrder) {
+            return;
+        }
+
+        $line = $order->lines()->whereKey($lineId)->first();
+
+        if (! $line instanceof MerchandiseOrderLine) {
+            return;
+        }
+
+        try {
+            app(ToggleMerchandiseOrderLineArrivedAction::class)($line, $this->actor());
+        } catch (ValidationException $exception) {
+            Notification::make()
+                ->danger()
+                ->title(__('Could not update goods in'))
+                ->body(collect($exception->errors())->flatten()->first())
+                ->send();
+        }
+    }
+
+    public function toggleArrivedSelectAll(): void
+    {
+        if (! $this->isViewingSentOrder()) {
+            return;
+        }
+
+        $order = $this->viewedSentOrder();
+
+        if (! $order instanceof MerchandiseSupplierOrder) {
+            return;
+        }
+
+        $order->loadMissing('lines');
+        $lines = $order->lines;
+        $allArrived = $lines->isNotEmpty() && $lines->every(fn (MerchandiseOrderLine $line): bool => $line->isArrived());
+        $user = $this->actor();
+        $toggle = app(ToggleMerchandiseOrderLineArrivedAction::class);
+
+        try {
+            foreach ($lines as $line) {
+                $toggle($line, $user, ! $allArrived);
+            }
+        } catch (ValidationException $exception) {
+            Notification::make()
+                ->danger()
+                ->title(__('Could not update goods in'))
+                ->body(collect($exception->errors())->flatten()->first())
+                ->send();
+        }
+    }
+
     /**
      * @param  list<string>  $selectedLineIds
      */
@@ -282,7 +343,8 @@ class ManageMerchandiseSupplierOrders extends Page
      * @return array{
      *     headers: list<string>,
      *     rows: list<array{id: string, selected: bool, cells: list<string>}>,
-     *     editable: bool
+     *     editable: bool,
+     *     goodsIn: bool
      * }
      */
     public function boardTable(): array
@@ -293,7 +355,7 @@ class ManageMerchandiseSupplierOrders extends Page
             $order = $this->viewedSentOrder();
 
             if (! $order instanceof MerchandiseSupplierOrder) {
-                return ['headers' => [], 'rows' => [], 'editable' => false];
+                return ['headers' => [], 'rows' => [], 'editable' => false, 'goodsIn' => false];
             }
 
             $order->loadMissing([
@@ -302,18 +364,25 @@ class ManageMerchandiseSupplierOrders extends Page
                 'lines.item.optionAxes',
             ]);
 
+            $arrivedIds = $order->lines
+                ->filter(fn (MerchandiseOrderLine $line): bool => $line->isArrived())
+                ->map(fn (MerchandiseOrderLine $line): string => (string) $line->getKey())
+                ->values()
+                ->all();
+
             return $exporter->board(
                 lines: $order->lines,
-                selectedLineIds: $order->lines->modelKeys(),
-                editable: false,
+                selectedLineIds: $arrivedIds,
+                editable: true,
                 showOnHandHint: false,
+                goodsIn: true,
             );
         }
 
         $supplier = $this->supplier();
 
         if (! $supplier instanceof MerchandiseSupplier) {
-            return ['headers' => [], 'rows' => [], 'editable' => true];
+            return ['headers' => [], 'rows' => [], 'editable' => true, 'goodsIn' => false];
         }
 
         $candidates = $this->candidates($supplier->getKey());
@@ -323,6 +392,7 @@ class ManageMerchandiseSupplierOrders extends Page
             selectedLineIds: $this->selectedLineIdsForCurrentDraft(),
             editable: true,
             showOnHandHint: true,
+            goodsIn: false,
         );
     }
 
@@ -432,15 +502,34 @@ class ManageMerchandiseSupplierOrders extends Page
             ->whereBelongsTo($this->team())
             ->whereBelongsTo($supplier, 'supplier')
             ->sent()
-            ->withCount('lines')
+            ->withCount([
+                'lines',
+                'lines as arrived_lines_count' => fn (Builder $lines): Builder => $lines->arrived(),
+            ])
             ->latest('sent_at')
             ->get();
 
         foreach ($sent as $order) {
-            $when = $order->sent_at?->timezone(config('app.timezone'))?->format('j M Y H:i');
-            $options[$order->getKey()] = __(':date (:count lines)', [
-                'date' => $when ?? __('Sent'),
-                'count' => $order->lines_count,
+            $when = $order->sent_at?->timezone(config('app.timezone'))?->format('j M Y H:i') ?? __('Sent');
+            $total = (int) $order->lines_count;
+            $arrived = (int) $order->arrived_lines_count;
+
+            if ($total === 0) {
+                $options[$order->getKey()] = __(':date (0 lines)', ['date' => $when]);
+
+                continue;
+            }
+
+            if ($arrived === $total) {
+                $options[$order->getKey()] = __(':date (complete)', ['date' => $when]);
+
+                continue;
+            }
+
+            $options[$order->getKey()] = __(':date (:arrived/:total)', [
+                'date' => $when,
+                'arrived' => $arrived,
+                'total' => $total,
             ]);
         }
 

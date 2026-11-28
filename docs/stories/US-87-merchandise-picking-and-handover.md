@@ -28,4 +28,4 @@ As an Activity Manager, I want a picking list for stock items and a way to mark 
 
 ## Progress
 
-Not started.
+Not started. Picking list should include stock-covered approved lines and supplier-order lines with `arrived_at` set ([US-86](US-86-merchandise-manufacturer-orders.md)).

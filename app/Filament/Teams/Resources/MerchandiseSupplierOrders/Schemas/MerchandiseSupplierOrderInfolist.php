@@ -33,17 +33,38 @@ class MerchandiseSupplierOrderInfolist
                             ->prose()
                             ->visible(fn (MerchandiseSupplierOrder $record): bool => filled($record->notes)),
                     ]),
-                Section::make(__('Export'))
+                Section::make(__('Lines'))
                     ->icon(Heroicon::OutlinedTableCells)
                     ->columns(1)
                     ->columnSpanFull()
+                    ->extraAttributes([
+                        'class' => 'flush-table-panel',
+                    ])
                     ->schema([
                         ViewEntry::make('export_table')
                             ->hiddenLabel()
                             ->view('filament.teams.resources.merchandise-supplier-orders.export-table')
-                            ->viewData(fn (MerchandiseSupplierOrder $record): array => [
-                                'table' => app(MerchandiseSupplierOrderExporter::class)->table($record),
-                            ]),
+                            ->viewData(function (MerchandiseSupplierOrder $record): array {
+                                $record->loadMissing([
+                                    'lines.order.user',
+                                    'lines.variant.optionValues.axis',
+                                    'lines.item.optionAxes',
+                                ]);
+
+                                $arrivedIds = $record->lines
+                                    ->filter(fn ($line): bool => $line->isArrived())
+                                    ->modelKeys();
+
+                                return [
+                                    'table' => app(MerchandiseSupplierOrderExporter::class)->board(
+                                        lines: $record->lines,
+                                        selectedLineIds: $arrivedIds,
+                                        editable: false,
+                                        showOnHandHint: false,
+                                        showArrivedColumn: true,
+                                    ),
+                                ];
+                            }),
                     ]),
             ]);
     }

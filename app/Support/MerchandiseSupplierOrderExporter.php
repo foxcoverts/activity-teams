@@ -32,7 +32,10 @@ class MerchandiseSupplierOrderExporter
         return [
             'headers' => $board['headers'],
             'rows' => array_map(
-                fn (array $row): array => $row['cells'],
+                fn (array $row): array => array_map(
+                    fn (mixed $cell): string => $cell instanceof Htmlable ? strip_tags($cell->toHtml()) : (string) $cell,
+                    $row['cells'],
+                ),
                 $board['rows'],
             ),
         ];
@@ -81,7 +84,8 @@ class MerchandiseSupplierOrderExporter
      * @return array{
      *     headers: list<string>,
      *     rows: list<array{id: string, selected: bool, cells: list<string|Htmlable>}>,
-     *     editable: bool
+     *     editable: bool,
+     *     goodsIn: bool
      * }
      */
     public function board(
@@ -89,6 +93,8 @@ class MerchandiseSupplierOrderExporter
         array $selectedLineIds = [],
         bool $editable = false,
         bool $showOnHandHint = false,
+        bool $goodsIn = false,
+        bool $showArrivedColumn = false,
     ): array {
         $lines = $this->sortedLines($lines)->values();
         $selected = collect($selectedLineIds)->map(fn (mixed $id): string => (string) $id)->all();
@@ -99,10 +105,11 @@ class MerchandiseSupplierOrderExporter
             $includeSupplierCode ? [__('Supplier code')] : [],
             [__('Qty')],
             $dynamicHeaders,
+            $showArrivedColumn ? [__('Arrived')] : [],
         );
 
         $rows = $lines
-            ->map(function (MerchandiseOrderLine $line) use ($dynamicHeaders, $selected, $showOnHandHint, $includeSupplierCode): array {
+            ->map(function (MerchandiseOrderLine $line) use ($dynamicHeaders, $selected, $showOnHandHint, $includeSupplierCode, $showArrivedColumn): array {
                 $axisValues = $this->axisValuesByLabel($line);
                 $personalisationValues = $this->personalisationValuesByLabel($line);
                 $onHand = (int) ($line->variant?->stock_quantity ?? 0);
@@ -132,6 +139,10 @@ class MerchandiseSupplierOrderExporter
                     $cells[] = $axisValues[$label] ?? $personalisationValues[$label] ?? '';
                 }
 
+                if ($showArrivedColumn) {
+                    $cells[] = $line->isArrived() ? __('Yes') : __('No');
+                }
+
                 return [
                     'id' => (string) $line->getKey(),
                     'selected' => in_array((string) $line->getKey(), $selected, true),
@@ -145,6 +156,7 @@ class MerchandiseSupplierOrderExporter
             'headers' => $headers,
             'rows' => $rows,
             'editable' => $editable,
+            'goodsIn' => $goodsIn,
         ];
     }
 
